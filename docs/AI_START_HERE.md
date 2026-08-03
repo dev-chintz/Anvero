@@ -66,3 +66,7 @@ Update documentation.
 Commit.
 
 Push.
+
+Before writing code, also read:
+
+- DEVELOPMENT_WORKFLOW.md
