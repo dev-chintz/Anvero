@@ -1,16 +1,35 @@
+# Python
 .venv/
 __pycache__/
 *.py[cod]
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/
+
+# Environment
 .env
 .env.*
 !.env.example
+
+# Node
 node_modules/
+
+# Build
 dist/
+build/
 coverage/
 .coverage
-*.log
+
+# IDE
+.vscode/settings.json
+.idea/
+
+# OS
 .DS_Store
 Thumbs.db
+
+# Logs
+*.log
+
+# Python cache
+*.egg-info/
