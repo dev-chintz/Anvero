@@ -14,9 +14,9 @@ switch ($Command) {
         & "$scriptRoot\doctor.ps1"
     }
 
-    "bootstrap" {
-        & "$scriptRoot\bootstrap-project.ps1"
-    }
+   "bootstrap" {
+    & "$scriptRoot\bootstrap.ps1"
+}
 
     "start" {
         & "$scriptRoot\start.ps1"
