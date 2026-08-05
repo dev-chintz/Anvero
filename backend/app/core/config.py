@@ -1,7 +1,10 @@
+from pathlib import Path
 from typing import Literal
 
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+BASE_DIR = Path(__file__).resolve().parent.parent
 
 
 class Settings(BaseSettings):
@@ -20,7 +23,7 @@ class Settings(BaseSettings):
     secret_key: str = Field(default="")
 
     model_config = SettingsConfigDict(
-        env_file=".env",
+        env_file=BASE_DIR.parent / ".env",
         env_file_encoding="utf-8",
         extra="ignore",
         case_sensitive=False,
