@@ -14,6 +14,13 @@ class UserRepository:
             .first()
         )
 
+    def get_by_id(self, user_id: int) -> User | None:
+        return (
+            self.db.query(User)
+            .filter(User.id == user_id)
+            .first()
+        )
+
     def create(self, user: User) -> User:
         self.db.add(user)
         self.db.commit()

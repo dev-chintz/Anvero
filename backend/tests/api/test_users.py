@@ -1,3 +1,4 @@
+import uuid
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
@@ -47,8 +48,9 @@ def teardown_module():
 
 def test_register_user():
     """Test successful user registration."""
+    unique_email = f"test-{uuid.uuid4()}@example.com"
     payload = {
-        "email": "test@example.com",
+        "email": unique_email,
         "password": "TestPassword123!",
     }
 
@@ -56,7 +58,7 @@ def test_register_user():
 
     assert response.status_code == 200
     data = response.json()
-    assert data["email"] == "test@example.com"
+    assert data["email"] == unique_email
     assert "id" in data
     assert data["is_active"] is True
     assert "created_at" in data
