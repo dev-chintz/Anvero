@@ -1,30 +1,30 @@
-# Architektura
+# Architecture
 
-## Zasada
+## Principle
 
-Anvero jest podzielone na frontend, backend i bazę danych. Integracje z marketplace'ami są adapterami: tłumaczą dane konkretnej platformy na wspólny model Anvero.
+Anvero is divided into frontend, backend, and database. Marketplace integrations are adapters: they translate data from specific platforms to a common Anvero domain model.
 
 ```text
-Frontend -> API backendu -> usługi domenowe -> PostgreSQL
+Frontend -> Backend API -> Domain services -> PostgreSQL
                               ^
                               |
-                    adaptery Allegro / ERLI
+                    Allegro / ERLI adapters
 ```
 
-## Odpowiedzialności
+## Responsibilities
 
-- `frontend/` — widoki, formularze, komunikacja z API.
-- `backend/app/api/` — endpointy HTTP i walidacja wejścia.
-- `backend/app/services/` — przypadki użycia oraz reguły biznesowe.
-- `backend/app/integrations/` — klient i mapowanie danych każdego zewnętrznego API.
-- `backend/app/models/` — modele trwałych danych.
-- `backend/app/schemas/` — kontrakty danych API.
-- `database/` — migracje, definicje schematu i dane demonstracyjne.
+- `frontend/` — views, forms, API communication.
+- `backend/app/api/` — HTTP endpoints and input validation.
+- `backend/app/services/` — use cases and business rules.
+- `backend/app/integrations/` — client and data mapping for each external API.
+- `backend/app/models/` — persistent data models.
+- `backend/app/schemas/` — API data contracts.
+- `database/` — migrations, schema definitions, and sample data.
 
-## Założenia Sprintu 1
+## Sprint 1 Assumptions
 
-Python będzie językiem backendu, PostgreSQL docelową bazą, a interfejs będzie aplikacją webową. Wybór frameworków nastąpi przed implementacją Sprintu 2 i zostanie zapisany w `DECISIONS.md`.
+Python will be the backend language, PostgreSQL the target database, and the interface a web application. Framework selection will occur before Sprint 2 implementation and be recorded in `DECISIONS.md`.
 
-## Granice
+## Boundaries
 
-Frontend nie komunikuje się bezpośrednio z bazą ani API marketplace'ów. Kod Allegro i ERLI nie przekazuje swoich surowych struktur poza moduł integracji.
+Frontend does not communicate directly with the database or marketplace APIs. Allegro and ERLI code does not expose its raw structures outside the integration module.

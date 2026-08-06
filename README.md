@@ -1,46 +1,46 @@
 # Anvero
 
-Anvero to rozwijany lokalnie system wspierający obsługę sprzedaży z marketplace'ów. Pierwsza wersja skupia się na jednym, spójnym widoku zamówień oraz przygotowaniu architektury pod integracje Allegro i ERLI.
+Anvero is a locally developed system supporting marketplace sales management. The first version focuses on a single, unified view of orders and preparing architecture for Allegro and ERLI integrations.
 
 ## Status
 
-Sprint 1 jest zakończony: repozytorium ma ustaloną strukturę, dokumentację startową oraz skrypty do przygotowania i sprawdzenia środowiska. Implementacja aplikacji rozpocznie się w Sprincie 2.
+Sprint 1 is complete: the repository has a defined structure, initial documentation, and scripts for environment setup and diagnostics. Application implementation will begin in Sprint 2.
 
-## Szybki start (Windows)
+## Quick Start (Windows)
 
-W PowerShell, z katalogu projektu, uruchom:
+In PowerShell, from the project directory, run:
 
 ```powershell
 .\scripts\bootstrap.ps1
 .\scripts\doctor.ps1
 ```
 
-`bootstrap` tworzy lokalne środowisko Pythona i instaluje zależności, jeżeli plik z zależnościami został już dodany. `doctor` sprawdza, czy środowisko jest gotowe do dalszej pracy.
+`bootstrap` creates a local Python environment and installs dependencies if the requirements file has been added. `doctor` checks if the environment is ready for further work.
 
-Jeżeli PowerShell blokuje uruchomienie lokalnego skryptu, użyj jednorazowo:
+If PowerShell blocks running local scripts, run once:
 
 ```powershell
 Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
 ```
 
-## Dokumentacja
+## Documentation
 
-- [Kontekst projektu](docs/PROJECT_CONTEXT.md)
+- [Project Context](docs/PROJECT_CONTEXT.md)
 - [MVP](docs/MVP.md)
-- [Architektura](docs/ARCHITECTURE.md)
-- [Model danych](docs/DATABASE.md)
-- [Kontrakt API](docs/API.md)
-- [Plan rozwoju](docs/ROADMAP.md)
-- [Rejestr decyzji](docs/DECISIONS.md)
-- [Praca lokalna](docs/DEVELOPMENT.md)
+- [Architecture](docs/ARCHITECTURE.md)
+- [Data Model](docs/DATABASE.md)
+- [API Contract](docs/API.md)
+- [Development Plan](docs/ROADMAP.md)
+- [Decision Log](docs/DECISIONS.md)
+- [Local Development](docs/DEVELOPMENT.md)
 
-## Struktura
+## Structure
 
 ```text
-backend/    przyszła aplikacja Python i testy
-frontend/   przyszły interfejs użytkownika
-database/   migracje, schemat i dane przykładowe
-docs/       ustalenia projektowe
-scripts/    narzędzia dla lokalnego środowiska
-branding/   materiały marki
+backend/    future Python application and tests
+frontend/   future user interface
+database/   migrations, schema and sample data
+docs/       project decisions
+scripts/    tools for local environment
+branding/   brand materials
 ```

@@ -1,106 +1,106 @@
-# Dokument projektu — wersja startowa
+# Project Context — Initial Version
 
-## 1. Cel dokumentu
+## 1. Document Purpose
 
-Ten dokument zawiera aktualny kontekst projektu oraz najważniejsze ustalenia dotyczące jego rozwoju. Ma umożliwić przeniesienie pracy na inne konto ChatGPT, inny komputer lub do innego narzędzia AI bez konieczności ponownego wyjaśniania całej koncepcji.
+This document contains the current project context and key decisions regarding its development. It enables transferring work to another ChatGPT account, another computer, or another AI tool without needing to re-explain the entire concept.
 
-Projekt będzie rozwijany etapami. Na początku ma służyć przede wszystkim jako praktyczne narzędzie wspierające codzienną pracę, a w dalszej perspektywie może zostać rozbudowany lub przekształcony w produkt komercyjny.
+The project will be developed iteratively. Initially, it serves primarily as a practical tool to support daily work, and in the longer term, it may be expanded or transformed into a commercial product.
 
 ---
 
-# 2. Główna idea projektu
+## 2. Project Main Idea
 
-Planowane jest stworzenie własnej aplikacji do wspierania obsługi sprzedaży internetowej i zamówień z różnych platform marketplace.
+A custom application for supporting online sales and marketplace order management is planned.
 
-Aplikacja ma docelowo umożliwiać między innymi:
+The application will ultimately enable, among other things:
 
-* pobieranie zamówień z różnych platform,
-* prezentowanie zamówień w jednym, wspólnym panelu,
-* ujednolicenie obsługi zamówień niezależnie od ich źródła,
-* obsługę statusów zamówień,
-* integrację z systemami wysyłkowymi,
-* przekazywanie informacji o przesyłkach,
-* potencjalną integrację z systemami fakturowania,
-* zarządzanie produktami, stanami magazynowymi i innymi procesami, jeśli będzie to potrzebne.
+* Order retrieval from various platforms,
+* Presentation of orders in a single, unified panel,
+* Unification of order handling regardless of source,
+* Order status management,
+* Integration with shipping systems,
+* Shipment information transmission,
+* Potential integration with invoicing systems,
+* Product, inventory, and other process management if needed.
 
-Pierwszymi rozważanymi integracjami są:
+The first integrations being considered are:
 
 * Allegro,
 * ERLI.
 
-W przyszłości mogą zostać dodane kolejne platformy, przewoźnicy, systemy księgowe, programy magazynowe lub inne usługi.
+In the future, additional platforms, carriers, accounting systems, warehouse programs, or other services may be added.
 
 ---
 
-# 3. Założenie strategiczne
+## 3. Strategic Assumption
 
-Nie planujemy od razu tworzyć pełnego konkurenta dla BaseLinkera ani odtwarzać wszystkich jego funkcji.
+We do not plan to immediately create a full competitor to BaseLinker or replicate all its features.
 
-Gotowe systemy posiadają bardzo dużą liczbę integracji i są rozwijane przez duże zespoły. Próba skopiowania całego takiego rozwiązania od początku byłaby niepotrzebnie skomplikowana.
+Ready-made systems have a very large number of integrations and are developed by large teams. Attempting to copy such a solution from the start would be unnecessarily complicated.
 
-Plan jest następujący:
+The plan is as follows:
 
-1. Zidentyfikować konkretne problemy występujące w codziennej pracy.
-2. Stworzyć rozwiązanie dopasowane do rzeczywistych potrzeb.
-3. Zbudować małą, działającą wersję aplikacji.
-4. Testować ją na prawdziwych procesach.
-5. Rozbudowywać system tylko wtedy, gdy pojawi się konkretna potrzeba.
+1. Identify specific problems occurring in daily work.
+2. Create a solution tailored to real needs.
+3. Build a small, working application version.
+4. Test it on real processes.
+5. Expand the system only when a specific need arises.
 
-Aplikacja ma być rozwijana modułowo. Nie należy dodawać funkcji wyłącznie dlatego, że posiada je BaseLinker lub inne rozwiązanie komercyjne.
-
----
-
-# 4. Możliwa przyszłość komercyjna
-
-Na obecnym etapie głównym celem nie jest sprzedaż aplikacji.
-
-Pierwsza wersja ma przede wszystkim:
-
-* usprawniać pracę,
-* oszczędzać czas,
-* zmniejszać liczbę błędów,
-* uporządkować obsługę zamówień,
-* stanowić praktyczny projekt rozwojowy.
-
-Jeżeli aplikacja okaże się skuteczna i inne firmy będą miały podobne potrzeby, można później rozważyć:
-
-* sprzedaż dostępu w modelu abonamentowym,
-* stworzenie produktu SaaS,
-* sprzedaż licencji,
-* tworzenie wersji dostosowanych do konkretnych firm,
-* oferowanie dodatkowych modułów lub integracji.
-
-Nie należy jednak projektować pierwszej wersji tak, jakby od początku miała obsługiwać tysiące klientów. Najpierw ma dobrze działać w rzeczywistym środowisku.
+The application will be developed modularly. Features should not be added solely because BaseLinker or another commercial solution has them.
 
 ---
 
-# 5. Planowana architektura
+## 4. Possible Commercial Future
 
-Wstępnie zakładany jest następujący podział:
+At this stage, the main goal is not to sell the application.
 
-## Frontend
+The first version aims primarily to:
 
-Frontend będzie odpowiadał za:
+* Improve work efficiency,
+* Save time,
+* Reduce error count,
+* Organize order handling,
+* Serve as a practical development project.
 
-* wygląd aplikacji,
-* widoki i ekrany,
-* wyświetlanie zamówień,
-* formularze,
-* filtrowanie i wyszukiwanie,
-* interakcję użytkownika z systemem.
+If the application proves effective and other companies have similar needs, later consider:
 
-Planowane technologie:
+* Subscription-based access sales,
+* Creating a SaaS product,
+* Licensing sales,
+* Creating versions tailored to specific companies,
+* Offering additional modules or integrations.
+
+However, do not design the first version as if it were intended to serve thousands of customers from the start. First, it must work well in a real environment.
+
+---
+
+## 5. Planned Architecture
+
+The preliminary division is as follows:
+
+### Frontend
+
+Frontend will be responsible for:
+
+* Application appearance,
+* Views and screens,
+* Order display,
+* Forms,
+* Filtering and search,
+* User interaction with the system.
+
+Planned technologies:
 
 * HTML,
 * CSS,
 * JavaScript.
 
-Kod powinien być od początku uporządkowany.
+Code should be well-organized from the start.
 
-Przykładowy podział:
+Example division:
 
 ```text
-projekt/
+project/
 ├── frontend/
 │   ├── index.html
 │   ├── css/
@@ -109,71 +109,67 @@ projekt/
 │       └── app.js
 ```
 
-Nie należy umieszczać całego HTML, CSS i JavaScript w jednym pliku, jeśli nie ma ku temu konkretnego powodu.
+Do not place all HTML, CSS, and JavaScript in a single file unless there's a specific reason.
 
-Frontend powinien być tworzony zgodnie z aktualnymi dobrymi praktykami:
+Frontend should be created according to current best practices:
 
-* poprawna struktura dokumentu HTML,
-* semantyczne elementy,
-* odpowiednie nagłówki,
-* poprawne formularze i etykiety,
-* podstawowa dostępność,
-* responsywny wygląd,
-* czytelna struktura kodu,
-* oddzielenie logiki od wyglądu.
+* Correct HTML document structure,
+* Semantic elements,
+* Appropriate headers,
+* Correct forms and labels,
+* Basic accessibility,
+* Responsive appearance,
+* Readable code structure,
+* Separation of logic from appearance.
 
----
+### Backend
 
-## Backend
+Backend will be responsible for:
 
-Backend będzie odpowiadał za:
+* Allegro API communication,
+* ERLI API communication,
+* Order retrieval and processing,
+* Data saving,
+* Business logic,
+* Authorization,
+* Communication between frontend and database,
+* Future integrations.
 
-* komunikację z API Allegro,
-* komunikację z API ERLI,
-* pobieranie i przetwarzanie zamówień,
-* zapisywanie danych,
-* logikę biznesową,
-* autoryzację,
-* komunikację pomiędzy frontendem a bazą danych,
-* przyszłe integracje.
-
-Wstępnie rozważany język:
+Preliminary language under consideration:
 
 * Python.
 
-Dokładny framework backendowy zostanie wybrany później. Możliwe rozwiązania to między innymi:
+The exact backend framework will be selected later. Possible solutions include, among others:
 
 * FastAPI,
 * Django.
 
-Na obecnym etapie nie należy wybierać technologii bez wcześniejszego przeanalizowania potrzeb.
+At this stage, do not select technology without prior needs analysis.
 
----
+### Database
 
-## Baza danych
-
-Wstępnie planowana baza:
+The preliminary planned database:
 
 * PostgreSQL.
 
-Baza będzie przechowywać między innymi:
+The database will store, among other things:
 
-* zamówienia,
-* produkty,
-* dane dotyczące integracji,
-* statusy,
-* informacje o przesyłkach,
-* dane potrzebne do działania aplikacji.
+* Orders,
+* Products,
+* Integration-related data,
+* Statuses,
+* Shipment information,
+* Data needed for application operation.
 
-Dokładny model danych zostanie zaprojektowany przed rozpoczęciem implementacji właściwych funkcji.
+The exact data model will be designed before implementing the actual features.
 
 ---
 
-# 6. Integracje z Allegro i ERLI
+## 6. Allegro and ERLI Integrations
 
-Integracje powinny być tworzone jako niezależne moduły.
+Integrations should be created as independent modules.
 
-Przykładowa koncepcja:
+Example concept:
 
 ```text
 backend/
@@ -182,360 +178,360 @@ backend/
 │   └── erli/
 ```
 
-Każda integracja powinna odpowiadać za komunikację z konkretną platformą.
+Each integration should be responsible for communication with a specific platform.
 
-Aplikacja nie powinna mieszać logiki Allegro i ERLI bezpośrednio w jednym miejscu.
+The application should not mix Allegro and ERLI logic directly in one place.
 
-Docelowo system powinien przekształcać dane z różnych platform do wspólnego formatu wewnętrznego.
+Ultimately, the system should transform data from various platforms to a common internal format.
 
-Przykład:
+Example:
 
 ```text
-Zamówienie z Allegro
+Order from Allegro
         ↓
-Moduł Allegro
+Allegro Module
         ↓
-Wspólny format zamówienia
+Common Order Format
         ↓
-Baza danych i panel aplikacji
+Database and application panel
 
-Zamówienie z ERLI
+Order from ERLI
         ↓
-Moduł ERLI
+ERLI Module
         ↓
-Wspólny format zamówienia
+Common Order Format
         ↓
-Baza danych i panel aplikacji
+Database and application panel
 ```
 
-Dzięki temu użytkownik aplikacji będzie obsługiwał zamówienia w podobny sposób niezależnie od platformy.
+Thanks to this, the application user will handle orders in a similar way regardless of the platform.
 
 ---
 
-# 7. Obsługa wysyłek
+## 7. Shipping Handling
 
-Nie planujemy tworzyć własnych systemów kurierskich.
+We do not plan to create our own courier systems.
 
-Jeżeli Allegro lub inny dostawca udostępnia odpowiednie API, aplikacja będzie korzystać z oficjalnych interfejsów API.
+If Allegro or another provider offers the appropriate API, the application will use official API interfaces.
 
-Możliwe przyszłe funkcje:
+Possible future features:
 
-* tworzenie przesyłek,
-* wybór metody dostawy,
-* pobieranie danych przesyłki,
-* pobieranie lub generowanie etykiet,
-* przekazywanie numerów śledzenia,
-* aktualizacja statusów wysyłki.
+* Shipment creation,
+* Shipping method selection,
+* Shipment data retrieval,
+* Label retrieval or generation,
+* Tracking number transmission,
+* Shipment status updates.
 
-Integracje wysyłkowe powinny być dodawane tylko wtedy, gdy są rzeczywiście potrzebne.
+Shipping integrations should be added only when they are genuinely needed.
 
 ---
 
-# 8. Środowisko programistyczne
+## 8. Development Environment
 
-Na początku aplikacja będzie uruchamiana lokalnie na komputerze.
+Initially, the application will run locally on the computer.
 
-Nie ma potrzeby stawiania lokalnego serwera Apache.
+There is no need to set up a local Apache server.
 
-Planowane środowisko:
+Planned environment:
 
 * Windows,
-* Visual Studio Code lub Kiro,
+* Visual Studio Code or Kiro,
 * Python,
 * PostgreSQL,
 * Git,
 * GitHub.
 
-Frontend i backend będą uruchamiane lokalnie na adresach typu:
+Frontend and backend will run locally on addresses such as:
 
 ```text
 http://localhost
 ```
 
-lub:
+or:
 
 ```text
 http://127.0.0.1
 ```
 
-Współczesne narzędzia programistyczne posiadają własne serwery deweloperskie, dlatego nie ma potrzeby instalowania Apache wyłącznie po to, aby uruchomić projekt lokalnie.
+Modern development tools have their own development servers, so there is no need to install Apache solely to run the project locally.
 
 ---
 
-# 9. Docker
+## 9. Docker
 
-Docker został omówiony jako narzędzie umożliwiające uruchamianie aplikacji i jej zależności w uporządkowanych, odizolowanych środowiskach.
+Docker was discussed as a tool for running the application and its dependencies in organized, isolated environments.
 
-Docker może być przydatny później, ponieważ ułatwia:
+Docker may be useful later as it simplifies:
 
-* przenoszenie aplikacji między komputerami,
-* utrzymanie tych samych wersji środowiska,
-* uruchamianie bazy danych,
-* wdrażanie aplikacji na serwerze.
+* Transferring the application between computers,
+* Maintaining the same environment versions,
+* Running the database,
+* Deploying the application to a server.
 
-Na początku Docker nie jest wymagany.
+Docker is not required at the beginning.
 
 Plan:
 
-1. Najpierw uruchomić aplikację natywnie na komputerze.
-2. Zrozumieć podstawy działania aplikacji.
-3. Dodać Docker później, gdy pojawi się konkretna potrzeba.
+1. First, run the application natively on the computer.
+2. Understand the application's fundamentals.
+3. Add Docker later when a specific need arises.
 
 ---
 
-# 10. Visual Studio Code i Kiro
+## 10. Visual Studio Code and Kiro
 
-Rozważane są dwa środowiska:
+Two environments are under consideration:
 
-## Visual Studio Code
+### Visual Studio Code
 
-Zalety:
+Advantages:
 
-* popularny standard,
-* duża liczba rozszerzeń,
-* dobra dokumentacja,
-* łatwa integracja z GitHubem,
-* szerokie wsparcie dla Pythona, HTML, CSS i JavaScript.
+* Popular standard,
+* Large number of extensions,
+* Good documentation,
+* Easy GitHub integration,
+* Wide support for Python, HTML, CSS, and JavaScript.
 
-## Kiro
+### Kiro
 
-Kiro jest osobnym środowiskiem programistycznym opartym na technologii Code - OSS i posiada rozbudowane funkcje AI.
+Kiro is a separate development environment based on Code - OSS and features advanced AI capabilities.
 
-Może być używany jako główny edytor zamiast standardowego VS Code.
+It can be used as the primary editor instead of standard VS Code.
 
-Projekt pozostaje niezależny od edytora. Ten sam folder projektu może być otwierany zarówno w Kiro, jak i w Visual Studio Code.
+The project remains editor-independent. The same project folder can be opened in both Kiro and Visual Studio Code.
 
-Na późniejszym etapie należy przetestować oba rozwiązania i wybrać to, które będzie wygodniejsze.
+At a later stage, both solutions should be tested to choose the more comfortable one.
 
 ---
 
-# 11. Planowane rozszerzenia edytora
+## 11. Planned Editor Extensions
 
-Na początku nie należy instalować dużej liczby dodatków.
+Initially, do not install a large number of add-ons.
 
-Wstępnie przydatne mogą być:
+Potentially useful at the start:
 
 * Python,
 * Pylance,
 * Prettier,
 * ESLint,
-* rozszerzenie do podglądu stron lokalnych,
-* integracja z GitHubem,
-* narzędzia do obsługi PostgreSQL.
+* Local site preview extension,
+* GitHub integration,
+* PostgreSQL tools.
 
-Docker i dodatkowe narzędzia mogą zostać dodane później.
+Docker and additional tools can be added later.
 
-Warto włączyć automatyczne formatowanie kodu podczas zapisu.
-
----
-
-# 12. Wykorzystanie AI
-
-ChatGPT będzie wykorzystywany przede wszystkim do:
-
-* omawiania pomysłu,
-* projektowania architektury,
-* planowania funkcji,
-* tworzenia modelu danych,
-* wyjaśniania kodu,
-* analizowania problemów,
-* projektowania integracji,
-* przeglądu i poprawy kodu.
-
-Narzędzia AI działające bezpośrednio w edytorze, takie jak Kiro, mogą być używane później do:
-
-* implementacji konkretnych funkcji,
-* edycji wielu plików,
-* refaktoryzacji,
-* wyszukiwania błędów,
-* przyspieszania codziennej pracy z kodem.
-
-Nie należy generować dużych fragmentów projektu bez zrozumienia ich działania.
-
-Kod powinien być:
-
-* czytelny,
-* wyjaśniony,
-* uporządkowany,
-* możliwy do dalszego rozwijania.
+Auto-code formatting on save can be enabled.
 
 ---
 
-# 13. Git i GitHub
+## 12. AI Usage
 
-Git będzie używany do kontroli wersji projektu.
+ChatGPT will be used primarily for:
 
-Git działa lokalnie na komputerze i śledzi zmiany w plikach.
+* Discussing the idea,
+* Designing architecture,
+* Planning features,
+* Creating the data model,
+* Explaining code,
+* Analyzing problems,
+* Designing integrations,
+* Code review and improvement.
 
-GitHub będzie wykorzystywany jako zdalne miejsce przechowywania repozytorium.
+AI tools working directly in the editor, such as Kiro, can be used later for:
 
-Podstawowe pojęcia:
+* Implementing specific features,
+* Editing multiple files,
+* Refactoring,
+* Finding bugs,
+* Accelerating daily coding work.
 
-* `commit` — zapis logicznego etapu pracy w historii projektu,
-* `push` — wysłanie commitów na GitHub,
-* `pull` — pobranie zmian z GitHuba,
-* `clone` — pobranie repozytorium na komputer.
+Do not generate large project segments without understanding their operation.
 
-Git nie tworzy automatycznie osobnej wersji po każdej zmianie w HTML lub innym pliku.
+Code should be:
 
-Programista sam decyduje, kiedy utworzyć commit.
+* Readable,
+* Explained,
+* Well-organized,
+* Capable of further development.
 
-Przykładowe commity:
+---
+
+## 13. Git and GitHub
+
+Git will be used for project version control.
+
+Git operates locally on the computer and tracks changes in files.
+
+GitHub will be used as a remote repository storage location.
+
+Basic concepts:
+
+* `commit` — saving a logical work stage to the project history,
+* `push` — sending commits to GitHub,
+* `pull` — downloading changes from GitHub,
+* `clone` — downloading the repository to the computer.
+
+Git does not automatically create a separate version after each change in HTML or another file.
+
+The developer decides when to create a commit.
+
+Example commits:
 
 ```text
-Dodano podstawowy ekran logowania
+Added basic login screen
 
-Dodano strukturę panelu zamówień
+Added order panel structure
 
-Dodano połączenie z bazą danych
+Added database connection
 
-Dodano pobieranie zamówień z Allegro
+Added order retrieval from Allegro
 ```
 
-Zalecana zasada:
+Recommended rule:
 
-> Po zakończeniu większego, logicznego fragmentu pracy należy utworzyć commit.
+> After completing a larger, logical work segment, create a commit.
 
-Nie należy tworzyć jednego commitu obejmującego kilka tygodni pracy, ale nie trzeba też tworzyć commitu po każdej pojedynczej zmianie.
+Do not create a single commit covering several weeks of work, but there is no need to create a commit after each single change.
 
-Na początek darmowy plan GitHub powinien być wystarczający.
+Initially, the free GitHub plan should be sufficient.
 
-Repozytorium projektu prawdopodobnie będzie prywatne.
-
----
-
-# 14. Nazwa projektu lub przyszłej marki
-
-Planowane jest stworzenie jednej spójnej nazwy, która może być używana dla:
-
-* projektu,
-* przyszłej marki lub firmy,
-* konta GitHub,
-* adresu e-mail,
-* domeny internetowej,
-* kolejnych aplikacji.
-
-Nazwa powinna:
-
-* być łatwa do wymówienia,
-* być łatwa do zapamiętania,
-* dobrze wyglądać w języku polskim i angielskim,
-* nie ograniczać projektu wyłącznie do Allegro lub obsługi zamówień,
-* umożliwiać rozwój w kierunku innych aplikacji,
-* nie być myląco podobna do istniejącej firmy.
-
-Przed wyborem należy sprawdzić:
-
-* dostępność domeny `.pl`,
-* dostępność domeny `.com`,
-* dostępność nazwy użytkownika na GitHubie,
-* obecność podobnych firm,
-* potencjalne konflikty z istniejącymi markami.
-
-Nie należy zakładać kont ani kupować domeny przed sprawdzeniem nazwy.
+The project repository will likely be private.
 
 ---
 
-# 15. Spójna tożsamość projektu
+## 14. Project Name or Future Brand
 
-Po wyborze nazwy można utworzyć:
+A single consistent name is planned, which can be used for:
 
-1. dedykowany adres e-mail,
-2. konto GitHub,
-3. prywatne repozytorium,
-4. nazwę projektu,
-5. podstawową strukturę organizacyjną.
+* Project,
+* Future brand or company,
+* GitHub account,
+* Email address,
+* Website domain,
+* Future applications.
 
-Wszystkie elementy powinny korzystać z tej samej lub możliwie podobnej nazwy.
+The name should:
 
-Przykładowa struktura:
+* Be easy to pronounce,
+* Be easy to remember,
+* Look good in Polish and English,
+* Not limit the project solely to Allegro or order handling,
+* Enable development toward other applications,
+* Not be confusingly similar to an existing company.
+
+Before selection, check:
+
+* `.pl` domain availability,
+* `.com` domain availability,
+* GitHub username availability,
+* Presence of similar companies,
+* Potential conflicts with existing brands.
+
+Do not create accounts or buy domains before checking the name.
+
+---
+
+## 15. Consistent Project Identity
+
+After choosing the name, create:
+
+1. Dedicated email address,
+2. GitHub account,
+3. Private repository,
+4. Project name,
+5. Basic organizational structure.
+
+All elements should use the same or similar name.
+
+Example structure:
 
 ```text
-NazwaMarki
-├── GitHub: nazwamarki
-├── e-mail: nazwamarki@...
-├── domena: nazwamarki.pl
-└── projekt: nazwa-aplikacji
+BrandName
+├── GitHub: brandname
+├── email: brandname@...
+├── domain: brandname.pl
+└── project: app-name
 ```
 
 ---
 
-# 16. Wstępna kolejność prac
+## 16. Preliminary Work Order
 
-Po rozpoczęciu pracy przy komputerze należy działać etapami.
+After starting work on the computer, act step by step.
 
-Proponowana kolejność:
+Proposed order:
 
-1. Sprawdzić, na którym koncie ChatGPT znajduje się aktywny plan.
-2. Przenieść ten dokument na właściwe konto, jeśli będzie to potrzebne.
-3. Wybrać nazwę marki lub projektu.
-4. Sprawdzić dostępność nazwy.
-5. Utworzyć dedykowany adres e-mail, jeśli zostanie podjęta taka decyzja.
-6. Założyć konto GitHub.
-7. Utworzyć prywatne repozytorium.
-8. Wybrać między Visual Studio Code a Kiro.
-9. Zainstalować potrzebne narzędzia.
-10. Zainstalować i skonfigurować Python.
-11. Zainstalować PostgreSQL.
-12. Utworzyć lokalny folder projektu.
-13. Podłączyć projekt do GitHub.
-14. Utworzyć podstawową strukturę frontendową i backendową.
-15. Uruchomić pierwszą lokalną wersję aplikacji.
-16. Dopiero później rozpocząć integrację z API Allegro i ERLI.
-
----
-
-# 17. Zasady rozwoju
-
-Podczas tworzenia projektu należy przestrzegać następujących zasad:
-
-* nie komplikować rozwiązania bez potrzeby,
-* rozwijać aplikację etapami,
-* najpierw tworzyć małą działającą wersję,
-* każdą większą funkcję planować przed implementacją,
-* utrzymywać czytelną strukturę plików,
-* oddzielać frontend, backend i bazę danych,
-* nie kopiować bez zrozumienia dużych fragmentów kodu,
-* dokumentować ważne decyzje,
-* tworzyć regularne commity,
-* nie dodawać wszystkich możliwych integracji na początku,
-* testować funkcje na rzeczywistych procesach,
-* wybierać rozwiązania łatwe do utrzymania i rozbudowy.
+1. Check which ChatGPT account contains the active plan.
+2. Transfer this document to the proper account if needed.
+3. Choose the brand or project name.
+4. Check name availability.
+5. Create a dedicated email address if such a decision is made.
+6. Create a GitHub account.
+7. Create a private repository.
+8. Choose between Visual Studio Code and Kiro.
+9. Install needed tools.
+10. Install and configure Python.
+11. Install PostgreSQL.
+12. Create a local project folder.
+13. Connect the project to GitHub.
+14. Create basic frontend and backend structure.
+15. Run the first local application version.
+16. Only then start Allegro and ERLI API integration.
 
 ---
 
-# 18. Aktualny status
+## 17. Development Rules
 
-Na obecnym etapie:
+When creating the project, follow these rules:
 
-* koncepcja projektu została wstępnie omówiona,
-* kierunek technologiczny został określony,
-* nie rozpoczęto jeszcze konfiguracji środowiska,
-* nie utworzono jeszcze repozytorium,
-* nie wybrano jeszcze nazwy marki,
-* nie wybrano ostatecznie edytora,
-* nie rozpoczęto jeszcze implementacji.
-
-Następny etap:
-
-> Po uruchomieniu ChatGPT na właściwym koncie należy przeanalizować ten dokument, potwierdzić aktualne założenia i rozpocząć konfigurację środowiska krok po kroku.
+* Do not complicate the solution without need,
+* Develop the application step by step,
+* First, create a small working version,
+* Plan each major feature before implementation,
+* Maintain readable file structure,
+* Separate frontend, backend, and database,
+* Do not copy large code segments without understanding,
+* Document important decisions,
+* Create regular commits,
+* Do not add all possible integrations from the start,
+* Test features on real processes,
+* Choose solutions easy to maintain and expand.
 
 ---
 
-# 19. Instrukcja dla nowego czatu ChatGPT
+## 18. Current Status
 
-Po wklejeniu tego dokumentu należy przekazać następującą informację:
+At this stage:
 
-„To jest dokument opisujący projekt, nad którym chcę pracować. Chcę kontynuować od momentu przygotowania środowiska programistycznego. Prowadź mnie krok po kroku i podawaj tylko następny potrzebny etap, ponieważ będę wykonywał konfigurację bezpośrednio na komputerze. Nie zakładaj, że znam programowanie — wyjaśniaj pojęcia, ale zachowuj dobre praktyki i docelową możliwość rozbudowy projektu.”
+* Project concept has been preliminarily discussed,
+* Technology direction has been specified,
+* Environment configuration has not yet started,
+* Repository has not yet been created,
+* Brand name has not yet been selected,
+* Editor has not been finally chosen,
+* Implementation has not yet started.
 
-# Dokumentacja projektu
+Next stage:
 
-Szczegółowa dokumentacja znajduje się w katalogu docs/.
+> After running ChatGPT on the proper account, analyze this document, confirm current assumptions, and start environment configuration step by step.
 
-PROJECT_CONTEXT.md – główna wizja projektu
-MVP.md – zakres pierwszej wersji
-ARCHITECTURE.md – architektura systemu
-DATABASE.md – model danych
-API.md – dokumentacja API
-ROADMAP.md – plan rozwoju
-DECISIONS.md – historia ważnych decyzji
+---
+
+## 19. Instruction for New ChatGPT Chat
+
+After pasting this document, provide the following information:
+
+"This is a document describing the project I want to work on. I want to continue from the development environment preparation stage. Lead me step by step and provide only the next necessary stage, as I will perform the configuration directly on the computer. Do not assume I know programming — explain concepts, but maintain best practices and the project's future expansion possibility."
+
+# Project Documentation
+
+Detailed documentation is in the docs/ directory.
+
+PROJECT_CONTEXT.md – main project vision
+MVP.md – scope of the first version
+ARCHITECTURE.md – system architecture
+DATABASE.md – data model
+API.md – API documentation
+ROADMAP.md – development plan
+DECISIONS.md – history of important decisions

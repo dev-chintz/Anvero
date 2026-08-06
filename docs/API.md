@@ -1,20 +1,20 @@
-# Kontrakt API
+# API Contract
 
-API będzie wersjonowane pod prefiksem `/api/v1`. Format komunikacji: JSON; daty: ISO 8601 w UTC.
+API will be versioned under the `/api/v1` prefix. Communication format: JSON; dates: ISO 8601 in UTC.
 
-## Planowane endpointy MVP
+## MVP Planned Endpoints
 
-| Metoda | Ścieżka | Znaczenie |
+| Method | Path | Meaning |
 | --- | --- | --- |
-| `GET` | `/api/v1/health` | stan usługi |
-| `GET` | `/api/v1/orders` | lista zamówień z filtrami |
-| `GET` | `/api/v1/orders/{id}` | szczegóły zamówienia |
-| `PATCH` | `/api/v1/orders/{id}/status` | zmiana wewnętrznego statusu |
-| `GET` | `/api/v1/integrations` | lista podłączonych źródeł |
+| `GET` | `/api/v1/health` | service status |
+| `GET` | `/api/v1/orders` | order list with filters |
+| `GET` | `/api/v1/orders/{id}` | order details |
+| `PATCH` | `/api/v1/orders/{id}/status` | internal status change |
+| `GET` | `/api/v1/integrations` | connected sources list |
 
-## Konwencje
+## Conventions
 
-- Identyfikatory API są nieprzezroczystymi identyfikatorami Anvero.
-- Błędy mają format `{"detail": "czytelny opis"}` oraz właściwy kod HTTP.
-- Operacje zmieniające dane wymagają uwierzytelnienia, gdy mechanizm logowania zostanie wdrożony.
-- Zmiana statusu tworzy wpis w historii statusów.
+- API identifiers are opaque Anvero identifiers.
+- Errors have format `{"detail": "readable description"}` with appropriate HTTP code.
+- Data-changing operations require authentication when login mechanism is deployed.
+- Status change creates an entry in the status history.

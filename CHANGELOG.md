@@ -1,6 +1,6 @@
 # Changelog
 
-Wszystkie istotne zmiany w projekcie Anvero.
+All significant changes to the Anvero project.
 
 ---
 

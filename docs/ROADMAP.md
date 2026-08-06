@@ -1,31 +1,31 @@
-# Plan rozwoju
+# Development Plan
 
-## Sprint 1 — fundamenty ✅
+## Sprint 1 — Foundation ✅
 
-- struktura repozytorium,
-- dokumentacja produktu i architektury,
-- bootstrap oraz diagnostyka lokalnego środowiska.
+- Repository structure,
+- Product and architecture documentation,
+- Local environment setup and diagnostics.
 
-## Sprint 2 — działający szkielet
+## Sprint 2 — Working Skeleton
 
-- wybór i konfiguracja frameworka backendu,
-- połączenie z lokalną bazą PostgreSQL,
-- endpoint zdrowia oraz pierwszy model zamówienia,
-- minimalny interfejs listy zamówień,
-- automatyczne testy podstawowych przepływów.
+- Backend framework selection and configuration,
+- Connection to local PostgreSQL database,
+- Health endpoint and first order model,
+- Minimal order list interface,
+- Automated tests for core flows.
 
-## Sprint 3 — przepływ zamówienia
+## Sprint 3 — Order Flow
 
-- lista i szczegóły zamówień,
-- filtrowanie oraz statusy,
-- historia zmian,
-- dane demonstracyjne.
+- Order list and details,
+- Filtering by source, status, and date,
+- Change history,
+- Sample data.
 
-## Sprint 4 — pierwsza integracja
+## Sprint 4 — First Integration
 
-- bezpieczna konfiguracja poświadczeń,
-- adapter Allegro,
-- import i mapowanie zamówień,
-- obsługa błędów oraz logowanie.
+- Secure credential configuration,
+- Allegro adapter,
+- Order import and mapping,
+- Error handling and logging.
 
-ERLI, wysyłki i fakturowanie będą planowane dopiero po ocenie użyteczności pierwszej integracji.
+ERLI, shipping, and invoicing will be planned only after evaluating the usefulness of the first integration.

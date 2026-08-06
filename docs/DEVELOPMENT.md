@@ -1,29 +1,29 @@
-# Praca lokalna
+# Local Development
 
-## Wymagania
+## Requirements
 
-- Windows PowerShell 5.1 lub PowerShell 7,
+- Windows PowerShell 5.1 or PowerShell 7,
 - Git,
-- Python 3.11 lub nowszy,
-- Node.js 20 lub nowszy — wymagany dopiero wraz z frontendem,
-- PostgreSQL 16 lub nowszy — wymagany od Sprintu 2.
+- Python 3.11 or newer,
+- Node.js 20 or newer — required only with frontend,
+- PostgreSQL 16 or newer — required from Sprint 2.
 
-## Przygotowanie
+## Setup
 
-1. Otwórz PowerShell w katalogu głównym projektu.
-2. Uruchom `./scripts/bootstrap.ps1`.
-3. Uruchom `./scripts/doctor.ps1` i usuń zgłoszone błędy.
+1. Open PowerShell in the project root directory.
+2. Run `./scripts/bootstrap.ps1`.
+3. Run `./scripts/doctor.ps1` and fix reported errors.
 
-Skrypty nie instalują Pythona, Node.js, Gita ani PostgreSQL i nie modyfikują globalnej konfiguracji komputera. `bootstrap` może bezpiecznie uruchamiać się wielokrotnie.
+The scripts do not install Python, Node.js, Git, or PostgreSQL and do not modify the computer's global configuration. `bootstrap` can safely run multiple times.
 
-## Zależności backendu
+## Backend Dependencies
 
-Gdy pojawi się `backend/requirements/base.txt`, bootstrap zainstaluje go do `.venv`. Do ręcznej aktywacji środowiska użyj:
+When `backend/requirements/base.txt` appears, bootstrap will install it to `.venv`. To manually activate the environment, use:
 
 ```powershell
 .\.venv\Scripts\Activate.ps1
 ```
 
-## Kontrola jakości
+## Quality Control
 
-Przed przekazaniem zmian uruchamiaj `./scripts/doctor.ps1`. W Sprintach implementacyjnych dokument zostanie rozszerzony o polecenia testów i formatowania.
+Before submitting changes, run `./scripts/doctor.ps1`. In implementation Sprints, the document will be expanded with test and formatting commands.

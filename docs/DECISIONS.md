@@ -1,25 +1,25 @@
-# Rejestr decyzji
+# Decision Log
 
-## 2026-08-02 — Modularny monolit na start
+## 2026-08-02 — Modular Monolith from the Start
 
-**Decyzja:** budujemy pojedynczą aplikację z wyraźnymi modułami, zamiast mikroserwisów.
+**Decision:** We build a single application with clear modules, instead of microservices.
 
-**Uzasadnienie:** pierwsza wersja ma być łatwa do uruchomienia i rozwijania przez mały zespół. Granice modułów zachowują możliwość późniejszego wydzielenia komponentów.
+**Rationale:** The first version should be easy to run and develop by a small team. Module boundaries preserve the possibility of later component extraction.
 
-## 2026-08-02 — PostgreSQL jako docelowa baza
+## 2026-08-02 — PostgreSQL as Target Database
 
-**Decyzja:** model danych projektujemy pod PostgreSQL.
+**Decision:** We design the data model for PostgreSQL.
 
-**Uzasadnienie:** nadaje się do relacyjnych danych zamówień, zapewnia niezawodność i zostawia przestrzeń na rozwój.
+**Rationale:** Suitable for relational order data, provides reliability, and leaves room for development.
 
-## 2026-08-02 — Integracje jako adaptery
+## 2026-08-02 — Integrations as Adapters
 
-**Decyzja:** Allegro i ERLI mają osobne moduły, zwracające wspólny format domenowy.
+**Decision:** Allegro and ERLI have separate modules, returning a common domain format.
 
-**Uzasadnienie:** ogranicza zależność reszty systemu od szczegółów zewnętrznych API.
+**Rationale:** Limits the rest of the system's dependency on external API details.
 
-## 2026-08-02 — Bez Dockera w Sprincie 1
+## 2026-08-02 — No Docker in Sprint 1
 
-**Decyzja:** środowisko lokalne uruchamiamy natywnie.
+**Decision:** We run the local environment natively.
 
-**Uzasadnienie:** redukuje próg wejścia; kontenery zostaną dodane, gdy będą realnie potrzebne.
+**Rationale:** Reduces the entry barrier; containers will be added when they become genuinely needed.

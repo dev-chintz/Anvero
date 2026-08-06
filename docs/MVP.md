@@ -1,27 +1,27 @@
 # MVP
 
-## Cel
+## Goal
 
-MVP ma potwierdzić, że Anvero porządkuje codzienną obsługę zamówień lepiej niż ręczne przełączanie się między marketplace'ami.
+The MVP aims to confirm that Anvero organizes daily order management better than manually switching between marketplaces.
 
-## Zakres
+## Scope
 
-1. Logowanie lokalnego użytkownika.
-2. Jednolista zamówień z filtrowaniem po źródle, statusie i dacie.
-3. Widok szczegółów zamówienia z pozycjami, klientem, dostawą i płatnością.
-4. Wewnętrzne statusy zamówienia i historia ich zmian.
-5. Ręczne dodanie danych przykładowych oraz import z pierwszego źródła.
-6. Adapter integracji Allegro przygotowany tak, aby nie mieszać jego logiki z resztą aplikacji.
+1. Local user login.
+2. Unified order list with filtering by source, status, and date.
+3. Order details view with items, customer, shipping, and payment.
+4. Internal order status and change history.
+5. Manual addition of sample data and import from first source.
+6. Allegro integration adapter prepared so its logic doesn't mix with the rest of the application.
 
-## Poza zakresem
+## Out of Scope
 
-- obsługa wielu firm i rozliczeń abonamentowych,
-- automatyczne wystawianie faktur,
-- pełna obsługa kurierów i etykiet,
-- synchronizacja stanów magazynowych,
-- integracja ERLI przed zweryfikowaniem przepływu na pierwszym źródle,
-- wdrożenie produkcyjne i Docker.
+- Multi-company and subscription billing,
+- Automatic invoice generation,
+- Full courier and label handling,
+- Inventory synchronization,
+- ERLI integration before flow verification on first source,
+- Production deployment and Docker.
 
-## Kryterium gotowości
+## Readiness Criterion
 
-Użytkownik może przejrzeć przykładowe lub pobrane zamówienie, znaleźć je filtrem, zobaczyć szczegóły i bezpiecznie zmienić jego wewnętrzny status.
+The user can review a sample or imported order, find it with a filter, see details, and safely change its internal status.
