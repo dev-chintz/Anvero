@@ -9,6 +9,4 @@ def test_root():
     response = client.get("/api/v1/")
 
     assert response.status_code == 200
-    assert response.json() == {
-        "message": "Welcome to Anvero API"
-    }
+    assert response.json() == {"message": "Welcome to Anvero API"}
