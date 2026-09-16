@@ -1,0 +1,49 @@
+.orders-page {
+  padding: 0;
+}
+
+.orders-page .page-header {
+  background: #f8f9fa;
+  padding: 2rem;
+  border-bottom: 1px solid #e9ecef;
+}
+
+:root.dark .orders-page .page-header {
+  background: #2d2d2d;
+  border-bottom-color: #3d3d3d;
+}
+
+.orders-page .page-header h1 {
+  margin: 0 0 0.5rem 0;
+  font-size: 2rem;
+  color: #212529;
+  font-weight: 600;
+}
+
+:root.dark .orders-page .page-header h1 {
+  color: #e0e0e0;
+}
+
+.orders-page .page-header .subtitle {
+  margin: 0;
+  color: #6c757d;
+  font-size: 0.95rem;
+}
+
+:root.dark .orders-page .page-header .subtitle {
+  color: #999;
+}
+
+.orders-page > :not(.page-header) {
+  padding: 0 2rem 2rem 2rem;
+}
+
+@media (max-width: 768px) {
+  .orders-page .page-header {
+    padding: 1.5rem;
+  }
+
+  .orders-page > :not(.page-header) {
+    padding: 1rem 1rem 2rem 1rem;
+  }
+}

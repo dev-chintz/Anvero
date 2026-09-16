@@ -1,0 +1,145 @@
+.app {
+  display: flex;
+  min-height: 100vh;
+  background: #fff;
+}
+
+.app.dark {
+  background: #1a1a1a;
+}
+
+/* Main Content Area */
+.app-content {
+  flex: 1;
+  margin-left: 250px;
+  overflow-y: auto;
+  background: #fff;
+}
+
+.app.dark .app-content {
+  background: #1a1a1a;
+}
+
+/* Page Header */
+.page-header {
+  padding: 2rem;
+  border-bottom: 1px solid #e9ecef;
+}
+
+.app.dark .page-header {
+  border-bottom-color: #3d3d3d;
+}
+
+.page-header h1 {
+  margin: 0;
+  font-size: 2rem;
+  color: #212529;
+  font-weight: 600;
+}
+
+.app.dark .page-header h1 {
+  color: #e0e0e0;
+}
+
+.page-header .subtitle {
+  margin: 0.5rem 0 0 0;
+  color: #6c757d;
+  font-size: 0.95rem;
+}
+
+.app.dark .page-header .subtitle {
+  color: #999;
+}
+
+/* Settings Page */
+.settings-page {
+  padding: 2rem;
+}
+
+.settings-content {
+  max-width: 600px;
+}
+
+.settings-section {
+  background: #f8f9fa;
+  padding: 1.5rem;
+  border-radius: 0.75rem;
+  border: 1px solid #e9ecef;
+  margin-bottom: 1.5rem;
+}
+
+.app.dark .settings-section {
+  background: #2d2d2d;
+  border-color: #3d3d3d;
+}
+
+.settings-section h2 {
+  margin: 0 0 1rem 0;
+  font-size: 1.1rem;
+  color: #212529;
+}
+
+.app.dark .settings-section h2 {
+  color: #e0e0e0;
+}
+
+/* Page Not Found */
+.page-not-found {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  text-align: center;
+}
+
+.page-not-found h1 {
+  margin: 0;
+  font-size: 4rem;
+  font-weight: 600;
+  color: #212529;
+}
+
+.app.dark .page-not-found h1 {
+  color: #e0e0e0;
+}
+
+.page-not-found p {
+  margin: 1rem 0 0 0;
+  font-size: 1.1rem;
+  color: #6c757d;
+}
+
+.app.dark .page-not-found p {
+  color: #999;
+}
+
+/* Responsive Layout */
+@media (max-width: 768px) {
+  .app-content {
+    margin-left: 70px;
+  }
+
+  .page-header {
+    padding: 1.5rem;
+  }
+
+  .page-header h1 {
+    font-size: 1.5rem;
+  }
+
+  .settings-page {
+    padding: 1rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .app-content {
+    margin-left: 0;
+  }
+
+  /* When sidebar is collapsed on mobile */
+  .app-content {
+    margin-left: 70px;
+  }
+}

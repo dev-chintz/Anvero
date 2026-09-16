@@ -1,0 +1,528 @@
+.dashboard {
+  padding: 2rem;
+  background: #fff;
+  min-height: 100vh;
+}
+
+.dashboard.dark {
+  background: #1a1a1a;
+  color: #e0e0e0;
+}
+
+.dashboard.loading,
+.dashboard.error {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  font-size: 1.2rem;
+}
+
+.dashboard.error {
+  color: #dc2626;
+}
+
+/* Dashboard Header */
+.dashboard-header {
+  margin-bottom: 2rem;
+}
+
+.dashboard-header h1 {
+  margin: 0;
+  font-size: 2rem;
+  color: #212529;
+  font-weight: 600;
+}
+
+.dashboard.dark .dashboard-header h1 {
+  color: #e0e0e0;
+}
+
+.dashboard-header .subtitle {
+  margin: 0.5rem 0 0 0;
+  color: #6c757d;
+  font-size: 0.95rem;
+}
+
+.dashboard.dark .dashboard-header .subtitle {
+  color: #999;
+}
+
+/* Stats Grid */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.stat-card {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  padding: 1.5rem;
+  border-radius: 0.75rem;
+  border-left: 4px solid;
+}
+
+.stat-primary {
+  background: #e3f2fd;
+  border-left-color: #1976d2;
+}
+
+.stat-success {
+  background: #e8f5e9;
+  border-left-color: #388e3c;
+}
+
+.stat-warning {
+  background: #fff3e0;
+  border-left-color: #f57c00;
+}
+
+.stat-danger {
+  background: #ffebee;
+  border-left-color: #d32f2f;
+}
+
+.dashboard.dark .stat-card {
+  background: #2d2d2d;
+}
+
+.dashboard.dark .stat-primary {
+  border-left-color: #64b5f6;
+}
+
+.dashboard.dark .stat-success {
+  border-left-color: #81c784;
+}
+
+.dashboard.dark .stat-warning {
+  border-left-color: #ffb74d;
+}
+
+.dashboard.dark .stat-danger {
+  border-left-color: #ef5350;
+}
+
+.stat-icon {
+  font-size: 2.5rem;
+}
+
+.stat-content {
+  flex: 1;
+}
+
+.stat-title {
+  margin: 0;
+  font-size: 0.9rem;
+  color: #6c757d;
+  text-transform: uppercase;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+}
+
+.dashboard.dark .stat-title {
+  color: #999;
+}
+
+.stat-value {
+  margin: 0.5rem 0 0 0;
+  font-size: 1.75rem;
+  font-weight: 600;
+  color: #212529;
+}
+
+.dashboard.dark .stat-value {
+  color: #e0e0e0;
+}
+
+/* Charts Section */
+.charts-section {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.chart-card {
+  background: #f8f9fa;
+  padding: 1.5rem;
+  border-radius: 0.75rem;
+  border: 1px solid #e9ecef;
+}
+
+.dashboard.dark .chart-card {
+  background: #2d2d2d;
+  border-color: #3d3d3d;
+}
+
+.chart-card h2 {
+  margin: 0 0 1.5rem 0;
+  font-size: 1.1rem;
+  color: #212529;
+}
+
+.dashboard.dark .chart-card h2 {
+  color: #e0e0e0;
+}
+
+/* Status Breakdown */
+.status-breakdown {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.status-item {
+  display: grid;
+  grid-template-columns: 120px 1fr 40px;
+  align-items: center;
+  gap: 1rem;
+}
+
+.status-label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  padding: 0.4rem 0.6rem;
+  border-radius: 0.4rem;
+  white-space: nowrap;
+}
+
+.status-new {
+  background: #cfe8ff;
+  color: #0d47a1;
+}
+
+.status-confirmed {
+  background: #c8e6c9;
+  color: #1b5e20;
+}
+
+.status-shipped {
+  background: #ffe0b2;
+  color: #e65100;
+}
+
+.status-delivered {
+  background: #b2dfdb;
+  color: #00695c;
+}
+
+.status-cancelled {
+  background: #ffcdd2;
+  color: #b71c1c;
+}
+
+.status-bar {
+  height: 8px;
+  background: #e9ecef;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.dashboard.dark .status-bar {
+  background: #3d3d3d;
+}
+
+.status-fill {
+  height: 100%;
+  transition: width 0.3s ease;
+}
+
+.status-fill.status-new {
+  background: #1976d2;
+}
+
+.status-fill.status-confirmed {
+  background: #388e3c;
+}
+
+.status-fill.status-shipped {
+  background: #f57c00;
+}
+
+.status-fill.status-delivered {
+  background: #00796b;
+}
+
+.status-fill.status-cancelled {
+  background: #d32f2f;
+}
+
+.status-count {
+  text-align: right;
+  font-size: 0.9rem;
+  color: #495057;
+  font-weight: 600;
+}
+
+.dashboard.dark .status-count {
+  color: #b0b0b0;
+}
+
+/* Source Breakdown */
+.source-breakdown {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.source-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.source-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.source-name {
+  font-weight: 600;
+  color: #212529;
+}
+
+.dashboard.dark .source-name {
+  color: #e0e0e0;
+}
+
+.source-percentage {
+  font-size: 0.9rem;
+  color: #6c757d;
+  font-weight: 600;
+}
+
+.dashboard.dark .source-percentage {
+  color: #999;
+}
+
+.source-bar {
+  height: 24px;
+  background: #e9ecef;
+  border-radius: 0.4rem;
+  overflow: hidden;
+}
+
+.dashboard.dark .source-bar {
+  background: #3d3d3d;
+}
+
+.source-fill {
+  height: 100%;
+  display: flex;
+  align-items: center;
+  padding: 0 0.5rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  transition: width 0.3s ease;
+}
+
+.source-fill.source-allegro {
+  background: #0d7377;
+  color: white;
+}
+
+.source-fill.source-erli {
+  background: #b23b80;
+  color: white;
+}
+
+.source-count {
+  font-size: 0.85rem;
+  color: #6c757d;
+}
+
+.dashboard.dark .source-count {
+  color: #999;
+}
+
+/* Recent Orders */
+.recent-orders {
+  background: #f8f9fa;
+  padding: 1.5rem;
+  border-radius: 0.75rem;
+  border: 1px solid #e9ecef;
+}
+
+.dashboard.dark .recent-orders {
+  background: #2d2d2d;
+  border-color: #3d3d3d;
+}
+
+.recent-orders h2 {
+  margin: 0 0 1.5rem 0;
+  font-size: 1.1rem;
+  color: #212529;
+}
+
+.dashboard.dark .recent-orders h2 {
+  color: #e0e0e0;
+}
+
+.recent-orders-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.recent-order-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem;
+  background: white;
+  border-radius: 0.5rem;
+  border: 1px solid #e9ecef;
+  transition: box-shadow 0.2s;
+}
+
+.dashboard.dark .recent-order-item {
+  background: #1e1e1e;
+  border-color: #3d3d3d;
+}
+
+.recent-order-item:hover {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.order-left {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex: 1;
+}
+
+.order-source {
+  padding: 0.4rem 0.8rem;
+  border-radius: 0.4rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.order-source.source-allegro {
+  background: #e0f2f1;
+  color: #0d7377;
+}
+
+.order-source.source-erli {
+  background: #f3e5f5;
+  color: #b23b80;
+}
+
+.order-details {
+  flex: 1;
+}
+
+.order-id {
+  margin: 0;
+  font-weight: 600;
+  color: #212529;
+}
+
+.dashboard.dark .order-id {
+  color: #e0e0e0;
+}
+
+.order-customer {
+  margin: 0.25rem 0 0 0;
+  font-size: 0.85rem;
+  color: #6c757d;
+}
+
+.dashboard.dark .order-customer {
+  color: #999;
+}
+
+.order-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.5rem;
+}
+
+.order-status {
+  padding: 0.3rem 0.6rem;
+  border-radius: 0.3rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.order-status.status-new {
+  background: #cfe8ff;
+  color: #0d47a1;
+}
+
+.order-status.status-confirmed {
+  background: #c8e6c9;
+  color: #1b5e20;
+}
+
+.order-status.status-shipped {
+  background: #ffe0b2;
+  color: #e65100;
+}
+
+.order-status.status-delivered {
+  background: #b2dfdb;
+  color: #00695c;
+}
+
+.order-status.status-cancelled {
+  background: #ffcdd2;
+  color: #b71c1c;
+}
+
+.order-amount {
+  margin: 0;
+  font-weight: 600;
+  color: #212529;
+}
+
+.dashboard.dark .order-amount {
+  color: #e0e0e0;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .dashboard {
+    padding: 1rem;
+  }
+
+  .stats-grid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+
+  .charts-section {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+
+  .stat-card {
+    flex-direction: column;
+    text-align: center;
+  }
+
+  .stat-icon {
+    font-size: 2rem;
+  }
+
+  .status-item {
+    grid-template-columns: 80px 1fr 35px;
+  }
+
+  .recent-order-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.75rem;
+  }
+
+  .order-right {
+    align-items: flex-start;
+  }
+}
