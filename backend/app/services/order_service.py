@@ -3,7 +3,7 @@ from datetime import date
 
 from fastapi import HTTPException, status
 
-from app.models.order import Order, OrderSource, OrderStatus
+from app.models.order import Order, OrderSource, OrderStatus, OrderStatusHistory
 from app.repositories.order_repository import OrderRepository
 from app.schemas.order import OrderCreate
 
@@ -79,6 +79,23 @@ class OrderService:
         """
         order = self.get_order(order_id)
         return self.repository.update_status(order, new_status)
+
+    def get_status_history(self, order_id: uuid.UUID) -> list[OrderStatusHistory]:
+        """List an order's status transitions, most recent first.
+
+        Args:
+            order_id: The internal primary key of the order.
+
+        Raises:
+            HTTPException: 404 if no order exists with that id, so an unknown
+                id is distinguishable from an order that never moved.
+
+        Returns:
+            The recorded transitions; empty if the order is still in the
+            status it was created with.
+        """
+        self.get_order(order_id)
+        return self.repository.list_status_history(order_id)
 
     def list_orders(
         self,

@@ -1,0 +1,61 @@
+.status-history {
+  margin-top: 2rem;
+}
+
+.status-history h2 {
+  margin: 0 0 1rem 0;
+  font-size: 1.1rem;
+  color: var(--color-text);
+}
+
+.status-history-empty {
+  margin: 0;
+  color: var(--color-muted);
+  font-size: 0.95rem;
+}
+
+.status-history-list {
+  list-style: none;
+  margin: 0;
+  padding: 0 0 0 1rem;
+  border-left: 2px solid var(--color-border);
+}
+
+.status-history-item {
+  position: relative;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.6rem 0;
+}
+
+/* marker sitting on the timeline rule */
+.status-history-item::before {
+  content: "";
+  position: absolute;
+  left: calc(-1rem - 5px);
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--color-primary);
+}
+
+.status-history-item time {
+  color: var(--color-muted);
+  font-size: 0.85rem;
+  min-width: 11rem;
+}
+
+.status-history-move {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--color-muted);
+}
+
+@media (max-width: 640px) {
+  .status-history-item time {
+    min-width: 100%;
+  }
+}

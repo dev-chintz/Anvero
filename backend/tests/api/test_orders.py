@@ -150,6 +150,80 @@ def test_update_order_rejects_unknown_status():
     assert client.get(f"/api/v1/orders/{created['id']}").json()["status"] == "NEW"
 
 
+def test_status_change_is_recorded_in_history():
+    """Each transition appends a row naming both ends of the move."""
+    created = client.post(
+        "/api/v1/orders", json=_order_payload(external_id="HIST-1")
+    ).json()
+
+    client.patch(
+        f"/api/v1/orders/{created['id']}/status", json={"status": "CONFIRMED"}
+    )
+    client.patch(
+        f"/api/v1/orders/{created['id']}/status", json={"status": "SHIPPED"}
+    )
+
+    response = client.get(f"/api/v1/orders/{created['id']}/history")
+
+    assert response.status_code == 200
+    history = response.json()
+    assert len(history) == 2
+    # most recent first
+    assert history[0]["from_status"] == "CONFIRMED"
+    assert history[0]["to_status"] == "SHIPPED"
+    assert history[1]["from_status"] == "NEW"
+    assert history[1]["to_status"] == "CONFIRMED"
+
+
+def test_history_is_empty_for_an_unchanged_order():
+    """An order still in its original status has no transitions."""
+    created = client.post(
+        "/api/v1/orders", json=_order_payload(external_id="HIST-2")
+    ).json()
+
+    response = client.get(f"/api/v1/orders/{created['id']}/history")
+
+    assert response.status_code == 200
+    assert response.json() == []
+
+
+def test_setting_the_same_status_records_nothing():
+    """Re-sending the current status is a no-op, not a logged transition."""
+    created = client.post(
+        "/api/v1/orders", json=_order_payload(external_id="HIST-3")
+    ).json()
+
+    response = client.patch(
+        f"/api/v1/orders/{created['id']}/status", json={"status": "NEW"}
+    )
+
+    assert response.status_code == 200
+    assert client.get(f"/api/v1/orders/{created['id']}/history").json() == []
+
+
+def test_history_for_unknown_order_is_404():
+    """An unknown id is distinguishable from an order that never moved."""
+    response = client.get(
+        "/api/v1/orders/00000000-0000-0000-0000-000000000000/history"
+    )
+
+    assert response.status_code == 404
+
+
+def test_rejected_status_change_records_nothing():
+    """A status outside the enum leaves neither the order nor the log changed."""
+    created = client.post(
+        "/api/v1/orders", json=_order_payload(external_id="HIST-4")
+    ).json()
+
+    client.patch(
+        f"/api/v1/orders/{created['id']}/status", json={"status": "TELEPORTED"}
+    )
+
+    assert client.get(f"/api/v1/orders/{created['id']}").json()["status"] == "NEW"
+    assert client.get(f"/api/v1/orders/{created['id']}/history").json() == []
+
+
 def test_filter_orders_by_source():
     """GET /orders?source=ALLEGRO returns only orders from that source."""
     client.post("/api/v1/orders", json=_order_payload(external_id="ERLI-1"))

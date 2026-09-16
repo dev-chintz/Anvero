@@ -5,7 +5,7 @@ from decimal import Decimal
 from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Query, Session
 
-from app.models.order import Order, OrderSource, OrderStatus
+from app.models.order import Order, OrderSource, OrderStatus, OrderStatusHistory
 
 PENDING_STATUSES = (OrderStatus.NEW, OrderStatus.CONFIRMED)
 
@@ -24,10 +24,37 @@ class OrderRepository:
         return self.db.query(Order).filter(Order.id == order_id).first()
 
     def update_status(self, order: Order, status: OrderStatus) -> Order:
+        """Move the order to a new status and record the transition.
+
+        The history row and the new status are committed together, so the
+        log cannot drift from the order it describes.
+        """
+        if status == order.status:
+            return order
+
+        self.db.add(
+            OrderStatusHistory(
+                order_id=order.id,
+                from_status=order.status,
+                to_status=status,
+                # set here rather than leaning on the column's server default:
+                # SQLite's CURRENT_TIMESTAMP resolves to whole seconds, so two
+                # changes in the same second would sort unpredictably
+                changed_at=self._to_db_datetime(datetime.now(UTC)),
+            )
+        )
         order.status = status
         self.db.commit()
         self.db.refresh(order)
         return order
+
+    def list_status_history(self, order_id: uuid.UUID) -> list[OrderStatusHistory]:
+        return (
+            self.db.query(OrderStatusHistory)
+            .filter(OrderStatusHistory.order_id == order_id)
+            .order_by(OrderStatusHistory.changed_at.desc())
+            .all()
+        )
 
     def _to_db_datetime(self, value: datetime) -> datetime:
         """Match the bind parameter to how the backend stores timestamps.

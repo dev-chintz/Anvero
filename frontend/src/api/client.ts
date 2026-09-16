@@ -1,4 +1,9 @@
-import type { Order, OrderListResponse, OrderStats } from "../types/order";
+import type {
+  Order,
+  OrderListResponse,
+  OrderStats,
+  OrderStatusChange,
+} from "../types/order";
 import type { OrderSource, OrderStatus } from "../types/order";
 
 // Vite's dev server proxies "/api" to the FastAPI backend (see vite.config.ts),
@@ -87,6 +92,10 @@ export const ordersApi = {
 
   get(orderId: string): Promise<Order> {
     return request<Order>(`/orders/${orderId}`);
+  },
+
+  history(orderId: string): Promise<OrderStatusChange[]> {
+    return request<OrderStatusChange[]>(`/orders/${orderId}/history`);
   },
 
   updateStatus(orderId: string, status: OrderStatus): Promise<Order> {

@@ -43,6 +43,15 @@ class OrderListResponse(BaseModel):
     limit: int
 
 
+class OrderStatusHistoryRead(BaseModel):
+    id: uuid.UUID
+    from_status: OrderStatus
+    to_status: OrderStatus
+    changed_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+
 class OrderStats(BaseModel):
     total_orders: int
     total_revenue: Decimal

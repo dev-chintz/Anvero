@@ -42,8 +42,9 @@ has not been made.
 
 - Order list and details — done
 - Filtering by source, status and date — done
-- Change history — not started
-- Sample data — done (`backend/scripts/generate_sample_data.py`)
+- Change history — done (status transitions; no author, since the orders
+  endpoints have no authentication yet)
+- Sample data — done (`backend/scripts/generate_sample_data.py --force`)
 
 ---
 
@@ -65,7 +66,10 @@ has not been made.
 Everything below has only been exercised against SQLite:
 
 - Migrations use `Uuid`, `Numeric` and `Enum`; on PostgreSQL `Enum` creates
-  a real database type, which is the most likely place to break.
+  a real database type, which is the most likely place to break. The status
+  history migration branches on dialect to reference the existing
+  `order_status` type instead of recreating it; only the SQLite branch has
+  been run.
 - Date filters and the dashboard's "this week" figure compare timestamps.
   SQLite stores naive datetimes and PostgreSQL stores aware ones; the
   repository normalises per dialect, but only the SQLite path has been run.

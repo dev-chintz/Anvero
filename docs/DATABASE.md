@@ -13,3 +13,21 @@ The model will be deployed via migrations after framework selection, but a commo
 | `order_status_history` | status audit | `order_id`, `from_status`, `to_status`, `changed_at` |
 
 `external_id` is unique only within an integration. Amounts are stored as decimal values, never as `float`. Integration access credentials do not go to repositories or logs.
+
+## Implemented so far
+
+Migrations currently create `users`, `orders` and `order_status_history`.
+Everything else in the table above is still a target.
+
+`orders` deviates from the target shape while there are no integrations to
+point at:
+
+- `source` is an enum (`ALLEGRO`, `ERLI`) standing in for `integration_id`.
+- `customer_email` is a column on the order rather than a `customer` row.
+- `created_at` stands in for `ordered_at`; once orders are imported rather
+  than entered locally, the marketplace's own timestamp will need its own
+  column, because the two stop being the same thing.
+
+`order_status_history` matches the target: `order_id`, `from_status`,
+`to_status`, `changed_at`. It records no author — the orders endpoints have
+no authentication yet.

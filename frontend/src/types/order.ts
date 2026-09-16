@@ -30,6 +30,13 @@ export interface OrderListResponse {
   limit: number;
 }
 
+export interface OrderStatusChange {
+  id: string;
+  from_status: OrderStatus;
+  to_status: OrderStatus;
+  changed_at: string;
+}
+
 export interface OrderStats {
   total_orders: number;
   total_revenue: string;

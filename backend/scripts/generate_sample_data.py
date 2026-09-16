@@ -3,7 +3,10 @@
 Generate sample order data for development and testing.
 
 Usage:
-    python scripts/generate_sample_data.py
+    python scripts/generate_sample_data.py [--force]
+
+--force skips the confirmation prompt when the database already has orders,
+so the script can run unattended.
 """
 
 import sys
@@ -17,7 +20,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 from sqlalchemy import func
 
 from app.db.session import SessionLocal
-from app.models.order import Order, OrderSource, OrderStatus
+from app.models.order import Order, OrderSource, OrderStatus, OrderStatusHistory
 
 # Sample customer emails
 CUSTOMER_EMAILS = [
@@ -123,7 +126,7 @@ SAMPLE_ORDERS = [
 ]
 
 
-def generate_sample_data():
+def generate_sample_data(force: bool = False):
     """Generate and insert sample orders into the database."""
     db = SessionLocal()
 
@@ -132,15 +135,23 @@ def generate_sample_data():
         existing_count = db.query(Order).count()
         if existing_count > 0:
             print(f"Database already contains {existing_count} orders.")
-            response = input("Do you want to clear and regenerate? (y/n): ").strip().lower()
-            if response != "y":
-                print("Cancelled.")
-                return
+            if not force:
+                response = (
+                    input("Do you want to clear and regenerate? (y/n): ")
+                    .strip()
+                    .lower()
+                )
+                if response != "y":
+                    print("Cancelled.")
+                    return
 
-            # Delete existing orders
+            # bulk delete bypasses the ORM cascade, and SQLite does not
+            # enforce foreign keys by default, so clear the children first
+            # rather than leaving orphaned history rows behind
+            db.query(OrderStatusHistory).delete()
             db.query(Order).delete()
             db.commit()
-            print("Existing orders deleted.")
+            print("Existing orders and status history deleted.")
 
         # Generate orders
         created_count = 0
@@ -187,4 +198,4 @@ def generate_sample_data():
 if __name__ == "__main__":
     print("🚀 Anvero Sample Data Generator")
     print("=" * 40)
-    generate_sample_data()
+    generate_sample_data(force="--force" in sys.argv)

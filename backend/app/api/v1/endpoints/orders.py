@@ -12,6 +12,7 @@ from app.schemas.order import (
     OrderListResponse,
     OrderRead,
     OrderStats,
+    OrderStatusHistoryRead,
     OrderUpdate,
 )
 from app.services.order_service import OrderService
@@ -54,6 +55,12 @@ def get_order_stats(db: Session = Depends(get_db)):
 def get_order(order_id: uuid.UUID, db: Session = Depends(get_db)):
     service = OrderService(OrderRepository(db))
     return service.get_order(order_id)
+
+
+@router.get("/{order_id}/history", response_model=list[OrderStatusHistoryRead])
+def get_order_status_history(order_id: uuid.UUID, db: Session = Depends(get_db)):
+    service = OrderService(OrderRepository(db))
+    return service.get_status_history(order_id)
 
 
 # path follows the contract in docs/API.md: status is its own sub-resource

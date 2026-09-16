@@ -2,7 +2,8 @@ import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { ApiError, ordersApi } from "../api/client";
 import { OrderStatus } from "../types/order";
-import type { Order } from "../types/order";
+import type { Order, OrderStatusChange } from "../types/order";
+import "../styles/OrderHistory.css";
 
 const STATUSES = Object.values(OrderStatus);
 
@@ -16,6 +17,7 @@ export function OrderDetail() {
   const [notFound, setNotFound] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [history, setHistory] = useState<OrderStatusChange[]>([]);
 
   useEffect(() => {
     if (!id) return;
@@ -27,8 +29,12 @@ export function OrderDetail() {
 
     ordersApi
       .get(id)
-      .then((data) => {
-        if (!cancelled) setOrder(data);
+      .then(async (data) => {
+        if (cancelled) return;
+        setOrder(data);
+        // a failure here must not hide the order itself
+        const entries = await ordersApi.history(data.id).catch(() => []);
+        if (!cancelled) setHistory(entries);
       })
       .catch((err: unknown) => {
         if (cancelled) return;
@@ -58,6 +64,7 @@ export function OrderDetail() {
       // replace with the server's response rather than the local guess, so
       // updated_at reflects what was actually stored
       setOrder(await ordersApi.updateStatus(order.id, nextStatus));
+      setHistory(await ordersApi.history(order.id));
     } catch (err: unknown) {
       setSaveError(
         err instanceof ApiError ? err.message : "Failed to update status",
@@ -147,6 +154,37 @@ export function OrderDetail() {
             <dd>{new Date(order.updated_at).toLocaleString()}</dd>
           </div>
         </dl>
+      )}
+
+      {!loading && !error && !notFound && order && (
+        <section className="status-history" aria-label="Status history">
+          <h2>Status history</h2>
+          {history.length === 0 ? (
+            <p className="status-history-empty">
+              No status changes yet. Created as {order.status} on{" "}
+              {new Date(order.created_at).toLocaleString()}.
+            </p>
+          ) : (
+            <ol className="status-history-list">
+              {history.map((entry) => (
+                <li key={entry.id} className="status-history-item">
+                  <time dateTime={entry.changed_at}>
+                    {new Date(entry.changed_at).toLocaleString()}
+                  </time>
+                  <span className="status-history-move">
+                    <span className={`badge badge-${entry.from_status.toLowerCase()}`}>
+                      {entry.from_status}
+                    </span>
+                    <span aria-hidden="true">→</span>
+                    <span className={`badge badge-${entry.to_status.toLowerCase()}`}>
+                      {entry.to_status}
+                    </span>
+                  </span>
+                </li>
+              ))}
+            </ol>
+          )}
+        </section>
       )}
     </section>
   );

@@ -20,17 +20,22 @@ All significant changes to the Anvero project.
   `date_from` and `date_to`. All filters combine, and every one is resolved
   by the database, so the reported total spans all pages.
 - `GET /orders/{id}` and `POST /orders`.
-- `PATCH /orders/{id}` — change an order's status.
+- `PATCH /orders/{id}/status` — change an order's status. Sending the current
+  status is a no-op.
+- `GET /orders/{id}/history` — status transitions, most recent first. The
+  history row and the new status are committed together, so the log cannot
+  drift from the order it describes. Entries record no author; the orders
+  endpoints have no authentication yet.
 - `GET /orders/stats` — count, revenue, this-week, pending and the
   status/source breakdowns, aggregated in SQL.
-- Alembic migration for the `orders` table.
+- Alembic migrations for `orders` and `order_status_history`.
 
 #### Frontend
 - React 18 + TypeScript (strict) on Vite, with `/api` proxied to the backend.
 - Sidebar navigation, dashboard, order list, order detail, settings stub.
 - Advanced filter panel: search, source, status and date range, seeded from
   the URL and debounced by 300 ms.
-- Status editing on the order detail page.
+- Status editing and a status history timeline on the order detail page.
 - Dark mode, persisted in `localStorage`.
 - Toast notifications and an error boundary.
 
@@ -62,7 +67,14 @@ Defects introduced earlier the same day and corrected before close:
 - Migrations used `sa.text("now()")`, which is PostgreSQL-only and fails on
   SQLite; replaced with `func.current_timestamp()`.
 - `generate_sample_data.py` called `db.func`, which does not exist on a
-  SQLAlchemy `Session`.
+  SQLAlchemy `Session`. It also cleared orders with a bulk delete, which
+  bypasses the ORM cascade and would have orphaned history rows on SQLite,
+  where foreign keys are not enforced by default. It now takes `--force` so
+  it can run unattended.
+- Status history ordering: SQLite's `CURRENT_TIMESTAMP` resolves to whole
+  seconds, so two changes within the same second shared a timestamp and
+  sorted unpredictably. `changed_at` is now set from Python, with
+  microseconds, normalised per dialect.
 - `test.db`, `vite.config.js`, `vite.config.d.ts`, both `.tsbuildinfo` files
   and `.claude/settings.local.json` were tracked in Git despite being
   regenerated on every run. Untracked, and the tsconfigs now emit into
@@ -70,7 +82,7 @@ Defects introduced earlier the same day and corrected before close:
 
 ### ✅ Verification
 
-- 22 backend tests passing.
+- 27 backend tests passing.
 - `tsc --noEmit` clean; production build succeeds.
 - Rate limiting: 5 requests return 401, the 6th returns 429.
 - Search, combined filters, date range and `PATCH` confirmed in the browser
@@ -90,8 +102,8 @@ PostgreSQL, and two areas are likely to differ:
 
 ### 📌 Next
 
-- Connect PostgreSQL and re-run migrations and tests against it.
-- Order change history.
+- Connect PostgreSQL and re-run migrations and tests against it. The status
+  history migration has a PostgreSQL-only branch that has never run.
 - Allegro adapter.
 
 ---

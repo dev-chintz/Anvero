@@ -11,6 +11,7 @@ API is versioned under the `/api/v1` prefix. Communication format: JSON; dates: 
 | `GET` | `/api/v1/orders/stats` | aggregate figures for the dashboard |
 | `GET` | `/api/v1/orders/{id}` | order details |
 | `PATCH` | `/api/v1/orders/{id}/status` | internal status change |
+| `GET` | `/api/v1/orders/{id}/history` | status change history |
 | `POST` | `/api/v1/orders` | create an order — local testing until marketplace ingestion exists |
 | `POST` | `/api/v1/auth/login` | obtain a JWT; rate limited to 5 attempts per minute per IP |
 | `POST` | `/api/v1/users/register` | register a user |
@@ -21,7 +22,6 @@ API is versioned under the `/api/v1` prefix. Communication format: JSON; dates: 
 | Method | Path | Meaning |
 | --- | --- | --- |
 | `GET` | `/api/v1/integrations` | connected sources list |
-| `GET` | `/api/v1/orders/{id}/history` | status change history |
 
 ## `GET /api/v1/orders`
 
@@ -46,10 +46,27 @@ Any status may currently be set from any other, so operators can correct
 mistakes. The valid transitions for this business have not been decided; a
 state machine belongs in `OrderService.update_order_status` once they are.
 
+Sending the status the order already has is a no-op: it succeeds and records
+nothing.
+
+## `GET /api/v1/orders/{id}/history`
+
+Returns the order's status transitions, most recent first:
+
+```json
+[{"id": "...", "from_status": "NEW", "to_status": "CONFIRMED", "changed_at": "..."}]
+```
+
+An unknown order id returns 404, so it is distinguishable from an order that
+has never changed status, which returns an empty list.
+
+Entries do not record who made the change. The orders endpoints carry no
+authentication yet, so there is no user to attribute it to; add the column
+together with the auth dependency.
+
 ## Conventions
 
 - API identifiers are opaque Anvero identifiers.
 - Errors have format `{"detail": "readable description"}` with appropriate HTTP code.
 - Data-changing operations require authentication when login mechanism is deployed.
-- Status change creates an entry in the status history — not yet implemented;
-  the history model does not exist.
+- Status change creates an entry in the status history.
