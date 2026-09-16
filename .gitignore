@@ -28,6 +28,9 @@ coverage/
 .DS_Store
 Thumbs.db
 
+# Local databases
+*.db
+
 # Logs
 *.log
 

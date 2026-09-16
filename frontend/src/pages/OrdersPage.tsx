@@ -1,6 +1,6 @@
 import { useSearchParams } from 'react-router-dom';
 import { OrderList } from '../components/OrderList';
-import { AdvancedFilters } from '../components/AdvancedFilters';
+import { AdvancedFilters, type Filters } from '../components/AdvancedFilters';
 import { useOrders } from '../hooks/useOrders';
 import type { OrderSource, OrderStatus } from '../types/order';
 import '../styles/OrdersPage.css';
@@ -49,9 +49,15 @@ export function OrdersPage({ addToast }: OrdersPageProps) {
     setSearchParams(next);
   };
 
-  const handleFiltersChange = (filters: Record<string, string | undefined>) => {
-    updateParams({ ...filters, skip: '0' });
-    addToast?.('Filters applied', 'info');
+  const handleFiltersChange = (filters: Filters) => {
+    updateParams({
+      search: filters.search || undefined,
+      source: filters.source,
+      status: filters.status,
+      dateFrom: filters.dateFrom,
+      dateTo: filters.dateTo,
+      skip: '0',
+    });
   };
 
   const handleClearFilters = () => {

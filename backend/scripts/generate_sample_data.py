@@ -8,11 +8,13 @@ Usage:
 
 import sys
 from pathlib import Path
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 import uuid
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
+
+from sqlalchemy import func
 
 from app.db.session import SessionLocal
 from app.models.order import Order, OrderSource, OrderStatus
@@ -142,7 +144,7 @@ def generate_sample_data():
 
         # Generate orders
         created_count = 0
-        now = datetime.utcnow()
+        now = datetime.now(UTC)
 
         for order_data in SAMPLE_ORDERS:
             order = Order(
@@ -164,15 +166,15 @@ def generate_sample_data():
 
         # Print summary
         print("\n📊 Generated orders summary:")
-        by_source = db.query(Order.source, db.func.count()).group_by(Order.source).all()
+        by_source = db.query(Order.source, func.count()).group_by(Order.source).all()
         for source, count in by_source:
             print(f"  - {source.value}: {count} orders")
 
-        by_status = db.query(Order.status, db.func.count()).group_by(Order.status).all()
+        by_status = db.query(Order.status, func.count()).group_by(Order.status).all()
         for status, count in by_status:
             print(f"  - {status.value}: {count} orders")
 
-        total_revenue = db.query(db.func.sum(Order.total_amount)).scalar() or 0
+        total_revenue = db.query(func.sum(Order.total_amount)).scalar() or 0
         print(f"\n💰 Total revenue: {total_revenue:,.2f} PLN")
 
     except Exception as e:

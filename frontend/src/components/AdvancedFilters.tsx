@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { OrderSource, OrderStatus } from '../types/order';
 import '../styles/AdvancedFilters.css';
 
-interface Filters {
+export interface Filters {
   search: string;
   source?: OrderSource;
   status?: OrderStatus;
