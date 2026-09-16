@@ -19,6 +19,11 @@ dist/
 build/
 coverage/
 .coverage
+*.tsbuildinfo
+# tsc output for vite.config.ts; the tsconfigs now redirect emit into
+# node_modules, these guard against stale copies from older checkouts
+frontend/vite.config.js
+frontend/vite.config.d.ts
 
 # IDE
 .vscode/settings.json

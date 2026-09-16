@@ -11,6 +11,9 @@
     "resolveJsonModule": true,
     "isolatedModules": true,
     "noEmit": true,
+    // build mode still writes a buildinfo for the root project; keep it out
+    // of the repo rather than next to tsconfig.json
+    "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.tsbuildinfo",
     "jsx": "react-jsx",
 
     "strict": true,
