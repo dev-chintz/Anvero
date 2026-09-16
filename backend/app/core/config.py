@@ -22,6 +22,9 @@ class Settings(BaseSettings):
     database_url: str = Field(default="")
     secret_key: str = Field(default="")
 
+    rate_limit_max_attempts: int = Field(default=5)
+    rate_limit_window_seconds: int = Field(default=60)
+
     model_config = SettingsConfigDict(
         env_file=BASE_DIR.parent / ".env",
         env_file_encoding="utf-8",
