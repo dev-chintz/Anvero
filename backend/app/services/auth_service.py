@@ -1,6 +1,7 @@
 from fastapi import HTTPException, status
 
 from app.core.security import create_access_token, verify_password
+from app.core.security_logger import SecurityLogger
 from app.repositories.user_repository import UserRepository
 from app.schemas.auth import Token
 
@@ -10,18 +11,23 @@ class AuthService:
         self.user_repository = user_repository
 
     def login(self, email: str, password: str) -> Token:
+        SecurityLogger.login_attempt(email)
+
         user = self.user_repository.get_by_email(email)
         if user is None:
+            SecurityLogger.user_not_found(email)
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Invalid credentials",
             )
 
         if not verify_password(password, user.hashed_password):
+            SecurityLogger.invalid_password(email)
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Invalid credentials",
             )
 
+        SecurityLogger.login_success(email)
         access_token = create_access_token(user.id)
         return Token(access_token=access_token)

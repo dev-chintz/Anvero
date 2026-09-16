@@ -1,9 +1,7 @@
-import logging
 import time
 from collections import defaultdict
-from typing import Optional
 
-logger = logging.getLogger(__name__)
+from app.core.security_logger import SecurityLogger
 
 
 class RateLimiter:
@@ -23,9 +21,7 @@ class RateLimiter:
         attempts[:] = [t for t in attempts if t > cutoff]
 
         if len(attempts) >= self.max_attempts:
-            logger.warning(
-                f"Rate limit exceeded for key={key}, attempts={len(attempts)}"
-            )
+            SecurityLogger.rate_limit_hit(key, len(attempts))
             return False
 
         attempts.append(now)
