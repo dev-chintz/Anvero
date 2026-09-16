@@ -29,6 +29,9 @@ frontend/vite.config.d.ts
 .vscode/settings.json
 .idea/
 
+# Claude Code per-developer settings; .claude/settings.json is the shared one
+.claude/settings.local.json
+
 # OS
 .DS_Store
 Thumbs.db
