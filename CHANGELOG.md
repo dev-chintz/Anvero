@@ -4,6 +4,38 @@ All significant changes to the Anvero project.
 
 ---
 
+## 2026-09-16
+
+### ✨ Added
+
+#### Security
+- Implemented rate limiting on `/api/v1/auth/login` endpoint
+- Rate limit: 5 attempts per minute per IP address
+- Configurable rate limit via `RATE_LIMIT_LOGIN` setting
+- Returns 429 Too Many Requests when limit exceeded
+
+#### Infrastructure
+- Initialized Git repository with first commit
+- Fixed UTF-16 encoding issue in requirements.txt
+- Created virtual environment with all dependencies
+- Verified all 6 existing tests pass
+
+### ✅ Verification
+
+- Rate limiting tested with curl: 5 requests return 401, 6th returns 429
+- All tests passing (6/6)
+- Application startup verified
+- slowapi middleware properly wired to FastAPI app
+
+### 📌 Sprint 2 Status
+
+Foundation complete. Ready for:
+- Order model implementation
+- Order list endpoint
+- Frontend skeleton
+
+---
+
 ## 2026-08-06
 
 ### ✨ Added

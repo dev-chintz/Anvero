@@ -31,24 +31,28 @@ Sprint 2
 - Project name selected
 - Branding direction defined
 - Folder structure created
-- Local Git repository initialized
+- Local Git repository initialized ✅
+- Git first commit with rate limiting implementation ✅
+- FastAPI backend framework configured ✅
+- Rate limiting on auth/login endpoint ✅
 - VS Code configured
-- Documentation started
+- Documentation completed
 - Initial Figma dashboard prototype created
+- Development environment setup ✅
 
 ---
 
 ## In Progress
 
-- GitHub repository
-- Documentation
-- Development environment
+- GitHub repository remote setup
+- Frontend skeleton
+- Order model and endpoints
 
 ---
 
 ## Next Milestone
 
-Push first version to GitHub
+Create Order model and list endpoint (Sprint 2)
 
 ---
 
@@ -67,4 +71,4 @@ PostgreSQL
 
 ## Last Update
 
-2026-08-03
+2026-09-16
