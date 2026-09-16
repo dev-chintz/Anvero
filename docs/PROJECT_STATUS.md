@@ -35,6 +35,9 @@ Sprint 2
 - Git first commit with rate limiting implementation ✅
 - FastAPI backend framework configured ✅
 - Rate limiting on auth/login endpoint ✅
+- Order model with REST endpoints ✅
+- Database migrations (users, orders tables) ✅
+- Test suite (13/13 passing) ✅
 - VS Code configured
 - Documentation completed
 - Initial Figma dashboard prototype created
@@ -44,15 +47,15 @@ Sprint 2
 
 ## In Progress
 
-- GitHub repository remote setup
 - Frontend skeleton
-- Order model and endpoints
+- Allegro integration adapter
+- ERLI integration adapter
 
 ---
 
 ## Next Milestone
 
-Create Order model and list endpoint (Sprint 2)
+Build frontend skeleton and start marketplace integrations
 
 ---
 

@@ -14,25 +14,48 @@ All significant changes to the Anvero project.
 - Configurable rate limit via `RATE_LIMIT_LOGIN` setting
 - Returns 429 Too Many Requests when limit exceeded
 
+#### Order Management
+- Order model with UUID primary key
+- OrderSource enum: ALLEGRO, ERLI (extensible for future integrations)
+- OrderStatus enum: NEW, CONFIRMED, SHIPPED, DELIVERED, CANCELLED
+- Monetary amounts stored as Decimal (financial accuracy)
+- Order repository with CRUD + filtering (by source, status)
+- Order service layer with business logic
+- REST endpoints:
+  - `GET /orders` (paginated list with source/status filtering)
+  - `GET /orders/{order_id}` (fetch single order)
+  - `POST /orders` (create order for testing/integration)
+- Query parameter filtering: `?source=ALLEGRO`, `?status=NEW`, `?skip=N&limit=M`
+- Alembic migration for PostgreSQL orders table
+
 #### Infrastructure
 - Initialized Git repository with first commit
 - Fixed UTF-16 encoding issue in requirements.txt
 - Created virtual environment with all dependencies
-- Verified all 6 existing tests pass
+- All tests passing (13/13: 6 original + 7 new order tests)
 
 ### ✅ Verification
 
 - Rate limiting tested with curl: 5 requests return 401, 6th returns 429
-- All tests passing (6/6)
+- Order CRUD tests: create, read, filter by source/status, pagination
+- Database migration applied cleanly
+- All 13 tests passing
 - Application startup verified
 - slowapi middleware properly wired to FastAPI app
 
 ### 📌 Sprint 2 Status
 
-Foundation complete. Ready for:
-- Order model implementation
-- Order list endpoint
+Working skeleton phase complete:
+- ✅ Backend framework (FastAPI) configured
+- ✅ Rate limiting on auth endpoint
+- ✅ Order model with REST endpoints
+- ✅ Database migration working
+- ✅ Tests passing
+
+Next:
 - Frontend skeleton
+- Order import from Allegro/ERLI adapters
+- Change history tracking
 
 ---
 
