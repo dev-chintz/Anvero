@@ -25,6 +25,8 @@ class Settings(BaseSettings):
     rate_limit_max_attempts: int = Field(default=5)
     rate_limit_window_seconds: int = Field(default=60)
 
+    cors_origins: list[str] = Field(default=["http://localhost:3000"])
+
     model_config = SettingsConfigDict(
         env_file=BASE_DIR.parent / ".env",
         env_file_encoding="utf-8",
