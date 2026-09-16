@@ -88,6 +88,38 @@ def test_create_order():
     assert "updated_at" in data
 
 
+def test_duplicate_order_from_the_same_source_is_rejected():
+    """A marketplace order number may only appear once per marketplace.
+
+    Without this an import re-run would insert a second copy of every order.
+    """
+    payload = _order_payload(external_id="DUP-1")
+    first = client.post("/api/v1/orders", json=payload)
+
+    second = client.post("/api/v1/orders", json=payload)
+
+    assert first.status_code == 200
+    assert second.status_code == 409
+    listed = client.get("/api/v1/orders", params={"search": "DUP-1"}).json()
+    assert listed["total"] == 1
+
+
+def test_same_external_id_from_different_sources_is_allowed():
+    """Order numbers collide across marketplaces; that is not a duplicate."""
+    allegro = client.post(
+        "/api/v1/orders", json=_order_payload(external_id="SHARED-1")
+    )
+    erli = client.post(
+        "/api/v1/orders",
+        json=_order_payload(external_id="SHARED-1", source="ERLI"),
+    )
+
+    assert allegro.status_code == 200
+    assert erli.status_code == 200
+    listed = client.get("/api/v1/orders", params={"search": "SHARED-1"}).json()
+    assert listed["total"] == 2
+
+
 def test_get_order_by_id():
     """GET /orders/{id} returns the previously created order."""
     payload = _order_payload(external_id="ALG-1002")

@@ -3,7 +3,15 @@ import uuid
 from datetime import datetime
 from decimal import Decimal
 
-from sqlalchemy import DateTime, Enum, ForeignKey, Numeric, String, func
+from sqlalchemy import (
+    DateTime,
+    Enum,
+    ForeignKey,
+    Numeric,
+    String,
+    UniqueConstraint,
+    func,
+)
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.types import Uuid
 
@@ -31,6 +39,12 @@ ORDER_STATUS = Enum(OrderStatus, name="order_status")
 
 class Order(Base):
     __tablename__ = "orders"
+
+    # a marketplace's order number is unique only within that marketplace,
+    # and re-importing must not duplicate an order already stored
+    __table_args__ = (
+        UniqueConstraint("source", "external_id", name="uq_orders_source_external_id"),
+    )
 
     id: Mapped[uuid.UUID] = mapped_column(
         Uuid(as_uuid=True),

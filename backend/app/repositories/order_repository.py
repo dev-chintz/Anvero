@@ -23,6 +23,20 @@ class OrderRepository:
     def get(self, order_id: uuid.UUID) -> Order | None:
         return self.db.query(Order).filter(Order.id == order_id).first()
 
+    def get_by_external_id(
+        self, source: OrderSource, external_id: str
+    ) -> Order | None:
+        """Look an order up the way a marketplace identifies it.
+
+        This is the pair an import matches on, so a re-run updates the
+        existing order instead of inserting a second copy.
+        """
+        return (
+            self.db.query(Order)
+            .filter(Order.source == source, Order.external_id == external_id)
+            .first()
+        )
+
     def update_status(self, order: Order, status: OrderStatus) -> Order:
         """Move the order to a new status and record the transition.
 

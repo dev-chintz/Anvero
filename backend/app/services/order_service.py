@@ -24,10 +24,23 @@ class OrderService:
         Args:
             data: Validated order payload (see OrderCreate schema).
 
+        Raises:
+            HTTPException: 409 if this source already has an order with that
+                external_id.
+
         Returns:
             The persisted Order instance, including generated id and
             timestamps.
         """
+        if self.repository.get_by_external_id(data.source, data.external_id):
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail=(
+                    f"Order {data.external_id} from {data.source.value} "
+                    "already exists"
+                ),
+            )
+
         order = Order(
             external_id=data.external_id,
             source=data.source,
