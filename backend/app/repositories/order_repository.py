@@ -37,6 +37,25 @@ class OrderRepository:
             .first()
         )
 
+    def update_imported_fields(
+        self,
+        order: Order,
+        customer_email: str,
+        total_amount: Decimal,
+        currency: str,
+    ) -> Order:
+        """Refresh the fields a marketplace owns.
+
+        Deliberately excludes status: that one belongs to the operator, and a
+        sync overwriting it would undo a decision recorded in the history.
+        """
+        order.customer_email = customer_email
+        order.total_amount = total_amount
+        order.currency = currency
+        self.db.commit()
+        self.db.refresh(order)
+        return order
+
     def update_status(self, order: Order, status: OrderStatus) -> Order:
         """Move the order to a new status and record the transition.
 

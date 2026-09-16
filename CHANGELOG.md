@@ -39,6 +39,28 @@ All significant changes to the Anvero project.
 - Dark mode, persisted in `localStorage`.
 - Toast notifications and an error boundary.
 
+#### Allegro integration
+- `app/integrations/` with a `MarketplaceAdapter` port; raw marketplace
+  payloads never leave the adapter's own package.
+- Allegro client against the published contract: refresh-token grant, the
+  `application/vnd.allegro.public.v1+json` version header, in-memory token
+  caching, and failures separated into not-configured, credentials-refused
+  and unreachable rather than one opaque error.
+- Mapper from `GET /order/checkout-forms`. `total_amount` reads
+  `summary.totalToPay`, since `lineItems[].price` is a unit price excluding
+  delivery and `payment.paidAmount` is zero on an unpaid order. Anvero's
+  single status is derived from both of Allegro's status axes, with
+  cancellation taking precedence.
+- Import service matching on `(source, external_id)`, so a re-run updates
+  instead of duplicating. An order already present keeps the status the
+  operator set.
+- `scripts/import_allegro.py`, with exit codes distinguishing a missing
+  configuration from refused credentials.
+- Unique constraint on `(source, external_id)`; a duplicate now returns 409
+  rather than surfacing an IntegrityError as a 500.
+- `docs/INTEGRATIONS.md` covering the one-time authorization, both mapping
+  tables and the known limits.
+
 #### Tooling
 - Git repository initialised and pushed to GitHub.
 - `backend/scripts/generate_sample_data.py` — 10 sample orders for local work.
@@ -82,7 +104,7 @@ Defects introduced earlier the same day and corrected before close:
 
 ### ✅ Verification
 
-- 27 backend tests passing.
+- 66 backend tests passing.
 - `tsc --noEmit` clean; production build succeeds.
 - Rate limiting: 5 requests return 401, the 6th returns 429.
 - Search, combined filters, date range and `PATCH` confirmed in the browser
@@ -90,6 +112,13 @@ Defects introduced earlier the same day and corrected before close:
 - Typing 10 characters into search issues one request, not ten.
 
 ### ⚠️ Not verified
+
+The Allegro client and mapper have never touched the live API. They follow
+Allegro's published documentation and are tested against recorded payload
+shapes, which catches mapping mistakes but not a contract that differs from
+its documentation. The refresh token also expires after about three months
+and there is nowhere to persist a rotated one, so the integration needs
+re-authorizing by hand until the `integration` table exists.
 
 The application runs on SQLite. Nothing here has been exercised against
 PostgreSQL, and two areas are likely to differ:
@@ -104,7 +133,9 @@ PostgreSQL, and two areas are likely to differ:
 
 - Connect PostgreSQL and re-run migrations and tests against it. The status
   history migration has a PostgreSQL-only branch that has never run.
-- Allegro adapter.
+- Run the Allegro import against a real account.
+- Persist marketplace credentials and rotated refresh tokens, which needs the
+  `integration` table.
 
 ---
 

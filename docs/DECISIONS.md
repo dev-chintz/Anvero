@@ -1,5 +1,38 @@
 # Decision Log
 
+## 2026-09-16 — An Import Never Overwrites the Anvero Status
+
+**Decision:** When an import meets an order Anvero already has, it refreshes
+the fields the marketplace owns and leaves `status` alone. The marketplace
+status is applied only the first time an order is seen.
+
+**Rationale:** `MVP.md` calls the status internal, it is set by hand, and
+every change is recorded in the status history. A sync that overwrote it
+would silently undo an operator's decision and leave a history entry the
+operator did not make. The cost is that a parcel marked sent on Allegro does
+not move Anvero by itself — visible, and preferable to destroying local work.
+
+## 2026-09-16 — Import Runs as a Script, Not an Endpoint
+
+**Decision:** Allegro import is `scripts/import_allegro.py`, not
+`POST /integrations/allegro/import`.
+
+**Rationale:** The orders endpoints carry no authentication. An
+unauthenticated route that makes outbound calls to a third party is an
+obvious thing to abuse, and rate limiting is not the right answer to it. This
+becomes an endpoint once auth is wired into the orders API.
+
+## 2026-09-16 — Order Total Read from `summary.totalToPay`
+
+**Decision:** `total_amount` maps from Allegro's `summary.totalToPay.amount`.
+
+**Rationale:** `lineItems[].price` is a unit price and excludes delivery, so
+summing it understates the order and multiplying by quantity still misses
+delivery and surcharges. `payment.paidAmount` is what has been paid so far,
+which is zero on an unpaid order and fails the domain model's requirement
+that a total be positive. Confirmed against Allegro's documentation rather
+than inferred.
+
 ## 2026-09-16 — No Status Transition Rules Yet
 
 **Decision:** Any order status may be set from any other. `PATCH

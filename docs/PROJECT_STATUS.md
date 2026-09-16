@@ -48,6 +48,18 @@ has not been made.
 
 ---
 
+## Sprint 4 — First Integration
+
+- Secure credential configuration — done (environment only, `.env` ignored)
+- Allegro adapter — done, built from Allegro's published documentation
+- Order import and mapping — done (`backend/scripts/import_allegro.py`)
+- Error handling and logging — done
+
+Never run against the live Allegro API. Needs a registered application and a
+one-time manual authorization; see `INTEGRATIONS.md`.
+
+---
+
 ## Also completed
 
 - Project name and branding direction
@@ -62,6 +74,11 @@ has not been made.
 ---
 
 ## Not yet verified
+
+The Allegro client and mapper have never touched the live API. They follow
+the published contract and are covered by tests against recorded payload
+shapes, which catches mapping mistakes but not a contract that differs from
+its documentation.
 
 Everything below has only been exercised against SQLite:
 
@@ -78,7 +95,8 @@ Everything below has only been exercised against SQLite:
 
 ## Next Milestone
 
-Connect PostgreSQL and re-run the migrations and the test suite against it.
+Connect PostgreSQL and re-run the migrations and the test suite against it,
+then run the Allegro import against a real account.
 
 ---
 

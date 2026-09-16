@@ -33,6 +33,7 @@ Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
 - [Development Plan](docs/ROADMAP.md)
 - [Decision Log](docs/DECISIONS.md)
 - [Local Development](docs/DEVELOPMENT.md)
+- [Integrations](docs/INTEGRATIONS.md)
 
 ## Structure
 
