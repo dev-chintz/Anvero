@@ -21,23 +21,31 @@ Read the following files in order:
 7. API.md
 8. MVP.md
 9. DECISIONS.md
+10. INTEGRATIONS.md
 
 ---
 
 ## Current State
 
-Project is in the Foundation phase.
+Backend and frontend both run. See PROJECT_STATUS.md for the sprint-by-sprint
+breakdown; the short version:
 
-Backend implementation has not started.
+- FastAPI backend with orders, status changes, status history and statistics.
+- React + TypeScript frontend: dashboard, order list with filtering, order
+  detail with status editing and history.
+- Allegro adapter and import script.
+- 66 tests passing.
 
-Frontend implementation has not started.
+Two things are **not** done, and both need a person rather than more code:
 
-Current focus:
+1. **PostgreSQL is not connected.** The application runs on SQLite. Migrations
+   and the timestamp handling have a PostgreSQL path that has never executed.
+2. **The Allegro import has never run against the live API.** It was built
+   from Allegro's published documentation and needs a registered application
+   plus a one-time manual authorization. See INTEGRATIONS.md.
 
-- Project architecture
-- Documentation
-- GitHub
-- Development environment
+Treat anything in the "Not yet verified" section of PROJECT_STATUS.md as
+unproven, however finished the code looks.
 
 ---
 

@@ -24,44 +24,49 @@ Version: 0.1.0
 
 Phase: Foundation
 
-Sprint: Sprint 2
+Sprint: Sprint 3 and Sprint 4 delivered; Sprint 2 not closed, because
+PostgreSQL is still not connected.
 
-Repository: Local (GitHub integration in progress)
+Repository: <https://github.com/dev-chintz/Anvero>
 
 ---
 
 # Completed
 
-- Project name selected (Anvero)
-- Branding direction established
-- Folder structure created
-- Local Git repository initialized
-- Documentation structure created
-- Initial Figma dashboard prototype created
-- Development workflow defined
+- Project name, branding direction, folder structure, development workflow
+- FastAPI backend: orders, status changes, status history, statistics,
+  rate-limited login
+- React + TypeScript frontend: dashboard, order list with filtering and
+  search, order detail with status editing and history, dark mode
+- Alembic migrations for `users`, `orders` and `order_status_history`
+- Allegro adapter, order mapping and import script
+- 66 tests passing
 
 ---
 
 # Current Directory Structure
 
 ```
-backend/
-frontend/
-database/
-branding/
-docs/
-scripts/
+backend/    FastAPI application, migrations, tests, scripts
+frontend/   React + TypeScript (Vite)
+docs/       project documentation
+scripts/    PowerShell helpers for the local environment
 ```
+
+`database/` and `branding/` do not exist; migrations live under
+`backend/migrations/`.
 
 ---
 
 # Current Priorities
 
-1. Push project to GitHub
-2. Configure development environment
-3. Create Python virtual environment
-4. Build backend foundation
-5. Start Sprint 2
+1. Connect PostgreSQL and re-run migrations and tests against it. The status
+   history migration has a PostgreSQL-only branch that has never executed.
+2. Run the Allegro import against a real account, which needs a registered
+   application and a one-time manual authorization (INTEGRATIONS.md).
+3. Add authentication to the orders endpoints. Several things are waiting on
+   it: the change author in the status history, and turning the import script
+   into an endpoint.
 
 ---
 
@@ -111,6 +116,7 @@ Read:
 - API.md
 - MVP.md
 - DECISIONS.md
+- INTEGRATIONS.md
 
 ---
 

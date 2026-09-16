@@ -22,9 +22,11 @@ Foundation
 
 ## Current Sprint
 
-Sprint 2, with most of Sprint 3 already delivered. Sprint 2 is not closed:
-the application runs on SQLite, and the PostgreSQL connection it calls for
-has not been made.
+Sprint 3 and Sprint 4 are delivered, but **Sprint 2 is still not closed**:
+the application runs on SQLite, and the PostgreSQL connection Sprint 2 calls
+for has not been made. Two things therefore stand between the current state
+and a working system — connecting PostgreSQL, and running the Allegro import
+against a real account. Both need steps only the project owner can take.
 
 ---
 
@@ -34,7 +36,7 @@ has not been made.
 - Connection to local PostgreSQL database — NOT done, running on SQLite
 - Health endpoint and first order model — done
 - Minimal order list interface — done
-- Automated tests for core flows — done (22 passing)
+- Automated tests for core flows — done (66 passing across the suite)
 
 ---
 
@@ -65,8 +67,9 @@ one-time manual authorization; see `INTEGRATIONS.md`.
 - Project name and branding direction
 - Repository structure, local Git repository, GitHub remote
 - Rate limiting on the login endpoint (5/minute per IP)
-- Order status editing via `PATCH /orders/{id}`
+- Order status editing via `PATCH /orders/{id}/status`
 - Dashboard aggregates computed in SQL (`GET /orders/stats`)
+- Unique constraint on `(source, external_id)`, so an import is safe to re-run
 - Dark mode
 - VS Code configuration and development scripts
 - Initial Figma dashboard prototype

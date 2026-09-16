@@ -4,7 +4,14 @@ Anvero is a locally developed system supporting marketplace sales management. Th
 
 ## Status
 
-Sprint 1 is complete: the repository has a defined structure, initial documentation, and scripts for environment setup and diagnostics. Application implementation will begin in Sprint 2.
+The backend and frontend both run against a local SQLite database: orders can
+be listed, filtered, searched, opened, and moved between statuses, with every
+transition recorded. An Allegro adapter and import script exist.
+
+Two things are still open, and both need a person rather than more code:
+PostgreSQL is not connected, and the Allegro import has never run against the
+live API. See [Project Status](docs/PROJECT_STATUS.md) for what that means in
+practice and which behaviour is therefore unproven.
 
 ## Quick Start (Windows)
 
@@ -23,6 +30,40 @@ If PowerShell blocks running local scripts, run once:
 Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
 ```
 
+## Running the application
+
+Create the database schema and, optionally, some orders to look at:
+
+```powershell
+cd backend
+.\.venv\Scripts\alembic.exe upgrade head
+.\.venv\Scripts\python.exe scripts\generate_sample_data.py --force
+```
+
+Then start the two servers, each in its own terminal:
+
+```powershell
+cd backend
+.\.venv\Scripts\python.exe -m uvicorn app.main:app --reload
+```
+
+```powershell
+cd frontend
+npm run dev
+```
+
+The interface is at <http://localhost:5173> and the API at
+<http://localhost:8000>, with its generated documentation at
+<http://localhost:8000/docs>. The dev server proxies `/api` to the backend,
+so both must be running.
+
+Tests:
+
+```powershell
+cd backend
+.\.venv\Scripts\python.exe -m pytest
+```
+
 ## Documentation
 
 - [Project Context](docs/PROJECT_CONTEXT.md)
@@ -38,10 +79,8 @@ Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
 ## Structure
 
 ```text
-backend/    future Python application and tests
-frontend/   future user interface
-database/   migrations, schema and sample data
-docs/       project decisions
-scripts/    tools for local environment
-branding/   brand materials
+backend/    FastAPI application, Alembic migrations, tests and scripts
+frontend/   React + TypeScript interface (Vite)
+docs/       project documentation
+scripts/    PowerShell helpers for the local environment
 ```
