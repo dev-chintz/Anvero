@@ -20,7 +20,7 @@ from app.db.base import Base
 
 # Import all models so autogenerate detects them
 # This ensures models are registered with Base.metadata
-from app.models import user  # noqa: F401
+from app.models import order, user  # noqa: F401
 
 target_metadata = Base.metadata
 
