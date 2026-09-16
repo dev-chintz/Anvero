@@ -90,7 +90,7 @@ export const ordersApi = {
   },
 
   updateStatus(orderId: string, status: OrderStatus): Promise<Order> {
-    return request<Order>(`/orders/${orderId}`, {
+    return request<Order>(`/orders/${orderId}/status`, {
       method: "PATCH",
       body: JSON.stringify({ status }),
     });

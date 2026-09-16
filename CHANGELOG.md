@@ -9,78 +9,90 @@ All significant changes to the Anvero project.
 ### ✨ Added
 
 #### Security
-- Implemented rate limiting on `/api/v1/auth/login` endpoint
-- Rate limit: 5 attempts per minute per IP address
-- Configurable rate limit via `RATE_LIMIT_LOGIN` setting
-- Returns 429 Too Many Requests when limit exceeded
+- Rate limiting on `POST /api/v1/auth/login`: 5 attempts per minute per IP,
+  configurable through `RATE_LIMIT_LOGIN`, returning 429 once exceeded.
 
 #### Order Management
-- Order model with UUID primary key
-- OrderSource enum: ALLEGRO, ERLI (extensible for future integrations)
-- OrderStatus enum: NEW, CONFIRMED, SHIPPED, DELIVERED, CANCELLED
-- Monetary amounts stored as Decimal (financial accuracy)
-- Order repository with CRUD + filtering (by source, status)
-- Order service layer with business logic
-- REST endpoints:
-  - `GET /orders` (paginated list with source/status filtering)
-  - `GET /orders/{order_id}` (fetch single order)
-  - `POST /orders` (create order for testing/integration)
-- Query parameter filtering: `?source=ALLEGRO`, `?status=NEW`, `?skip=N&limit=M`
-- Alembic migration for PostgreSQL orders table
-
-#### Infrastructure
-- Initialized Git repository with first commit
-- Fixed UTF-16 encoding issue in requirements.txt
-- Created virtual environment with all dependencies
-- All tests passing (13/13: 6 original + 7 new order tests)
-
-### ✅ Verification
-
-- Rate limiting tested with curl: 5 requests return 401, 6th returns 429
-- Order CRUD tests: create, read, filter by source/status, pagination
-- Database migration applied cleanly
-- All 13 tests passing
-- Application startup verified
-- slowapi middleware properly wired to FastAPI app
+- `Order` model: UUID primary key, `OrderSource` and `OrderStatus` enums,
+  `Decimal` amounts, timestamps.
+- Repository, service and schema layers following the existing structure.
+- `GET /orders` — paginated, filterable by `source`, `status`, `search`,
+  `date_from` and `date_to`. All filters combine, and every one is resolved
+  by the database, so the reported total spans all pages.
+- `GET /orders/{id}` and `POST /orders`.
+- `PATCH /orders/{id}` — change an order's status.
+- `GET /orders/stats` — count, revenue, this-week, pending and the
+  status/source breakdowns, aggregated in SQL.
+- Alembic migration for the `orders` table.
 
 #### Frontend
-- React 18 + TypeScript with strict mode
-- Vite dev server with HMR
-- React Router for navigation
-- Custom useOrders hook with pagination/filtering
-- Components: OrderList (with filters), OrderRow, OrderDetail, ErrorBoundary
-- Pages: Home, OrdersPage (query param sync)
-- Mobile-first responsive styling
-- API proxy: `/api` → backend `localhost:8000`
-- End-to-end verified: frontend fetches real order data from backend
+- React 18 + TypeScript (strict) on Vite, with `/api` proxied to the backend.
+- Sidebar navigation, dashboard, order list, order detail, settings stub.
+- Advanced filter panel: search, source, status and date range, seeded from
+  the URL and debounced by 300 ms.
+- Status editing on the order detail page.
+- Dark mode, persisted in `localStorage`.
+- Toast notifications and an error boundary.
+
+#### Tooling
+- Git repository initialised and pushed to GitHub.
+- `backend/scripts/generate_sample_data.py` — 10 sample orders for local work.
+
+### 🔧 Fixed
+
+Defects introduced earlier the same day and corrected before close:
+
+- The test suite shared `settings.database_url` with development and called
+  `drop_all()` on teardown, so running the tests destroyed local data.
+  `tests/conftest.py` now points the suite at its own database.
+- The frontend did not type-check; `OrdersPage` passed a type
+  `AdvancedFilters` does not accept.
+- The dashboard derived its totals from a single 100-row page and used
+  `orders.length` as the order count, so it under-reported past 100 orders.
+- Search filtered only the rows already on screen, so a match on a later
+  page read as "no results" while the pager showed the unfiltered total.
+- `OrderService` used `if/elif`, so `source` and `status` together filtered
+  the page by source alone while counting the total with both.
+- The From/To date inputs fed the URL but no backend filter existed.
+- `OrderList` carried a second pair of source/status selects that duplicated
+  `AdvancedFilters` and reused the same DOM ids, breaking `label` association.
+- `Dashboard.css` held 24 rules under `.dashboard.dark`, a class the
+  component never received, so the dashboard stayed light in dark mode.
+  All theming now keys off `:root.dark`.
+- Migrations used `sa.text("now()")`, which is PostgreSQL-only and fails on
+  SQLite; replaced with `func.current_timestamp()`.
+- `generate_sample_data.py` called `db.func`, which does not exist on a
+  SQLAlchemy `Session`.
+- `test.db`, `vite.config.js`, `vite.config.d.ts`, both `.tsbuildinfo` files
+  and `.claude/settings.local.json` were tracked in Git despite being
+  regenerated on every run. Untracked, and the tsconfigs now emit into
+  `node_modules` so they stop reappearing.
 
 ### ✅ Verification
 
-- All 13 backend tests passing
-- Frontend TypeScript: 0 errors
-- Frontend production build: successful (43 modules)
-- Frontend dev server: running (port 5173)
-- API proxy: confirmed forwarding requests correctly
-- React Router: client-side navigation working
-- Order CRUD operations: working end-to-end
+- 22 backend tests passing.
+- `tsc --noEmit` clean; production build succeeds.
+- Rate limiting: 5 requests return 401, the 6th returns 429.
+- Search, combined filters, date range and `PATCH` confirmed in the browser
+  against live data, each read back independently from the API.
+- Typing 10 characters into search issues one request, not ten.
 
-### 📌 Sprint 2 Status
+### ⚠️ Not verified
 
-**Working skeleton phase COMPLETE:**
-- ✅ Backend framework (FastAPI) configured
-- ✅ Rate limiting on auth endpoint
-- ✅ Order model with REST endpoints
-- ✅ Database migrations (users, orders tables)
-- ✅ Backend tests: 13/13 passing
-- ✅ Frontend skeleton (React + TypeScript)
-- ✅ End-to-end integration verified
+The application runs on SQLite. Nothing here has been exercised against
+PostgreSQL, and two areas are likely to differ:
 
-**Bugs fixed:**
-- Migration compatibility: `func.current_timestamp()` for SQLite + PostgreSQL
+- Migrations use `Uuid`, `Numeric` and `Enum`; on PostgreSQL `Enum` creates
+  a real database type.
+- Date filters and the "this week" figure compare timestamps. SQLite stores
+  naive datetimes, PostgreSQL aware ones. The repository normalises per
+  dialect, but only the SQLite path has been run.
 
-**Remaining for Sprint 2:**
-- Order import from Allegro/ERLI adapters
-- Change history tracking
+### 📌 Next
+
+- Connect PostgreSQL and re-run migrations and tests against it.
+- Order change history.
+- Allegro adapter.
 
 ---
 

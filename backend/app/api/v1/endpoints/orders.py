@@ -56,8 +56,10 @@ def get_order(order_id: uuid.UUID, db: Session = Depends(get_db)):
     return service.get_order(order_id)
 
 
-@router.patch("/{order_id}", response_model=OrderRead)
-def update_order(
+# path follows the contract in docs/API.md: status is its own sub-resource
+# because a change here is meant to record an entry in the status history
+@router.patch("/{order_id}/status", response_model=OrderRead)
+def update_order_status(
     order_id: uuid.UUID, payload: OrderUpdate, db: Session = Depends(get_db)
 ):
     service = OrderService(OrderRepository(db))

@@ -1,4 +1,4 @@
-from datetime import UTC, datetime, timedelta
+﻿from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 
 from fastapi.testclient import TestClient
@@ -110,14 +110,14 @@ def test_get_order_not_found():
 
 
 def test_update_order_status():
-    """PATCH /orders/{id} changes the status and the change persists."""
+    """PATCH /orders/{id}/status changes the status and the change persists."""
     created = client.post(
         "/api/v1/orders", json=_order_payload(external_id="PATCH-1")
     ).json()
     assert created["status"] == "NEW"
 
     response = client.patch(
-        f"/api/v1/orders/{created['id']}", json={"status": "SHIPPED"}
+        f"/api/v1/orders/{created['id']}/status", json={"status": "SHIPPED"}
     )
 
     assert response.status_code == 200
@@ -127,9 +127,9 @@ def test_update_order_status():
 
 
 def test_update_order_status_not_found():
-    """PATCH /orders/{id} returns 404 for a non-existent id."""
+    """PATCH /orders/{id}/status returns 404 for a non-existent id."""
     response = client.patch(
-        "/api/v1/orders/00000000-0000-0000-0000-000000000000",
+        "/api/v1/orders/00000000-0000-0000-0000-000000000000/status",
         json={"status": "SHIPPED"},
     )
 
@@ -137,13 +137,13 @@ def test_update_order_status_not_found():
 
 
 def test_update_order_rejects_unknown_status():
-    """PATCH /orders/{id} rejects a status outside the enum."""
+    """PATCH /orders/{id}/status rejects a status outside the enum."""
     created = client.post(
         "/api/v1/orders", json=_order_payload(external_id="PATCH-2")
     ).json()
 
     response = client.patch(
-        f"/api/v1/orders/{created['id']}", json={"status": "TELEPORTED"}
+        f"/api/v1/orders/{created['id']}/status", json={"status": "TELEPORTED"}
     )
 
     assert response.status_code == 422
