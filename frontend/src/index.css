@@ -1,0 +1,203 @@
+:root {
+  --color-text: #1a1a2e;
+  --color-muted: #6b7280;
+  --color-border: #e5e7eb;
+  --color-primary: #2563eb;
+  --color-bg: #ffffff;
+  --radius: 6px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  color: var(--color-text);
+  background: #f9fafb;
+  line-height: 1.5;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+}
+
+.app-header {
+  padding: 1rem;
+  background: var(--color-bg);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.brand {
+  font-weight: 700;
+  font-size: 1.25rem;
+  color: var(--color-primary);
+  text-decoration: none;
+}
+
+.app-main {
+  padding: 1rem;
+  max-width: 960px;
+  margin: 0 auto;
+}
+
+.home {
+  text-align: center;
+  padding: 3rem 1rem;
+}
+
+.button-link {
+  display: inline-block;
+  margin-top: 1rem;
+  padding: 0.6rem 1.2rem;
+  background: var(--color-primary);
+  color: #fff;
+  text-decoration: none;
+  border-radius: var(--radius);
+}
+
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.filters label {
+  display: flex;
+  flex-direction: column;
+  font-size: 0.85rem;
+  color: var(--color-muted);
+  gap: 0.25rem;
+}
+
+.filters select {
+  padding: 0.4rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+}
+
+.table-wrapper {
+  overflow-x: auto;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--color-bg);
+}
+
+th,
+td {
+  text-align: left;
+  padding: 0.6rem 0.75rem;
+  border-bottom: 1px solid var(--color-border);
+  white-space: nowrap;
+}
+
+.order-link {
+  color: var(--color-primary);
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.badge {
+  display: inline-block;
+  padding: 0.15rem 0.55rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #fff;
+}
+
+.badge-new {
+  background: #3b82f6;
+}
+
+.badge-confirmed {
+  background: #8b5cf6;
+}
+
+.badge-shipped {
+  background: #f59e0b;
+}
+
+.badge-delivered {
+  background: #22c55e;
+}
+
+.badge-cancelled {
+  background: #ef4444;
+}
+
+.badge-allegro {
+  background: #ff5a00;
+}
+
+.badge-erli {
+  background: #0ea5e9;
+}
+
+.pagination {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-top: 1rem;
+  flex-wrap: wrap;
+}
+
+.pagination button {
+  padding: 0.4rem 0.9rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-bg);
+  cursor: pointer;
+}
+
+.pagination button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.error-message {
+  color: #b91c1c;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  padding: 0.75rem 1rem;
+  border-radius: var(--radius);
+}
+
+.order-detail dl.order-fields {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.order-fields div {
+  padding: 0.5rem 0;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.order-fields dt {
+  font-size: 0.8rem;
+  color: var(--color-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.order-fields dd {
+  margin: 0.15rem 0 0;
+  font-size: 1rem;
+}
+
+@media (min-width: 640px) {
+  .order-detail dl.order-fields {
+    grid-template-columns: 1fr 1fr;
+  }
+}

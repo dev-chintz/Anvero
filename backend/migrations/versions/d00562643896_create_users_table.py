@@ -9,6 +9,7 @@ Create Date: 2026-08-05 22:09:32.645679
 from collections.abc import Sequence
 
 import sqlalchemy as sa
+from sqlalchemy import func
 from alembic import op
 
 # revision identifiers, used by Alembic.
@@ -29,13 +30,13 @@ def upgrade() -> None:
         sa.Column(
             "created_at",
             sa.DateTime(timezone=True),
-            server_default=sa.text("now()"),
+            server_default=func.current_timestamp(),
             nullable=False,
         ),
         sa.Column(
             "updated_at",
             sa.DateTime(timezone=True),
-            server_default=sa.text("now()"),
+            server_default=func.current_timestamp(),
             nullable=False,
         ),
         sa.PrimaryKeyConstraint("id"),
