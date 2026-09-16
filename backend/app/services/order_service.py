@@ -58,6 +58,28 @@ class OrderService:
             )
         return order
 
+    def update_order_status(
+        self, order_id: uuid.UUID, new_status: OrderStatus
+    ) -> Order:
+        """Move an order to a new status.
+
+        Any status may be set from any other: operators need to correct
+        mistakes, and the valid transitions for this business are not
+        settled yet. Add a state machine here once they are.
+
+        Args:
+            order_id: The internal primary key of the order.
+            new_status: The status to move the order to.
+
+        Raises:
+            HTTPException: 404 if no order exists with that id.
+
+        Returns:
+            The updated Order, with updated_at refreshed.
+        """
+        order = self.get_order(order_id)
+        return self.repository.update_status(order, new_status)
+
     def list_orders(
         self,
         skip: int = 0,

@@ -23,6 +23,12 @@ class OrderRepository:
     def get(self, order_id: uuid.UUID) -> Order | None:
         return self.db.query(Order).filter(Order.id == order_id).first()
 
+    def update_status(self, order: Order, status: OrderStatus) -> Order:
+        order.status = status
+        self.db.commit()
+        self.db.refresh(order)
+        return order
+
     def _to_db_datetime(self, value: datetime) -> datetime:
         """Match the bind parameter to how the backend stores timestamps.
 

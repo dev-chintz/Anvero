@@ -7,7 +7,13 @@ from sqlalchemy.orm import Session
 from app.db.session import get_db
 from app.models.order import OrderSource, OrderStatus
 from app.repositories.order_repository import OrderRepository
-from app.schemas.order import OrderCreate, OrderListResponse, OrderRead, OrderStats
+from app.schemas.order import (
+    OrderCreate,
+    OrderListResponse,
+    OrderRead,
+    OrderStats,
+    OrderUpdate,
+)
 from app.services.order_service import OrderService
 
 router = APIRouter(prefix="/orders", tags=["Orders"])
@@ -48,6 +54,14 @@ def get_order_stats(db: Session = Depends(get_db)):
 def get_order(order_id: uuid.UUID, db: Session = Depends(get_db)):
     service = OrderService(OrderRepository(db))
     return service.get_order(order_id)
+
+
+@router.patch("/{order_id}", response_model=OrderRead)
+def update_order(
+    order_id: uuid.UUID, payload: OrderUpdate, db: Session = Depends(get_db)
+):
+    service = OrderService(OrderRepository(db))
+    return service.update_order_status(order_id, payload.status)
 
 
 @router.post("", response_model=OrderRead)

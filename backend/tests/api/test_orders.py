@@ -109,6 +109,47 @@ def test_get_order_not_found():
     assert response.status_code == 404
 
 
+def test_update_order_status():
+    """PATCH /orders/{id} changes the status and the change persists."""
+    created = client.post(
+        "/api/v1/orders", json=_order_payload(external_id="PATCH-1")
+    ).json()
+    assert created["status"] == "NEW"
+
+    response = client.patch(
+        f"/api/v1/orders/{created['id']}", json={"status": "SHIPPED"}
+    )
+
+    assert response.status_code == 200
+    assert response.json()["status"] == "SHIPPED"
+    # re-read, so this fails if the change was never committed
+    assert client.get(f"/api/v1/orders/{created['id']}").json()["status"] == "SHIPPED"
+
+
+def test_update_order_status_not_found():
+    """PATCH /orders/{id} returns 404 for a non-existent id."""
+    response = client.patch(
+        "/api/v1/orders/00000000-0000-0000-0000-000000000000",
+        json={"status": "SHIPPED"},
+    )
+
+    assert response.status_code == 404
+
+
+def test_update_order_rejects_unknown_status():
+    """PATCH /orders/{id} rejects a status outside the enum."""
+    created = client.post(
+        "/api/v1/orders", json=_order_payload(external_id="PATCH-2")
+    ).json()
+
+    response = client.patch(
+        f"/api/v1/orders/{created['id']}", json={"status": "TELEPORTED"}
+    )
+
+    assert response.status_code == 422
+    assert client.get(f"/api/v1/orders/{created['id']}").json()["status"] == "NEW"
+
+
 def test_filter_orders_by_source():
     """GET /orders?source=ALLEGRO returns only orders from that source."""
     client.post("/api/v1/orders", json=_order_payload(external_id="ERLI-1"))

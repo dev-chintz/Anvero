@@ -89,6 +89,13 @@ export const ordersApi = {
     return request<Order>(`/orders/${orderId}`);
   },
 
+  updateStatus(orderId: string, status: OrderStatus): Promise<Order> {
+    return request<Order>(`/orders/${orderId}`, {
+      method: "PATCH",
+      body: JSON.stringify({ status }),
+    });
+  },
+
   stats(): Promise<OrderStats> {
     return request<OrderStats>("/orders/stats");
   },

@@ -19,6 +19,10 @@ class OrderCreate(OrderBase):
     status: OrderStatus = OrderStatus.NEW
 
 
+class OrderUpdate(BaseModel):
+    status: OrderStatus
+
+
 class OrderRead(OrderBase):
     id: uuid.UUID
     status: OrderStatus

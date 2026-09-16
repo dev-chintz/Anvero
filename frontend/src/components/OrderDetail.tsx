@@ -1,7 +1,10 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { ApiError, ordersApi } from "../api/client";
+import { OrderStatus } from "../types/order";
 import type { Order } from "../types/order";
+
+const STATUSES = Object.values(OrderStatus);
 
 export function OrderDetail() {
   const { id } = useParams<{ id: string }>();
@@ -11,6 +14,8 @@ export function OrderDetail() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [notFound, setNotFound] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!id) return;
@@ -43,6 +48,24 @@ export function OrderDetail() {
       cancelled = true;
     };
   }, [id]);
+
+  const handleStatusChange = async (nextStatus: OrderStatus) => {
+    if (!order || nextStatus === order.status) return;
+
+    setSaving(true);
+    setSaveError(null);
+    try {
+      // replace with the server's response rather than the local guess, so
+      // updated_at reflects what was actually stored
+      setOrder(await ordersApi.updateStatus(order.id, nextStatus));
+    } catch (err: unknown) {
+      setSaveError(
+        err instanceof ApiError ? err.message : "Failed to update status",
+      );
+    } finally {
+      setSaving(false);
+    }
+  };
 
   return (
     <section className="order-detail" aria-label="Order details">
@@ -79,8 +102,31 @@ export function OrderDetail() {
             <dd>{order.source}</dd>
           </div>
           <div>
-            <dt>Status</dt>
-            <dd>{order.status}</dd>
+            <dt>
+              <label htmlFor="order-status">Status</label>
+            </dt>
+            <dd>
+              <select
+                id="order-status"
+                value={order.status}
+                disabled={saving}
+                onChange={(e) =>
+                  handleStatusChange(e.target.value as OrderStatus)
+                }
+              >
+                {STATUSES.map((s) => (
+                  <option key={s} value={s}>
+                    {s}
+                  </option>
+                ))}
+              </select>
+              {saving && <span role="status"> Saving…</span>}
+              {saveError && (
+                <span role="alert" className="error-message">
+                  {saveError}
+                </span>
+              )}
+            </dd>
           </div>
           <div>
             <dt>Customer Email</dt>
