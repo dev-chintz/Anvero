@@ -30,6 +30,15 @@ export interface OrderListResponse {
   limit: number;
 }
 
+export interface OrderStats {
+  total_orders: number;
+  total_revenue: string;
+  this_week: number;
+  pending: number;
+  by_status: Record<string, number>;
+  by_source: Record<string, number>;
+}
+
 export interface OrderCreate {
   external_id: string;
   source: OrderSource;

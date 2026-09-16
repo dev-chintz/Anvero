@@ -37,3 +37,12 @@ class OrderListResponse(BaseModel):
     total: int
     skip: int
     limit: int
+
+
+class OrderStats(BaseModel):
+    total_orders: int
+    total_revenue: Decimal
+    this_week: int
+    pending: int
+    by_status: dict[str, int]
+    by_source: dict[str, int]

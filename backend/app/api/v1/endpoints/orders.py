@@ -1,4 +1,5 @@
 import uuid
+from datetime import date
 
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
@@ -6,7 +7,7 @@ from sqlalchemy.orm import Session
 from app.db.session import get_db
 from app.models.order import OrderSource, OrderStatus
 from app.repositories.order_repository import OrderRepository
-from app.schemas.order import OrderCreate, OrderListResponse, OrderRead
+from app.schemas.order import OrderCreate, OrderListResponse, OrderRead, OrderStats
 from app.services.order_service import OrderService
 
 router = APIRouter(prefix="/orders", tags=["Orders"])
@@ -18,6 +19,9 @@ def list_orders(
     limit: int = Query(default=100, ge=1, le=500),
     source: OrderSource | None = Query(default=None),
     status: OrderStatus | None = Query(default=None),
+    search: str | None = Query(default=None, max_length=255),
+    date_from: date | None = Query(default=None),
+    date_to: date | None = Query(default=None),
     db: Session = Depends(get_db),
 ):
     service = OrderService(OrderRepository(db))
@@ -26,8 +30,18 @@ def list_orders(
         limit=limit,
         source=source,
         status_filter=status,
+        search=search,
+        date_from=date_from,
+        date_to=date_to,
     )
     return OrderListResponse(items=orders, total=total, skip=skip, limit=limit)
+
+
+# must stay above /{order_id} or "stats" is parsed as a UUID path param
+@router.get("/stats", response_model=OrderStats)
+def get_order_stats(db: Session = Depends(get_db)):
+    service = OrderService(OrderRepository(db))
+    return service.get_stats()
 
 
 @router.get("/{order_id}", response_model=OrderRead)

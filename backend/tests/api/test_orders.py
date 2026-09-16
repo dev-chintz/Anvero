@@ -1,3 +1,6 @@
+from datetime import UTC, datetime, timedelta
+from decimal import Decimal
+
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
@@ -153,3 +156,122 @@ def test_pagination():
     page_one_ids = {item["id"] for item in page_one.json()["items"]}
     page_two_ids = {item["id"] for item in page_two.json()["items"]}
     assert page_one_ids.isdisjoint(page_two_ids)
+
+
+def test_source_and_status_filters_combine():
+    """Both filters apply together, and total agrees with the returned page.
+
+    Regression: the service used if/elif, so setting both applied only
+    source to the page while counting the total with both.
+    """
+    client.post(
+        "/api/v1/orders",
+        json=_order_payload(
+            external_id="COMBO-ERLI-CONFIRMED", source="ERLI", status="CONFIRMED"
+        ),
+    )
+    client.post(
+        "/api/v1/orders",
+        json=_order_payload(external_id="COMBO-ERLI-NEW", source="ERLI"),
+    )
+
+    response = client.get(
+        "/api/v1/orders", params={"source": "ERLI", "status": "CONFIRMED"}
+    )
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["items"], "expected at least one matching order"
+    assert all(
+        item["source"] == "ERLI" and item["status"] == "CONFIRMED"
+        for item in data["items"]
+    )
+    assert data["total"] == len(data["items"])
+
+
+def test_search_finds_order_outside_the_first_page():
+    """search is applied by the database, not to an already-fetched page."""
+    for i in range(4):
+        client.post("/api/v1/orders", json=_order_payload(external_id=f"BULK-{i}"))
+    client.post(
+        "/api/v1/orders",
+        json=_order_payload(
+            external_id="NEEDLE-9999", customer_email="needle@example.com"
+        ),
+    )
+
+    response = client.get("/api/v1/orders", params={"search": "NEEDLE-9999", "limit": 1})
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["total"] == 1
+    assert data["items"][0]["external_id"] == "NEEDLE-9999"
+
+
+def test_search_matches_customer_email():
+    """search also matches the customer email, case-insensitively."""
+    client.post(
+        "/api/v1/orders",
+        json=_order_payload(
+            external_id="MAIL-1", customer_email="Findme@example.com"
+        ),
+    )
+
+    response = client.get("/api/v1/orders", params={"search": "findme"})
+
+    assert response.status_code == 200
+    assert response.json()["total"] == 1
+
+
+def test_search_escapes_like_wildcards():
+    """A literal % typed into search must not match every row."""
+    client.post("/api/v1/orders", json=_order_payload(external_id="NOPERCENT"))
+
+    response = client.get("/api/v1/orders", params={"search": "%"})
+
+    assert response.status_code == 200
+    assert response.json()["total"] == 0
+
+
+def test_filter_by_date_range():
+    """date_from/date_to bound created_at, with date_to fully included.
+
+    An order created today at midday must still match date_to=today, which
+    a naive "created_at <= date_to" bound would cut off at midnight.
+    """
+    client.post("/api/v1/orders", json=_order_payload(external_id="DATE-1"))
+    today = datetime.now(UTC).date()
+    long_ago = (today - timedelta(days=30)).isoformat()
+
+    inside = client.get(
+        "/api/v1/orders",
+        params={"date_from": today.isoformat(), "date_to": today.isoformat()},
+    )
+    outside = client.get(
+        "/api/v1/orders", params={"date_from": long_ago, "date_to": long_ago}
+    )
+
+    assert inside.status_code == 200
+    assert inside.json()["total"] >= 1
+    assert outside.status_code == 200
+    assert outside.json()["total"] == 0
+
+
+def test_stats_covers_all_orders_not_just_one_page():
+    """GET /orders/stats aggregates the whole table.
+
+    Regression: the dashboard derived totals from a single 100-row page.
+    """
+    for i in range(3):
+        client.post("/api/v1/orders", json=_order_payload(external_id=f"STATS-{i}"))
+
+    unfiltered_total = client.get("/api/v1/orders", params={"limit": 1}).json()["total"]
+    response = client.get("/api/v1/orders/stats")
+
+    assert response.status_code == 200
+    stats = response.json()
+    assert stats["total_orders"] == unfiltered_total
+    assert stats["total_orders"] > 1
+    assert sum(stats["by_status"].values()) == unfiltered_total
+    assert sum(stats["by_source"].values()) == unfiltered_total
+    assert Decimal(stats["total_revenue"]) > 0

@@ -2,6 +2,16 @@ import { useCallback, useEffect, useState } from "react";
 import { ApiError, ordersApi } from "../api/client";
 import type { Order, OrderSource, OrderStatus } from "../types/order";
 
+export interface UseOrdersParams {
+  skip: number;
+  limit: number;
+  source?: OrderSource;
+  status?: OrderStatus;
+  search?: string;
+  dateFrom?: string;
+  dateTo?: string;
+}
+
 export interface UseOrdersResult {
   orders: Order[];
   loading: boolean;
@@ -13,13 +23,15 @@ export interface UseOrdersResult {
 /**
  * Fetches a page of orders from the backend, re-running whenever the
  * pagination or filter arguments change.
+ *
+ * Every filter is applied by the database, so `count` is the number of
+ * matching orders across all pages -- not the size of the current page.
  */
-export function useOrders(
-  skip: number,
-  limit: number,
-  source?: OrderSource,
-  status?: OrderStatus,
-): UseOrdersResult {
+export function useOrders(params: UseOrdersParams): UseOrdersResult {
+  // destructured to primitives so the effect does not re-run on every
+  // render just because the caller built a fresh params object
+  const { skip, limit, source, status, search, dateFrom, dateTo } = params;
+
   const [orders, setOrders] = useState<Order[]>([]);
   const [count, setCount] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -35,7 +47,7 @@ export function useOrders(
     setError(null);
 
     ordersApi
-      .list({ skip, limit, source, status })
+      .list({ skip, limit, source, status, search, dateFrom, dateTo })
       .then((response) => {
         if (cancelled) return;
         setOrders(response.items);
@@ -56,7 +68,7 @@ export function useOrders(
     return () => {
       cancelled = true;
     };
-  }, [skip, limit, source, status, version]);
+  }, [skip, limit, source, status, search, dateFrom, dateTo, version]);
 
   return { orders, loading, error, count, refetch };
 }

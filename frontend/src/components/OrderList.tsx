@@ -1,4 +1,4 @@
-import type { Order, OrderSource, OrderStatus } from "../types/order";
+import type { Order } from "../types/order";
 import { OrderRow } from "./OrderRow";
 
 interface OrderListProps {
@@ -8,21 +8,8 @@ interface OrderListProps {
   count: number;
   skip: number;
   limit: number;
-  source: OrderSource | undefined;
-  status: OrderStatus | undefined;
-  onSourceChange: (source: OrderSource | undefined) => void;
-  onStatusChange: (status: OrderStatus | undefined) => void;
   onPageChange: (skip: number) => void;
 }
-
-const SOURCES: OrderSource[] = ["ALLEGRO", "ERLI"] as OrderSource[];
-const STATUSES: OrderStatus[] = [
-  "NEW",
-  "CONFIRMED",
-  "SHIPPED",
-  "DELIVERED",
-  "CANCELLED",
-] as OrderStatus[];
 
 export function OrderList({
   orders,
@@ -31,10 +18,6 @@ export function OrderList({
   count,
   skip,
   limit,
-  source,
-  status,
-  onSourceChange,
-  onStatusChange,
   onPageChange,
 }: OrderListProps) {
   const currentPage = Math.floor(skip / limit) + 1;
@@ -44,48 +27,6 @@ export function OrderList({
 
   return (
     <section aria-label="Orders">
-      <div className="filters">
-        <label htmlFor="source-filter">
-          Source
-          <select
-            id="source-filter"
-            value={source ?? ""}
-            onChange={(e) =>
-              onSourceChange(
-                e.target.value ? (e.target.value as OrderSource) : undefined,
-              )
-            }
-          >
-            <option value="">All</option>
-            {SOURCES.map((s) => (
-              <option key={s} value={s}>
-                {s}
-              </option>
-            ))}
-          </select>
-        </label>
-
-        <label htmlFor="status-filter">
-          Status
-          <select
-            id="status-filter"
-            value={status ?? ""}
-            onChange={(e) =>
-              onStatusChange(
-                e.target.value ? (e.target.value as OrderStatus) : undefined,
-              )
-            }
-          >
-            <option value="">All</option>
-            {STATUSES.map((s) => (
-              <option key={s} value={s}>
-                {s}
-              </option>
-            ))}
-          </select>
-        </label>
-      </div>
-
       {loading && <p role="status">Loading orders…</p>}
 
       {error && (

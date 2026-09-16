@@ -24,17 +24,19 @@ export function OrdersPage({ addToast }: OrdersPageProps) {
   const source = (searchParams.get('source') as OrderSource) || undefined;
   const status = (searchParams.get('status') as OrderStatus) || undefined;
   const search = searchParams.get('search') || undefined;
+  const dateFrom = searchParams.get('dateFrom') || undefined;
+  const dateTo = searchParams.get('dateTo') || undefined;
 
-  const { orders, loading, error, count } = useOrders(skip, limit, source, status);
-
-  const filteredOrders = orders.filter((order) => {
-    if (!search) return true;
-    const searchLower = search.toLowerCase();
-    return (
-      order.id.toLowerCase().includes(searchLower) ||
-      order.external_id.toLowerCase().includes(searchLower) ||
-      order.customer_email.toLowerCase().includes(searchLower)
-    );
+  // every filter is applied by the backend, so results and the total span
+  // all pages rather than just the rows already fetched
+  const { orders, loading, error, count } = useOrders({
+    skip,
+    limit,
+    source,
+    status,
+    search,
+    dateFrom,
+    dateTo,
   });
 
   const updateParams = (updates: Record<string, string | undefined>) => {
@@ -73,21 +75,24 @@ export function OrdersPage({ addToast }: OrdersPageProps) {
       </header>
 
       <AdvancedFilters
+        initialFilters={{
+          search: search ?? '',
+          source,
+          status,
+          dateFrom,
+          dateTo,
+        }}
         onFiltersChange={handleFiltersChange}
         onClearFilters={handleClearFilters}
       />
 
       <OrderList
-        orders={filteredOrders}
+        orders={orders}
         loading={loading}
         error={error}
         count={count}
         skip={skip}
         limit={limit}
-        source={source}
-        status={status}
-        onSourceChange={(value) => updateParams({ source: value, skip: '0' })}
-        onStatusChange={(value) => updateParams({ status: value, skip: '0' })}
         onPageChange={(newSkip) => updateParams({ skip: String(newSkip) })}
       />
     </div>

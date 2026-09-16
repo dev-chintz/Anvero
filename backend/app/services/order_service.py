@@ -1,4 +1,5 @@
 import uuid
+from datetime import date
 
 from fastapi import HTTPException, status
 
@@ -63,30 +64,40 @@ class OrderService:
         limit: int = 100,
         source: OrderSource | None = None,
         status_filter: OrderStatus | None = None,
+        search: str | None = None,
+        date_from: date | None = None,
+        date_to: date | None = None,
     ) -> tuple[list[Order], int]:
         """List orders with optional filtering and pagination.
 
-        Filtering by source and status is mutually applicable (both can be
-        set at once, though the current API only allows one at a time).
+        All filters combine; the page and the reported total are built from
+        the same predicates.
 
         Args:
             skip: Number of records to skip (offset).
             limit: Maximum number of records to return.
             source: Optional marketplace source to filter by.
             status_filter: Optional order status to filter by.
+            search: Optional substring matched against external_id and
+                customer_email.
+            date_from: Optional inclusive lower bound on the creation date.
+            date_to: Optional inclusive upper bound on the creation date.
 
         Returns:
             A tuple of (matching orders for the current page, total count
             of matching orders across all pages).
         """
-        if source is not None:
-            orders = self.repository.list_by_source(source, skip=skip, limit=limit)
-        elif status_filter is not None:
-            orders = self.repository.list_by_status(
-                status_filter, skip=skip, limit=limit
-            )
-        else:
-            orders = self.repository.list_all(skip=skip, limit=limit)
-
-        total = self.repository.count(source=source, status=status_filter)
+        filters = {
+            "source": source,
+            "status": status_filter,
+            "search": search,
+            "date_from": date_from,
+            "date_to": date_to,
+        }
+        orders = self.repository.list(skip=skip, limit=limit, **filters)
+        total = self.repository.count(**filters)
         return orders, total
+
+    def get_stats(self) -> dict:
+        """Aggregate figures for the dashboard, computed across all orders."""
+        return self.repository.stats()

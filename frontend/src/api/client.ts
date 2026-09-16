@@ -1,4 +1,4 @@
-import type { Order, OrderListResponse } from "../types/order";
+import type { Order, OrderListResponse, OrderStats } from "../types/order";
 import type { OrderSource, OrderStatus } from "../types/order";
 
 // Vite's dev server proxies "/api" to the FastAPI backend (see vite.config.ts),
@@ -62,16 +62,22 @@ export interface ListOrdersParams {
   limit?: number;
   source?: OrderSource;
   status?: OrderStatus;
+  search?: string;
+  dateFrom?: string;
+  dateTo?: string;
 }
 
 function buildQuery(params: ListOrdersParams): string {
-  const search = new URLSearchParams();
-  if (params.skip !== undefined) search.set("skip", String(params.skip));
-  if (params.limit !== undefined) search.set("limit", String(params.limit));
-  if (params.source) search.set("source", params.source);
-  if (params.status) search.set("status", params.status);
-  const query = search.toString();
-  return query ? `?${query}` : "";
+  const query = new URLSearchParams();
+  if (params.skip !== undefined) query.set("skip", String(params.skip));
+  if (params.limit !== undefined) query.set("limit", String(params.limit));
+  if (params.source) query.set("source", params.source);
+  if (params.status) query.set("status", params.status);
+  if (params.search) query.set("search", params.search);
+  if (params.dateFrom) query.set("date_from", params.dateFrom);
+  if (params.dateTo) query.set("date_to", params.dateTo);
+  const queryString = query.toString();
+  return queryString ? `?${queryString}` : "";
 }
 
 export const ordersApi = {
@@ -81,5 +87,9 @@ export const ordersApi = {
 
   get(orderId: string): Promise<Order> {
     return request<Order>(`/orders/${orderId}`);
+  },
+
+  stats(): Promise<OrderStats> {
+    return request<OrderStats>("/orders/stats");
   },
 };

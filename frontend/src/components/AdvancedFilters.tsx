@@ -1,6 +1,19 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { OrderSource, OrderStatus } from '../types/order';
 import '../styles/AdvancedFilters.css';
+
+// long enough to avoid a request per keystroke, short enough to feel live
+const SEARCH_DEBOUNCE_MS = 300;
+
+function hasAnyFilter(filters: Filters): boolean {
+  return Boolean(
+    filters.search ||
+      filters.source ||
+      filters.status ||
+      filters.dateFrom ||
+      filters.dateTo,
+  );
+}
 
 export interface Filters {
   search: string;
@@ -11,60 +24,74 @@ export interface Filters {
 }
 
 interface AdvancedFiltersProps {
+  initialFilters?: Filters;
   onFiltersChange: (filters: Filters) => void;
   onClearFilters: () => void;
 }
 
 export const AdvancedFilters: React.FC<AdvancedFiltersProps> = ({
+  initialFilters,
   onFiltersChange,
   onClearFilters,
 }) => {
-  const [isOpen, setIsOpen] = useState(false);
-  const [filters, setFilters] = useState<Filters>({
-    search: '',
-  });
+  const [filters, setFilters] = useState<Filters>(
+    initialFilters ?? { search: '' },
+  );
+  // start expanded when arriving on a pre-filtered URL, so the active
+  // filters are visible rather than hidden behind a collapsed panel
+  const [isOpen, setIsOpen] = useState(() => hasAnyFilter(filters));
+
+  // the parent redefines onFiltersChange every render; a ref keeps it out of
+  // the effect deps so the debounce timer is not reset on every render
+  const onFiltersChangeRef = useRef(onFiltersChange);
+  onFiltersChangeRef.current = onFiltersChange;
+
+  const isInitialRender = useRef(true);
+
+  useEffect(() => {
+    // do not echo the mount-time filters back to the parent; that would
+    // overwrite the URL the filters were just read from
+    if (isInitialRender.current) {
+      isInitialRender.current = false;
+      return;
+    }
+
+    const timer = setTimeout(
+      () => onFiltersChangeRef.current(filters),
+      SEARCH_DEBOUNCE_MS,
+    );
+    return () => clearTimeout(timer);
+  }, [filters]);
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const search = e.target.value;
-    setFilters({ ...filters, search });
-    onFiltersChange({ ...filters, search });
+    setFilters((prev) => ({ ...prev, search: e.target.value }));
   };
 
   const handleSourceChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const source = e.target.value ? (e.target.value as OrderSource) : undefined;
-    setFilters({ ...filters, source });
-    onFiltersChange({ ...filters, source });
+    setFilters((prev) => ({ ...prev, source }));
   };
 
   const handleStatusChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const status = e.target.value ? (e.target.value as OrderStatus) : undefined;
-    setFilters({ ...filters, status });
-    onFiltersChange({ ...filters, status });
+    setFilters((prev) => ({ ...prev, status }));
   };
 
   const handleDateFromChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const dateFrom = e.target.value || undefined;
-    setFilters({ ...filters, dateFrom });
-    onFiltersChange({ ...filters, dateFrom });
+    setFilters((prev) => ({ ...prev, dateFrom: e.target.value || undefined }));
   };
 
   const handleDateToChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const dateTo = e.target.value || undefined;
-    setFilters({ ...filters, dateTo });
-    onFiltersChange({ ...filters, dateTo });
+    setFilters((prev) => ({ ...prev, dateTo: e.target.value || undefined }));
   };
 
   const handleClearFilters = () => {
+    isInitialRender.current = true;
     setFilters({ search: '' });
     onClearFilters();
   };
 
-  const hasActiveFilters =
-    filters.search ||
-    filters.source ||
-    filters.status ||
-    filters.dateFrom ||
-    filters.dateTo;
+  const hasActiveFilters = hasAnyFilter(filters);
 
   return (
     <div className="advanced-filters">
