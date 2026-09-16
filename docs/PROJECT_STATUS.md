@@ -38,6 +38,8 @@ Sprint 2
 - Order model with REST endpoints ✅
 - Database migrations (users, orders tables) ✅
 - Test suite (13/13 passing) ✅
+- Frontend skeleton (React + TypeScript) ✅
+- End-to-end integration verified ✅
 - VS Code configured
 - Documentation completed
 - Initial Figma dashboard prototype created
@@ -47,15 +49,15 @@ Sprint 2
 
 ## In Progress
 
-- Frontend skeleton
 - Allegro integration adapter
 - ERLI integration adapter
+- Order import from marketplaces
 
 ---
 
 ## Next Milestone
 
-Build frontend skeleton and start marketplace integrations
+Implement marketplace integrations (Sprint 3)
 
 ---
 

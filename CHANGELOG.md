@@ -43,17 +43,42 @@ All significant changes to the Anvero project.
 - Application startup verified
 - slowapi middleware properly wired to FastAPI app
 
+#### Frontend
+- React 18 + TypeScript with strict mode
+- Vite dev server with HMR
+- React Router for navigation
+- Custom useOrders hook with pagination/filtering
+- Components: OrderList (with filters), OrderRow, OrderDetail, ErrorBoundary
+- Pages: Home, OrdersPage (query param sync)
+- Mobile-first responsive styling
+- API proxy: `/api` → backend `localhost:8000`
+- End-to-end verified: frontend fetches real order data from backend
+
+### ✅ Verification
+
+- All 13 backend tests passing
+- Frontend TypeScript: 0 errors
+- Frontend production build: successful (43 modules)
+- Frontend dev server: running (port 5173)
+- API proxy: confirmed forwarding requests correctly
+- React Router: client-side navigation working
+- Order CRUD operations: working end-to-end
+
 ### 📌 Sprint 2 Status
 
-Working skeleton phase complete:
+**Working skeleton phase COMPLETE:**
 - ✅ Backend framework (FastAPI) configured
 - ✅ Rate limiting on auth endpoint
 - ✅ Order model with REST endpoints
-- ✅ Database migration working
-- ✅ Tests passing
+- ✅ Database migrations (users, orders tables)
+- ✅ Backend tests: 13/13 passing
+- ✅ Frontend skeleton (React + TypeScript)
+- ✅ End-to-end integration verified
 
-Next:
-- Frontend skeleton
+**Bugs fixed:**
+- Migration compatibility: `func.current_timestamp()` for SQLite + PostgreSQL
+
+**Remaining for Sprint 2:**
 - Order import from Allegro/ERLI adapters
 - Change history tracking
 
