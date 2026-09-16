@@ -1,10 +1,10 @@
-.dashboard {
+﻿.dashboard {
   padding: 2rem;
   background: #fff;
   min-height: 100vh;
 }
 
-.dashboard.dark {
+:root.dark .dashboard {
   background: #1a1a1a;
   color: #e0e0e0;
 }
@@ -34,7 +34,7 @@
   font-weight: 600;
 }
 
-.dashboard.dark .dashboard-header h1 {
+:root.dark .dashboard .dashboard-header h1 {
   color: #e0e0e0;
 }
 
@@ -44,7 +44,7 @@
   font-size: 0.95rem;
 }
 
-.dashboard.dark .dashboard-header .subtitle {
+:root.dark .dashboard .dashboard-header .subtitle {
   color: #999;
 }
 
@@ -85,23 +85,23 @@
   border-left-color: #d32f2f;
 }
 
-.dashboard.dark .stat-card {
+:root.dark .dashboard .stat-card {
   background: #2d2d2d;
 }
 
-.dashboard.dark .stat-primary {
+:root.dark .dashboard .stat-primary {
   border-left-color: #64b5f6;
 }
 
-.dashboard.dark .stat-success {
+:root.dark .dashboard .stat-success {
   border-left-color: #81c784;
 }
 
-.dashboard.dark .stat-warning {
+:root.dark .dashboard .stat-warning {
   border-left-color: #ffb74d;
 }
 
-.dashboard.dark .stat-danger {
+:root.dark .dashboard .stat-danger {
   border-left-color: #ef5350;
 }
 
@@ -122,7 +122,7 @@
   letter-spacing: 0.5px;
 }
 
-.dashboard.dark .stat-title {
+:root.dark .dashboard .stat-title {
   color: #999;
 }
 
@@ -133,7 +133,7 @@
   color: #212529;
 }
 
-.dashboard.dark .stat-value {
+:root.dark .dashboard .stat-value {
   color: #e0e0e0;
 }
 
@@ -152,7 +152,7 @@
   border: 1px solid #e9ecef;
 }
 
-.dashboard.dark .chart-card {
+:root.dark .dashboard .chart-card {
   background: #2d2d2d;
   border-color: #3d3d3d;
 }
@@ -163,7 +163,7 @@
   color: #212529;
 }
 
-.dashboard.dark .chart-card h2 {
+:root.dark .dashboard .chart-card h2 {
   color: #e0e0e0;
 }
 
@@ -221,7 +221,7 @@
   overflow: hidden;
 }
 
-.dashboard.dark .status-bar {
+:root.dark .dashboard .status-bar {
   background: #3d3d3d;
 }
 
@@ -257,7 +257,7 @@
   font-weight: 600;
 }
 
-.dashboard.dark .status-count {
+:root.dark .dashboard .status-count {
   color: #b0b0b0;
 }
 
@@ -285,7 +285,7 @@
   color: #212529;
 }
 
-.dashboard.dark .source-name {
+:root.dark .dashboard .source-name {
   color: #e0e0e0;
 }
 
@@ -295,7 +295,7 @@
   font-weight: 600;
 }
 
-.dashboard.dark .source-percentage {
+:root.dark .dashboard .source-percentage {
   color: #999;
 }
 
@@ -306,7 +306,7 @@
   overflow: hidden;
 }
 
-.dashboard.dark .source-bar {
+:root.dark .dashboard .source-bar {
   background: #3d3d3d;
 }
 
@@ -335,7 +335,7 @@
   color: #6c757d;
 }
 
-.dashboard.dark .source-count {
+:root.dark .dashboard .source-count {
   color: #999;
 }
 
@@ -347,7 +347,7 @@
   border: 1px solid #e9ecef;
 }
 
-.dashboard.dark .recent-orders {
+:root.dark .dashboard .recent-orders {
   background: #2d2d2d;
   border-color: #3d3d3d;
 }
@@ -358,7 +358,7 @@
   color: #212529;
 }
 
-.dashboard.dark .recent-orders h2 {
+:root.dark .dashboard .recent-orders h2 {
   color: #e0e0e0;
 }
 
@@ -379,7 +379,7 @@
   transition: box-shadow 0.2s;
 }
 
-.dashboard.dark .recent-order-item {
+:root.dark .dashboard .recent-order-item {
   background: #1e1e1e;
   border-color: #3d3d3d;
 }
@@ -423,7 +423,7 @@
   color: #212529;
 }
 
-.dashboard.dark .order-id {
+:root.dark .dashboard .order-id {
   color: #e0e0e0;
 }
 
@@ -433,7 +433,7 @@
   color: #6c757d;
 }
 
-.dashboard.dark .order-customer {
+:root.dark .dashboard .order-customer {
   color: #999;
 }
 
@@ -483,7 +483,7 @@
   color: #212529;
 }
 
-.dashboard.dark .order-amount {
+:root.dark .dashboard .order-amount {
   color: #e0e0e0;
 }
 

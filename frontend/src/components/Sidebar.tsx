@@ -20,7 +20,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isDarkMode, onThemeToggle }) =
   ];
 
   return (
-    <aside className={`sidebar ${isOpen ? 'open' : 'closed'} ${isDarkMode ? 'dark' : 'light'}`}>
+    <aside className={`sidebar ${isOpen ? 'open' : 'closed'}`}>
       <div className="sidebar-header">
         <button
           className="toggle-btn"

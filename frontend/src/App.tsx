@@ -46,7 +46,9 @@ export default function App() {
   return (
     <ErrorBoundary>
       <BrowserRouter>
-        <div className={`app ${isDarkMode ? 'dark' : 'light'}`}>
+        {/* theming keys off the `dark` class App sets on <html>, so no
+            per-component modifier is needed here */}
+        <div className="app">
           <Sidebar isDarkMode={isDarkMode} onThemeToggle={toggleTheme} />
 
           <main className="app-content">

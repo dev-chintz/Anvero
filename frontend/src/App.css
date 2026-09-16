@@ -1,10 +1,10 @@
-.app {
+﻿.app {
   display: flex;
   min-height: 100vh;
   background: #fff;
 }
 
-.app.dark {
+:root.dark .app {
   background: #1a1a1a;
 }
 
@@ -16,7 +16,7 @@
   background: #fff;
 }
 
-.app.dark .app-content {
+:root.dark .app .app-content {
   background: #1a1a1a;
 }
 
@@ -26,7 +26,7 @@
   border-bottom: 1px solid #e9ecef;
 }
 
-.app.dark .page-header {
+:root.dark .app .page-header {
   border-bottom-color: #3d3d3d;
 }
 
@@ -37,7 +37,7 @@
   font-weight: 600;
 }
 
-.app.dark .page-header h1 {
+:root.dark .app .page-header h1 {
   color: #e0e0e0;
 }
 
@@ -47,7 +47,7 @@
   font-size: 0.95rem;
 }
 
-.app.dark .page-header .subtitle {
+:root.dark .app .page-header .subtitle {
   color: #999;
 }
 
@@ -68,7 +68,7 @@
   margin-bottom: 1.5rem;
 }
 
-.app.dark .settings-section {
+:root.dark .app .settings-section {
   background: #2d2d2d;
   border-color: #3d3d3d;
 }
@@ -79,7 +79,7 @@
   color: #212529;
 }
 
-.app.dark .settings-section h2 {
+:root.dark .app .settings-section h2 {
   color: #e0e0e0;
 }
 
@@ -100,7 +100,7 @@
   color: #212529;
 }
 
-.app.dark .page-not-found h1 {
+:root.dark .app .page-not-found h1 {
   color: #e0e0e0;
 }
 
@@ -110,7 +110,7 @@
   color: #6c757d;
 }
 
-.app.dark .page-not-found p {
+:root.dark .app .page-not-found p {
   color: #999;
 }
 

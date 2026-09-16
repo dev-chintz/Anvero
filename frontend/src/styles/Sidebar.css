@@ -1,4 +1,4 @@
-.sidebar {
+﻿.sidebar {
   position: fixed;
   left: 0;
   top: 0;
@@ -19,20 +19,20 @@
   width: 70px;
 }
 
-.sidebar.dark {
+:root.dark .sidebar {
   background: #1e1e1e;
   border-right-color: #333;
 }
 
-.sidebar.dark .nav-item {
+:root.dark .sidebar .nav-item {
   color: #e0e0e0;
 }
 
-.sidebar.dark .nav-item:hover {
+:root.dark .sidebar .nav-item:hover {
   background: #2d2d2d;
 }
 
-.sidebar.dark .nav-item.active {
+:root.dark .sidebar .nav-item.active {
   background: #0d7377;
   color: white;
 }
@@ -46,7 +46,7 @@
   border-bottom: 1px solid #e9ecef;
 }
 
-.sidebar.dark .sidebar-header {
+:root.dark .sidebar .sidebar-header {
   border-bottom-color: #333;
 }
 
@@ -60,7 +60,7 @@
   transition: color 0.2s;
 }
 
-.sidebar.dark .toggle-btn {
+:root.dark .sidebar .toggle-btn {
   color: #b0b0b0;
 }
 
@@ -89,7 +89,7 @@
   text-overflow: ellipsis;
 }
 
-.sidebar.dark .logo-text {
+:root.dark .sidebar .logo-text {
   color: #14b8a6;
 }
 
@@ -149,7 +149,7 @@
   justify-content: flex-start;
 }
 
-.sidebar.dark .sidebar-footer {
+:root.dark .sidebar .sidebar-footer {
   border-top-color: #333;
 }
 
@@ -167,7 +167,7 @@
   background: #e9ecef;
 }
 
-.sidebar.dark .theme-toggle:hover {
+:root.dark .sidebar .theme-toggle:hover {
   background: #2d2d2d;
 }
 
@@ -198,7 +198,7 @@
   text-overflow: ellipsis;
 }
 
-.sidebar.dark .user-name {
+:root.dark .sidebar .user-name {
   color: #e0e0e0;
 }
 
@@ -211,7 +211,7 @@
   text-overflow: ellipsis;
 }
 
-.sidebar.dark .user-role {
+:root.dark .sidebar .user-role {
   color: #999;
 }
 
