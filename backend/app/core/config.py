@@ -1,7 +1,7 @@
 from pathlib import Path
 from typing import Literal
 
-from pydantic import Field
+from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -33,6 +33,15 @@ class Settings(BaseSettings):
         extra="ignore",
         case_sensitive=False,
     )
+
+    @field_validator("secret_key")
+    @classmethod
+    def validate_secret_key(cls, v: str, info) -> str:
+        """Require SECRET_KEY in production."""
+        environment = info.data.get("environment", "development")
+        if environment == "production" and not v:
+            raise ValueError("SECRET_KEY is required in production environment")
+        return v
 
 
 settings = Settings()
