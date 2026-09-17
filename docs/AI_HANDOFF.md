@@ -44,7 +44,7 @@ Repository: <https://github.com/dev-chintz/Anvero>
 - Alembic migrations for `users`, `orders`, `order_status_history` and
   `integration_credentials`
 - Allegro adapter, order mapping and import script
-- 116 tests passing
+- 122 tests passing
 
 ---
 
