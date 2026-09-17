@@ -47,6 +47,19 @@ The owner's seller account, its own application, its own User-Agent and
 authorization, starting from a database with no sandbox orders in it. Until
 this runs, everything below is built on one test order.
 
+Afterwards, worth a few hours: **a "Connect Allegro" button in place of the
+script.** Allegro's authorization code flow sends the operator to Allegro,
+where they log in and consent, and redirects back with a one-time code the
+backend exchanges for tokens — the same thing BaseLinker does when it asks
+for nothing but a click. It needs a redirect URI registered with the
+application, so first check whether Allegro accepts a `localhost` one; if it
+does, this is one endpoint and a settings screen. The client id and secret
+are still entered once, because the application is the owner's: only a hosted
+Anvero with an application of its own could hide those, and that belongs with
+item 3, not here. Today's device flow keeps working meanwhile, and an
+authorization lasts as long as imports keep the token chain alive, so this is
+comfort, not a blocker.
+
 ### 2. An import that runs without a person
 
 Today a button fetches one page of at most 100 orders, and only when someone
