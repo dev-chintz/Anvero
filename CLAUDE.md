@@ -53,9 +53,13 @@ whichever side a commit touches.
 
 - The first `python` on PATH may not be a usable CPython (on the main machine
   it is Inkscape's). Use the `py` launcher or the venv interpreter directly.
-- Local development uses SQLite; `.env` and the database file are per machine
-  and not in Git. PostgreSQL is the target but its migration path has never
-  run.
+- `.env` and the database file are per machine and not in Git. SQLite is the
+  no-setup default; the main machine runs PostgreSQL 17, with the migrations
+  and the test suite verified on it. Check `DATABASE_URL` to see which one a
+  machine uses.
+- Allegro credentials are per machine too, and the refresh token rotates on
+  every use, so imports run from the machine that was authorized
+  (`docs/INTEGRATIONS.md`). Today that is the SQLite one, against the sandbox.
 - The test suite uses its own database (`tests/conftest.py`). Never point it
   at the development database: the API tests drop all tables on teardown.
 - Windows PowerShell prefixes text piped into a program with a byte-order
@@ -63,6 +67,13 @@ whichever side a commit touches.
 - Every page and orders endpoint needs a login. Do not type passwords into the
   browser to verify UI work: check the login flow through the API, and leave
   logging in on the page to the user.
+- `uvicorn --reload` runs two processes, and killing the parent leaves the
+  worker alive still holding port 8000, answering with the code it started
+  with. A new server then binds the same port and gets no traffic, so changes
+  look as though they did nothing. Stop both (on Windows, the orphan is a
+  `python.exe` whose command line contains `multiprocessing.spawn`), and check
+  with `netstat -ano | grep ':8000 '` that one process listens. When a served
+  response looks stale, `GET /openapi.json` says which code is really running.
 
 ## Before ending a session
 
