@@ -7,9 +7,27 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
 from app.db.base import Base
-from app.models.order import Order, OrderSource, OrderStatus
+from app.models.order import (
+    AddressType,
+    Order,
+    OrderAddress,
+    OrderItem,
+    OrderSource,
+    OrderStatus,
+    PaymentType,
+)
 from app.repositories.order_repository import OrderRepository
-from app.schemas.order import OrderCreate
+from app.schemas.order import (
+    Address,
+    Customer,
+    Delivery,
+    Invoice,
+    OrderCreate,
+    OrderDetails,
+    OrderItemCreate,
+    Payment,
+    PickupPoint,
+)
 from app.services.order_import_service import OrderImportService
 
 
@@ -177,6 +195,78 @@ def test_re_import_refreshes_the_purchase_time(session):
     _service(session, [_placed(_order("ALG-1"), placed)]).import_orders()
 
     assert session.query(Order).one().ordered_at.replace(tzinfo=UTC) == placed
+
+
+def _with_details(order, item_names=("Widget",), street="Prosta 1", pickup=False):
+    details = OrderDetails(
+        customer=Customer(first_name="Jan", last_name="Kowalski"),
+        items=[
+            OrderItemCreate(name=name, quantity=1, unit_price=Decimal("10.00"))
+            for name in item_names
+        ],
+        delivery=Delivery(
+            method="Kurier",
+            address=Address(street=street, city="Warszawa"),
+            pickup_point=(
+                PickupPoint(id="WAW01A", address=Address(street="Długa 5"))
+                if pickup
+                else None
+            ),
+        ),
+        payment=Payment(type=PaymentType.ONLINE, paid_amount=Decimal("100.00")),
+        invoice=Invoice(required=True, address=Address(tax_id="1234563218")),
+    )
+    return order.model_copy(update=dict(details))
+
+
+def test_an_imported_order_keeps_its_details(session):
+    _service(session, [_with_details(_order("ALG-1"), pickup=True)]).import_orders()
+
+    stored = session.query(Order).one()
+    assert (stored.customer_first_name, stored.customer_last_name) == ("Jan", "Kowalski")
+    assert [item.name for item in stored.items] == ["Widget"]
+    assert stored.delivery_method == "Kurier"
+    assert stored.pickup_point_id == "WAW01A"
+    assert stored.payment_type is PaymentType.ONLINE
+    assert stored.paid_amount == Decimal("100.00")
+    assert stored.invoice_required is True
+    assert stored.address(AddressType.DELIVERY).street == "Prosta 1"
+    assert stored.address(AddressType.PICKUP_POINT).street == "Długa 5"
+    assert stored.address(AddressType.INVOICE).tax_id == "1234563218"
+
+
+def test_re_import_replaces_items_and_addresses(session):
+    """The marketplace owns the details, so what it no longer reports goes.
+
+    Also a regression guard for the address swap: within one flush SQLAlchemy
+    inserts before it deletes, which would briefly hold two delivery addresses
+    and break the one-per-type constraint.
+    """
+    first = _with_details(_order("ALG-1"), item_names=("Widget", "Gadget"), pickup=True)
+    _service(session, [first]).import_orders()
+
+    second = _with_details(_order("ALG-1"), item_names=("Gizmo",), street="Krzywa 9")
+    _service(session, [second]).import_orders()
+
+    session.expire_all()
+    stored = session.query(Order).one()
+    assert [item.name for item in stored.items] == ["Gizmo"]
+    assert stored.address(AddressType.DELIVERY).street == "Krzywa 9"
+    assert stored.address(AddressType.PICKUP_POINT) is None
+    assert stored.pickup_point_id is None
+    assert session.query(OrderItem).count() == 1
+    assert session.query(OrderAddress).count() == 2
+
+
+def test_re_import_keeps_the_status_while_refreshing_details(session):
+    _service(session, [_with_details(_order("ALG-1"))]).import_orders()
+    OrderRepository(session).update_status(session.query(Order).one(), OrderStatus.SHIPPED)
+
+    _service(session, [_with_details(_order("ALG-1"), item_names=("Gizmo",))]).import_orders()
+
+    stored = session.query(Order).one()
+    assert stored.status is OrderStatus.SHIPPED
+    assert [item.name for item in stored.items] == ["Gizmo"]
 
 
 def test_an_order_from_another_marketplace_is_not_a_duplicate(session):

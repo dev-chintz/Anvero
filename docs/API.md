@@ -14,7 +14,7 @@ are days in the business timezone, `BUSINESS_TIMEZONE`, default
 | `GET` | `/api/v1/health` | service status |
 | `GET` | `/api/v1/orders` | order list with filters |
 | `GET` | `/api/v1/orders/stats` | aggregate figures for the dashboard |
-| `GET` | `/api/v1/orders/{id}` | order details |
+| `GET` | `/api/v1/orders/{id}` | one order with its details: items, buyer, delivery, payment, invoice |
 | `PATCH` | `/api/v1/orders/{id}/status` | internal status change |
 | `GET` | `/api/v1/orders/{id}/history` | status change history |
 | `POST` | `/api/v1/orders` | create an order — local testing until marketplace ingestion exists |
@@ -114,9 +114,54 @@ needs the operator's attention. `GET /api/v1/orders/stats` reports how many
 such orders exist as `cancellation_warnings`, using the same definition as the
 filter above. The warning clears when the status is set to `CANCELLED`.
 
+## `GET /api/v1/orders/{id}`
+
+Returns the order with the fields the list has, plus its details:
+
+```json
+{
+  "id": "...", "external_id": "...", "source": "ALLEGRO", "status": "NEW",
+  "customer_email": "...", "total_amount": "149.99", "currency": "PLN",
+  "ordered_at": "...Z", "created_at": "...Z", "updated_at": "...Z",
+  "marketplace_cancelled_at": null,
+  "customer": {"login": "...", "first_name": "...", "last_name": "...", "company_name": null, "phone": "..."},
+  "items": [
+    {"id": "...", "external_id": "...", "offer_id": "...", "sku": "KUB-350", "name": "...", "quantity": 1, "unit_price": "24.99"}
+  ],
+  "delivery": {
+    "method": "InPost Paczkomat 24/7", "cost": "12.99",
+    "address": {"first_name": "...", "last_name": "...", "company_name": null, "street": "...", "postal_code": "...", "city": "...", "country_code": "PL", "phone": "...", "tax_id": null},
+    "pickup_point": {"id": "WAW01M", "name": "...", "address": null}
+  },
+  "payment": {"type": "ONLINE", "provider": "P24", "paid_amount": "149.99", "paid_at": "...Z"},
+  "invoice": {"required": false, "address": null},
+  "buyer_message": null
+}
+```
+
+Every detail may be null, and `items` may be empty: orders entered by hand and
+orders stored before details existed have none. The four objects `customer`,
+`delivery`, `payment` and `invoice` are always present, so a client checks
+fields, not objects. Addresses (all in the shape of `delivery.address`) and
+`pickup_point` are either an object or null. Text is never an empty string:
+absent is null.
+
+`unit_price` is per unit after discounts. The item totals plus
+`delivery.cost` normally add up to `total_amount`, but marketplace surcharges
+and order-level discounts can make them differ. `payment.type` is one of
+`ONLINE`, `BANK_TRANSFER`, `CASH_ON_DELIVERY`, `DEFERRED` and `OTHER`.
+`paid_amount` null means unknown, `"0.00"` means known to be unpaid.
+
+`GET /api/v1/orders` does not include details; they are for one order at a
+time.
+
+`POST /api/v1/orders` accepts the same detail fields, all optional (items
+without `id`), and returns the created order in this shape.
+
 ## `PATCH /api/v1/orders/{id}/status`
 
-Body: `{"status": "SHIPPED"}`. Returns the updated order.
+Body: `{"status": "SHIPPED"}`. Returns the updated order with its details, in
+the shape of `GET /api/v1/orders/{id}`.
 
 Any status may currently be set from any other, so operators can correct
 mistakes. The valid transitions for this business have not been decided; a

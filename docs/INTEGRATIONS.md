@@ -153,12 +153,49 @@ refund.
 | `total_amount` | `summary.totalToPay.amount` |
 | `currency` | `summary.totalToPay.currency` |
 | `ordered_at` | earliest `lineItems[].boughtAt`, in UTC |
+| `customer.login`, `first_name`, `last_name`, `company_name`, `phone` | `buyer.login`, `firstName`, `lastName`, `companyName`, `phoneNumber` |
+| `buyer_message` | `messageToSeller` |
+| `items[].external_id`, `offer_id`, `sku`, `name` | `lineItems[].id`, `offer.id`, `offer.external.id`, `offer.name` |
+| `items[].quantity`, `unit_price` | `lineItems[].quantity`, `price.amount` |
+| `delivery.method`, `cost` | `delivery.method.name`, `delivery.cost.amount` |
+| `delivery.address` | `delivery.address` (`zipCode` as `postal_code`, `phoneNumber` as `phone`) |
+| `delivery.pickup_point` | `delivery.pickupPoint`: `id`, `name`, `address` |
+| `payment.type` | `payment.type`, translated below |
+| `payment.provider`, `paid_amount`, `paid_at` | `payment.provider`, `paidAmount.amount`, `finishedAt` |
+| `invoice.required` | `invoice.required` |
+| `invoice.address` | `invoice.address`, with `company.name`, the first of `company.ids` (or the deprecated `company.taxId`) as `tax_id`, and the `naturalPerson` names |
 
 A checkout form has no single purchase timestamp, so `ordered_at` is the
 earliest `boughtAt` among its line items. If none is readable the order is
 still imported, dated at import time, and a warning is logged — a wrong date
 can be corrected, a dropped order cannot. Unlike the status, `ordered_at` is
 refreshed on re-import, as the marketplace owns it.
+
+The detail field names were checked against Allegro's published OpenAPI
+specification. `unit_price` is `price`, what the buyer pays per unit;
+`originalPrice` is the price before discounts. `buyer.address` (the buyer's
+own address, as opposed to where the parcel goes) and
+`buyer.personalIdentity` are deliberately not stored: the delivery and invoice
+addresses are what the seller needs, and personal data that serves no purpose
+should not be kept.
+
+| Allegro `payment.type` | Anvero |
+| --- | --- |
+| `ONLINE` | `ONLINE` |
+| `WIRE_TRANSFER` | `BANK_TRANSFER` |
+| `SPLIT_PAYMENT` | `BANK_TRANSFER` (the Polish split payment mechanism) |
+| `CASH_ON_DELIVERY` | `CASH_ON_DELIVERY` |
+| `EXTENDED_TERM` | `DEFERRED` |
+| anything else | `OTHER` |
+
+Details are read leniently, unlike the fields an order cannot exist without.
+A detail that cannot be read is left out and the order is still imported: an
+optional field that fails validation is dropped and the rest of its part
+kept, and a line item missing something it needs (a name, a quantity, a
+price) is skipped while the other items are kept. Each case is logged by
+order and field name, never by value. On the order page a skipped item shows
+as item totals that no longer add up to the order total. A buyer message
+longer than 4000 characters is shortened rather than dropped.
 
 `total_amount` comes from `summary.totalToPay` because that is the value of
 the whole order. `lineItems[].price` is a **unit** price and excludes
@@ -177,8 +214,8 @@ one malformed order does not cost the rest of the page.
   three more, so importing at least that often keeps it alive; otherwise
   authorize again. The stored token sits in plain text in the local database
   file, the same exposure as `.env`.
-- Only orders are imported. Line items, buyer details, delivery and payment
-  are read from the payload but not stored; Anvero has no tables for them.
+- Shipments (carrier, tracking number) are not imported; Allegro serves
+  them from a different endpoint.
 - One page per run. There is no cursor, so a full backfill means calling the
   script with increasing `--offset`.
 - **Nothing here has been exercised against the live API.** The client and

@@ -20,7 +20,26 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 from sqlalchemy import func
 
 from app.db.session import SessionLocal
-from app.models.order import Order, OrderSource, OrderStatus, OrderStatusHistory
+from app.models.order import (
+    Order,
+    OrderAddress,
+    OrderItem,
+    OrderSource,
+    OrderStatus,
+    OrderStatusHistory,
+    PaymentType,
+)
+from app.schemas.order import (
+    Address,
+    Customer,
+    Delivery,
+    Invoice,
+    OrderDetails,
+    OrderItemCreate,
+    Payment,
+    PickupPoint,
+)
+from app.services.order_details import apply_details
 
 # Sample customer emails
 CUSTOMER_EMAILS = [
@@ -126,6 +145,111 @@ SAMPLE_ORDERS = [
 ]
 
 
+# (first name, last name, street, postal code, city, phone)
+SAMPLE_PEOPLE = [
+    ("Jan", "Kowalski", "Prosta 1/4", "00-838", "Warszawa", "+48 600 100 200"),
+    ("Anna", "Nowak", "Długa 15", "31-147", "Kraków", "+48 601 200 300"),
+    ("Piotr", "Wiśniewski", "Ogrodowa 7", "80-001", "Gdańsk", "+48 602 300 400"),
+    ("Maria", "Wójcik", "Lipowa 22", "50-001", "Wrocław", "+48 603 400 500"),
+    ("Tomasz", "Kamiński", "Polna 3", "60-001", "Poznań", "+48 604 500 600"),
+]
+
+# (name, sku, unit price)
+SAMPLE_PRODUCTS = [
+    ("Kubek ceramiczny 350 ml", "KUB-350", Decimal("24.99")),
+    ("Ręcznik bawełniany 70x140", "REC-70140", Decimal("39.90")),
+    ("Lampka biurkowa LED", "LAM-LED-01", Decimal("89.00")),
+    ("Organizer na biurko", "ORG-BIU", Decimal("34.50")),
+    ("Zestaw noży kuchennych", "NOZ-SET5", Decimal("149.00")),
+]
+
+
+def sample_details(index: int, total: Decimal) -> OrderDetails:
+    """Plausible details for sample order `index`, varied across orders.
+
+    The items are priced so that, with delivery, they add up to the order's
+    total, as they would on a real order.
+    """
+    first, last, street, postal_code, city, phone = SAMPLE_PEOPLE[
+        index % len(SAMPLE_PEOPLE)
+    ]
+    name, sku, price = SAMPLE_PRODUCTS[index % len(SAMPLE_PRODUCTS)]
+    delivery_cost = Decimal("12.99")
+    items = [OrderItemCreate(name=name, sku=sku, quantity=1, unit_price=price)]
+    # the rest of the total becomes a second line, so totals stay consistent
+    remainder = total - price - delivery_cost
+    if remainder > 0:
+        extra_name, extra_sku, _ = SAMPLE_PRODUCTS[(index + 2) % len(SAMPLE_PRODUCTS)]
+        items.append(
+            OrderItemCreate(name=extra_name, sku=extra_sku, quantity=1, unit_price=remainder)
+        )
+    else:
+        items[0] = items[0].model_copy(update={"unit_price": total - delivery_cost})
+
+    home = Address(
+        first_name=first,
+        last_name=last,
+        street=street,
+        postal_code=postal_code,
+        city=city,
+        country_code="PL",
+        phone=phone,
+    )
+    by_locker = index % 3 == 0
+    cash_on_delivery = index % 4 == 1
+    wants_invoice = index % 3 == 2
+
+    return OrderDetails(
+        customer=Customer(
+            login=f"{first.lower()}_{index}",
+            first_name=first,
+            last_name=last,
+            phone=phone,
+        ),
+        items=items,
+        delivery=Delivery(
+            method="InPost Paczkomat 24/7" if by_locker else "Kurier DPD",
+            cost=delivery_cost,
+            address=home,
+            pickup_point=(
+                PickupPoint(
+                    id=f"{city[:3].upper()}01M",
+                    name=f"Paczkomat {city[:3].upper()}01M",
+                    address=Address(
+                        street="Handlowa 2",
+                        postal_code=postal_code,
+                        city=city,
+                        country_code="PL",
+                    ),
+                )
+                if by_locker
+                else None
+            ),
+        ),
+        payment=(
+            Payment(type=PaymentType.CASH_ON_DELIVERY)
+            if cash_on_delivery
+            else Payment(type=PaymentType.ONLINE, provider="P24", paid_amount=total)
+        ),
+        invoice=Invoice(
+            required=wants_invoice,
+            address=(
+                Address(
+                    company_name=f"{last} Handel Sp. z o.o.",
+                    street=street,
+                    postal_code=postal_code,
+                    city=city,
+                    country_code="PL",
+                    tax_id="5260250274",
+                )
+                if wants_invoice
+                else None
+            ),
+        ),
+        buyer_message="Proszę o staranne zapakowanie." if index % 4 == 0 else None,
+    )
+
+
 def generate_sample_data(force: bool = False):
     """Generate and insert sample orders into the database."""
     db = SessionLocal()
@@ -149,15 +273,17 @@ def generate_sample_data(force: bool = False):
             # enforce foreign keys by default, so clear the children first
             # rather than leaving orphaned history rows behind
             db.query(OrderStatusHistory).delete()
+            db.query(OrderItem).delete()
+            db.query(OrderAddress).delete()
             db.query(Order).delete()
             db.commit()
-            print("Existing orders and status history deleted.")
+            print("Existing orders, their details and status history deleted.")
 
         # Generate orders
         created_count = 0
         now = datetime.now(UTC)
 
-        for order_data in SAMPLE_ORDERS:
+        for index, order_data in enumerate(SAMPLE_ORDERS):
             order = Order(
                 id=uuid.uuid4(),
                 external_id=order_data["external_id"],
@@ -172,6 +298,9 @@ def generate_sample_data(force: bool = False):
                 created_at=now - timedelta(days=order_data["days_ago"]),
                 updated_at=now - timedelta(days=order_data["days_ago"]),
             )
+            apply_details(order, sample_details(index, order_data["total_amount"]))
+            if order.paid_amount is not None:
+                order.paid_at = order.ordered_at
             db.add(order)
             created_count += 1
 

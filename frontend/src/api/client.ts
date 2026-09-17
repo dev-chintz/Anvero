@@ -1,9 +1,9 @@
 import { SESSION_EXPIRED_EVENT, clearToken, getToken } from "../auth/session";
 import type {
-  Order,
   OrderListResponse,
   OrderStats,
   OrderStatusChange,
+  OrderWithDetails,
 } from "../types/order";
 import type { OrderSource, OrderStatus } from "../types/order";
 import type { Token, User } from "../types/user";
@@ -162,16 +162,16 @@ export const ordersApi = {
     return request<OrderListResponse>(`/orders${buildQuery(params)}`);
   },
 
-  get(orderId: string): Promise<Order> {
-    return request<Order>(`/orders/${orderId}`);
+  get(orderId: string): Promise<OrderWithDetails> {
+    return request<OrderWithDetails>(`/orders/${orderId}`);
   },
 
   history(orderId: string): Promise<OrderStatusChange[]> {
     return request<OrderStatusChange[]>(`/orders/${orderId}/history`);
   },
 
-  updateStatus(orderId: string, status: OrderStatus): Promise<Order> {
-    return request<Order>(`/orders/${orderId}/status`, {
+  updateStatus(orderId: string, status: OrderStatus): Promise<OrderWithDetails> {
+    return request<OrderWithDetails>(`/orders/${orderId}/status`, {
       method: "PATCH",
       body: JSON.stringify({ status }),
     });

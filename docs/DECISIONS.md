@@ -1,5 +1,28 @@
 # Decision Log
 
+## 2026-09-17 — Order Details Are Stored; Unreadable Details Do Not Block an Order
+
+**Decision:** Orders store their items, buyer, delivery (with pickup point),
+payment and invoice. Items and addresses are child tables, matching the
+`order_item` and `address` targets in `DATABASE.md`; the one-per-order
+details are columns on `orders`, as `customer_email` already was. The
+marketplace owns all of them, so a re-import replaces them. A detail an
+import cannot read is left out and logged by field name, and the order is
+imported without it.
+
+**Rationale:** MVP item 3 is an order view with items, customer, shipping
+and payment, and until now the import read all of it and threw it away.
+Leniency is the opposite of the rule for required fields, and deliberately
+so: an order missing its email or total cannot be handled at all, but an order
+missing a phone number can still be packed and shipped, and dropping it over
+that would hide real work. A `customer` table is not introduced because it
+means deciding when two orders share a buyer, which nothing needs yet.
+Payment type is stored as a checked string rather than a PostgreSQL enum
+type, so adding a marketplace's payment methods does not need a migration.
+The buyer's own address and personal identity number are not stored:
+delivery and invoice addresses are what a seller uses, and personal data with
+no use should not be kept.
+
 ## 2026-09-17 — The Login Token Is Kept in localStorage
 
 **Decision:** The frontend stores the access token in `localStorage` and

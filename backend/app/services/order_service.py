@@ -6,6 +6,7 @@ from fastapi import HTTPException, status
 from app.models.order import Order, OrderSource, OrderStatus, OrderStatusHistory
 from app.repositories.order_repository import OrderRepository
 from app.schemas.order import OrderCreate
+from app.services.order_details import apply_details
 
 
 class OrderService:
@@ -53,6 +54,7 @@ class OrderService:
         # required column instead of letting the database default to now
         if data.ordered_at is not None:
             order.ordered_at = data.ordered_at
+        apply_details(order, data)
         return self.repository.create(order)
 
     def get_order(self, order_id: uuid.UUID) -> Order:

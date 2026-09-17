@@ -16,15 +16,17 @@ The model will be deployed via migrations after framework selection, but a commo
 
 ## Implemented so far
 
-Migrations currently create `users`, `orders`, `order_status_history` and
-`integration_credentials`. Everything else in the table above is still a
-target.
+Migrations currently create `users`, `orders`, `order_items`,
+`order_addresses`, `order_status_history` and `integration_credentials`.
+`integration`, `customer` and `shipment` are still targets.
 
 `orders` deviates from the target shape while there are no integrations to
 point at:
 
 - `source` is an enum (`ALLEGRO`, `ERLI`) standing in for `integration_id`.
-- `customer_email` is a column on the order rather than a `customer` row.
+- `customer_email` is a column on the order rather than a `customer` row,
+  and so are the other buyer details below. A `customer` row would need
+  matching one buyer across orders, which nothing needs yet.
 - `marketplace_cancelled_at` (nullable) is not in the target. It records when
   an import first found the order cancelled on its marketplace; the Anvero
   status is left to the operator, so this is what flags the conflict.
@@ -32,6 +34,45 @@ point at:
   for an imported order the purchase and the row's creation are different
   moments; orders that existed before the column was added were backfilled
   with their `created_at`, since they were all entered locally.
+
+### Order details
+
+Every detail is nullable (`invoice_required` defaults to false), because an
+order entered by hand may have none and orders from before the details
+existed have none. For an imported order the marketplace owns all of them: a
+re-import replaces them, items and addresses included.
+
+Columns on `orders`, one per order:
+
+| Column | Meaning |
+| --- | --- |
+| `customer_login`, `customer_first_name`, `customer_last_name`, `customer_company_name`, `customer_phone` | the buyer |
+| `buyer_message` | what the buyer wrote to the seller at checkout |
+| `delivery_method`, `delivery_cost` | how it ships and what the buyer paid for that |
+| `pickup_point_id`, `pickup_point_name` | the parcel locker or pickup point, if any |
+| `payment_type` | `ONLINE`, `BANK_TRANSFER`, `CASH_ON_DELIVERY`, `DEFERRED` or `OTHER` |
+| `payment_provider` | the payment operator as the marketplace names it, e.g. `P24` |
+| `paid_amount`, `paid_at` | null means unknown; `0.00` means known to be unpaid |
+| `invoice_required` | the buyer asked for an invoice |
+
+`payment_type` is a plain string column validated by the application, not a
+database enum type: the list grows with each marketplace, and a new value in a
+PostgreSQL enum type needs its own migration.
+
+`order_items` (matches the target `order_item`): `order_id`, `position` (the
+marketplace's line order), `external_id`, `offer_id`, `sku` (the seller's own
+product code, if the listing has one), `name`, `quantity`, `unit_price` (per
+unit, in the order's currency, after discounts).
+
+`order_addresses` (matches the target `address`): `order_id`, `type`
+(`DELIVERY`, `INVOICE` or `PICKUP_POINT`, at most one of each per order,
+enforced by a unique constraint), `first_name`, `last_name`, `company_name`,
+`street`, `postal_code`, `city`, `country_code`, `phone`, `tax_id`.
+
+Both child tables are deleted with their order.
+
+These columns hold buyers' personal data: names, addresses, phone numbers.
+It is never written to logs; mapping problems are logged by field name only.
 
 All timestamps are stored in UTC. SQLite keeps no zone and returns them naive;
 the API attaches UTC on the way out.

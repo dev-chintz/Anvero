@@ -6,6 +6,7 @@ from app.integrations.base import MarketplaceAdapter
 from app.models.order import Order, OrderStatus
 from app.repositories.order_repository import OrderRepository
 from app.schemas.order import OrderCreate
+from app.services.order_details import apply_details
 
 logger = logging.getLogger(__name__)
 
@@ -64,6 +65,9 @@ class OrderImportService:
                 and existing.marketplace_cancelled_at is None
                 and existing.status is not OrderStatus.CANCELLED
             )
+            # the marketplace owns the details as well; staged here and
+            # committed together with the fields below
+            apply_details(existing, data)
             self.repository.update_imported_fields(
                 existing,
                 customer_email=data.customer_email,
@@ -114,4 +118,5 @@ class OrderImportService:
         # (now) applies; an explicit None would insert NULL instead
         if data.ordered_at is not None:
             order.ordered_at = data.ordered_at
+        apply_details(order, data)
         return order

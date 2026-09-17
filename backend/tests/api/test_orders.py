@@ -596,3 +596,128 @@ def test_stats_covers_all_orders_not_just_one_page():
     assert sum(stats["by_status"].values()) == unfiltered_total
     assert sum(stats["by_source"].values()) == unfiltered_total
     assert Decimal(stats["total_revenue"]) > 0
+
+
+# --- order details ---------------------------------------------------------
+
+
+def _details_payload(**overrides):
+    details = {
+        "customer": {"first_name": "Jan", "last_name": "Kowalski", "phone": "+48 600 100 200"},
+        "items": [
+            {"name": "Widget", "sku": "SKU-W1", "quantity": 2, "unit_price": "76.00"},
+            {"name": "Gadget", "quantity": 1, "unit_price": "15.99"},
+        ],
+        "delivery": {
+            "method": "InPost Paczkomat",
+            "cost": "12.99",
+            "address": {"first_name": "Anna", "street": "Prosta 1", "city": "Warszawa"},
+            "pickup_point": {
+                "id": "WAW01A",
+                "name": "Paczkomat WAW01A",
+                "address": {"street": "Długa 5", "postal_code": "00-002"},
+            },
+        },
+        "payment": {
+            "type": "ONLINE",
+            "provider": "P24",
+            "paid_amount": "180.98",
+            "paid_at": "2026-09-14T10:01:00Z",
+        },
+        "invoice": {"required": True, "address": {"company_name": "Firma", "tax_id": "1234563218"}},
+        "buyer_message": "Please pack it well",
+    }
+    details.update(overrides)
+    return _order_payload(**details)
+
+
+def test_an_order_returns_its_details():
+    created = client.post(
+        "/api/v1/orders", json=_details_payload(external_id="DETAILS-1")
+    ).json()
+
+    response = client.get(f"/api/v1/orders/{created['id']}")
+
+    assert response.status_code == 200
+    order = response.json()
+    assert order["customer"]["last_name"] == "Kowalski"
+    assert order["customer"]["login"] is None
+    assert [(i["name"], i["quantity"], i["unit_price"]) for i in order["items"]] == [
+        ("Widget", 2, "76.00"),
+        ("Gadget", 1, "15.99"),
+    ]
+    assert all(item["id"] for item in order["items"])
+    assert order["delivery"]["method"] == "InPost Paczkomat"
+    assert order["delivery"]["cost"] == "12.99"
+    assert order["delivery"]["address"]["street"] == "Prosta 1"
+    assert order["delivery"]["pickup_point"]["id"] == "WAW01A"
+    assert order["delivery"]["pickup_point"]["address"]["street"] == "Długa 5"
+    assert order["payment"] == {
+        "type": "ONLINE",
+        "provider": "P24",
+        "paid_amount": "180.98",
+        "paid_at": "2026-09-14T10:01:00Z",
+    }
+    assert order["invoice"]["required"] is True
+    assert order["invoice"]["address"]["tax_id"] == "1234563218"
+    assert order["buyer_message"] == "Please pack it well"
+
+
+def test_an_order_without_details_has_the_same_shape_with_nulls():
+    """Orders entered before details existed, or by hand, have none."""
+    created = client.post(
+        "/api/v1/orders", json=_order_payload(external_id="NO-DETAILS")
+    ).json()
+
+    order = client.get(f"/api/v1/orders/{created['id']}").json()
+
+    assert order["items"] == []
+    assert set(order["customer"].values()) == {None}
+    assert order["delivery"] == {
+        "method": None,
+        "cost": None,
+        "address": None,
+        "pickup_point": None,
+    }
+    assert set(order["payment"].values()) == {None}
+    assert order["invoice"] == {"required": False, "address": None}
+    assert order["buyer_message"] is None
+
+
+def test_a_status_change_response_keeps_the_details():
+    """The order page replaces its copy of the order with this response."""
+    created = client.post(
+        "/api/v1/orders", json=_details_payload(external_id="DETAILS-PATCH")
+    ).json()
+
+    response = client.patch(
+        f"/api/v1/orders/{created['id']}/status", json={"status": "CONFIRMED"}
+    )
+
+    assert response.status_code == 200
+    assert [item["name"] for item in response.json()["items"]] == ["Widget", "Gadget"]
+
+
+def test_the_order_list_stays_lean():
+    """Details are for one order at a time; a page of 500 does not carry them."""
+    client.post("/api/v1/orders", json=_details_payload(external_id="DETAILS-LIST"))
+
+    listed = client.get("/api/v1/orders", params={"search": "DETAILS-LIST"}).json()
+
+    assert listed["total"] == 1
+    assert "items" not in listed["items"][0]
+    assert "customer" not in listed["items"][0]
+
+
+def test_invalid_details_are_rejected():
+    bad_payloads = [
+        _details_payload(external_id="BAD-1", items=[{"name": "X", "quantity": 0, "unit_price": "1.00"}]),
+        _details_payload(external_id="BAD-2", items=[{"quantity": 1, "unit_price": "1.00"}]),
+        _details_payload(external_id="BAD-3", payment={"type": "BITCOIN"}),
+        _details_payload(external_id="BAD-4", delivery={"cost": "-1.00"}),
+        _details_payload(external_id="BAD-5", customer={"first_name": ""}),
+    ]
+
+    for payload in bad_payloads:
+        response = client.post("/api/v1/orders", json=payload)
+        assert response.status_code == 422, payload["external_id"]

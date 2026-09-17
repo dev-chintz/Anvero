@@ -36,13 +36,14 @@ against a real account. Both need steps only the project owner can take.
 - Connection to local PostgreSQL database — NOT done, running on SQLite
 - Health endpoint and first order model — done
 - Minimal order list interface — done
-- Automated tests for core flows — done (137 passing across the suite)
+- Automated tests for core flows — done (168 passing across the suite)
 
 ---
 
 ## Sprint 3 — Order Flow
 
-- Order list and details — done
+- Order list and details — done, including items, buyer, delivery and
+  pickup point, payment and invoice (MVP item 3)
 - Filtering by source, status and date — done
 - Change history — done (status transitions and who made them)
 - Sample data — done (`backend/scripts/generate_sample_data.py --force`)

@@ -39,13 +39,13 @@ Repository: <https://github.com/dev-chintz/Anvero>
 - Login required for every orders endpoint and page; accounts created by
   script, no sign-up; 8-hour tokens
 - React + TypeScript frontend: login page, dashboard, order list with
-  filtering and search, order detail with status editing and history, dark
-  mode
-- Alembic migrations for `users`, `orders`, `order_status_history` and
-  `integration_credentials`
+  filtering and search, order detail with items, buyer, delivery, payment
+  and invoice, status editing and history, dark mode
+- Alembic migrations for `users`, `orders`, `order_items`,
+  `order_addresses`, `order_status_history` and `integration_credentials`
 - Allegro adapter, order mapping, the import script, an import endpoint and
   a button, one import at a time and rate limited
-- 137 tests passing
+- 168 tests passing
 
 ---
 

@@ -34,10 +34,11 @@ breakdown; the short version:
 - Login: every orders endpoint and every page requires it. Accounts are
   created with `backend/scripts/create_user.py`; there is no sign-up.
 - React + TypeScript frontend: dashboard, order list with filtering, order
-  detail with status editing and history.
+  detail with items, buyer, delivery, payment and invoice, status editing and
+  history.
 - Allegro adapter, import script, an import endpoint and a button, one
   import at a time.
-- 137 tests passing.
+- 168 tests passing.
 
 Two things are **not** done, and both need a person rather than more code:
 

@@ -11,8 +11,8 @@ from app.models.user import User
 from app.repositories.order_repository import OrderRepository
 from app.schemas.order import (
     OrderCreate,
+    OrderDetailRead,
     OrderListResponse,
-    OrderRead,
     OrderStats,
     OrderStatusHistoryRead,
     OrderUpdate,
@@ -62,10 +62,10 @@ def get_order_stats(db: Session = Depends(get_db)):
     return service.get_stats()
 
 
-@router.get("/{order_id}", response_model=OrderRead)
+@router.get("/{order_id}", response_model=OrderDetailRead)
 def get_order(order_id: uuid.UUID, db: Session = Depends(get_db)):
     service = OrderService(OrderRepository(db))
-    return service.get_order(order_id)
+    return OrderDetailRead.from_order(service.get_order(order_id))
 
 
 @router.get("/{order_id}/history", response_model=list[OrderStatusHistoryRead])
@@ -76,7 +76,9 @@ def get_order_status_history(order_id: uuid.UUID, db: Session = Depends(get_db))
 
 # path follows the contract in docs/API.md: status is its own sub-resource
 # because a change here is meant to record an entry in the status history
-@router.patch("/{order_id}/status", response_model=OrderRead)
+# returns the details too: the order page replaces its copy of the order with
+# this response, and would otherwise lose them
+@router.patch("/{order_id}/status", response_model=OrderDetailRead)
 def update_order_status(
     order_id: uuid.UUID,
     payload: OrderUpdate,
@@ -84,13 +86,14 @@ def update_order_status(
     current_user: User = Depends(get_current_user),
 ):
     service = OrderService(OrderRepository(db))
-    return service.update_order_status(
+    order = service.update_order_status(
         order_id, payload.status, changed_by_user_id=current_user.id
     )
+    return OrderDetailRead.from_order(order)
 
 
-@router.post("", response_model=OrderRead)
+@router.post("", response_model=OrderDetailRead)
 def create_order(order: OrderCreate, db: Session = Depends(get_db)):
     # intended for local/manual testing until marketplace ingestion exists
     service = OrderService(OrderRepository(db))
-    return service.create_order(order)
+    return OrderDetailRead.from_order(service.create_order(order))

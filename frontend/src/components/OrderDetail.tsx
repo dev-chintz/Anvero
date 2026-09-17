@@ -2,7 +2,8 @@ import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { ApiError, ordersApi } from "../api/client";
 import { OrderStatus, hasCancellationWarning } from "../types/order";
-import type { Order, OrderStatusChange } from "../types/order";
+import type { OrderStatusChange, OrderWithDetails } from "../types/order";
+import { OrderDetailsPanel } from "./OrderDetailsPanel";
 import "../styles/OrderHistory.css";
 
 const STATUSES = Object.values(OrderStatus);
@@ -11,7 +12,7 @@ export function OrderDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
 
-  const [order, setOrder] = useState<Order | null>(null);
+  const [order, setOrder] = useState<OrderWithDetails | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [notFound, setNotFound] = useState(false);
@@ -169,6 +170,8 @@ export function OrderDetail() {
           </div>
         </dl>
       )}
+
+      {!loading && !error && !notFound && order && <OrderDetailsPanel order={order} />}
 
       {!loading && !error && !notFound && order && (
         <section className="status-history" aria-label="Status history">

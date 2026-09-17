@@ -4,6 +4,45 @@ All significant changes to the Anvero project.
 
 ---
 
+## 2026-09-17 (evening)
+
+### ✨ Added — Order details
+
+- Orders now store and show their items, buyer, delivery address and pickup
+  point, payment and invoice details, and the buyer's message: MVP item 3.
+  New tables `order_items` and `order_addresses`, new columns on `orders`
+  (migration `e4a7c2d9f5b1`). Existing orders simply have no details.
+- The Allegro import maps all of them, with field names checked against
+  Allegro's OpenAPI specification, and a re-import replaces them. Details are
+  read leniently: one that cannot be read is logged by field name and left
+  out, and the order is still imported.
+- `GET /api/v1/orders/{id}`, `PATCH .../status` and `POST /api/v1/orders`
+  return the order with its details; the list stays lean. See `docs/API.md`.
+- The order page shows an items table with item, delivery and order totals,
+  and cards for the buyer, delivery, payment state and invoice.
+- Sample data includes details, so the page has something to show.
+
+### 🐛 Fixed
+
+- A line item that was not a JSON object made the Allegro mapper raise
+  `AttributeError`, which escaped the per-order skip and lost the whole import
+  page. Malformed `buyer`, `summary` and `fulfillment` values had the same
+  weakness.
+
+### ✅ Verification
+
+168 backend tests pass (137 before; the new ones cover the mapping of every
+detail, lenient handling of malformed ones, storing and replacing them on
+re-import, and the API shape). The migration was run up, down and up again
+on a copy of a development database with existing orders, and `alembic check`
+reports no drift from the models. Replacing an address on re-import needs the
+old rows flushed before the new ones are added; removing that flush makes two
+tests fail on the unique constraint. `tsc --noEmit` is clean. The details
+panel was checked in a browser, rendered from real API responses, at desktop
+and phone width and in dark mode; the logged-in order page itself was not
+opened, since that needs a login. Nothing has been imported from the live
+Allegro API.
+
 ## 2026-09-17 (later)
 
 ### ✨ Added — Allegro import as an endpoint
