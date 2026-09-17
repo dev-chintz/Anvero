@@ -34,7 +34,7 @@ breakdown; the short version:
 - React + TypeScript frontend: dashboard, order list with filtering, order
   detail with status editing and history.
 - Allegro adapter and import script.
-- 66 tests passing.
+- 96 tests passing.
 
 Two things are **not** done, and both need a person rather than more code:
 

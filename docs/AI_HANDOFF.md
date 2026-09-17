@@ -40,7 +40,7 @@ Repository: <https://github.com/dev-chintz/Anvero>
   search, order detail with status editing and history, dark mode
 - Alembic migrations for `users`, `orders` and `order_status_history`
 - Allegro adapter, order mapping and import script
-- 66 tests passing
+- 96 tests passing
 
 ---
 

@@ -11,6 +11,9 @@ this file only points at it and records how to work here without tripping.
    unproven, however finished the code looks.
 3. `git pull` first. This project is worked on from several machines and with
    both Claude Code and Kiro, and chat history does not travel between them.
+4. If the pull brought new files under `backend/migrations/versions/`, run
+   `alembic upgrade head` in `backend/`. Each machine has its own database, and
+   code ahead of its schema fails on the first request touching a new column.
 
 ## Rules that are easy to miss
 

@@ -36,7 +36,7 @@ against a real account. Both need steps only the project owner can take.
 - Connection to local PostgreSQL database — NOT done, running on SQLite
 - Health endpoint and first order model — done
 - Minimal order list interface — done
-- Automated tests for core flows — done (66 passing across the suite)
+- Automated tests for core flows — done (96 passing across the suite)
 
 ---
 
