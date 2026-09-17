@@ -256,6 +256,55 @@ def test_rejected_status_change_records_nothing():
     assert client.get(f"/api/v1/orders/{created['id']}/history").json() == []
 
 
+def _flag_cancelled_on_marketplace(order_id):
+    """Stand in for an import: no endpoint sets this, only the importer."""
+    import uuid as _uuid
+
+    from app.models.order import Order
+
+    db = TestingSessionLocal()
+    try:
+        order = db.get(Order, _uuid.UUID(order_id))
+        order.marketplace_cancelled_at = datetime.now(UTC)
+        db.commit()
+    finally:
+        db.close()
+
+
+def test_cancellation_warnings_are_filterable_counted_and_resolvable():
+    """The filter, the dashboard count and the detail field agree, and the
+    warning clears once the operator cancels the order in Anvero."""
+    flagged = client.post(
+        "/api/v1/orders", json=_order_payload(external_id="WARN-1")
+    ).json()
+    client.post("/api/v1/orders", json=_order_payload(external_id="WARN-QUIET"))
+    _flag_cancelled_on_marketplace(flagged["id"])
+
+    listed = client.get(
+        "/api/v1/orders", params={"cancellation_warning": "true"}
+    ).json()
+    stats = client.get("/api/v1/orders/stats").json()
+    detail = client.get(f"/api/v1/orders/{flagged['id']}").json()
+
+    assert [item["external_id"] for item in listed["items"]] == ["WARN-1"]
+    assert listed["total"] == 1
+    assert stats["cancellation_warnings"] == 1
+    assert detail["marketplace_cancelled_at"] is not None
+    assert detail["status"] == "NEW"
+
+    client.patch(
+        f"/api/v1/orders/{flagged['id']}/status", json={"status": "CANCELLED"}
+    )
+
+    assert (
+        client.get("/api/v1/orders", params={"cancellation_warning": "true"}).json()[
+            "total"
+        ]
+        == 0
+    )
+    assert client.get("/api/v1/orders/stats").json()["cancellation_warnings"] == 0
+
+
 def test_filter_orders_by_source():
     """GET /orders?source=ALLEGRO returns only orders from that source."""
     client.post("/api/v1/orders", json=_order_payload(external_id="ERLI-1"))

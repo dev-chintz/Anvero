@@ -29,6 +29,7 @@ def list_orders(
     search: str | None = Query(default=None, max_length=255),
     date_from: date | None = Query(default=None),
     date_to: date | None = Query(default=None),
+    cancellation_warning: bool = Query(default=False),
     db: Session = Depends(get_db),
 ):
     service = OrderService(OrderRepository(db))
@@ -40,6 +41,7 @@ def list_orders(
         search=search,
         date_from=date_from,
         date_to=date_to,
+        cancellation_warning=cancellation_warning,
     )
     return OrderListResponse(items=orders, total=total, skip=skip, limit=limit)
 

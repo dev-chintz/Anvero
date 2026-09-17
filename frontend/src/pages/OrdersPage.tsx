@@ -26,6 +26,7 @@ export function OrdersPage({ addToast }: OrdersPageProps) {
   const search = searchParams.get('search') || undefined;
   const dateFrom = searchParams.get('dateFrom') || undefined;
   const dateTo = searchParams.get('dateTo') || undefined;
+  const cancellationWarning = searchParams.get('cancellationWarning') === 'true';
 
   // every filter is applied by the backend, so results and the total span
   // all pages rather than just the rows already fetched
@@ -37,6 +38,7 @@ export function OrdersPage({ addToast }: OrdersPageProps) {
     search,
     dateFrom,
     dateTo,
+    cancellationWarning,
   });
 
   const updateParams = (updates: Record<string, string | undefined>) => {
@@ -85,6 +87,26 @@ export function OrdersPage({ addToast }: OrdersPageProps) {
         onFiltersChange={handleFiltersChange}
         onClearFilters={handleClearFilters}
       />
+
+      {cancellationWarning && (
+        // wrapped: .orders-page pads its direct children, which would fight
+        // the banner's own padding
+        <div>
+          <div role="status" className="warning-banner">
+            Showing only orders cancelled on the marketplace but still active
+            here.{' '}
+            <button
+              type="button"
+              className="link-button"
+              onClick={() =>
+                updateParams({ cancellationWarning: undefined, skip: '0' })
+              }
+            >
+              Show all orders
+            </button>
+          </div>
+        </div>
+      )}
 
       <OrderList
         orders={orders}

@@ -10,6 +10,7 @@ export interface UseOrdersParams {
   search?: string;
   dateFrom?: string;
   dateTo?: string;
+  cancellationWarning?: boolean;
 }
 
 export interface UseOrdersResult {
@@ -30,7 +31,16 @@ export interface UseOrdersResult {
 export function useOrders(params: UseOrdersParams): UseOrdersResult {
   // destructured to primitives so the effect does not re-run on every
   // render just because the caller built a fresh params object
-  const { skip, limit, source, status, search, dateFrom, dateTo } = params;
+  const {
+    skip,
+    limit,
+    source,
+    status,
+    search,
+    dateFrom,
+    dateTo,
+    cancellationWarning,
+  } = params;
 
   const [orders, setOrders] = useState<Order[]>([]);
   const [count, setCount] = useState(0);
@@ -47,7 +57,16 @@ export function useOrders(params: UseOrdersParams): UseOrdersResult {
     setError(null);
 
     ordersApi
-      .list({ skip, limit, source, status, search, dateFrom, dateTo })
+      .list({
+        skip,
+        limit,
+        source,
+        status,
+        search,
+        dateFrom,
+        dateTo,
+        cancellationWarning,
+      })
       .then((response) => {
         if (cancelled) return;
         setOrders(response.items);
@@ -68,7 +87,17 @@ export function useOrders(params: UseOrdersParams): UseOrdersResult {
     return () => {
       cancelled = true;
     };
-  }, [skip, limit, source, status, search, dateFrom, dateTo, version]);
+  }, [
+    skip,
+    limit,
+    source,
+    status,
+    search,
+    dateFrom,
+    dateTo,
+    cancellationWarning,
+    version,
+  ]);
 
   return { orders, loading, error, count, refetch };
 }

@@ -21,6 +21,20 @@ export interface Order {
   currency: string;
   created_at: string;
   updated_at: string;
+  marketplace_cancelled_at: string | null;
+}
+
+/**
+ * Cancelled on the marketplace while still active in Anvero.
+ *
+ * Mirrors the backend's definition, which drives the list filter and the
+ * dashboard count, so a flagged row and the counts never disagree.
+ */
+export function hasCancellationWarning(order: Order): boolean {
+  return (
+    order.marketplace_cancelled_at !== null &&
+    order.status !== OrderStatus.CANCELLED
+  );
 }
 
 export interface OrderListResponse {
@@ -42,6 +56,7 @@ export interface OrderStats {
   total_revenue: string;
   this_week: number;
   pending: number;
+  cancellation_warnings: number;
   by_status: Record<string, number>;
   by_source: Record<string, number>;
 }

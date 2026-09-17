@@ -102,6 +102,56 @@ def test_re_import_refreshes_the_fields_the_marketplace_owns(session):
     assert stored.total_amount == Decimal("250.00")
 
 
+def _cancelled(order):
+    return order.model_copy(update={"status": OrderStatus.CANCELLED})
+
+
+def test_a_marketplace_cancellation_warns_instead_of_changing_status(session):
+    """Regression: a cancellation on Allegro used to vanish without trace, so
+    an operator could ship an order the buyer had cancelled."""
+    _service(session, [_order("ALG-1")]).import_orders()
+
+    result = _service(session, [_cancelled(_order("ALG-1"))]).import_orders()
+
+    stored = session.query(Order).one()
+    assert stored.status is OrderStatus.NEW
+    assert stored.marketplace_cancelled_at is not None
+    assert result.cancellation_warnings == 1
+
+
+def test_a_cancellation_is_only_reported_once(session):
+    _service(session, [_order("ALG-1")]).import_orders()
+    _service(session, [_cancelled(_order("ALG-1"))]).import_orders()
+    first_seen = session.query(Order).one().marketplace_cancelled_at
+
+    result = _service(session, [_cancelled(_order("ALG-1"))]).import_orders()
+
+    assert result.cancellation_warnings == 0
+    # the timestamp records when the cancellation was first noticed
+    assert session.query(Order).one().marketplace_cancelled_at == first_seen
+
+
+def test_no_warning_when_the_operator_already_cancelled(session):
+    _service(session, [_order("ALG-1")]).import_orders()
+    OrderRepository(session).update_status(
+        session.query(Order).one(), OrderStatus.CANCELLED
+    )
+
+    result = _service(session, [_cancelled(_order("ALG-1"))]).import_orders()
+
+    assert result.cancellation_warnings == 0
+    assert session.query(Order).one().marketplace_cancelled_at is not None
+
+
+def test_an_order_first_seen_cancelled_needs_no_warning(session):
+    result = _service(session, [_cancelled(_order("ALG-1"))]).import_orders()
+
+    stored = session.query(Order).one()
+    assert stored.status is OrderStatus.CANCELLED
+    assert stored.marketplace_cancelled_at is not None
+    assert result.cancellation_warnings == 0
+
+
 def test_an_order_from_another_marketplace_is_not_a_duplicate(session):
     """Order numbers collide across marketplaces."""
     _service(session, [_order("SHARED")]).import_orders()

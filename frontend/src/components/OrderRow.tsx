@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import type { Order } from "../types/order";
-import { OrderSource, OrderStatus } from "../types/order";
+import { OrderSource, OrderStatus, hasCancellationWarning } from "../types/order";
 
 const STATUS_CLASS: Record<OrderStatus, string> = {
   [OrderStatus.NEW]: "badge badge-new",
@@ -34,6 +34,11 @@ export function OrderRow({ order }: OrderRowProps) {
       </td>
       <td>
         <span className={STATUS_CLASS[order.status]}>{order.status}</span>
+        {hasCancellationWarning(order) && (
+          <span className="badge badge-warning">
+            ⚠ Cancelled on {order.source}
+          </span>
+        )}
       </td>
       <td>{order.customer_email}</td>
       <td>

@@ -70,6 +70,7 @@ export interface ListOrdersParams {
   search?: string;
   dateFrom?: string;
   dateTo?: string;
+  cancellationWarning?: boolean;
 }
 
 function buildQuery(params: ListOrdersParams): string {
@@ -81,6 +82,7 @@ function buildQuery(params: ListOrdersParams): string {
   if (params.search) query.set("search", params.search);
   if (params.dateFrom) query.set("date_from", params.dateFrom);
   if (params.dateTo) query.set("date_to", params.dateTo);
+  if (params.cancellationWarning) query.set("cancellation_warning", "true");
   const queryString = query.toString();
   return queryString ? `?${queryString}` : "";
 }

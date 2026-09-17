@@ -112,6 +112,19 @@ that the Anvero status belongs to the operator: it is set by hand and
 recorded in the status history, and a sync overwriting it would silently undo
 that. See `DECISIONS.md`.
 
+**Cancellations are the exception that must not go unnoticed.** When an
+import finds an order cancelled on Allegro that is still active in Anvero, the
+status is left alone but the order is flagged (`marketplace_cancelled_at`):
+
+- the import prints a warning with the number of such orders,
+- the dashboard shows a banner linking to them,
+- the order list marks the row and can be filtered to just those orders,
+- the order page shows a "do not ship" banner.
+
+The flag clears once the operator sets the status to `CANCELLED`. An order that
+has already shipped stays flagged, deliberately: it still needs a return or a
+refund.
+
 ### Field mapping
 
 | Anvero | Allegro |

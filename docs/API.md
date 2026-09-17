@@ -35,8 +35,16 @@ database, so `total` counts every match rather than the returned page.
 | `status` | `NEW`, `CONFIRMED`, `SHIPPED`, `DELIVERED`, `CANCELLED` |
 | `search` | substring of `external_id` or `customer_email`, case-insensitive |
 | `date_from`, `date_to` | `YYYY-MM-DD`, both inclusive, matched on `created_at` |
+| `cancellation_warning` | `true` returns only orders cancelled on their marketplace whose Anvero status is not `CANCELLED` |
 
 Response: `{"items": [...], "total": N, "skip": N, "limit": N}`.
+
+Each order carries `marketplace_cancelled_at`: `null`, or when an import first
+found the order cancelled on its marketplace. An import never changes the
+Anvero status, so an order with this set and a status other than `CANCELLED`
+needs the operator's attention. `GET /api/v1/orders/stats` reports how many
+such orders exist as `cancellation_warnings`, using the same definition as the
+filter above. The warning clears when the status is set to `CANCELLED`.
 
 ## `PATCH /api/v1/orders/{id}/status`
 

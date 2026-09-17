@@ -28,6 +28,7 @@ class OrderRead(OrderBase):
     status: OrderStatus
     created_at: datetime
     updated_at: datetime
+    marketplace_cancelled_at: datetime | None = None
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -57,5 +58,6 @@ class OrderStats(BaseModel):
     total_revenue: Decimal
     this_week: int
     pending: int
+    cancellation_warnings: int
     by_status: dict[str, int]
     by_source: dict[str, int]

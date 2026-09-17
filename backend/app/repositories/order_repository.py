@@ -43,15 +43,20 @@ class OrderRepository:
         customer_email: str,
         total_amount: Decimal,
         currency: str,
+        cancelled_on_marketplace: bool = False,
     ) -> Order:
         """Refresh the fields a marketplace owns.
 
         Deliberately excludes status: that one belongs to the operator, and a
-        sync overwriting it would undo a decision recorded in the history.
+        sync overwriting it would undo a decision recorded in the history. A
+        marketplace cancellation is recorded beside it instead, and only the
+        first time it is seen, so the timestamp says when it was noticed.
         """
         order.customer_email = customer_email
         order.total_amount = total_amount
         order.currency = currency
+        if cancelled_on_marketplace and order.marketplace_cancelled_at is None:
+            order.marketplace_cancelled_at = self._to_db_datetime(datetime.now(UTC))
         self.db.commit()
         self.db.refresh(order)
         return order
@@ -99,6 +104,17 @@ class OrderRepository:
             return value.replace(tzinfo=None)
         return value
 
+    @staticmethod
+    def _has_cancellation_warning():
+        """Cancelled on the marketplace, but not (yet) cancelled in Anvero.
+
+        One definition, shared by the list filter and the statistics, so the
+        dashboard count always matches what the filtered list shows.
+        """
+        return (Order.marketplace_cancelled_at.is_not(None)) & (
+            Order.status != OrderStatus.CANCELLED
+        )
+
     def _filtered(
         self,
         source: OrderSource | None = None,
@@ -106,6 +122,7 @@ class OrderRepository:
         search: str | None = None,
         date_from: date | None = None,
         date_to: date | None = None,
+        cancellation_warning: bool = False,
     ) -> Query:
         """Single source of truth for filtering.
 
@@ -113,6 +130,8 @@ class OrderRepository:
         of results and its reported total disagree.
         """
         query = self.db.query(Order)
+        if cancellation_warning:
+            query = query.filter(self._has_cancellation_warning())
         if source is not None:
             query = query.filter(Order.source == source)
         if status is not None:
@@ -153,6 +172,7 @@ class OrderRepository:
         search: str | None = None,
         date_from: date | None = None,
         date_to: date | None = None,
+        cancellation_warning: bool = False,
     ) -> list[Order]:
         return (
             self._filtered(
@@ -161,6 +181,7 @@ class OrderRepository:
                 search=search,
                 date_from=date_from,
                 date_to=date_to,
+                cancellation_warning=cancellation_warning,
             )
             .order_by(Order.created_at.desc())
             .offset(skip)
@@ -175,6 +196,7 @@ class OrderRepository:
         search: str | None = None,
         date_from: date | None = None,
         date_to: date | None = None,
+        cancellation_warning: bool = False,
     ) -> int:
         return self._filtered(
             source=source,
@@ -182,6 +204,7 @@ class OrderRepository:
             search=search,
             date_from=date_from,
             date_to=date_to,
+            cancellation_warning=cancellation_warning,
         ).count()
 
     def _week_cutoff(self) -> datetime:
@@ -205,6 +228,10 @@ class OrderRepository:
             select(func.count(Order.id)).where(Order.status.in_(PENDING_STATUSES))
         ).scalar_one()
 
+        cancellation_warnings = self.db.execute(
+            select(func.count(Order.id)).where(self._has_cancellation_warning())
+        ).scalar_one()
+
         by_status = self.db.execute(
             select(Order.status, func.count(Order.id)).group_by(Order.status)
         ).all()
@@ -218,6 +245,7 @@ class OrderRepository:
             "total_revenue": Decimal(revenue),
             "this_week": this_week,
             "pending": pending,
+            "cancellation_warnings": cancellation_warnings,
             "by_status": {status.value: count for status, count in by_status},
             "by_source": {source.value: count for source, count in by_source},
         }

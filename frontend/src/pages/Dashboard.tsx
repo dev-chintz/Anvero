@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom';
 import { useOrderStats } from '../hooks/useOrderStats';
 import { useOrders } from '../hooks/useOrders';
 import type { Order } from '../types/order';
@@ -33,6 +34,18 @@ export const Dashboard: React.FC = () => {
         <h1>Dashboard</h1>
         <p className="subtitle">Marketplace orders overview</p>
       </header>
+
+      {stats.cancellation_warnings > 0 && (
+        <div role="alert" className="warning-banner">
+          <strong>
+            {stats.cancellation_warnings}{' '}
+            {stats.cancellation_warnings === 1 ? 'order was' : 'orders were'}{' '}
+            cancelled on the marketplace
+          </strong>{' '}
+          but {stats.cancellation_warnings === 1 ? 'is' : 'are'} still active here.{' '}
+          <Link to="/orders?cancellationWarning=true">Review before shipping</Link>
+        </div>
+      )}
 
       <section className="stats-grid">
         <StatCard

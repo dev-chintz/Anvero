@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { ApiError, ordersApi } from "../api/client";
-import { OrderStatus } from "../types/order";
+import { OrderStatus, hasCancellationWarning } from "../types/order";
 import type { Order, OrderStatusChange } from "../types/order";
 import "../styles/OrderHistory.css";
 
@@ -92,6 +92,16 @@ export function OrderDetail() {
         <p role="alert" className="error-message">
           {error}
         </p>
+      )}
+
+      {!loading && !error && !notFound && order && hasCancellationWarning(order) && (
+        <div role="alert" className="warning-banner">
+          <strong>Cancelled on {order.source} — do not ship.</strong> An import
+          found this order cancelled on the marketplace on{" "}
+          {new Date(order.marketplace_cancelled_at as string).toLocaleString()},
+          but it is still {order.status} here. Set the status to CANCELLED once
+          it is handled; this warning then clears.
+        </div>
       )}
 
       {!loading && !error && !notFound && order && (

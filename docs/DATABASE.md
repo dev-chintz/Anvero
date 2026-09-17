@@ -25,6 +25,9 @@ point at:
 
 - `source` is an enum (`ALLEGRO`, `ERLI`) standing in for `integration_id`.
 - `customer_email` is a column on the order rather than a `customer` row.
+- `marketplace_cancelled_at` (nullable) is not in the target. It records when
+  an import first found the order cancelled on its marketplace; the Anvero
+  status is left to the operator, so this is what flags the conflict.
 - `created_at` stands in for `ordered_at`; once orders are imported rather
   than entered locally, the marketplace's own timestamp will need its own
   column, because the two stop being the same thing.

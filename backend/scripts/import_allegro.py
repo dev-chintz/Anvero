@@ -97,6 +97,12 @@ def main() -> int:
         db.close()
 
     print(f"Created {result.created}, updated {result.updated}.")
+    if result.cancellation_warnings:
+        print(
+            f"WARNING: {result.cancellation_warnings} order(s) were cancelled on "
+            "Allegro but are still active in Anvero. Check them before shipping: "
+            "Orders page, 'cancelled on marketplace' filter."
+        )
     return 0
 
 

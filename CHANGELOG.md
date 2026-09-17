@@ -20,6 +20,12 @@ All significant changes to the Anvero project.
   lost the whole page. It is now skipped and logged by field name.
 - A 200 response that is not a JSON object ended the import in a traceback;
   it is now reported as the integration being unavailable.
+- **A cancellation on Allegro disappeared without trace** for an order already
+  in Anvero, so it could be shipped anyway. The status is still left to the
+  operator, but the order is now flagged: a warning in the import output, a
+  dashboard banner with a link, a row marker and filter in the order list, and
+  a "do not ship" banner on the order page. The flag clears when the status is
+  set to `CANCELLED`. Checked in the browser end to end, light and dark.
 
 ### ✨ Added
 

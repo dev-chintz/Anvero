@@ -119,6 +119,7 @@ class OrderService:
         search: str | None = None,
         date_from: date | None = None,
         date_to: date | None = None,
+        cancellation_warning: bool = False,
     ) -> tuple[list[Order], int]:
         """List orders with optional filtering and pagination.
 
@@ -134,6 +135,8 @@ class OrderService:
                 customer_email.
             date_from: Optional inclusive lower bound on the creation date.
             date_to: Optional inclusive upper bound on the creation date.
+            cancellation_warning: When true, only orders cancelled on their
+                marketplace whose Anvero status is not yet CANCELLED.
 
         Returns:
             A tuple of (matching orders for the current page, total count
@@ -145,6 +148,7 @@ class OrderService:
             "search": search,
             "date_from": date_from,
             "date_to": date_to,
+            "cancellation_warning": cancellation_warning,
         }
         orders = self.repository.list(skip=skip, limit=limit, **filters)
         total = self.repository.count(**filters)

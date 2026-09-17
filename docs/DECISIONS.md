@@ -1,5 +1,20 @@
 # Decision Log
 
+## 2026-09-17 — Marketplace Cancellations Warn, They Do Not Change Status
+
+**Decision:** When an import finds an existing order cancelled on its
+marketplace, the Anvero status is still left alone, but the order gets
+`marketplace_cancelled_at`. Until the operator sets the status to `CANCELLED`
+the order is flagged in the import output, on the dashboard, in the order list
+(with a filter) and on the order page. Chosen by the project owner.
+
+**Rationale:** Code review showed the 2026-09-16 decision had a gap: it let a
+cancellation vanish entirely, so an operator could ship an order the buyer had
+cancelled. Overwriting the status would fix that but break the rule that the
+status is the operator's. A warning keeps the rule and makes the conflict
+impossible to miss. It is deliberately not auto-dismissed for orders already
+shipped, since those still need a return or refund.
+
 ## 2026-09-17 — Rotated Allegro Refresh Tokens Live in the Database
 
 **Decision:** Each refresh token Allegro issues is written to
@@ -54,6 +69,9 @@ every change is recorded in the status history. A sync that overwrote it
 would silently undo an operator's decision and leave a history entry the
 operator did not make. The cost is that a parcel marked sent on Allegro does
 not move Anvero by itself — visible, and preferable to destroying local work.
+
+*Amended 2026-09-17:* cancellations are now flagged as a warning; see the
+entry "Marketplace Cancellations Warn, They Do Not Change Status".
 
 ## 2026-09-16 — Import Runs as a Script, Not an Endpoint
 
