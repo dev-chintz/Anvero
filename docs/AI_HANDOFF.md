@@ -78,10 +78,12 @@ scripts/    PowerShell helpers for the local environment
 
 # UI Direction
 
-The interface stays as built; match it rather than redesign it
-(`DECISIONS.md`, 2026-09-17).
+A visual rework is planned, but only after the system works unattended and
+runs somewhere with backups (`ROADMAP.md` item 5, `DECISIONS.md`
+2026-09-17). Until that starts, match what exists rather than redesign it,
+and fix legibility faults as they turn up.
 
-What exists:
+What exists today:
 
 - Dark left sidebar, bright workspace, rounded corners
 - Plain CSS, ten stylesheets under `frontend/src/styles/` plus `index.css`;
@@ -91,9 +93,27 @@ What exists:
 - Light and dark follow the system, with an explicit override
 - No frontend tests, only `tsc --noEmit`
 
-The earlier direction — premium SaaS, purple accent, Linear and Stripe as
-models — and the Figma dashboard prototype were dropped: nothing in the code
-followed them. Legibility work still to do is in `ROADMAP.md`.
+The direction below — premium SaaS, purple accent, Linear and Stripe as
+models — and the Figma dashboard prototype are aspirations, not descriptions:
+nothing in the code follows them. They are candidates for the later visual
+pass, to be confirmed or dropped then.
+
+Style:
+
+- Premium SaaS
+- Dark left sidebar
+- Bright workspace
+- Purple accent color
+- Rounded corners
+- Large whitespace
+- Modern typography
+
+Inspired by:
+
+- Linear
+- Stripe Dashboard
+- Notion
+- Vercel
 
 ---
 

@@ -85,8 +85,8 @@ re-imported. Production needs its own application and authorization; see
   `marketplace_status_label`)
 - Dark mode
 - VS Code configuration and development scripts
-- Initial Figma dashboard prototype (not followed; the interface stays as
-  built, see `DECISIONS.md`)
+- Initial Figma dashboard prototype (not followed yet; kept for the visual
+  pass planned after the system runs unattended, see `ROADMAP.md`)
 
 ---
 

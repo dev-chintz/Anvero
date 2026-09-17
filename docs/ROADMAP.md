@@ -71,24 +71,28 @@ order is handled in Allegro anyway, which undercuts the MVP's own goal of not
 switching between panels. Invoicing and courier labels stay out until
 shipments themselves are in.
 
-### 5. The interface, as it stands
+### 5. The interface — a visual pass, once the system works
 
-The interface stays as built: plain CSS, a dark sidebar, a blue accent in
-light mode and teal in dark. The "premium SaaS, purple accent" direction and
-the early Figma dashboard prototype are dropped rather than caught up with
-(`DECISIONS.md`, 2026-09-17). The work that remains is legibility, not a
-restyle:
+The interface will be reworked, but deliberately after items 1–3, when
+Anvero imports unattended and runs somewhere with backups
+(`DECISIONS.md`, 2026-09-17). What it should look like is decided then:
+whether the Figma dashboard prototype and the premium-SaaS direction in
+`AI_HANDOFF.md` are taken up, whether a component library is worth the
+rewrite of ten stylesheets, and what a design pass would cost. Judging that
+after real daily use costs least and is most likely to be right.
+
+Until then, nothing decorative, only what makes the screens readable:
 
 - Fixes already visible in use: the order list scrolls sideways with a single
   order in it, badges crowd the status column, and the buyer's email takes a
-  third of the row — personal data, on the screen someone leaves open. Cheap,
-  and worth doing whenever, ahead of the items above.
+  third of the row — personal data, on a screen someone leaves open. Cheap,
+  and worth doing whenever.
 - One pass over `index.css` so colours, spacing, radii and type are defined
-  once, in the values already in use.
-- No component library unless a rewrite is the point: ten stylesheets, around
-  33 KB, are cheaper to tidy than to replace.
+  once, in the values already in use. This makes the later restyle a change
+  in one place rather than ten.
 - The frontend has no tests, only the type-check. Anything larger than the
-  fixes above wants a few component tests first.
+  fixes above wants a few component tests first — and a redesign certainly
+  does.
 - Every screen is behind a login, so the owner verifies interface work in the
   browser; assistants check the API instead.
 

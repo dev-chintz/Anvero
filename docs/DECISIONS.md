@@ -1,27 +1,29 @@
 # Decision Log
 
-## 2026-09-17 — The Interface Stays As Built
+## 2026-09-17 — The Interface Is Postponed, Not Settled
 
-**Decision:** The interface Anvero has is the interface it keeps: plain CSS
-across ten stylesheets, a dark sidebar, a blue accent in light mode and teal
-in dark. The "premium SaaS, purple accent, Linear/Stripe/Notion" direction in
-`AI_HANDOFF.md` and the early Figma dashboard prototype are dropped, not
-deferred. What remains is legibility work on what exists (`ROADMAP.md`, "The
-interface, as it stands"), and no component library unless a rewrite is
-deliberately chosen.
+**Decision:** The visual design is a task for later, after the system works
+the way it has to: production Allegro, an import that runs unattended, and
+somewhere to run it with backups (`ROADMAP.md`, items 1–3). Until then the
+interface is left as built — plain CSS, dark sidebar, blue and teal accents —
+and only its legibility faults are fixed. What the redesign should aim at,
+including whether the Figma dashboard prototype and the premium-SaaS
+direction in `AI_HANDOFF.md` are taken up, is decided when that work starts,
+not now.
 
-**Rationale:** There were three versions of the truth — the written
-direction, a Figma prototype nothing in the code refers to, and the built
-interface, which never used the purple accent the direction names. An
-aspiration nobody is working towards is worse than no aspiration: it makes
-every screen look unfinished against a standard no one chose to fund, and it
-invites a redesign in place of the work that actually blocks daily use
-(production Allegro, an unattended import, somewhere to run with backups).
-The built interface does its job; its real faults are a list that scrolls
-sideways, crowded badges and a buyer's email taking a third of a row, and
-those are cheap to fix. The decision can be revisited when the system is in
-daily use and its shape has settled, which is also when a redesign would cost
-least to get right.
+(Supersedes an earlier wording of this entry, written the same day, which
+treated the built interface as final. It was never acted on.)
+
+**Rationale:** The interface does need work — the owner's call — but not
+before the things that decide whether Anvero is usable at all. Styling a
+system that still cannot import unattended or survive a lost laptop is effort
+spent on the visible part of the wrong problem, and the shape of the screens
+will keep moving while shipments and an automatic import are added, so
+anything designed now would be redesigned anyway. Settling the target later
+also costs least: by then the daily work will have shown which screens matter
+and how they are actually used, which is exactly what a prototype needs to be
+judged against. Meanwhile, nothing claims the current look is the intended
+one, so no one has to defend it.
 
 ## 2026-09-17 — The Marketplace Status Is Shown, Not Applied
 
