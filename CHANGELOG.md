@@ -4,6 +4,16 @@ All significant changes to the Anvero project.
 
 ---
 
+## 2026-09-17 (sandbox authorized)
+
+### ✅ First real call to Allegro
+
+- The Allegro Sandbox application `anvero` is registered with its
+  User-Agent, and `scripts/authorize_allegro.py` authorized the sandbox
+  seller account: Allegro accepted the credentials and the header, issued a
+  device code, and the refresh token was written to `backend/.env` without
+  being shown. No orders have been imported yet.
+
 ## 2026-09-17 (Allegro User-Agent)
 
 ### 🔒 Allegro calls carry the application's User-Agent

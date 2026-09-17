@@ -255,6 +255,7 @@ one malformed order does not cost the rest of the page.
 - **Nothing here has been exercised against the live API.** The client and
   mapper were built from Allegro's published documentation and are covered by
   tests against recorded payload shapes, not real responses. The
-  authorization script has only been seen to reach the sandbox and be refused
-  a made-up client id (`401 invalid_client`); a real authorization has not
-  run.
+  authorization script is the exception: it completed a real authorization
+  in the sandbox on 2026-09-17, so the device flow, the form-encoded token
+  polling and the User-Agent are accepted there. Refreshing and rotating the
+  token and reading orders have not run yet.

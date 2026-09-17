@@ -93,10 +93,15 @@ shapes, which catches mapping mistakes but not a contract that differs from
 its documentation. The same is true of the import endpoint and button: their
 tests replace the import service with a fake, so the endpoint's own logic
 (auth, the lock, the rate limit, error mapping) is verified, but nothing has
-exercised the path all the way through to Allegro. The authorization script
-(`scripts/authorize_allegro.py`) is tested against Allegro's documented
-device flow responses; against the real sandbox it has only been refused a
-made-up client id.
+exercised the path all the way through to Allegro. 
+
+Verified against the Allegro Sandbox on 2026-09-17: the authorization
+script completed a real device flow authorization of the owner's sandbox
+seller account. That confirms the client id and secret, the User-Agent
+header, the device endpoint, polling the token endpoint with a form body,
+and saving the refresh token to `.env`. Nothing has been imported yet, so
+the token refresh with rotation, the orders endpoint and the mapping remain
+unverified.
 
 Verified on PostgreSQL 17.10 on the main machine: every migration up, all
 the way down and up again, with `alembic check` reporting no drift; the whole
@@ -126,8 +131,9 @@ Sandbox. Agreed plan, in order:
    the key over calls without one; nothing is sent until it is set),
    point `ALLEGRO_API_URL` at `https://api.allegro.pl.allegrosandbox.pl` and
    `ALLEGRO_AUTH_URL` at `https://allegro.pl.allegrosandbox.pl/auth/oauth`,
-   authorize with `scripts/authorize_allegro.py` (added 2026-09-17; it has
-   reached the sandbox but not yet completed a real authorization), import,
+   authorize with `scripts/authorize_allegro.py` (done 2026-09-17: the
+   sandbox application is registered and authorized on the main machine),
+   import,
    and check the real responses against the mapping,
    the stored details and the token rotation across repeated imports. How
    payment works in the sandbox is not documented; find out on the first
