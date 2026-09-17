@@ -1,3 +1,4 @@
+from datetime import UTC, datetime
 from decimal import Decimal
 
 import pytest
@@ -5,6 +6,7 @@ import pytest
 from app.integrations.allegro.mapper import (
     OrderMappingError,
     map_checkout_form,
+    map_ordered_at,
     map_status,
 )
 from app.models.order import OrderSource, OrderStatus
@@ -68,6 +70,41 @@ def test_total_comes_from_the_order_summary():
     order = map_checkout_form(_checkout_form())
 
     assert order.total_amount == Decimal("167.00")
+
+
+def test_ordered_at_is_the_purchase_time_not_the_import_time():
+    order = map_checkout_form(_checkout_form())
+
+    assert order.ordered_at == datetime(2026, 9, 14, 9, 59, tzinfo=UTC)
+
+
+def test_ordered_at_is_the_earliest_line_item_in_utc():
+    """Items can carry different offsets; the earliest instant wins."""
+    form = _checkout_form(
+        lineItems=[
+            {"boughtAt": "2026-09-14T09:59:00.000Z"},
+            # 11:00 in +02:00 is 09:00 UTC, one minute earlier than the first
+            {"boughtAt": "2026-09-14T11:00:00+02:00"},
+        ]
+    )
+
+    assert map_ordered_at(form) == datetime(2026, 9, 14, 9, 0, tzinfo=UTC)
+
+
+def test_missing_purchase_time_still_imports_the_order():
+    """A wrong date can be fixed later; a dropped order cannot."""
+    form = _checkout_form(lineItems=[{"id": "li-1"}])
+
+    order = map_checkout_form(form)
+
+    assert order.ordered_at is None
+    assert order.external_id == form["id"]
+
+
+def test_unreadable_purchase_time_is_ignored_not_fatal():
+    form = _checkout_form(lineItems=[{"boughtAt": "yesterday-ish"}])
+
+    assert map_ordered_at(form) is None
 
 
 def test_cancellation_outranks_fulfillment():

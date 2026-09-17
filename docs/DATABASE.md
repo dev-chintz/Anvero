@@ -28,9 +28,13 @@ point at:
 - `marketplace_cancelled_at` (nullable) is not in the target. It records when
   an import first found the order cancelled on its marketplace; the Anvero
   status is left to the operator, so this is what flags the conflict.
-- `created_at` stands in for `ordered_at`; once orders are imported rather
-  than entered locally, the marketplace's own timestamp will need its own
-  column, because the two stop being the same thing.
+- `ordered_at` matches the target. It is separate from `created_at` because
+  for an imported order the purchase and the row's creation are different
+  moments; orders that existed before the column was added were backfilled
+  with their `created_at`, since they were all entered locally.
+
+All timestamps are stored in UTC. SQLite keeps no zone and returns them naive;
+the API attaches UTC on the way out.
 
 `order_status_history` matches the target: `order_id`, `from_status`,
 `to_status`, `changed_at`. It records no author — the orders endpoints have

@@ -156,6 +156,10 @@ export function OrderDetail() {
             </dd>
           </div>
           <div>
+            <dt>Ordered At</dt>
+            <dd>{new Date(order.ordered_at).toLocaleString()}</dd>
+          </div>
+          <div>
             <dt>Created At</dt>
             <dd>{new Date(order.created_at).toLocaleString()}</dd>
           </div>

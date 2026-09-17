@@ -85,6 +85,17 @@ class Order(Base):
         nullable=False,
     )
 
+    # When the buyer placed the order. For an imported order that is the
+    # marketplace's purchase time, which can be long before the import that
+    # created the row, so date filters, sorting and "this week" use this.
+    ordered_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        index=True,
+        nullable=False,
+    )
+
+    # When the row was created in Anvero.
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         server_default=func.now(),

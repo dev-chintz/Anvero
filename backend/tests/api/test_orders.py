@@ -1,5 +1,6 @@
 ﻿from datetime import UTC, datetime, timedelta
 from decimal import Decimal
+from zoneinfo import ZoneInfo
 
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
@@ -430,13 +431,15 @@ def test_search_escapes_like_wildcards():
 
 
 def test_filter_by_date_range():
-    """date_from/date_to bound created_at, with date_to fully included.
+    """date_from/date_to bound ordered_at, with date_to fully included.
 
-    An order created today at midday must still match date_to=today, which
-    a naive "created_at <= date_to" bound would cut off at midnight.
+    An order placed today at midday must still match date_to=today, which
+    a naive "ordered_at <= date_to" bound would cut off at midnight.
     """
     client.post("/api/v1/orders", json=_order_payload(external_id="DATE-1"))
-    today = datetime.now(UTC).date()
+    # "today" in the business timezone, as the filter reads it; UTC's today
+    # is a different date for two hours every night and would make this flaky
+    today = datetime.now(ZoneInfo("Europe/Warsaw")).date()
     long_ago = (today - timedelta(days=30)).isoformat()
 
     inside = client.get(
@@ -451,6 +454,74 @@ def test_filter_by_date_range():
     assert inside.json()["total"] >= 1
     assert outside.status_code == 200
     assert outside.json()["total"] == 0
+
+
+def test_timestamps_leave_the_api_marked_as_utc():
+    """Regression: SQLite returns naive timestamps, which went out without a
+    zone and were read by browsers as local time, two hours off in Poland."""
+    order = client.post(
+        "/api/v1/orders", json=_order_payload(external_id="TZ-1")
+    ).json()
+    client.patch(f"/api/v1/orders/{order['id']}/status", json={"status": "SHIPPED"})
+
+    fetched = client.get(f"/api/v1/orders/{order['id']}").json()
+    history = client.get(f"/api/v1/orders/{order['id']}/history").json()
+
+    for field in ("ordered_at", "created_at", "updated_at"):
+        assert fetched[field].endswith("Z"), f"{field}: {fetched[field]}"
+    assert history[0]["changed_at"].endswith("Z")
+
+
+def test_date_filter_uses_calendar_days_in_the_business_timezone():
+    """23:30 UTC on 10 March is 00:30 on 11 March in Warsaw, so it belongs to
+    the 11th. A UTC day boundary put it on the 10th."""
+    client.post(
+        "/api/v1/orders",
+        json=_order_payload(
+            external_id="TZ-MIDNIGHT", ordered_at="2026-03-10T23:30:00Z"
+        ),
+    )
+
+    on_11th = client.get(
+        "/api/v1/orders", params={"date_from": "2026-03-11", "date_to": "2026-03-11"}
+    ).json()
+    on_10th = client.get(
+        "/api/v1/orders", params={"date_from": "2026-03-10", "date_to": "2026-03-10"}
+    ).json()
+
+    assert [o["external_id"] for o in on_11th["items"]] == ["TZ-MIDNIGHT"]
+    assert on_10th["total"] == 0
+
+
+def test_orders_are_listed_by_order_date_not_creation_time():
+    """An order imported today but placed years ago belongs at the bottom."""
+    client.post("/api/v1/orders", json=_order_payload(external_id="SORT-RECENT"))
+    client.post(
+        "/api/v1/orders",
+        json=_order_payload(
+            external_id="SORT-OLD", ordered_at="2020-01-01T12:00:00Z"
+        ),
+    )
+
+    listed = client.get("/api/v1/orders", params={"search": "SORT-"}).json()
+
+    assert [o["external_id"] for o in listed["items"]] == ["SORT-RECENT", "SORT-OLD"]
+
+
+def test_this_week_counts_orders_placed_this_week_not_created_this_week():
+    """Regression: a backfill of old orders made every one of them count as
+    'this week', because the figure used the import time."""
+    before = client.get("/api/v1/orders/stats").json()
+    thirty_days_ago = (datetime.now(UTC) - timedelta(days=30)).isoformat()
+
+    client.post(
+        "/api/v1/orders",
+        json=_order_payload(external_id="OLD-BACKFILL", ordered_at=thirty_days_ago),
+    )
+    after = client.get("/api/v1/orders/stats").json()
+
+    assert after["total_orders"] == before["total_orders"] + 1
+    assert after["this_week"] == before["this_week"]
 
 
 def test_stats_covers_all_orders_not_just_one_page():

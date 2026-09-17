@@ -49,6 +49,10 @@ class OrderService:
             total_amount=data.total_amount,
             currency=data.currency,
         )
+        # only set when given: an explicit None would insert NULL into a
+        # required column instead of letting the database default to now
+        if data.ordered_at is not None:
+            order.ordered_at = data.ordered_at
         return self.repository.create(order)
 
     def get_order(self, order_id: uuid.UUID) -> Order:
@@ -133,8 +137,10 @@ class OrderService:
             status_filter: Optional order status to filter by.
             search: Optional substring matched against external_id and
                 customer_email.
-            date_from: Optional inclusive lower bound on the creation date.
-            date_to: Optional inclusive upper bound on the creation date.
+            date_from: Optional inclusive lower bound on the order date, as a
+                calendar day in the business timezone.
+            date_to: Optional inclusive upper bound on the order date, as a
+                calendar day in the business timezone.
             cancellation_warning: When true, only orders cancelled on their
                 marketplace whose Anvero status is not yet CANCELLED.
 

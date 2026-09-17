@@ -19,6 +19,9 @@ export interface Order {
   customer_email: string;
   total_amount: string;
   currency: string;
+  /** When the buyer placed the order; for imports, the marketplace's time. */
+  ordered_at: string;
+  /** When the row was created in Anvero. */
   created_at: string;
   updated_at: string;
   marketplace_cancelled_at: string | null;

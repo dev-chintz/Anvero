@@ -133,6 +133,13 @@ refund.
 | `customer_email` | `buyer.email` |
 | `total_amount` | `summary.totalToPay.amount` |
 | `currency` | `summary.totalToPay.currency` |
+| `ordered_at` | earliest `lineItems[].boughtAt`, in UTC |
+
+A checkout form has no single purchase timestamp, so `ordered_at` is the
+earliest `boughtAt` among its line items. If none is readable the order is
+still imported, dated at import time, and a warning is logged — a wrong date
+can be corrected, a dropped order cannot. Unlike the status, `ordered_at` is
+refreshed on re-import, as the marketplace owns it.
 
 `total_amount` comes from `summary.totalToPay` because that is the value of
 the whole order. `lineItems[].price` is a **unit** price and excludes

@@ -26,6 +26,25 @@ All significant changes to the Anvero project.
   dashboard banner with a link, a row marker and filter in the order list, and
   a "do not ship" banner on the order page. The flag clears when the status is
   set to `CANCELLED`. Checked in the browser end to end, light and dark.
+- **Imported orders were dated at import time.** A backfill would have made
+  every order "this week" and date filters useless. Orders now have
+  `ordered_at`, filled from Allegro's earliest `lineItems[].boughtAt`, and
+  filters, sorting and `this_week` use it. Existing orders were backfilled
+  from `created_at`.
+
+### 🔧 Fixed — dates and times
+
+- **Every time in the interface was two hours early.** SQLite returns
+  timestamps without a zone and the API passed them on that way, so browsers
+  read UTC as local time. All API timestamps now go out marked as UTC (`Z`).
+  Checked against the system clock: a status change at 09:46:43 now shows as
+  09:46:43.
+- **Date filters used UTC days**, so in Poland a day ran from 02:00 to 02:00
+  and an order placed at 01:30 counted as the day before. Filters now use
+  calendar days in `BUSINESS_TIMEZONE`, default `Europe/Warsaw`.
+- The order list sorted only by timestamp, and many orders share one at the
+  database's resolution, so pages could repeat or skip rows. Ties are now
+  broken deterministically.
 
 ### ✨ Added
 

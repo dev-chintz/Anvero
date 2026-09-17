@@ -1,7 +1,8 @@
 from pathlib import Path
 from typing import Literal
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
-from pydantic import Field
+from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -25,6 +26,11 @@ class Settings(BaseSettings):
     # slowapi limit string format, e.g. "5/minute". See https://limits.readthedocs.io/en/stable/quickstart.html#rate-limit-string-notation
     rate_limit_login: str = Field(default="5/minute")
 
+    # IANA zone the business works in. Timestamps are stored in UTC, but a
+    # date filter such as "11 September" means that calendar day here, not
+    # in UTC, or orders placed just after local midnight fall on the wrong day.
+    business_timezone: str = Field(default="Europe/Warsaw")
+
     # Allegro integration. Reading orders needs a token issued in a user
     # context, so the refresh token comes from a one-time authorization
     # performed by hand; see docs/INTEGRATIONS.md. Empty values leave the
@@ -34,6 +40,16 @@ class Settings(BaseSettings):
     allegro_refresh_token: str = Field(default="")
     allegro_api_url: str = Field(default="https://api.allegro.pl")
     allegro_auth_url: str = Field(default="https://allegro.pl/auth/oauth")
+
+    @field_validator("business_timezone")
+    @classmethod
+    def _known_timezone(cls, value: str) -> str:
+        # fail at startup rather than on the first filtered request
+        try:
+            ZoneInfo(value)
+        except (ZoneInfoNotFoundError, ValueError) as exc:
+            raise ValueError(f"unknown timezone: {value!r}") from exc
+        return value
 
     model_config = SettingsConfigDict(
         env_file=BASE_DIR.parent / ".env",

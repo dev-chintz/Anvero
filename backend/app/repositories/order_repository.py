@@ -1,10 +1,12 @@
 import uuid
 from datetime import UTC, date, datetime, time, timedelta
 from decimal import Decimal
+from zoneinfo import ZoneInfo
 
 from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Query, Session
 
+from app.core.config import settings
 from app.models.order import Order, OrderSource, OrderStatus, OrderStatusHistory
 
 PENDING_STATUSES = (OrderStatus.NEW, OrderStatus.CONFIRMED)
@@ -44,6 +46,7 @@ class OrderRepository:
         total_amount: Decimal,
         currency: str,
         cancelled_on_marketplace: bool = False,
+        ordered_at: datetime | None = None,
     ) -> Order:
         """Refresh the fields a marketplace owns.
 
@@ -55,6 +58,8 @@ class OrderRepository:
         order.customer_email = customer_email
         order.total_amount = total_amount
         order.currency = currency
+        if ordered_at is not None:
+            order.ordered_at = self._to_db_datetime(ordered_at.astimezone(UTC))
         if cancelled_on_marketplace and order.marketplace_cancelled_at is None:
             order.marketplace_cancelled_at = self._to_db_datetime(datetime.now(UTC))
         self.db.commit()
@@ -104,6 +109,18 @@ class OrderRepository:
             return value.replace(tzinfo=None)
         return value
 
+    def _day_start(self, day: date) -> datetime:
+        """Local midnight of `day` in the business timezone, as stored UTC.
+
+        A filter for 11 September means that calendar day where the business
+        is. Using UTC midnight instead moved the boundary to 02:00 in Poland,
+        so an order placed at 01:30 counted as the previous day.
+        """
+        local_midnight = datetime.combine(
+            day, time.min, ZoneInfo(settings.business_timezone)
+        )
+        return self._to_db_datetime(local_midnight.astimezone(UTC))
+
     @staticmethod
     def _has_cancellation_warning():
         """Cancelled on the marketplace, but not (yet) cancelled in Anvero.
@@ -137,18 +154,12 @@ class OrderRepository:
         if status is not None:
             query = query.filter(Order.status == status)
         if date_from is not None:
-            query = query.filter(
-                Order.created_at
-                >= self._to_db_datetime(datetime.combine(date_from, time.min, UTC))
-            )
+            query = query.filter(Order.ordered_at >= self._day_start(date_from))
         if date_to is not None:
             # exclusive upper bound on the next day, so date_to itself is
             # fully included rather than cut off at midnight
             query = query.filter(
-                Order.created_at
-                < self._to_db_datetime(
-                    datetime.combine(date_to + timedelta(days=1), time.min, UTC)
-                )
+                Order.ordered_at < self._day_start(date_to + timedelta(days=1))
             )
         if search:
             # escape LIKE wildcards so a literal % typed by a user does not
@@ -183,7 +194,10 @@ class OrderRepository:
                 date_to=date_to,
                 cancellation_warning=cancellation_warning,
             )
-            .order_by(Order.created_at.desc())
+            # created_at and id break ties: many orders share an ordered_at at
+            # the database's timestamp resolution, and without a total order
+            # offset pagination could repeat or skip rows between pages
+            .order_by(Order.ordered_at.desc(), Order.created_at.desc(), Order.id)
             .offset(skip)
             .limit(limit)
             .all()
@@ -221,7 +235,7 @@ class OrderRepository:
         ).one()
 
         this_week = self.db.execute(
-            select(func.count(Order.id)).where(Order.created_at >= self._week_cutoff())
+            select(func.count(Order.id)).where(Order.ordered_at >= self._week_cutoff())
         ).scalar_one()
 
         pending = self.db.execute(

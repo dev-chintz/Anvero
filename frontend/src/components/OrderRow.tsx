@@ -20,7 +20,7 @@ interface OrderRowProps {
 }
 
 export function OrderRow({ order }: OrderRowProps) {
-  const formattedDate = new Date(order.created_at).toLocaleString();
+  const formattedDate = new Date(order.ordered_at).toLocaleString();
 
   return (
     <tr>

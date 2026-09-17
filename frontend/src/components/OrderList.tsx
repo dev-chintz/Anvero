@@ -50,7 +50,7 @@ export function OrderList({
                 <th scope="col">Status</th>
                 <th scope="col">Customer</th>
                 <th scope="col">Amount</th>
-                <th scope="col">Created</th>
+                <th scope="col">Ordered</th>
               </tr>
             </thead>
             <tbody>

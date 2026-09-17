@@ -166,6 +166,9 @@ def generate_sample_data(force: bool = False):
                 customer_email=order_data["customer_email"],
                 total_amount=order_data["total_amount"],
                 currency=order_data["currency"],
+                # spread over past days, or every sample would count as ordered
+                # today and date filters would have nothing to separate
+                ordered_at=now - timedelta(days=order_data["days_ago"]),
                 created_at=now - timedelta(days=order_data["days_ago"]),
                 updated_at=now - timedelta(days=order_data["days_ago"]),
             )

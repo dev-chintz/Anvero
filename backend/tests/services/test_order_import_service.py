@@ -1,3 +1,4 @@
+from datetime import UTC, datetime
 from decimal import Decimal
 
 import pytest
@@ -150,6 +151,32 @@ def test_an_order_first_seen_cancelled_needs_no_warning(session):
     assert stored.status is OrderStatus.CANCELLED
     assert stored.marketplace_cancelled_at is not None
     assert result.cancellation_warnings == 0
+
+
+def _placed(order, when):
+    return order.model_copy(update={"ordered_at": when})
+
+
+def test_an_imported_order_keeps_its_marketplace_purchase_time(session):
+    """Regression: imported orders were dated at import, so a backfill made
+    every order look placed today."""
+    placed = datetime(2025, 12, 24, 18, 30, tzinfo=UTC)
+
+    _service(session, [_placed(_order("ALG-1"), placed)]).import_orders()
+
+    stored = session.query(Order).one()
+    # SQLite hands timestamps back without a zone; they are stored as UTC
+    assert stored.ordered_at.replace(tzinfo=UTC) == placed
+
+
+def test_re_import_refreshes_the_purchase_time(session):
+    """The marketplace owns this field, like the email and the amount."""
+    _service(session, [_order("ALG-1")]).import_orders()
+    placed = datetime(2025, 12, 24, 18, 30, tzinfo=UTC)
+
+    _service(session, [_placed(_order("ALG-1"), placed)]).import_orders()
+
+    assert session.query(Order).one().ordered_at.replace(tzinfo=UTC) == placed
 
 
 def test_an_order_from_another_marketplace_is_not_a_duplicate(session):

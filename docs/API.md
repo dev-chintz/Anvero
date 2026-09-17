@@ -2,6 +2,11 @@
 
 API is versioned under the `/api/v1` prefix. Communication format: JSON; dates: ISO 8601 in UTC.
 
+Every timestamp in a response carries its zone, as `...Z`. A timestamp sent
+without a zone is taken as UTC. Calendar dates used as filters (`YYYY-MM-DD`)
+are days in the business timezone, `BUSINESS_TIMEZONE`, default
+`Europe/Warsaw` — not UTC days.
+
 ## Implemented
 
 | Method | Path | Meaning |
@@ -34,10 +39,17 @@ database, so `total` counts every match rather than the returned page.
 | `source` | `ALLEGRO` or `ERLI` |
 | `status` | `NEW`, `CONFIRMED`, `SHIPPED`, `DELIVERED`, `CANCELLED` |
 | `search` | substring of `external_id` or `customer_email`, case-insensitive |
-| `date_from`, `date_to` | `YYYY-MM-DD`, both inclusive, matched on `created_at` |
+| `date_from`, `date_to` | `YYYY-MM-DD`, both inclusive, calendar days in the business timezone, matched on `ordered_at` |
 | `cancellation_warning` | `true` returns only orders cancelled on their marketplace whose Anvero status is not `CANCELLED` |
 
-Response: `{"items": [...], "total": N, "skip": N, "limit": N}`.
+Response: `{"items": [...], "total": N, "skip": N, "limit": N}`, newest
+`ordered_at` first.
+
+Each order has two dates: `ordered_at`, when the buyer placed it, and
+`created_at`, when the row was created in Anvero. For an imported order they
+differ, and filters, sorting and the dashboard's `this_week` all use
+`ordered_at`. `POST /api/v1/orders` accepts an optional `ordered_at`; without
+it the order is dated now.
 
 Each order carries `marketplace_cancelled_at`: `null`, or when an import first
 found the order cancelled on its marketplace. An import never changes the

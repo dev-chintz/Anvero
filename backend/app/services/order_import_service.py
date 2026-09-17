@@ -70,6 +70,7 @@ class OrderImportService:
                 total_amount=data.total_amount,
                 currency=data.currency,
                 cancelled_on_marketplace=cancelled,
+                ordered_at=data.ordered_at,
             )
             updated += 1
 
@@ -98,7 +99,7 @@ class OrderImportService:
     @staticmethod
     def _to_order(data: OrderCreate) -> Order:
         cancelled = data.status is OrderStatus.CANCELLED
-        return Order(
+        order = Order(
             external_id=data.external_id,
             source=data.source,
             status=data.status,
@@ -109,3 +110,8 @@ class OrderImportService:
             # shows; the timestamp still records what the marketplace said
             marketplace_cancelled_at=datetime.now(UTC) if cancelled else None,
         )
+        # without a purchase time from the marketplace the database default
+        # (now) applies; an explicit None would insert NULL instead
+        if data.ordered_at is not None:
+            order.ordered_at = data.ordered_at
+        return order

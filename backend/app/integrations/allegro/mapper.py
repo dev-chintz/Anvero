@@ -4,6 +4,8 @@ Field names follow GET /order/checkout-forms. Nothing here leaks outside the
 allegro package: callers receive OrderCreate.
 """
 
+import logging
+from datetime import UTC, datetime
 from decimal import Decimal, InvalidOperation
 from typing import Any
 
@@ -38,8 +40,43 @@ _CHECKOUT_STATUS_TO_STATUS = {
 }
 
 
+logger = logging.getLogger(__name__)
+
+
 class OrderMappingError(IntegrationError):
     """A checkout form could not be expressed as an Anvero order."""
+
+
+def map_ordered_at(checkout_form: dict[str, Any]) -> datetime | None:
+    """When the buyer placed the order, in UTC.
+
+    A checkout form has no single purchase timestamp; each line item carries
+    `boughtAt`, and the earliest is when the order was placed. Returns None
+    when there is none to read, so the order is still imported and dated at
+    import time — a wrong date is recoverable, a lost order is not.
+    """
+    external_id = checkout_form.get("id")
+    moments = []
+    for item in checkout_form.get("lineItems") or []:
+        raw = (item or {}).get("boughtAt")
+        if not raw:
+            continue
+        try:
+            moment = datetime.fromisoformat(raw)
+        except (TypeError, ValueError):
+            logger.warning("Order %s has an unreadable boughtAt: %r", external_id, raw)
+            continue
+        if moment.tzinfo is None:
+            # Allegro sends "Z"; a zone-less value is read as UTC, not local
+            moment = moment.replace(tzinfo=UTC)
+        moments.append(moment.astimezone(UTC))
+
+    if not moments:
+        logger.warning(
+            "Order %s has no purchase time; it will be dated at import", external_id
+        )
+        return None
+    return min(moments)
 
 
 def map_status(checkout_form: dict[str, Any]) -> OrderStatus:
@@ -101,6 +138,7 @@ def map_checkout_form(checkout_form: dict[str, Any]) -> OrderCreate:
             customer_email=email,
             total_amount=total_amount,
             currency=currency,
+            ordered_at=map_ordered_at(checkout_form),
         )
     except ValidationError as exc:
         # the domain model's own rules (email format, two decimal places,

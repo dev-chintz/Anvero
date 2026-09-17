@@ -1,10 +1,10 @@
 import uuid
-from datetime import datetime
 from decimal import Decimal
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
 from app.models.order import OrderSource, OrderStatus
+from app.schemas.types import UtcDateTime
 
 
 class OrderBase(BaseModel):
@@ -17,6 +17,9 @@ class OrderBase(BaseModel):
 
 class OrderCreate(OrderBase):
     status: OrderStatus = OrderStatus.NEW
+    # when the buyer placed the order; omitted means "now". A value without a
+    # zone is taken as UTC.
+    ordered_at: UtcDateTime | None = None
 
 
 class OrderUpdate(BaseModel):
@@ -26,9 +29,10 @@ class OrderUpdate(BaseModel):
 class OrderRead(OrderBase):
     id: uuid.UUID
     status: OrderStatus
-    created_at: datetime
-    updated_at: datetime
-    marketplace_cancelled_at: datetime | None = None
+    ordered_at: UtcDateTime
+    created_at: UtcDateTime
+    updated_at: UtcDateTime
+    marketplace_cancelled_at: UtcDateTime | None = None
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -48,7 +52,7 @@ class OrderStatusHistoryRead(BaseModel):
     id: uuid.UUID
     from_status: OrderStatus
     to_status: OrderStatus
-    changed_at: datetime
+    changed_at: UtcDateTime
 
     model_config = ConfigDict(from_attributes=True)
 

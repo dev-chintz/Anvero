@@ -1,5 +1,24 @@
 # Decision Log
 
+## 2026-09-17 — Order Date Is Its Own Column; Days Are Business-Timezone Days
+
+**Decision:** Orders have `ordered_at` (when the buyer placed the order)
+separate from `created_at` (when the row was made), and filters, sorting and
+`this_week` use `ordered_at`. Timestamps are stored and returned in UTC,
+always with the zone attached. Calendar dates in filters are days in
+`BUSINESS_TIMEZONE`, default `Europe/Warsaw`.
+
+**Rationale:** Imported orders were dated at import, so a backfill of a year's
+orders made all of them "this week" and unfindable by date. Overwriting
+`created_at` with the purchase time would have lost when the row was created,
+which `DATABASE.md` already anticipated needing. Separately, SQLite returns
+timestamps without a zone and the API passed them on that way, so browsers
+read UTC as local time and every date in the interface was two hours early.
+And a filter for "11 September" used UTC midnight, putting the day boundary at
+02:00 in Poland. A business timezone setting, rather than the viewer's
+browser zone, keeps the answer to "orders from that day" the same for
+everyone.
+
 ## 2026-09-17 — Marketplace Cancellations Warn, They Do Not Change Status
 
 **Decision:** When an import finds an existing order cancelled on its

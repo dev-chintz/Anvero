@@ -1,6 +1,6 @@
-from datetime import datetime
-
 from pydantic import BaseModel, ConfigDict, EmailStr
+
+from app.schemas.types import UtcDateTime
 
 
 class UserBase(BaseModel):
@@ -14,7 +14,7 @@ class UserCreate(UserBase):
 class UserRead(UserBase):
     id: int
     is_active: bool
-    created_at: datetime
-    updated_at: datetime
+    created_at: UtcDateTime
+    updated_at: UtcDateTime
 
     model_config = ConfigDict(from_attributes=True)
