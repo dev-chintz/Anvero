@@ -1,5 +1,6 @@
 import { Link, useLocation } from 'react-router-dom';
 import { useState } from 'react';
+import { useAuth } from '../auth/AuthContext';
 import '../styles/Sidebar.css';
 
 interface SidebarProps {
@@ -10,6 +11,7 @@ interface SidebarProps {
 export const Sidebar: React.FC<SidebarProps> = ({ isDarkMode, onThemeToggle }) => {
   const [isOpen, setIsOpen] = useState(true);
   const location = useLocation();
+  const { user, logout } = useAuth();
 
   const isActive = (path: string) => location.pathname === path;
 
@@ -61,12 +63,27 @@ export const Sidebar: React.FC<SidebarProps> = ({ isDarkMode, onThemeToggle }) =
         </button>
         {isOpen && (
           <div className="user-profile">
-            <div className="user-avatar">👤</div>
+            <div className="user-avatar" aria-hidden="true">👤</div>
             <div className="user-info">
-              <p className="user-name">User</p>
-              <p className="user-role">Admin</p>
+              <p className="user-name" title={user?.email}>
+                {user?.email}
+              </p>
+              <button type="button" className="logout-button" onClick={logout}>
+                Log out
+              </button>
             </div>
           </div>
+        )}
+        {!isOpen && (
+          <button
+            type="button"
+            className="theme-toggle"
+            onClick={logout}
+            title="Log out"
+            aria-label="Log out"
+          >
+            ⎋
+          </button>
         )}
       </div>
     </aside>

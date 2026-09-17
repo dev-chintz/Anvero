@@ -73,10 +73,10 @@ cd frontend
 npm run dev
 ```
 
-The interface is at <http://localhost:5173> and the API at
-<http://localhost:8000>, with its generated documentation at
-<http://localhost:8000/docs>. The dev server proxies `/api` to the backend,
-so both must be running.
+The interface is at <http://localhost:5173>; log in with the account created
+above. The API is at <http://localhost:8000>, with its generated
+documentation at <http://localhost:8000/docs>. The dev server proxies `/api`
+to the backend, so both must be running.
 
 Tests:
 

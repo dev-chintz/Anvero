@@ -194,6 +194,9 @@ export function OrderDetail() {
                       {entry.to_status}
                     </span>
                   </span>
+                  {entry.changed_by && (
+                    <span className="status-history-author">by {entry.changed_by}</span>
+                  )}
                 </li>
               ))}
             </ol>

@@ -1,3 +1,4 @@
+import { SESSION_EXPIRED_EVENT, clearToken, getToken } from "../auth/session";
 import type {
   Order,
   OrderListResponse,
@@ -5,6 +6,7 @@ import type {
   OrderStatusChange,
 } from "../types/order";
 import type { OrderSource, OrderStatus } from "../types/order";
+import type { Token, User } from "../types/user";
 
 // Vite's dev server proxies "/api" to the FastAPI backend (see vite.config.ts),
 // so this relative base works in both dev and behind a same-origin reverse
@@ -21,18 +23,46 @@ export class ApiError extends Error {
   }
 }
 
-async function request<T>(path: string, init?: RequestInit): Promise<T> {
+interface RequestOptions extends Omit<RequestInit, "headers"> {
+  // a plain object only: a Headers instance spreads to nothing
+  headers?: Record<string, string>;
+  /**
+   * Send the login token, and treat a 401 as an expired session. Off only for
+   * the login call itself, where a 401 means a wrong password, not a session
+   * that has run out.
+   */
+  authenticated?: boolean;
+}
+
+async function request<T>(path: string, options: RequestOptions = {}): Promise<T> {
+  const { authenticated = true, headers, ...init } = options;
+  const token = authenticated ? getToken() : null;
+
   let response: Response;
   try {
     response = await fetch(`${API_BASE_URL}${path}`, {
-      headers: { "Content-Type": "application/json" },
       ...init,
+      // merged, not replaced: spreading `init` over a headers object used to
+      // drop Content-Type whenever a caller passed headers of its own
+      headers: {
+        "Content-Type": "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        ...headers,
+      },
     });
   } catch {
     throw new ApiError(0, "Network error: could not reach the server");
   }
 
   if (!response.ok) {
+    if (response.status === 401 && authenticated) {
+      clearToken();
+      window.dispatchEvent(new Event(SESSION_EXPIRED_EVENT));
+      throw new ApiError(401, "Your session has ended. Please log in again.");
+    }
+    if (response.status === 401) {
+      throw new ApiError(401, "Incorrect email or password");
+    }
     const message = await extractErrorMessage(response);
     throw new ApiError(response.status, message);
   }
@@ -42,8 +72,6 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 
 async function extractErrorMessage(response: Response): Promise<string> {
   switch (response.status) {
-    case 401:
-      return "Unauthorized: please sign in again";
     case 404:
       return "Not found";
     case 429:
@@ -86,6 +114,20 @@ function buildQuery(params: ListOrdersParams): string {
   const queryString = query.toString();
   return queryString ? `?${queryString}` : "";
 }
+
+export const authApi = {
+  login(email: string, password: string): Promise<Token> {
+    return request<Token>("/auth/login", {
+      method: "POST",
+      body: JSON.stringify({ email, password }),
+      authenticated: false,
+    });
+  },
+
+  me(): Promise<User> {
+    return request<User>("/users/me");
+  },
+};
 
 export const ordersApi = {
   list(params: ListOrdersParams = {}): Promise<OrderListResponse> {

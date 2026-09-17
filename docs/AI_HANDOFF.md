@@ -34,13 +34,17 @@ Repository: <https://github.com/dev-chintz/Anvero>
 # Completed
 
 - Project name, branding direction, folder structure, development workflow
-- FastAPI backend: orders, status changes, status history, statistics,
-  rate-limited login
-- React + TypeScript frontend: dashboard, order list with filtering and
-  search, order detail with status editing and history, dark mode
-- Alembic migrations for `users`, `orders` and `order_status_history`
+- FastAPI backend: orders, status changes, status history with author,
+  statistics
+- Login required for every orders endpoint and page; accounts created by
+  script, no sign-up; 8-hour tokens
+- React + TypeScript frontend: login page, dashboard, order list with
+  filtering and search, order detail with status editing and history, dark
+  mode
+- Alembic migrations for `users`, `orders`, `order_status_history` and
+  `integration_credentials`
 - Allegro adapter, order mapping and import script
-- 96 tests passing
+- 116 tests passing
 
 ---
 
@@ -64,9 +68,8 @@ scripts/    PowerShell helpers for the local environment
    history migration has a PostgreSQL-only branch that has never executed.
 2. Run the Allegro import against a real account, which needs a registered
    application and a one-time manual authorization (INTEGRATIONS.md).
-3. Add authentication to the orders endpoints. Several things are waiting on
-   it: the change author in the status history, and turning the import script
-   into an endpoint.
+3. Turn the Allegro import script into an endpoint with a button in the
+   interface; it was kept a script only until the API had a login.
 
 ---
 

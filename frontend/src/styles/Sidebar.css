@@ -215,6 +215,30 @@
   color: #999;
 }
 
+.logout-button {
+  background: none;
+  border: none;
+  padding: 0;
+  margin: 0;
+  font: inherit;
+  font-size: 0.8rem;
+  color: #6c757d;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.logout-button:hover {
+  color: #0d7377;
+}
+
+:root.dark .sidebar .logout-button {
+  color: #999;
+}
+
+:root.dark .sidebar .logout-button:hover {
+  color: #14b8a6;
+}
+
 /* Responsive */
 @media (max-width: 768px) {
   .sidebar.open {

@@ -1,19 +1,46 @@
 import { useState, useEffect } from 'react';
-import { BrowserRouter, Route, Routes } from 'react-router-dom';
+import { BrowserRouter, Outlet, Route, Routes } from 'react-router-dom';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { Sidebar } from './components/Sidebar';
 import { OrderDetail } from './components/OrderDetail';
 import { ToastContainer, ToastMessage } from './components/Toast';
+import { AuthProvider } from './auth/AuthContext';
+import { RequireAuth } from './auth/RequireAuth';
 import { Home } from './pages/Home';
 import { Dashboard } from './pages/Dashboard';
+import { LoginPage } from './pages/LoginPage';
 import { OrdersPage } from './pages/OrdersPage';
 import { Settings } from './pages/Settings';
 import './App.css';
 
+interface LayoutProps {
+  isDarkMode: boolean;
+  onThemeToggle: () => void;
+  toasts: ToastMessage[];
+  onToastClose: (id: string) => void;
+}
+
+function AppLayout({ isDarkMode, onThemeToggle, toasts, onToastClose }: LayoutProps) {
+  return (
+    // theming keys off the `dark` class App sets on <html>, so no
+    // per-component modifier is needed here
+    <div className="app">
+      <Sidebar isDarkMode={isDarkMode} onThemeToggle={onThemeToggle} />
+      <main className="app-content">
+        <Outlet />
+      </main>
+      <ToastContainer toasts={toasts} onClose={onToastClose} />
+    </div>
+  );
+}
+
 export default function App() {
   const [isDarkMode, setIsDarkMode] = useState(() => {
-    const saved = localStorage.getItem('theme-mode');
-    return saved ? saved === 'dark' : false;
+    try {
+      return localStorage.getItem('theme-mode') === 'dark';
+    } catch {
+      return false;
+    }
   });
 
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
@@ -27,7 +54,11 @@ export default function App() {
       root.classList.remove('dark');
       root.style.colorScheme = 'light';
     }
-    localStorage.setItem('theme-mode', isDarkMode ? 'dark' : 'light');
+    try {
+      localStorage.setItem('theme-mode', isDarkMode ? 'dark' : 'light');
+    } catch {
+      // the theme still applies for this visit
+    }
   }, [isDarkMode]);
 
   const toggleTheme = () => {
@@ -46,32 +77,40 @@ export default function App() {
   return (
     <ErrorBoundary>
       <BrowserRouter>
-        {/* theming keys off the `dark` class App sets on <html>, so no
-            per-component modifier is needed here */}
-        <div className="app">
-          <Sidebar isDarkMode={isDarkMode} onThemeToggle={toggleTheme} />
+        <AuthProvider>
+          <Routes>
+            <Route path="/login" element={<LoginPage />} />
 
-          <main className="app-content">
-            <Routes>
-              <Route path="/" element={<Home />} />
-              <Route path="/dashboard" element={<Dashboard />} />
-              <Route path="/orders" element={<OrdersPage addToast={addToast} />} />
-              <Route path="/orders/:id" element={<OrderDetail />} />
-              <Route path="/settings" element={<Settings />} />
+            {/* everything else requires a login */}
+            <Route element={<RequireAuth />}>
               <Route
-                path="*"
                 element={
-                  <div className="page-not-found">
-                    <h1>404</h1>
-                    <p>Page not found.</p>
-                  </div>
+                  <AppLayout
+                    isDarkMode={isDarkMode}
+                    onThemeToggle={toggleTheme}
+                    toasts={toasts}
+                    onToastClose={removeToast}
+                  />
                 }
-              />
-            </Routes>
-          </main>
-
-          <ToastContainer toasts={toasts} onClose={removeToast} />
-        </div>
+              >
+                <Route path="/" element={<Home />} />
+                <Route path="/dashboard" element={<Dashboard />} />
+                <Route path="/orders" element={<OrdersPage addToast={addToast} />} />
+                <Route path="/orders/:id" element={<OrderDetail />} />
+                <Route path="/settings" element={<Settings />} />
+                <Route
+                  path="*"
+                  element={
+                    <div className="page-not-found">
+                      <h1>404</h1>
+                      <p>Page not found.</p>
+                    </div>
+                  }
+                />
+              </Route>
+            </Route>
+          </Routes>
+        </AuthProvider>
       </BrowserRouter>
     </ErrorBoundary>
   );

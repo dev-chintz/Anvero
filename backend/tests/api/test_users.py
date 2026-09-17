@@ -194,6 +194,24 @@ def test_create_user_script_makes_an_account_that_can_log_in():
     assert _login(email, "a-perfectly-good-password").status_code == 200
 
 
+def test_create_user_script_ignores_the_bom_powershell_adds_to_piped_input():
+    """Regression: `"password" | python create_user.py` in Windows PowerShell
+    sends a UTF-8 byte-order mark first. It was stored as part of the password,
+    so the account could never be logged into."""
+    email = f"piped-{uuid.uuid4()}@example.com"
+
+    result = subprocess.run(
+        [sys.executable, "scripts/create_user.py", email],
+        input=b"\xef\xbb\xbfpowershell-piped-password\r\n",
+        capture_output=True,
+        cwd=BACKEND_DIR,
+        timeout=60,
+    )
+
+    assert result.returncode == 0, result.stderr
+    assert _login(email, "powershell-piped-password").status_code == 200
+
+
 def test_create_user_script_rejects_a_short_password_without_echoing_it():
     email = f"scripted-{uuid.uuid4()}@example.com"
 

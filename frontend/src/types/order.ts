@@ -52,6 +52,8 @@ export interface OrderStatusChange {
   from_status: OrderStatus;
   to_status: OrderStatus;
   changed_at: string;
+  /** Email of the user who made the change; null for older entries. */
+  changed_by: string | null;
 }
 
 export interface OrderStats {

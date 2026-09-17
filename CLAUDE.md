@@ -35,6 +35,7 @@ and use `npm.cmd` / `npx.cmd` there.
 .\.venv\Scripts\python.exe -m pytest
 .\.venv\Scripts\python.exe -m uvicorn app.main:app --reload
 .\.venv\Scripts\alembic.exe upgrade head
+.\.venv\Scripts\python.exe scripts\create_user.py you@example.com
 
 # frontend/
 npx.cmd tsc --noEmit
@@ -54,6 +55,11 @@ whichever side a commit touches.
   run.
 - The test suite uses its own database (`tests/conftest.py`). Never point it
   at the development database: the API tests drop all tables on teardown.
+- Windows PowerShell prefixes text piped into a program with a byte-order
+  mark. Anything reading piped stdin must decode with `utf-8-sig`.
+- Every page and orders endpoint needs a login. Do not type passwords into the
+  browser to verify UI work: check the login flow through the API, and leave
+  logging in on the page to the user.
 
 ## Before ending a session
 

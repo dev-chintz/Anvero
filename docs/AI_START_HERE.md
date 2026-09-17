@@ -31,10 +31,12 @@ Backend and frontend both run. See PROJECT_STATUS.md for the sprint-by-sprint
 breakdown; the short version:
 
 - FastAPI backend with orders, status changes, status history and statistics.
+- Login: every orders endpoint and every page requires it. Accounts are
+  created with `backend/scripts/create_user.py`; there is no sign-up.
 - React + TypeScript frontend: dashboard, order list with filtering, order
   detail with status editing and history.
 - Allegro adapter and import script.
-- 96 tests passing.
+- 116 tests passing.
 
 Two things are **not** done, and both need a person rather than more code:
 

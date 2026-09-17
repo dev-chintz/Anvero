@@ -1,5 +1,19 @@
 # Decision Log
 
+## 2026-09-17 — The Login Token Is Kept in localStorage
+
+**Decision:** The frontend stores the access token in `localStorage` and
+sends it as a bearer header. Any 401 from an authenticated request clears it
+and ends the session for the whole app.
+
+**Rationale:** It survives reloads and new tabs for the token's working-day
+lifetime, which is what makes one login per day true. The cost is that any
+script running on the page can read it. That is acceptable while the app
+renders no third-party scripts and no user-supplied HTML; if either changes,
+move to an httpOnly cookie, which also needs CSRF protection. Reacting to a
+401 globally, rather than per screen, means an expired token sends the user to
+the login page instead of leaving error messages across the app.
+
 ## 2026-09-17 — Accounts Are Created by Script; Logins Last a Working Day
 
 **Decision:** There is no registration endpoint; `scripts/create_user.py`

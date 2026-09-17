@@ -6,6 +6,29 @@ All significant changes to the Anvero project.
 
 ## 2026-09-17
 
+### ✨ Added — Login (MVP item 1)
+
+- Login page; every page and every `/api/v1/orders` endpoint requires a
+  login. Going to a page while logged out leads to the login page and back to
+  that page afterwards. An expired token ends the session everywhere at once.
+- The sidebar shows the logged-in user's email and a log-out button.
+- The status history records and shows who made each change.
+- `backend/scripts/create_user.py` creates accounts; there is no sign-up.
+- Tokens last `ACCESS_TOKEN_EXPIRE_MINUTES`, default 480 (a working day).
+
+### 🔧 Fixed — before the login could mean anything
+
+- The token signing key shipped as `CHANGE_ME`, with an empty default; anyone
+  knowing it can forge a login. The API now refuses to start without a
+  strong key, and `bootstrap.ps1` generates one per machine.
+- `POST /users/register` let anyone create an account. Removed.
+- A deactivated account was issued a token at login. It is now refused.
+- An unknown email was answered faster than a wrong password, revealing which
+  emails have accounts. Both now take comparable time and get the same answer.
+- `create_user.py` stored the byte-order mark Windows PowerShell adds to piped
+  text as part of the password, so such an account could never log in. Found
+  while verifying the login end to end.
+
 ### 🔧 Fixed — Allegro integration (found by code review)
 
 - **The import worked only once.** Allegro returns a new refresh token on

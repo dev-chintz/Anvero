@@ -27,8 +27,12 @@ from app.services.user_service import UserService
 
 def _read_password() -> str:
     if not sys.stdin.isatty():
-        # piped input, e.g. from a provisioning script: one line, no confirm
-        return sys.stdin.readline().rstrip("\r\n")
+        # piped input, e.g. from a provisioning script: one line, no confirm.
+        # Read as bytes and decode with utf-8-sig: Windows PowerShell prefixes
+        # piped text with a byte-order mark, which would otherwise become an
+        # invisible first character of the stored password, so that typing
+        # the same password at the login form could never match it.
+        return sys.stdin.buffer.readline().decode("utf-8-sig").rstrip("\r\n")
 
     password = getpass.getpass(f"Password (at least {MIN_PASSWORD_LENGTH} characters): ")
     if password != getpass.getpass("Repeat password: "):

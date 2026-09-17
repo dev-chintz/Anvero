@@ -54,6 +54,11 @@
   color: var(--color-muted);
 }
 
+.status-history-author {
+  color: var(--color-muted);
+  font-size: 0.85rem;
+}
+
 @media (max-width: 640px) {
   .status-history-item time {
     min-width: 100%;

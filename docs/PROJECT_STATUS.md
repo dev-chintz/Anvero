@@ -36,7 +36,7 @@ against a real account. Both need steps only the project owner can take.
 - Connection to local PostgreSQL database — NOT done, running on SQLite
 - Health endpoint and first order model — done
 - Minimal order list interface — done
-- Automated tests for core flows — done (96 passing across the suite)
+- Automated tests for core flows — done (116 passing across the suite)
 
 ---
 
@@ -65,6 +65,8 @@ one-time manual authorization; see `INTEGRATIONS.md`.
 
 - Project name and branding direction
 - Repository structure, local Git repository, GitHub remote
+- Login (MVP item 1): login page, every orders endpoint and page protected,
+  accounts created by script, 8-hour tokens, signing key enforced
 - Rate limiting on the login endpoint (5/minute per IP)
 - Order status editing via `PATCH /orders/{id}/status`
 - Dashboard aggregates computed in SQL (`GET /orders/stats`)
