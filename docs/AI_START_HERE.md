@@ -40,13 +40,14 @@ breakdown; the short version:
   import at a time.
 - 168 tests passing.
 
-Two things are **not** done, and both need a person rather than more code:
+- PostgreSQL 17 on the main machine, with the test suite running on it;
+  SQLite is the no-setup default elsewhere. Check `DATABASE_URL` in
+  `backend/.env` to see which one a machine uses.
 
-1. **PostgreSQL is not connected.** The application runs on SQLite. Migrations
-   and the timestamp handling have a PostgreSQL path that has never executed.
-2. **The Allegro import has never run against the live API.** It was built
-   from Allegro's published documentation and needs a registered application
-   plus a one-time manual authorization. See INTEGRATIONS.md.
+One thing is **not** done, and it needs a person rather than more code:
+**the Allegro import has never run against the live API.** It was built from
+Allegro's published documentation and needs a registered application plus a
+one-time manual authorization. See INTEGRATIONS.md.
 
 Treat anything in the "Not yet verified" section of PROJECT_STATUS.md as
 unproven, however finished the code looks.

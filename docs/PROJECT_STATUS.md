@@ -22,18 +22,21 @@ Foundation
 
 ## Current Sprint
 
-Sprint 3 and Sprint 4 are delivered, but **Sprint 2 is still not closed**:
-the application runs on SQLite, and the PostgreSQL connection Sprint 2 calls
-for has not been made. Two things therefore stand between the current state
-and a working system — connecting PostgreSQL, and running the Allegro import
-against a real account. Both need steps only the project owner can take.
+Sprints 2, 3 and 4 are delivered. PostgreSQL is connected on the main
+machine: the migrations and the full test suite run on it. One thing stands
+between the current state and a working system — running the Allegro import
+against a real account, which needs steps only the project owner can take.
+
+Other machines stay on SQLite until PostgreSQL is set up there
+(`DEVELOPMENT.md`, "Using PostgreSQL"); each machine has its own database.
 
 ---
 
 ## Sprint 2 — Working Skeleton
 
 - Backend framework selection and configuration — done (FastAPI)
-- Connection to local PostgreSQL database — NOT done, running on SQLite
+- Connection to local PostgreSQL database — done (PostgreSQL 17.10; SQLite
+  remains the no-setup default for a fresh clone)
 - Health endpoint and first order model — done
 - Minimal order list interface — done
 - Automated tests for core flows — done (168 passing across the suite)
@@ -92,23 +95,17 @@ tests replace the import service with a fake, so the endpoint's own logic
 (auth, the lock, the rate limit, error mapping) is verified, but nothing has
 exercised the path all the way through to Allegro.
 
-Everything below has only been exercised against SQLite:
-
-- Migrations use `Uuid`, `Numeric` and `Enum`; on PostgreSQL `Enum` creates
-  a real database type, which is the most likely place to break. The status
-  history migration branches on dialect to reference the existing
-  `order_status` type instead of recreating it; only the SQLite branch has
-  been run.
-- Date filters and the dashboard's "this week" figure compare timestamps.
-  SQLite stores naive datetimes and PostgreSQL stores aware ones; the
-  repository normalises per dialect, but only the SQLite path has been run.
+Verified on PostgreSQL 17.10 on the main machine: every migration up, all
+the way down and up again, with `alembic check` reporting no drift; the whole
+test suite, including the date filters, "this week" and the repository's
+per-dialect timestamp handling; sample data generation; the API starting and
+serving requests. Only PostgreSQL 17 has been tried.
 
 ---
 
 ## Next Milestone
 
-Connect PostgreSQL and re-run the migrations and the test suite against it,
-then run the Allegro import against a real account.
+Run the Allegro import against a real account.
 
 ---
 
@@ -121,7 +118,7 @@ Frontend:
 React + TypeScript, Vite
 
 Database:
-PostgreSQL (target), SQLite (current local)
+PostgreSQL 17, SQLite (no-setup default for a fresh clone)
 
 ---
 

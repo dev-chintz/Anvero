@@ -1,12 +1,6 @@
 from datetime import UTC, datetime
 from decimal import Decimal
 
-import pytest
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
-from sqlalchemy.pool import StaticPool
-
-from app.db.base import Base
 from app.models.order import (
     AddressType,
     Order,
@@ -28,6 +22,7 @@ from app.schemas.order import (
     Payment,
     PickupPoint,
 )
+from app.schemas.types import _as_utc
 from app.services.order_import_service import OrderImportService
 
 
@@ -54,21 +49,7 @@ def _order(external_id="ALG-1", email="buyer@example.com", amount="100.00"):
     )
 
 
-@pytest.fixture
-def session():
-    engine = create_engine(
-        "sqlite://",
-        connect_args={"check_same_thread": False},
-        poolclass=StaticPool,
-    )
-    Base.metadata.create_all(bind=engine)
-    factory = sessionmaker(bind=engine, autoflush=False, autocommit=False)
-    db = factory()
-    try:
-        yield db
-    finally:
-        db.close()
-        Base.metadata.drop_all(bind=engine)
+# `session` comes from tests/conftest.py
 
 
 def _service(session, orders):
@@ -183,8 +164,9 @@ def test_an_imported_order_keeps_its_marketplace_purchase_time(session):
     _service(session, [_placed(_order("ALG-1"), placed)]).import_orders()
 
     stored = session.query(Order).one()
-    # SQLite hands timestamps back without a zone; they are stored as UTC
-    assert stored.ordered_at.replace(tzinfo=UTC) == placed
+    # SQLite hands timestamps back without a zone and PostgreSQL in the
+    # connection's zone; normalised the way the API does before comparing
+    assert _as_utc(stored.ordered_at) == placed
 
 
 def test_re_import_refreshes_the_purchase_time(session):
@@ -194,7 +176,7 @@ def test_re_import_refreshes_the_purchase_time(session):
 
     _service(session, [_placed(_order("ALG-1"), placed)]).import_orders()
 
-    assert session.query(Order).one().ordered_at.replace(tzinfo=UTC) == placed
+    assert _as_utc(session.query(Order).one().ordered_at) == placed
 
 
 def _with_details(order, item_names=("Widget",), street="Prosta 1", pickup=False):

@@ -6,7 +6,7 @@
 - Product and architecture documentation,
 - Local environment setup and diagnostics.
 
-## Sprint 2 — Working Skeleton
+## Sprint 2 — Working Skeleton ✅
 
 - Backend framework selection and configuration,
 - Connection to local PostgreSQL database,
@@ -14,7 +14,7 @@
 - Minimal order list interface,
 - Automated tests for core flows.
 
-## Sprint 3 — Order Flow
+## Sprint 3 — Order Flow ✅
 
 - Order list and details,
 - Filtering by source, status, and date,

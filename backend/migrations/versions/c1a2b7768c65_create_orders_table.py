@@ -70,3 +70,10 @@ def downgrade() -> None:
     op.drop_index(op.f("ix_orders_external_id"), table_name="orders")
     op.drop_table("orders")
     # ### end Alembic commands ###
+
+    # On PostgreSQL the enums are database types that outlive the table.
+    # Left behind, they made a downgrade followed by an upgrade fail with
+    # "type order_source already exists". SQLite has no such types.
+    if op.get_bind().dialect.name == "postgresql":
+        sa.Enum(name="order_status").drop(op.get_bind(), checkfirst=True)
+        sa.Enum(name="order_source").drop(op.get_bind(), checkfirst=True)

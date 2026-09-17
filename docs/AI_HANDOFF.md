@@ -24,8 +24,8 @@ Version: 0.1.0
 
 Phase: Foundation
 
-Sprint: Sprint 3 and Sprint 4 delivered; Sprint 2 not closed, because
-PostgreSQL is still not connected.
+Sprint: Sprints 2, 3 and 4 delivered. PostgreSQL 17 is connected on the main
+machine; other machines use SQLite until it is set up there.
 
 Repository: <https://github.com/dev-chintz/Anvero>
 
@@ -65,9 +65,7 @@ scripts/    PowerShell helpers for the local environment
 
 # Current Priorities
 
-1. Connect PostgreSQL and re-run migrations and tests against it. The status
-   history migration has a PostgreSQL-only branch that has never executed.
-2. Run the Allegro import against a real account, which needs a registered
+1. Run the Allegro import against a real account, which needs a registered
    application and a one-time manual authorization (INTEGRATIONS.md). The
    import now runs from the interface as well as the script, but neither has
    ever called the live API.

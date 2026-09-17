@@ -1,31 +1,12 @@
 import httpx2
-import pytest
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
-from sqlalchemy.pool import StaticPool
 
-from app.db.base import Base
 from app.integrations.allegro.client import AllegroClient
 from app.repositories.integration_credential_repository import (
     IntegrationCredentialRepository,
 )
 from app.services.refresh_token_store import DatabaseRefreshTokenStore
 
-
-@pytest.fixture
-def session():
-    engine = create_engine(
-        "sqlite://",
-        connect_args={"check_same_thread": False},
-        poolclass=StaticPool,
-    )
-    Base.metadata.create_all(bind=engine)
-    db = sessionmaker(bind=engine, autoflush=False, autocommit=False)()
-    try:
-        yield db
-    finally:
-        db.close()
-        Base.metadata.drop_all(bind=engine)
+# `session` comes from tests/conftest.py
 
 
 def _store(session, configured="env-token"):

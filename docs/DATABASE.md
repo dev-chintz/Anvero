@@ -75,7 +75,10 @@ These columns hold buyers' personal data: names, addresses, phone numbers.
 It is never written to logs; mapping problems are logged by field name only.
 
 All timestamps are stored in UTC. SQLite keeps no zone and returns them naive;
-the API attaches UTC on the way out.
+PostgreSQL returns them in the connection's time zone (on a Polish Windows
+install, Europe/Warsaw). The API converts both to UTC on the way out, and code
+comparing a stored timestamp must normalise the same way rather than assume
+either form.
 
 `order_status_history` matches the target: `order_id`, `from_status`,
 `to_status`, `changed_at`, plus `changed_by_user_id`, a nullable reference to

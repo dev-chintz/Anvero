@@ -4,13 +4,13 @@ Anvero is a locally developed system supporting marketplace sales management. Th
 
 ## Status
 
-The backend and frontend both run against a local SQLite database: orders can
-be listed, filtered, searched, opened, and moved between statuses, with every
-transition recorded. An Allegro adapter and import script exist.
+The backend and frontend both run, against PostgreSQL or, with no setup, a
+local SQLite file: orders can be listed, filtered, searched, opened with their
+items, delivery and payment details, and moved between statuses, with every
+transition recorded. Orders can be imported from Allegro.
 
-Two things are still open, and both need a person rather than more code:
-PostgreSQL is not connected, and the Allegro import has never run against the
-live API. See [Project Status](docs/PROJECT_STATUS.md) for what that means in
+One thing is still open, and it needs a person rather than more code: the
+Allegro import has never run against the live API. See [Project Status](docs/PROJECT_STATUS.md) for what that means in
 practice and which behaviour is therefore unproven.
 
 ## Quick Start (Windows)
@@ -41,7 +41,8 @@ npm install
 ```
 
 `bootstrap` created `backend/.env` from `backend/.env.example`, which uses a
-local SQLite file, so no database server is needed. It also generated a random
+local SQLite file, so no database server is needed. To use PostgreSQL instead,
+see [Local Development](docs/DEVELOPMENT.md#using-postgresql). It also generated a random
 `SECRET_KEY`, without which the API refuses to start. Neither `.env` nor the
 database file is in Git; each machine builds its own.
 

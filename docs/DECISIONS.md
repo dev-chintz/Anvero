@@ -1,5 +1,24 @@
 # Decision Log
 
+## 2026-09-17 — PostgreSQL Is Connected; the Tests Follow TEST_DATABASE_URL
+
+**Decision:** The main machine runs on PostgreSQL 17, in a database `anvero`
+owned by a role `anvero` rather than by the `postgres` superuser. The test
+suite runs on PostgreSQL whenever `TEST_DATABASE_URL` is set, in a separate
+database `anvero_test`, and on SQLite otherwise. `.env.example` still defaults
+to SQLite.
+
+**Rationale:** Only running the code on PostgreSQL could show whether it
+works there, and it found a bug SQLite never could: rolling back the orders
+migration left its enum types behind, so migrating up again failed. Tests
+that ran only on SQLite would let the next such difference through, so on a
+machine with PostgreSQL they run there, and so do the service tests that used
+to create their own in-memory SQLite. The test database is separate, and the
+suite refuses to use the application's, because the tests drop every table.
+A dedicated role limits what a leaked `.env` exposes to Anvero's databases.
+SQLite stays the default so a fresh clone still runs with no database server,
+per the 2026-09-17 SQLite entry below.
+
 ## 2026-09-17 — Frontend Moves to Vite 8 and React Router 7
 
 **Decision:** The four `npm audit` findings were fixed by upgrading to the

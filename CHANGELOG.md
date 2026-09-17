@@ -4,6 +4,38 @@ All significant changes to the Anvero project.
 
 ---
 
+## 2026-09-17 (late night)
+
+### ✨ PostgreSQL connected (closes Sprint 2)
+
+- The application runs on PostgreSQL 17.10 on the main machine, in its own
+  `anvero` role and database. Setup, including recovering a forgotten
+  `postgres` password, is in `docs/DEVELOPMENT.md`, "Using PostgreSQL".
+- `TEST_DATABASE_URL` runs the test suite on PostgreSQL, in a separate
+  database; the suite refuses to start if it names the application's
+  database. Without it the suite still uses SQLite.
+- The service tests now use a shared `session` fixture on the suite's
+  database, instead of each creating an in-memory SQLite that bypassed
+  PostgreSQL even when the rest of the suite ran there.
+
+### 🐛 Fixed
+
+- Rolling back the orders table migration left the PostgreSQL enum types
+  `order_source` and `order_status` behind, so migrating up again failed with
+  "type already exists". The downgrade now drops them.
+- Two import tests compared timestamps by forcing UTC onto them, which only
+  works for SQLite's zone-less values; PostgreSQL returns them in the
+  connection's zone. The application code was already correct.
+
+### ✅ Verification
+
+On PostgreSQL 17.10: all 9 migrations up, down to base and up again twice,
+`alembic check` reports no drift; 168 tests pass; sample data generates with
+item totals matching order totals; the API starts, answers health, refuses
+anonymous requests and runs the login query. The same migration cycle and the
+168 tests also pass on SQLite. Logging in to the interface on PostgreSQL was
+left to the project owner.
+
 ## 2026-09-17 (night)
 
 ### 🔒 Security — frontend dependencies
