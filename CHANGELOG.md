@@ -6,6 +6,16 @@ All significant changes to the Anvero project.
 
 ## 2026-09-17
 
+### ✨ Added
+
+- Pre-commit hook in `.githooks/`: backend tests for commits touching
+  `backend/`, frontend type-check for commits touching `frontend/`, nothing for
+  the rest. Enabled per clone by `bootstrap.ps1`. Checked against a valid and
+  an invalid change on each side, and against a commit touching neither.
+- `CLAUDE.md`, read automatically by Claude Code at the start of every session
+  on every machine. It points at `docs/` rather than repeating it, and records
+  the Windows environment traps met so far.
+
 ### 🔧 Fixed
 
 A fresh clone could not be brought up by following the documentation. Found
