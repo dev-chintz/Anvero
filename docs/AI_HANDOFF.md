@@ -65,7 +65,9 @@ scripts/    PowerShell helpers for the local environment
 
 # Current Priorities
 
-1. Run the Allegro import against a real account, which needs a registered
+1. See "Next Milestone" in PROJECT_STATUS.md for the agreed order: SQL
+   logging fix, then the Allegro Sandbox, then production.
+2. Run the Allegro import against a real account, which needs a registered
    application and a one-time manual authorization (INTEGRATIONS.md). The
    import now runs from the interface as well as the script, but neither has
    ever called the live API.

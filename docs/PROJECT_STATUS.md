@@ -106,7 +106,39 @@ details and changing its status. Only PostgreSQL 17 has been tried.
 
 ## Next Milestone
 
-Run the Allegro import against a real account.
+Run the Allegro import against a real account, starting in the Allegro
+Sandbox. Agreed plan, in order:
+
+1. **Fix SQL logging first.** With `DEBUG=true` the engine echoes statements
+   with their parameters, so buyer personal data and Allegro refresh tokens
+   reach the console (`app/db/session.py`, `echo=settings.debug`). This must
+   be fixed before any real Allegro data or token passes through.
+2. **Allegro Sandbox.** A test copy of Allegro, fully separate from
+   production (own accounts, no real buyers; data not backed up, offers wiped
+   quarterly; the SMS code is always `123456`). The project owner creates two
+   sandbox accounts at <https://allegro.pl.allegrosandbox.pl>: a seller, which
+   Anvero connects to, and a buyer, on a different email, to purchase the
+   seller's test offers and so create orders. Then, together: register the
+   application at <https://apps.developer.allegro.pl.allegrosandbox.pl>,
+   point `ALLEGRO_API_URL` at `https://api.allegro.pl.allegrosandbox.pl` and
+   `ALLEGRO_AUTH_URL` at `https://allegro.pl.allegrosandbox.pl/auth/oauth`,
+   add a `scripts/authorize_allegro.py` helper for the one-time device flow
+   authorization, import, and check the real responses against the mapping,
+   the stored details and the token rotation across repeated imports. How
+   payment works in the sandbox is not documented; find out on the first
+   purchase.
+3. **Production Allegro** with the owner's seller account, same steps.
+4. **What real data will likely demand:** importing every page rather than
+   one (the button fetches up to 100 orders), incremental sync from Allegro's
+   order event journal, and a scheduled import.
+5. **Owner decisions after using it on real orders:** status transition
+   rules, and which of ERLI, shipping or invoicing comes after the MVP
+   (`ROADMAP.md`).
+
+Smaller items to fit in along the way: frontend tests (there are none, only
+the type-check), tests on GitHub Actions for every push (today only the local
+pre-commit hook guards, and a new clone can miss enabling it), and 22
+pre-existing backend lint findings.
 
 ---
 
