@@ -4,15 +4,26 @@ All significant changes to the Anvero project.
 
 ---
 
-## 2026-09-17 (sandbox authorized)
+## 2026-09-17 (first real import)
 
-### ✅ First real call to Allegro
+### ✅ An order imported from the real Allegro API
 
 - The Allegro Sandbox application `anvero` is registered with its
   User-Agent, and `scripts/authorize_allegro.py` authorized the sandbox
   seller account: Allegro accepted the credentials and the header, issued a
   device code, and the refresh token was written to `backend/.env` without
-  being shown. No orders have been imported yet.
+  being shown.
+- `scripts/import_allegro.py` then imported a real order the sandbox buyer
+  had placed: created on the first run, updated on the second, with no
+  duplicate and the stored refresh token replaced in between — the rotation
+  working against the real API. The mapping matched the payload: status,
+  buyer, a total equal to the line item plus delivery, both timestamps, an
+  online PayU payment, and the delivery, pickup point and invoice addresses.
+- The sample orders were deleted from the development database first, so the
+  imported one is the only order there.
+- Still untouched by a real call: a cancelled order, several line items,
+  more than one page, the import endpoint and button, and production
+  Allegro. See `PROJECT_STATUS.md`.
 
 ## 2026-09-17 (Allegro User-Agent)
 

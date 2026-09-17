@@ -69,10 +69,11 @@ scripts/    PowerShell helpers for the local environment
    logging fix is done; next is the Allegro Sandbox, then production.
    `scripts/authorize_allegro.py` for the one-time authorization exists; the
    sandbox accounts and application are the owner's to create.
-2. Run the Allegro import against a real account, which needs a registered
-   application and a one-time manual authorization (INTEGRATIONS.md). The
-   import now runs from the interface as well as the script, but neither has
-   ever called the live API.
+2. The sandbox import is done: authorized and a real order imported twice on
+   2026-09-17, through the script, on the SQLite machine. Production Allegro
+   needs its own application, User-Agent and authorization (INTEGRATIONS.md).
+   The import also runs from the interface, but that path has never called
+   Allegro.
 
 ---
 

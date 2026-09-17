@@ -23,9 +23,9 @@ Foundation
 ## Current Sprint
 
 Sprints 2, 3 and 4 are delivered. PostgreSQL is connected on the main
-machine: the migrations and the full test suite run on it. One thing stands
-between the current state and a working system — running the Allegro import
-against a real account, which needs steps only the project owner can take.
+machine: the migrations and the full test suite run on it. The Allegro
+import has now run against the real API in the Allegro Sandbox, so what
+remains is the same on production Allegro, with the owner's seller account.
 
 Other machines stay on SQLite until PostgreSQL is set up there
 (`DEVELOPMENT.md`, "Using PostgreSQL"); each machine has its own database.
@@ -62,8 +62,9 @@ Other machines stay on SQLite until PostgreSQL is set up there
   button, both using the same wiring as the script)
 - Error handling and logging — done
 
-Never run against the live Allegro API. Needs a registered application and a
-one-time manual authorization; see `INTEGRATIONS.md`.
+Run against the Allegro Sandbox on 2026-09-17: a real order was imported and
+re-imported. Production needs its own application and authorization; see
+`INTEGRATIONS.md`.
 
 ---
 
@@ -87,21 +88,23 @@ one-time manual authorization; see `INTEGRATIONS.md`.
 
 ## Not yet verified
 
-The Allegro client and mapper have never touched the live API. They follow
-the published contract and are covered by tests against recorded payload
-shapes, which catches mapping mistakes but not a contract that differs from
-its documentation. The same is true of the import endpoint and button: their
-tests replace the import service with a fake, so the endpoint's own logic
-(auth, the lock, the rate limit, error mapping) is verified, but nothing has
-exercised the path all the way through to Allegro.
+Verified against the Allegro Sandbox on 2026-09-17, on the SQLite machine:
+the authorization script completed a real device flow authorization of the
+sandbox seller account, and `scripts/import_allegro.py` imported a real
+sandbox order twice — created once, updated on the second run, with the
+stored refresh token replaced between the runs. The mapping matched the real
+payload: status `NEW`, buyer login and email, total `45.49 PLN` equal to the
+line item plus delivery, the ordered and paid timestamps, an `ONLINE`
+payment through PayU, the delivery, pickup point and invoice addresses, and
+an invoice with a tax id. So the client, the token rotation, the orders
+endpoint and the mapper all work against the real API.
 
-Verified against the Allegro Sandbox on 2026-09-17: the authorization
-script completed a real device flow authorization of the owner's sandbox
-seller account. That confirms the client id and secret, the User-Agent
-header, the device endpoint, polling the token endpoint with a form body,
-and saving the refresh token to `.env`. Nothing has been imported yet, so
-the token refresh with rotation, the orders endpoint and the mapping remain
-unverified.
+What the sandbox did **not** cover: the import endpoint and the button
+(only the script has run against Allegro; their tests still replace the
+import service with a fake), a cancelled order and the flag it sets, an
+order with several line items or without a pickup point, more than one page
+of orders, and production Allegro, which has its own application,
+credentials and real buyers.
 
 Verified on PostgreSQL 17.10 on the main machine: every migration up, all
 the way down and up again, with `alembic check` reporting no drift; the whole
@@ -120,24 +123,15 @@ Sandbox. Agreed plan, in order:
 1. ~~**Fix SQL logging first.**~~ Done 2026-09-17: SQL echo no longer
    follows `DEBUG` and never shows values, and the access log drops query
    strings. See `DECISIONS.md`.
-2. **Allegro Sandbox.** A test copy of Allegro, fully separate from
-   production (own accounts, no real buyers; data not backed up, offers wiped
-   quarterly; the SMS code is always `123456`). The project owner creates two
-   sandbox accounts at <https://allegro.pl.allegrosandbox.pl>: a seller, which
-   Anvero connects to, and a buyer, on a different email, to purchase the
-   seller's test offers and so create orders. Then, together: register the
-   application at <https://apps.developer.allegro.pl.allegrosandbox.pl>,
-   generate its User-Agent there into `ALLEGRO_USER_AGENT` (Allegro blocks
-   the key over calls without one; nothing is sent until it is set),
-   point `ALLEGRO_API_URL` at `https://api.allegro.pl.allegrosandbox.pl` and
-   `ALLEGRO_AUTH_URL` at `https://allegro.pl.allegrosandbox.pl/auth/oauth`,
-   authorize with `scripts/authorize_allegro.py` (done 2026-09-17: the
-   sandbox application is registered and authorized on a machine running
-   SQLite, not the main PostgreSQL one; import from that machine, since the
-   token chain is per machine, see `INTEGRATIONS.md`), import, and check the real responses against the mapping,
-   the stored details and the token rotation across repeated imports. How
-   payment works in the sandbox is not documented; find out on the first
-   purchase.
+2. ~~**Allegro Sandbox.**~~ Done 2026-09-17. The sandbox application is
+   registered with its own User-Agent and authorized against the sandbox
+   seller account, and a real order the sandbox buyer placed was imported and
+   re-imported; "Not yet verified" above says what that covered. Payment
+   needed no special handling: the order arrived paid, through PayU. The
+   authorization lives on the SQLite machine, and the token chain is per
+   machine, so imports run from there (`INTEGRATIONS.md`). Left from this
+   step, when there is a reason: a cancelled order, an order with several
+   line items, and importing through the button rather than the script.
 3. **Production Allegro** with the owner's seller account, same steps.
 4. **What real data will likely demand:** importing every page rather than
    one (the button fetches up to 100 orders), incremental sync from Allegro's

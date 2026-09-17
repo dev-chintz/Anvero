@@ -44,10 +44,10 @@ breakdown; the short version:
   SQLite is the no-setup default elsewhere. Check `DATABASE_URL` in
   `backend/.env` to see which one a machine uses.
 
-One thing is **not** done, and it needs a person rather than more code:
-**the Allegro import has never run against the live API.** It was built from
-Allegro's published documentation and needs a registered application plus a
-one-time manual authorization. See INTEGRATIONS.md.
+The Allegro import **has** now run against the real API, in the Allegro
+Sandbox: one order imported and re-imported on 2026-09-17. Production
+Allegro is the next step and needs its own application, its own one-time
+authorization and the owner's seller account. See INTEGRATIONS.md.
 
 Treat anything in the "Not yet verified" section of PROJECT_STATUS.md as
 unproven, however finished the code looks.
