@@ -4,6 +4,26 @@ All significant changes to the Anvero project.
 
 ---
 
+## 2026-09-17 (Allegro authorization)
+
+### ✨ Allegro authorization script
+
+- `backend/scripts/authorize_allegro.py` runs the one-time OAuth device flow:
+  it prints the link to confirm on Allegro, polls until it is confirmed, and
+  writes the refresh token to `ALLEGRO_REFRESH_TOKEN` in `backend/.env`
+  without printing it. It follows `ALLEGRO_AUTH_URL`, so it works for the
+  sandbox and production alike.
+- `.env.example` and `INTEGRATIONS.md` now describe the sandbox URLs, the
+  script, and that sandbox orders must not be carried into production.
+
+### ✅ Verification
+
+192 tests pass (17 new), covering waiting, `slow_down`, a declined or
+expired authorization, refused credentials and an untouched `.env` on
+failure. Run against the real sandbox with a made-up client id, the script
+reached it and reported the `401 invalid_client` as refused credentials. A
+real authorization still needs the registered sandbox application.
+
 ## 2026-09-17 (last)
 
 ### 🔒 Security — no personal data or tokens in logs

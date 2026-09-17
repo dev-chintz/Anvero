@@ -45,7 +45,7 @@ Repository: <https://github.com/dev-chintz/Anvero>
   `order_addresses`, `order_status_history` and `integration_credentials`
 - Allegro adapter, order mapping, the import script, an import endpoint and
   a button, one import at a time and rate limited
-- 175 tests passing
+- 192 tests passing
 
 ---
 
@@ -67,6 +67,8 @@ scripts/    PowerShell helpers for the local environment
 
 1. See "Next Milestone" in PROJECT_STATUS.md for the agreed order: the SQL
    logging fix is done; next is the Allegro Sandbox, then production.
+   `scripts/authorize_allegro.py` for the one-time authorization exists; the
+   sandbox accounts and application are the owner's to create.
 2. Run the Allegro import against a real account, which needs a registered
    application and a one-time manual authorization (INTEGRATIONS.md). The
    import now runs from the interface as well as the script, but neither has

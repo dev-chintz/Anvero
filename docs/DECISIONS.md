@@ -1,5 +1,24 @@
 # Decision Log
 
+## 2026-09-17 — Allegro Is Authorized by Device Flow, Token Written to `.env`
+
+**Decision:** The one-time Allegro authorization is a script,
+`scripts/authorize_allegro.py`, using the OAuth device flow. It writes the
+refresh token straight into `ALLEGRO_REFRESH_TOKEN` in `backend/.env` and
+never prints it. The flow itself lives in
+`app/integrations/allegro/authorization.py`, next to the client.
+
+**Rationale:** The device flow needs no redirect URI and no callback server,
+only a link the seller opens and confirms, which fits a local application
+with no public address. Printing the token and asking for it to be pasted
+would leave it in the terminal's scrollback and invite pasting it into the
+wrong place, such as a chat; writing it where the import already reads it
+avoids both. `.env` stays the seed rather than the database, so the existing
+chain logic applies unchanged: a new token in `.env` replaces the stored
+chain ("Rotated Allegro Refresh Tokens Live in the Database"). Keeping the
+HTTP flow in the integrations package lets it be tested with the same mock
+transport as the client, and leaves the script to printing and file writing.
+
 ## 2026-09-17 — Logs Carry No Values: SQL Parameters Hidden, Query Strings Dropped
 
 **Decision:** The database engine always runs with `hide_parameters=True`,

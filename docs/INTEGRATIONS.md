@@ -11,41 +11,59 @@ authorization produces is what the import then runs on.
 
 ### One-time setup
 
-1. Register an application at <https://apps.developer.allegro.pl/>.
+1. Register an application at <https://apps.developer.allegro.pl/>
+   (sandbox: <https://apps.developer.allegro.pl.allegrosandbox.pl>) as one
+   that runs without a browser callback, so it can use the device flow.
    Grant it the `allegro:api:orders:read` scope — without it the API answers
    `403` and the import stops with a message saying so.
 
-2. Obtain a refresh token. Either flow works:
-
-   **Device flow** — no redirect URI needed, so it suits a machine that has
-   no browser callback:
-
-   - `POST https://allegro.pl/auth/oauth/device`, Basic auth with
-     `client_id:client_secret`, form parameter `client_id={client_id}`.
-   - Open the returned `verification_uri_complete` and confirm.
-   - `POST https://allegro.pl/auth/oauth/token` with
-     `grant_type=urn:ietf:params:oauth:grant-type:device_code` and
-     `device_code={device_code}`. Poll until it answers `200`.
-
-   **Authorization code flow** — for an application registered with browser
-   access:
-
-   - Send the user to
-     `https://allegro.pl/auth/oauth/authorize?response_type=code&client_id={client_id}&redirect_uri={redirect_uri}`.
-   - Exchange the returned `code` at
-     `POST https://allegro.pl/auth/oauth/token` with
-     `grant_type=authorization_code`, `code` and `redirect_uri`, Basic auth.
-
-3. Put the results in `backend/.env`:
+2. Put its id and secret in `backend/.env`, not in a chat or a commit:
 
    ```
    ALLEGRO_CLIENT_ID=...
    ALLEGRO_CLIENT_SECRET=...
-   ALLEGRO_REFRESH_TOKEN=...
    ```
 
-   `.env` is git-ignored. Leaving any of the three empty keeps the
+   For the sandbox, also point both URLs at it. An application exists in
+   only one of the two environments, and the other refuses its id:
+
+   ```
+   ALLEGRO_API_URL=https://api.allegro.pl.allegrosandbox.pl
+   ALLEGRO_AUTH_URL=https://allegro.pl.allegrosandbox.pl/auth/oauth
+   ```
+
+3. Obtain the refresh token, from `backend/`:
+
+   ```
+   python scripts/authorize_allegro.py
+   ```
+
+   It prints a link. Open it **logged in as the seller** whose orders Anvero
+   should import — in the sandbox, not the buyer account — and confirm. The
+   script polls until then and writes the token to `ALLEGRO_REFRESH_TOKEN` in
+   `backend/.env`; it does not print it, so the token stays out of the
+   terminal's scrollback. Restart the backend afterwards: settings are read
+   when it starts.
+
+   Exit codes: `0` saved, `2` id or secret missing, `3` credentials refused
+   or authorization declined, `1` not confirmed in time or other failure,
+   `130` stopped with Ctrl+C. Nothing is written unless it succeeds.
+
+   The script runs the device flow (`app/integrations/allegro/authorization.py`):
+   `POST {ALLEGRO_AUTH_URL}/device` with Basic auth and `client_id`, then
+   `POST {ALLEGRO_AUTH_URL}/token` with
+   `grant_type=urn:ietf:params:oauth:grant-type:device_code` and the
+   `device_code`, every `interval` seconds, until it answers `200`.
+
+   `.env` is git-ignored. Leaving any of the three `ALLEGRO_CLIENT_ID`,
+   `ALLEGRO_CLIENT_SECRET` and `ALLEGRO_REFRESH_TOKEN` empty keeps the
    integration switched off rather than failing at import time.
+
+**Moving from the sandbox to production** means a separate application,
+separate credentials and running the script again. The new token replaces
+the stored chain on its own (see below), but the orders imported from the
+sandbox stay in the database under source `ALLEGRO`, indistinguishable from
+real ones. Start production on a clean database, or delete them first.
 
 ### Running an import
 
@@ -93,7 +111,8 @@ The import handles this by storing each rotated token in the database table
 `integration_credentials` the moment it is issued, and reading it back on the
 next run. `ALLEGRO_REFRESH_TOKEN` only seeds that chain.
 
-After authorizing again, put the new token in `.env` as before. The stored
+After authorizing again (`scripts/authorize_allegro.py` puts the new token
+in `.env`), restart the backend. The stored
 chain remembers a fingerprint of the token it started from, so a different
 token in `.env` is recognised as a fresh authorization and replaces the stale
 chain automatically.
@@ -220,4 +239,7 @@ one malformed order does not cost the rest of the page.
   script with increasing `--offset`.
 - **Nothing here has been exercised against the live API.** The client and
   mapper were built from Allegro's published documentation and are covered by
-  tests against recorded payload shapes, not real responses.
+  tests against recorded payload shapes, not real responses. The
+  authorization script has only been seen to reach the sandbox and be refused
+  a made-up client id (`401 invalid_client`); a real authorization has not
+  run.

@@ -39,7 +39,7 @@ Other machines stay on SQLite until PostgreSQL is set up there
   remains the no-setup default for a fresh clone)
 - Health endpoint and first order model — done
 - Minimal order list interface — done
-- Automated tests for core flows — done (175 passing across the suite)
+- Automated tests for core flows — done (192 passing across the suite)
 
 ---
 
@@ -93,7 +93,10 @@ shapes, which catches mapping mistakes but not a contract that differs from
 its documentation. The same is true of the import endpoint and button: their
 tests replace the import service with a fake, so the endpoint's own logic
 (auth, the lock, the rate limit, error mapping) is verified, but nothing has
-exercised the path all the way through to Allegro.
+exercised the path all the way through to Allegro. The authorization script
+(`scripts/authorize_allegro.py`) is tested against Allegro's documented
+device flow responses; against the real sandbox it has only been refused a
+made-up client id.
 
 Verified on PostgreSQL 17.10 on the main machine: every migration up, all
 the way down and up again, with `alembic check` reporting no drift; the whole
@@ -121,8 +124,9 @@ Sandbox. Agreed plan, in order:
    application at <https://apps.developer.allegro.pl.allegrosandbox.pl>,
    point `ALLEGRO_API_URL` at `https://api.allegro.pl.allegrosandbox.pl` and
    `ALLEGRO_AUTH_URL` at `https://allegro.pl.allegrosandbox.pl/auth/oauth`,
-   add a `scripts/authorize_allegro.py` helper for the one-time device flow
-   authorization, import, and check the real responses against the mapping,
+   authorize with `scripts/authorize_allegro.py` (added 2026-09-17; it has
+   reached the sandbox but not yet completed a real authorization), import,
+   and check the real responses against the mapping,
    the stored details and the token rotation across repeated imports. How
    payment works in the sandbox is not documented; find out on the first
    purchase.
