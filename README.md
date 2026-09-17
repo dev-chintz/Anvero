@@ -32,6 +32,18 @@ Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
 
 ## Running the application
 
+Install the frontend dependencies once per machine — `node_modules` is not in
+Git:
+
+```powershell
+cd frontend
+npm install
+```
+
+`bootstrap` created `backend/.env` from `backend/.env.example`, which uses a
+local SQLite file, so no database server is needed. Neither `.env` nor the
+database file is in Git; each machine builds its own.
+
 Create the database schema and, optionally, some orders to look at:
 
 ```powershell

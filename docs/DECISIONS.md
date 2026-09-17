@@ -1,5 +1,18 @@
 # Decision Log
 
+## 2026-09-17 — SQLite Is the Default Local Database
+
+**Decision:** `backend/.env.example` sets `DATABASE_URL` to a local SQLite
+file. PostgreSQL remains the target and stays in the file as a commented
+alternative.
+
+**Rationale:** `.env` is git-ignored, so on a new machine it is created from
+`.env.example`. Pointing that at PostgreSQL meant a fresh clone failed until a
+database server was installed and configured, and even then it would have run
+a PostgreSQL migration path that has never been exercised. SQLite lets the
+project run from a clean clone with no setup. This does not settle the
+production database; connecting PostgreSQL is still the open Sprint 2 item.
+
 ## 2026-09-16 — An Import Never Overwrites the Anvero Status
 
 **Decision:** When an import meets an order Anvero already has, it refreshes

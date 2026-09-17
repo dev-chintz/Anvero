@@ -4,6 +4,45 @@ All significant changes to the Anvero project.
 
 ---
 
+## 2026-09-17
+
+### 🔧 Fixed
+
+A fresh clone could not be brought up by following the documentation. Found
+by cloning the repository into an empty directory and following the README
+step by step, which is what continuing on another machine amounts to.
+
+- `bootstrap.ps1` used the first `python` on PATH. On a machine with Inkscape
+  installed that is Inkscape's bundled MinGW Python, whose venvs have a
+  `bin\` directory instead of `Scripts\` and no working pip, so bootstrap
+  failed. It now tries the `py` launcher first and checks each candidate is
+  3.11+ and lays a venv out the Windows way. A broken venv left by an earlier
+  run is removed and rebuilt rather than blocking every later run.
+- `bootstrap.ps1` printed "Dependencies installed" even when `pip install`
+  failed. It now stops on a failed pip upgrade or install.
+- `doctor.ps1` reported a venv as healthy if the folder existed, so the broken
+  one above passed. It now checks for the interpreter inside it.
+- `backend/requirements.txt` was stored in Git as UTF-16, so Git treated it as
+  binary — no readable diffs — and plain-text tools could not search it. pip
+  tolerated it, which is why nothing had failed. Re-encoded as UTF-8.
+- `.env.example` pointed `DATABASE_URL` at PostgreSQL, so a fresh `.env`
+  targeted a server that is not set up and a migration path that has never
+  run. It now defaults to a local SQLite file, `backend/anvero.db`, with
+  PostgreSQL left as a commented alternative.
+- The README never said to run `npm install`, so `npm run dev` failed on a new
+  machine. `DEVELOPMENT.md` pointed at a nonexistent
+  `backend/requirements/base.txt`, the wrong venv location, and called
+  PostgreSQL a requirement.
+
+### ✅ Verification
+
+On a clean clone: bootstrap, doctor, `alembic upgrade head`, sample data and
+`npm install` all succeed; 66 tests pass; `tsc` is clean; the interface, the
+API, the API docs and the `/api` proxy all answer, with the proxy returning
+the sample data.
+
+---
+
 ## 2026-09-16
 
 ### ✨ Added
