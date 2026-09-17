@@ -1,4 +1,6 @@
+import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import { ApiError, integrationsApi } from '../api/client';
 import { OrderList } from '../components/OrderList';
 import { AdvancedFilters, type Filters } from '../components/AdvancedFilters';
 import { useOrders } from '../hooks/useOrders';
@@ -30,7 +32,7 @@ export function OrdersPage({ addToast }: OrdersPageProps) {
 
   // every filter is applied by the backend, so results and the total span
   // all pages rather than just the rows already fetched
-  const { orders, loading, error, count } = useOrders({
+  const { orders, loading, error, count, refetch } = useOrders({
     skip,
     limit,
     source,
@@ -40,6 +42,51 @@ export function OrdersPage({ addToast }: OrdersPageProps) {
     dateTo,
     cancellationWarning,
   });
+
+  const [allegroConfigured, setAllegroConfigured] = useState<boolean | null>(null);
+  const [importing, setImporting] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    integrationsApi
+      .allegroStatus()
+      .then((allegroStatus) => {
+        if (!cancelled) setAllegroConfigured(allegroStatus.configured);
+      })
+      .catch(() => {
+        // treat an unreadable status as "not configured": the button stays
+        // disabled rather than offering an import that will just fail
+        if (!cancelled) setAllegroConfigured(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const handleAllegroImport = () => {
+    setImporting(true);
+    integrationsApi
+      .importAllegro()
+      .then((result) => {
+        addToast?.(
+          `Imported from Allegro: ${result.created} new, ${result.updated} updated`,
+          'success',
+        );
+        if (result.cancellation_warnings > 0) {
+          addToast?.(
+            `${result.cancellation_warnings} order(s) were cancelled on Allegro ` +
+              'and must be checked before shipping.',
+            'warning',
+          );
+        }
+        refetch();
+      })
+      .catch((err: unknown) => {
+        const message = err instanceof ApiError ? err.message : 'Allegro import failed';
+        addToast?.(message, 'error');
+      })
+      .finally(() => setImporting(false));
+  };
 
   const updateParams = (updates: Record<string, string | undefined>) => {
     const next = new URLSearchParams(searchParams);
@@ -72,8 +119,25 @@ export function OrdersPage({ addToast }: OrdersPageProps) {
   return (
     <div className="orders-page">
       <header className="page-header">
-        <h1>Orders</h1>
-        <p className="subtitle">Manage your marketplace orders</p>
+        <div className="page-header-text">
+          <h1>Orders</h1>
+          <p className="subtitle">Manage your marketplace orders</p>
+        </div>
+        <div className="allegro-import">
+          <button
+            type="button"
+            className="allegro-import-button"
+            onClick={handleAllegroImport}
+            disabled={!allegroConfigured || importing}
+          >
+            {importing ? 'Importing…' : 'Import from Allegro'}
+          </button>
+          {allegroConfigured === false && (
+            <p className="allegro-import-hint">
+              Allegro is not configured — see docs/INTEGRATIONS.md.
+            </p>
+          )}
+        </div>
       </header>
 
       <AdvancedFilters

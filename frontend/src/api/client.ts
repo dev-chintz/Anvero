@@ -129,6 +129,34 @@ export const authApi = {
   },
 };
 
+export interface AllegroStatus {
+  configured: boolean;
+}
+
+export interface AllegroImportParams {
+  limit?: number;
+  offset?: number;
+}
+
+export interface AllegroImportResult {
+  created: number;
+  updated: number;
+  cancellation_warnings: number;
+}
+
+export const integrationsApi = {
+  allegroStatus(): Promise<AllegroStatus> {
+    return request<AllegroStatus>("/integrations/allegro");
+  },
+
+  importAllegro(params: AllegroImportParams = {}): Promise<AllegroImportResult> {
+    return request<AllegroImportResult>("/integrations/allegro/import", {
+      method: "POST",
+      body: JSON.stringify(params),
+    });
+  },
+};
+
 export const ordersApi = {
   list(params: ListOrdersParams = {}): Promise<OrderListResponse> {
     return request<OrderListResponse>(`/orders${buildQuery(params)}`);
