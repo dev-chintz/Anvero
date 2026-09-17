@@ -1,5 +1,28 @@
 # Decision Log
 
+## 2026-09-17 — The Interface Stays As Built
+
+**Decision:** The interface Anvero has is the interface it keeps: plain CSS
+across ten stylesheets, a dark sidebar, a blue accent in light mode and teal
+in dark. The "premium SaaS, purple accent, Linear/Stripe/Notion" direction in
+`AI_HANDOFF.md` and the early Figma dashboard prototype are dropped, not
+deferred. What remains is legibility work on what exists (`ROADMAP.md`, "The
+interface, as it stands"), and no component library unless a rewrite is
+deliberately chosen.
+
+**Rationale:** There were three versions of the truth — the written
+direction, a Figma prototype nothing in the code refers to, and the built
+interface, which never used the purple accent the direction names. An
+aspiration nobody is working towards is worse than no aspiration: it makes
+every screen look unfinished against a standard no one chose to fund, and it
+invites a redesign in place of the work that actually blocks daily use
+(production Allegro, an unattended import, somewhere to run with backups).
+The built interface does its job; its real faults are a list that scrolls
+sideways, crowded badges and a buyer's email taking a third of a row, and
+those are cheap to fix. The decision can be revisited when the system is in
+daily use and its shape has settled, which is also when a redesign would cost
+least to get right.
+
 ## 2026-09-17 — The Marketplace Status Is Shown, Not Applied
 
 **Decision:** Every import records the marketplace's own status twice: mapped

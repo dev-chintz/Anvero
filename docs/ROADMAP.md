@@ -71,18 +71,39 @@ order is handled in Allegro anyway, which undercuts the MVP's own goal of not
 switching between panels. Invoicing and courier labels stay out until
 shipments themselves are in.
 
-### 5. Status transition rules
+### 5. The interface, as it stands
+
+The interface stays as built: plain CSS, a dark sidebar, a blue accent in
+light mode and teal in dark. The "premium SaaS, purple accent" direction and
+the early Figma dashboard prototype are dropped rather than caught up with
+(`DECISIONS.md`, 2026-09-17). The work that remains is legibility, not a
+restyle:
+
+- Fixes already visible in use: the order list scrolls sideways with a single
+  order in it, badges crowd the status column, and the buyer's email takes a
+  third of the row — personal data, on the screen someone leaves open. Cheap,
+  and worth doing whenever, ahead of the items above.
+- One pass over `index.css` so colours, spacing, radii and type are defined
+  once, in the values already in use.
+- No component library unless a rewrite is the point: ten stylesheets, around
+  33 KB, are cheaper to tidy than to replace.
+- The frontend has no tests, only the type-check. Anything larger than the
+  fixes above wants a few component tests first.
+- Every screen is behind a login, so the owner verifies interface work in the
+  browser; assistants check the API instead.
+
+### 6. Status transition rules
 
 Any status can be set from any other, so a mistake has nothing to stop it.
 The rules are the owner's decision, not a technical one.
 
-### 6. The safety net around the code
+### 7. The safety net around the code
 
 Tests run only in a local pre-commit hook a fresh clone can miss: they belong
 on GitHub Actions for every push. The frontend has no tests at all, only the
 type-check. 22 lint findings predate today.
 
-### 7. What real buyer data will demand
+### 8. What real buyer data will demand
 
 The database and `.env` sit in plain text on a developer machine, a buyer's
 email shows on the order list, accounts are made by script with no password
@@ -90,7 +111,7 @@ reset and tokens cannot be revoked before their eight hours are up.
 Acceptable on localhost; not once this is deployed anywhere with real
 buyers' data in it. Revisit alongside step 3.
 
-### 8. ERLI
+### 9. ERLI
 
 The second marketplace exists in the model and in the source enum, and
 nowhere else. Worth doing when Allegro has proved the shape of the work, and
