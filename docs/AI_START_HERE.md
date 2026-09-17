@@ -35,8 +35,9 @@ breakdown; the short version:
   created with `backend/scripts/create_user.py`; there is no sign-up.
 - React + TypeScript frontend: dashboard, order list with filtering, order
   detail with status editing and history.
-- Allegro adapter and import script.
-- 122 tests passing.
+- Allegro adapter, import script, an import endpoint and a button, one
+  import at a time.
+- 136 tests passing.
 
 Two things are **not** done, and both need a person rather than more code:
 

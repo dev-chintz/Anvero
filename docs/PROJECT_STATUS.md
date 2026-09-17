@@ -36,7 +36,7 @@ against a real account. Both need steps only the project owner can take.
 - Connection to local PostgreSQL database — NOT done, running on SQLite
 - Health endpoint and first order model — done
 - Minimal order list interface — done
-- Automated tests for core flows — done (122 passing across the suite)
+- Automated tests for core flows — done (136 passing across the suite)
 
 ---
 
@@ -53,7 +53,9 @@ against a real account. Both need steps only the project owner can take.
 
 - Secure credential configuration — done (environment only, `.env` ignored)
 - Allegro adapter — done, built from Allegro's published documentation
-- Order import and mapping — done (`backend/scripts/import_allegro.py`)
+- Order import and mapping — done (`backend/scripts/import_allegro.py`,
+  `POST /api/v1/integrations/allegro/import` and an "Import from Allegro"
+  button, both using the same wiring as the script)
 - Error handling and logging — done
 
 Never run against the live Allegro API. Needs a registered application and a
@@ -71,6 +73,8 @@ one-time manual authorization; see `INTEGRATIONS.md`.
 - Order status editing via `PATCH /orders/{id}/status`
 - Dashboard aggregates computed in SQL (`GET /orders/stats`)
 - Unique constraint on `(source, external_id)`, so an import is safe to re-run
+- Allegro import as an endpoint and a button, one import at a time, rate
+  limited
 - Dark mode
 - VS Code configuration and development scripts
 - Initial Figma dashboard prototype
@@ -82,7 +86,10 @@ one-time manual authorization; see `INTEGRATIONS.md`.
 The Allegro client and mapper have never touched the live API. They follow
 the published contract and are covered by tests against recorded payload
 shapes, which catches mapping mistakes but not a contract that differs from
-its documentation.
+its documentation. The same is true of the import endpoint and button: their
+tests replace the import service with a fake, so the endpoint's own logic
+(auth, the lock, the rate limit, error mapping) is verified, but nothing has
+exercised the path all the way through to Allegro.
 
 Everything below has only been exercised against SQLite:
 
@@ -119,4 +126,4 @@ PostgreSQL (target), SQLite (current local)
 
 ## Last Update
 
-2026-09-16
+2026-09-17

@@ -135,6 +135,21 @@ becomes an endpoint once auth is wired into the orders API.
 *Update 2026-09-17:* the orders API now requires a login, so the reason for
 keeping this a script is gone; the endpoint itself is a separate change.
 
+*Update 2026-09-17 (later the same day):* the endpoint now exists,
+`POST /api/v1/integrations/allegro/import`, behind the same login as every
+orders endpoint, plus two things a script never needed. A non-blocking
+`threading.Lock` refuses a second import with `409` while one is running:
+Allegro rotates the refresh token on every use, so two imports refreshing it
+at once would race, and the one that loses is left with a token that is
+already dead. And the endpoint is rate limited (6/minute/IP) because it makes
+outbound calls to a third party on the caller's behalf — the same reasoning
+that kept this out of the API in the first place, just answered with a limit
+instead of no route at all now that a login gates who can call it. Both the
+script and the endpoint build their `AllegroClient` through
+`app/services/allegro_import.py`, so there is exactly one place that wires
+the database-backed token store; a second copy would read the current token
+but have nowhere shared to persist a rotation.
+
 ## 2026-09-16 — Order Total Read from `summary.totalToPay`
 
 **Decision:** `total_amount` maps from Allegro's `summary.totalToPay.amount`.

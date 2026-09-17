@@ -43,8 +43,9 @@ Repository: <https://github.com/dev-chintz/Anvero>
   mode
 - Alembic migrations for `users`, `orders`, `order_status_history` and
   `integration_credentials`
-- Allegro adapter, order mapping and import script
-- 122 tests passing
+- Allegro adapter, order mapping, the import script, an import endpoint and
+  a button, one import at a time and rate limited
+- 136 tests passing
 
 ---
 
@@ -67,9 +68,9 @@ scripts/    PowerShell helpers for the local environment
 1. Connect PostgreSQL and re-run migrations and tests against it. The status
    history migration has a PostgreSQL-only branch that has never executed.
 2. Run the Allegro import against a real account, which needs a registered
-   application and a one-time manual authorization (INTEGRATIONS.md).
-3. Turn the Allegro import script into an endpoint with a button in the
-   interface; it was kept a script only until the API had a login.
+   application and a one-time manual authorization (INTEGRATIONS.md). The
+   import now runs from the interface as well as the script, but neither has
+   ever called the live API.
 
 ---
 

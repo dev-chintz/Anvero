@@ -4,6 +4,44 @@ All significant changes to the Anvero project.
 
 ---
 
+## 2026-09-17 (later)
+
+### ✨ Added — Allegro import as an endpoint
+
+- `POST /api/v1/integrations/allegro/import` and
+  `GET /api/v1/integrations/allegro`, both behind the same login as every
+  orders endpoint. The status endpoint returns only `{"configured": bool}` —
+  never a credential, token or part of one.
+- An "Import from Allegro" button on the Orders page: disabled with a
+  configuration hint when Allegro is not configured, "Importing..." while a
+  request is in flight, a success toast with the created/updated counts, and
+  a second warning toast only when the import found orders newly cancelled
+  on the marketplace. The list refetches on success.
+- `app/services/allegro_import.py` holds the wiring `scripts/import_allegro.py`
+  used to build inline, so the script and the endpoint share one place that
+  constructs the database-backed refresh token store; a second copy would
+  read the current token but have nowhere shared to persist a rotation.
+- A non-blocking lock limits the import to one at a time: Allegro rotates
+  the refresh token on every use, and two imports refreshing it together
+  would race, leaving the loser with an already-dead token. A concurrent
+  attempt gets `409`. The import endpoint is also rate limited, 6 per minute
+  per IP, since it makes outbound calls to a third party on the caller's
+  behalf.
+- `docs/API.md`, `docs/INTEGRATIONS.md` and `docs/DECISIONS.md` updated to
+  match; the script is unchanged and still works.
+
+### ✅ Verification
+
+136 backend tests pass (122 existing + 14 new, covering auth, the status
+response shape, a successful import, all three error mappings, request
+validation, the lock refusing a concurrent import, and the lock releasing
+after a failed one so the next import can still run). `tsc --noEmit` is
+clean. The new tests replace the service factory with a fake — nothing here
+has called the real Allegro API, and this machine has no credentials to call
+it with; see "Not yet verified" in `PROJECT_STATUS.md`.
+
+---
+
 ## 2026-09-17
 
 ### ✨ Added — Login (MVP item 1)

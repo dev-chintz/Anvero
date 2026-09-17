@@ -49,6 +49,21 @@ authorization produces is what the import then runs on.
 
 ### Running an import
 
+The Orders page has an "Import from Allegro" button, which calls
+`POST /api/v1/integrations/allegro/import`. It is disabled with a
+configuration hint when `GET /api/v1/integrations/allegro` reports
+`configured: false`, and shows "Importing..." while a request is in flight.
+On success it reports how many orders were created and updated as a toast,
+and a second warning toast if any were newly found cancelled on the
+marketplace. See `API.md` for the request body, response shape and error
+codes.
+
+The script still exists and does the same work, through the same wiring
+(`app/services/allegro_import.py`), so it and the endpoint cannot drift
+apart — that was the risk a second copy of the token-store wiring would have
+created; see `DECISIONS.md`, "Rotated Allegro Refresh Tokens Live in the
+Database":
+
 ```
 python scripts/import_allegro.py [--limit N] [--offset N]
 ```
@@ -58,10 +73,14 @@ unique, so running it twice does not duplicate anything.
 
 Exit codes: `2` not configured, `3` credentials refused, `1` other failure.
 
-This is still a script rather than an HTTP endpoint. It was kept out of the
-API while the API had no login, since an open route making outbound calls to
-a third party would be easy to abuse; the orders API now requires a login, so
-turning the import into an endpoint is a planned next step, not yet done.
+**Only one import may run at a time**, from either the script or the
+endpoint calling it concurrently against the same database — enforced by a
+lock in the endpoint, not by anything the script itself checks. Allegro
+rotates the refresh token on every use; two imports running at once would
+both try to refresh it, and the one that loses the race is left holding an
+already-invalidated token. A second click on the button while one import is
+running gets `409` immediately. Running the script by hand while the button
+is mid-import is not guarded against — do not do both at once.
 
 ### Refresh token rotation
 
