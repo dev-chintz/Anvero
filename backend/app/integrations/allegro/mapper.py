@@ -7,6 +7,8 @@ allegro package: callers receive OrderCreate.
 from decimal import Decimal, InvalidOperation
 from typing import Any
 
+from pydantic import ValidationError
+
 from app.integrations.base import IntegrationError
 from app.models.order import OrderSource, OrderStatus
 from app.schemas.order import OrderCreate
@@ -91,11 +93,22 @@ def map_checkout_form(checkout_form: dict[str, Any]) -> OrderCreate:
             f"order {external_id} has a non-positive total: {total_amount}"
         )
 
-    return OrderCreate(
-        external_id=str(external_id),
-        source=OrderSource.ALLEGRO,
-        status=map_status(checkout_form),
-        customer_email=email,
-        total_amount=total_amount,
-        currency=currency,
-    )
+    try:
+        return OrderCreate(
+            external_id=str(external_id),
+            source=OrderSource.ALLEGRO,
+            status=map_status(checkout_form),
+            customer_email=email,
+            total_amount=total_amount,
+            currency=currency,
+        )
+    except ValidationError as exc:
+        # the domain model's own rules (email format, two decimal places,
+        # three-letter currency) are stricter than the checks above; without
+        # this the error escapes the adapter's per-order skip and loses the
+        # whole page. Field names only: the values include buyer emails,
+        # which do not belong in logs.
+        fields = sorted({".".join(str(p) for p in err["loc"]) for err in exc.errors()})
+        raise OrderMappingError(
+            f"order {external_id} fails validation on: {', '.join(fields)}"
+        ) from exc

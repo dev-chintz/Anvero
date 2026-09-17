@@ -31,6 +31,22 @@ REQUEST_TIMEOUT_SECONDS = 30.0
 MAX_PAGE_SIZE = 100
 
 
+def _json_object(response: httpx2.Response, what: str) -> dict[str, Any]:
+    """Decode a response that must be a JSON object.
+
+    A proxy, captive portal or maintenance page can answer 200 with HTML.
+    Letting that raise JSONDecodeError would bypass every IntegrationError
+    handler and end the import in a raw traceback.
+    """
+    try:
+        payload = response.json()
+    except ValueError as exc:
+        raise IntegrationUnavailable(f"{what} did not return JSON") from exc
+    if not isinstance(payload, dict):
+        raise IntegrationUnavailable(f"{what} returned JSON that is not an object")
+    return payload
+
+
 class AllegroClient:
     def __init__(
         self,
@@ -95,7 +111,7 @@ class AllegroClient:
                 f"Allegro token endpoint returned {response.status_code}"
             )
 
-        payload = response.json()
+        payload = _json_object(response, "Allegro token endpoint")
         token = payload.get("access_token")
         if not token:
             raise IntegrationAuthError("Allegro returned no access_token")
@@ -146,4 +162,7 @@ class AllegroClient:
                 f"Allegro API returned {response.status_code} for checkout-forms"
             )
 
-        return response.json().get("checkoutForms", [])
+        forms = _json_object(response, "Allegro checkout-forms").get("checkoutForms", [])
+        if not isinstance(forms, list):
+            raise IntegrationUnavailable("Allegro checkout-forms is not a list")
+        return forms

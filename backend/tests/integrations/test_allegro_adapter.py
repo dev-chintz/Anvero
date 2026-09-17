@@ -52,6 +52,21 @@ def test_one_unmappable_order_does_not_cost_the_rest_of_the_page(caplog):
     assert "ALG-BAD" in caplog.text
 
 
+def test_an_order_failing_domain_validation_is_skipped_not_fatal(caplog):
+    """Regression: an email the domain model rejects used to abort the page."""
+    bad_email = _form("ALG-BAD-EMAIL", buyer={"email": "not-an-email"})
+    adapter = AllegroAdapter(
+        client=FakeClient([_form("ALG-1"), bad_email, _form("ALG-2")])
+    )
+
+    with caplog.at_level(logging.WARNING):
+        orders = adapter.fetch_orders()
+
+    assert [order.external_id for order in orders] == ["ALG-1", "ALG-2"]
+    assert "ALG-BAD-EMAIL" in caplog.text
+    assert "not-an-email" not in caplog.text
+
+
 def test_passes_pagination_through_to_the_client():
     client = FakeClient([])
     AllegroAdapter(client=client).fetch_orders(limit=25, offset=50)

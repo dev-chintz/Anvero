@@ -178,6 +178,36 @@ def test_a_server_error_is_reported_as_unavailable():
         _client(handler).fetch_checkout_forms()
 
 
+def test_a_non_json_token_response_is_reported_as_unavailable():
+    """A maintenance page answering 200 must not end in a raw traceback."""
+
+    def handler(request: httpx2.Request) -> httpx2.Response:
+        return httpx2.Response(200, text="<html>maintenance</html>")
+
+    with pytest.raises(IntegrationUnavailable, match="did not return JSON"):
+        _client(handler).fetch_checkout_forms()
+
+
+def test_a_non_json_orders_response_is_reported_as_unavailable():
+    def handler(request: httpx2.Request) -> httpx2.Response:
+        if request.url.path == "/token":
+            return _token_response()
+        return httpx2.Response(200, text="<html>maintenance</html>")
+
+    with pytest.raises(IntegrationUnavailable, match="did not return JSON"):
+        _client(handler).fetch_checkout_forms()
+
+
+def test_json_that_is_not_an_object_is_reported_as_unavailable():
+    def handler(request: httpx2.Request) -> httpx2.Response:
+        if request.url.path == "/token":
+            return _token_response()
+        return httpx2.Response(200, json=["unexpected"])
+
+    with pytest.raises(IntegrationUnavailable, match="not an object"):
+        _client(handler).fetch_checkout_forms()
+
+
 def test_rejects_a_page_size_the_api_will_not_accept():
     def handler(request: httpx2.Request) -> httpx2.Response:
         raise AssertionError("should not reach the network")

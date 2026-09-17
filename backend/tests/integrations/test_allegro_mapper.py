@@ -139,6 +139,30 @@ def test_rejects_a_non_positive_total():
         map_checkout_form(form)
 
 
+def test_a_domain_validation_failure_becomes_a_mapping_error():
+    """OrderCreate's own rules must surface as OrderMappingError.
+
+    Regression: pydantic's ValidationError escaped the adapter's per-order
+    skip, so one bad email lost every other order on the page.
+    """
+    form = _checkout_form(buyer={"email": "buyer_at_example.com"})
+
+    with pytest.raises(OrderMappingError, match="customer_email") as excinfo:
+        map_checkout_form(form)
+
+    # the message ends up in logs, so it must name the field, not the value
+    assert "buyer_at_example.com" not in str(excinfo.value)
+
+
+def test_an_amount_with_too_many_decimals_becomes_a_mapping_error():
+    form = _checkout_form(
+        summary={"totalToPay": {"amount": "167.005", "currency": "PLN"}}
+    )
+
+    with pytest.raises(OrderMappingError, match="total_amount"):
+        map_checkout_form(form)
+
+
 def test_rejects_an_unreadable_amount():
     form = _checkout_form(
         summary={"totalToPay": {"amount": "not a number", "currency": "PLN"}}
