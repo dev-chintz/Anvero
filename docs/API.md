@@ -77,7 +77,7 @@ Error responses:
 
 | Status | When |
 | --- | --- |
-| `409` | Allegro is not configured (`ALLEGRO_CLIENT_ID`/`_SECRET`/`_REFRESH_TOKEN` missing), or an import is already running |
+| `409` | Allegro is not configured (`ALLEGRO_CLIENT_ID`/`_SECRET`/`_USER_AGENT`/`_REFRESH_TOKEN` missing), or an import is already running |
 | `502` | Allegro rejected the credentials, or any other integration failure (unreachable, non-JSON response, etc.) |
 | `422` | `limit` or `offset` outside their allowed range |
 

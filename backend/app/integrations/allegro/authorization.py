@@ -59,13 +59,18 @@ class AllegroDeviceAuthorizer:
         client_id: str,
         client_secret: str,
         auth_url: str,
+        user_agent: str,
         http_client: httpx2.Client | None = None,
         sleep: Callable[[float], None] = time.sleep,
         clock: Callable[[], float] = time.monotonic,
     ):
+        if not user_agent:
+            # Allegro blocks the application's key over calls without it
+            raise ValueError("an Allegro User-Agent is required")
         self._client_id = client_id
         self._client_secret = client_secret
         self._auth_url = auth_url.rstrip("/")
+        self._user_agent = user_agent
         self._http = http_client or httpx2.Client(timeout=REQUEST_TIMEOUT_SECONDS)
         self._sleep = sleep
         self._clock = clock
@@ -75,6 +80,7 @@ class AllegroDeviceAuthorizer:
             return self._http.post(
                 f"{self._auth_url}/{path}",
                 auth=httpx2.BasicAuth(self._client_id, self._client_secret),
+                headers={"User-Agent": self._user_agent},
                 data=data,
             )
         except httpx2.RequestError as exc:

@@ -39,7 +39,7 @@ Other machines stay on SQLite until PostgreSQL is set up there
   remains the no-setup default for a fresh clone)
 - Health endpoint and first order model — done
 - Minimal order list interface — done
-- Automated tests for core flows — done (192 passing across the suite)
+- Automated tests for core flows — done (197 passing across the suite)
 
 ---
 
@@ -122,6 +122,8 @@ Sandbox. Agreed plan, in order:
    Anvero connects to, and a buyer, on a different email, to purchase the
    seller's test offers and so create orders. Then, together: register the
    application at <https://apps.developer.allegro.pl.allegrosandbox.pl>,
+   generate its User-Agent there into `ALLEGRO_USER_AGENT` (Allegro blocks
+   the key over calls without one; nothing is sent until it is set),
    point `ALLEGRO_API_URL` at `https://api.allegro.pl.allegrosandbox.pl` and
    `ALLEGRO_AUTH_URL` at `https://allegro.pl.allegrosandbox.pl/auth/oauth`,
    authorize with `scripts/authorize_allegro.py` (added 2026-09-17; it has

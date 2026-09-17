@@ -4,7 +4,8 @@
 Usage:
     python scripts/authorize_allegro.py
 
-Needs ALLEGRO_CLIENT_ID and ALLEGRO_CLIENT_SECRET in backend/.env, and
+Needs ALLEGRO_CLIENT_ID, ALLEGRO_CLIENT_SECRET and ALLEGRO_USER_AGENT in
+backend/.env, and
 ALLEGRO_AUTH_URL pointing at the environment the application is registered in
 (sandbox or production). Prints a link; open it logged in as the seller whose
 orders Anvero should import, and confirm. The refresh token is then written to
@@ -33,10 +34,14 @@ ENV_FILE = BACKEND_DIR / ".env"
 def main(
     authorizer: AllegroDeviceAuthorizer | None = None, env_file: Path = ENV_FILE
 ) -> int:
-    if not (settings.allegro_client_id and settings.allegro_client_secret):
+    if not (
+        settings.allegro_client_id
+        and settings.allegro_client_secret
+        and settings.allegro_user_agent
+    ):
         print(
-            "Set ALLEGRO_CLIENT_ID and ALLEGRO_CLIENT_SECRET in backend/.env first; "
-            "see docs/INTEGRATIONS.md.",
+            "Set ALLEGRO_CLIENT_ID, ALLEGRO_CLIENT_SECRET and ALLEGRO_USER_AGENT in "
+            "backend/.env first; see docs/INTEGRATIONS.md.",
             file=sys.stderr,
         )
         return 2
@@ -51,6 +56,7 @@ def main(
         client_id=settings.allegro_client_id,
         client_secret=settings.allegro_client_secret,
         auth_url=settings.allegro_auth_url,
+        user_agent=settings.allegro_user_agent,
     )
 
     print(f"Authorizing against {settings.allegro_auth_url}")

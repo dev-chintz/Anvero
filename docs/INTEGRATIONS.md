@@ -17,11 +17,25 @@ authorization produces is what the import then runs on.
    Grant it the `allegro:api:orders:read` scope — without it the API answers
    `403` and the import stops with a message saying so.
 
-2. Put its id and secret in `backend/.env`, not in a chat or a commit:
+2. Generate the application's User-Agent with the portal's User-Agent
+   generator: the application, its version (the project's, e.g. `0.1.0`) and
+   a documentation URL an outside administrator can open — the repository,
+   <https://github.com/dev-chintz/Anvero>, not a `localhost` address. The
+   result has the form `Name/Version (+URL)`.
+
+   Allegro requires every API call to carry it and **blocks the application's
+   key** over calls that do not. So it is required here too: while
+   `ALLEGRO_USER_AGENT` is empty the integration counts as not configured and
+   nothing is sent. It is sent verbatim, since Allegro uses it to recognise
+   the application; regenerate it rather than editing it by hand.
+
+3. Put the id, the secret and the User-Agent in `backend/.env`, not in a
+   chat or a commit:
 
    ```
    ALLEGRO_CLIENT_ID=...
    ALLEGRO_CLIENT_SECRET=...
+   ALLEGRO_USER_AGENT=...
    ```
 
    For the sandbox, also point both URLs at it. An application exists in
@@ -32,7 +46,7 @@ authorization produces is what the import then runs on.
    ALLEGRO_AUTH_URL=https://allegro.pl.allegrosandbox.pl/auth/oauth
    ```
 
-3. Obtain the refresh token, from `backend/`:
+4. Obtain the refresh token, from `backend/`:
 
    ```
    python scripts/authorize_allegro.py
@@ -45,7 +59,7 @@ authorization produces is what the import then runs on.
    terminal's scrollback. Restart the backend afterwards: settings are read
    when it starts.
 
-   Exit codes: `0` saved, `2` id or secret missing, `3` credentials refused
+   Exit codes: `0` saved, `2` id, secret or User-Agent missing, `3` credentials refused
    or authorization declined, `1` not confirmed in time or other failure,
    `130` stopped with Ctrl+C. Nothing is written unless it succeeds.
 
@@ -55,12 +69,13 @@ authorization produces is what the import then runs on.
    `grant_type=urn:ietf:params:oauth:grant-type:device_code` and the
    `device_code`, every `interval` seconds, until it answers `200`.
 
-   `.env` is git-ignored. Leaving any of the three `ALLEGRO_CLIENT_ID`,
-   `ALLEGRO_CLIENT_SECRET` and `ALLEGRO_REFRESH_TOKEN` empty keeps the
-   integration switched off rather than failing at import time.
+   `.env` is git-ignored. Leaving any of `ALLEGRO_CLIENT_ID`,
+   `ALLEGRO_CLIENT_SECRET`, `ALLEGRO_USER_AGENT` and `ALLEGRO_REFRESH_TOKEN`
+   empty keeps the integration switched off rather than failing at import
+   time.
 
 **Moving from the sandbox to production** means a separate application,
-separate credentials and running the script again. The new token replaces
+separate credentials, its own User-Agent, and running the script again. The new token replaces
 the stored chain on its own (see below), but the orders imported from the
 sandbox stay in the database under source `ALLEGRO`, indistinguishable from
 real ones. Start production on a clean database, or delete them first.

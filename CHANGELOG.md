@@ -4,6 +4,21 @@ All significant changes to the Anvero project.
 
 ---
 
+## 2026-09-17 (Allegro User-Agent)
+
+### 🔒 Allegro calls carry the application's User-Agent
+
+- Allegro blocks an application's key over API calls without its own
+  User-Agent, and Anvero was about to send the HTTP library's default one.
+  The client and the authorization script now send `ALLEGRO_USER_AGENT` on
+  every request, and without it the integration is not configured and sends
+  nothing. See `DECISIONS.md` and `INTEGRATIONS.md`, step 2.
+
+### ✅ Verification
+
+197 tests pass (5 new): the header is sent on the token, orders, device and
+polling requests, and a missing one stops everything before the network.
+
 ## 2026-09-17 (Allegro authorization)
 
 ### ✨ Allegro authorization script

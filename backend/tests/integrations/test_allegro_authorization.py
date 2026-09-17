@@ -16,6 +16,7 @@ from app.integrations.allegro.authorization import (
 from app.integrations.base import IntegrationAuthError, IntegrationUnavailable
 
 BACKEND_DIR = Path(__file__).resolve().parent.parent.parent
+USER_AGENT = "anvero/0.1.0 (+https://example.com/anvero)"
 
 # shaped like Allegro's documented example, numbers as strings included
 DEVICE_RESPONSE = {
@@ -49,6 +50,7 @@ def _authorizer(handler, clock: FakeClock | None = None) -> AllegroDeviceAuthori
         client_id="id",
         client_secret="secret",
         auth_url="https://auth.test/",
+        user_agent=USER_AGENT,
         http_client=httpx2.Client(transport=httpx2.MockTransport(handler)),
         sleep=clock.sleep,
         clock=clock,
@@ -98,6 +100,7 @@ def test_start_requests_a_device_code_with_basic_auth():
     def handler(request: httpx2.Request) -> httpx2.Response:
         seen["url"] = str(request.url)
         seen["auth"] = request.headers.get("Authorization")
+        seen["user_agent"] = request.headers.get("User-Agent")
         seen["body"] = request.content.decode()
         return httpx2.Response(200, json=DEVICE_RESPONSE)
 
@@ -105,8 +108,20 @@ def test_start_requests_a_device_code_with_basic_auth():
 
     assert seen["url"] == "https://auth.test/device"
     assert seen["auth"] == f"Basic {base64.b64encode(b'id:secret').decode()}"
+    assert seen["user_agent"] == USER_AGENT
     assert seen["body"] == "client_id=id"
     assert authorization == _authorization()
+
+
+def test_refuses_to_run_without_a_user_agent():
+    """Allegro blocks the application's key over calls without it."""
+    with pytest.raises(ValueError, match="User-Agent"):
+        AllegroDeviceAuthorizer(
+            client_id="id",
+            client_secret="secret",
+            auth_url="https://auth.test",
+            user_agent="",
+        )
 
 
 def test_start_falls_back_to_defaults_for_unreadable_timings():
@@ -155,6 +170,7 @@ def test_polls_until_confirmed_and_returns_the_refresh_token():
     body = urllib.parse.parse_qs(seen[0].content.decode())
     assert body == {"grant_type": [DEVICE_CODE_GRANT], "device_code": ["device-abc"]}
     assert seen[0].headers.get("Authorization").startswith("Basic ")
+    assert seen[0].headers.get("User-Agent") == USER_AGENT
 
 
 def test_slow_down_lengthens_the_interval_for_good():
@@ -239,6 +255,7 @@ def script(monkeypatch):
 
     monkeypatch.setattr(settings, "allegro_client_id", "id")
     monkeypatch.setattr(settings, "allegro_client_secret", "secret")
+    monkeypatch.setattr(settings, "allegro_user_agent", USER_AGENT)
     return _load_script()
 
 
@@ -284,10 +301,15 @@ def test_script_leaves_env_alone_when_authorization_is_declined(script, tmp_path
     assert env_file.read_text(encoding="utf-8") == "ALLEGRO_REFRESH_TOKEN=old-token\n"
 
 
-def test_script_needs_the_client_id_and_secret(script, monkeypatch, tmp_path):
+@pytest.mark.parametrize(
+    "missing", ["allegro_client_id", "allegro_client_secret", "allegro_user_agent"]
+)
+def test_script_needs_the_client_id_secret_and_user_agent(
+    script, monkeypatch, tmp_path, missing
+):
     from app.core.config import settings
 
-    monkeypatch.setattr(settings, "allegro_client_secret", "")
+    monkeypatch.setattr(settings, missing, "")
     env_file = tmp_path / ".env"
     env_file.write_text("", encoding="utf-8")
 

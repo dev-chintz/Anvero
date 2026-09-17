@@ -74,6 +74,7 @@ def test_two_import_runs_against_one_database(session):
             client_secret="secret",
             api_url="https://api.test",
             auth_url="https://auth.test",
+            user_agent="anvero/0.1.0 (+https://example.com/anvero)",
             http_client=httpx2.Client(transport=httpx2.MockTransport(handler)),
             token_store=_store(session),
         ).fetch_checkout_forms()

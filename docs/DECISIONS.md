@@ -1,5 +1,23 @@
 # Decision Log
 
+## 2026-09-17 — Allegro Calls Require the Application's Own User-Agent
+
+**Decision:** Every request to Allegro, the authorization and token
+endpoints included, carries `ALLEGRO_USER_AGENT`: the header generated for
+the application on the developer portal, sent verbatim. Without it the
+integration counts as not configured and sends nothing, exactly as with a
+missing client id.
+
+**Rationale:** Allegro's API terms require each application to identify
+itself with its own User-Agent of the form `Name/Version (+URL)`, and the
+portal warns that calls without a valid one get the application's key
+blocked. The HTTP library's default header would have been sent on the very
+first sandbox call. Refusing to call at all is cheaper than a blocked key.
+The value comes from configuration rather than being assembled in code
+because Allegro matches it against the registered application and asks that
+it not be modified; the documentation URL points at the public repository,
+the page an outside administrator can actually open.
+
 ## 2026-09-17 — Allegro Is Authorized by Device Flow, Token Written to `.env`
 
 **Decision:** The one-time Allegro authorization is a script,

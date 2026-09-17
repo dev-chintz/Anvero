@@ -14,6 +14,7 @@ from app.integrations.base import (
 
 TOKEN_URL = "https://auth.test/token"
 API_URL = "https://api.test"
+USER_AGENT = "anvero/0.1.0 (+https://example.com/anvero)"
 
 
 def _client(handler, **overrides):
@@ -23,6 +24,7 @@ def _client(handler, **overrides):
         "refresh_token": "refresh",
         "api_url": API_URL,
         "auth_url": "https://auth.test",
+        "user_agent": USER_AGENT,
         "http_client": httpx2.Client(transport=httpx2.MockTransport(handler)),
     }
     kwargs.update(overrides)
@@ -123,6 +125,32 @@ def test_missing_credentials_are_reported_before_any_request():
 
     assert client.is_configured is False
     with pytest.raises(IntegrationNotConfigured):
+        client.fetch_checkout_forms()
+
+
+def test_sends_the_configured_user_agent_on_every_request():
+    """Allegro blocks the application's key over calls without it."""
+    seen = []
+
+    def handler(request: httpx2.Request) -> httpx2.Response:
+        seen.append(request.headers.get("User-Agent"))
+        if request.url.path == "/token":
+            return _token_response()
+        return httpx2.Response(200, json={"checkoutForms": []})
+
+    _client(handler).fetch_checkout_forms()
+
+    assert seen == [USER_AGENT, USER_AGENT]
+
+
+def test_without_a_user_agent_nothing_reaches_allegro():
+    def handler(request: httpx2.Request) -> httpx2.Response:
+        raise AssertionError("should not reach the network")
+
+    client = _client(handler, user_agent="")
+
+    assert client.is_configured is False
+    with pytest.raises(IntegrationNotConfigured, match="ALLEGRO_USER_AGENT"):
         client.fetch_checkout_forms()
 
 

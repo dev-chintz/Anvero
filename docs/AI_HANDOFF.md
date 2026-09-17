@@ -45,7 +45,7 @@ Repository: <https://github.com/dev-chintz/Anvero>
   `order_addresses`, `order_status_history` and `integration_credentials`
 - Allegro adapter, order mapping, the import script, an import endpoint and
   a button, one import at a time and rate limited
-- 192 tests passing
+- 197 tests passing
 
 ---
 

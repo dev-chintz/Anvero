@@ -94,6 +94,10 @@ class Settings(BaseSettings):
     allegro_client_id: str = Field(default="")
     allegro_client_secret: str = Field(default="")
     allegro_refresh_token: str = Field(default="")
+    # The User-Agent generated for the application in Allegro's developer
+    # portal, sent verbatim: Allegro uses it to identify the application and
+    # blocks the key over calls without it. Empty keeps the integration off.
+    allegro_user_agent: str = Field(default="")
     allegro_api_url: str = Field(default="https://api.allegro.pl")
     allegro_auth_url: str = Field(default="https://allegro.pl/auth/oauth")
 

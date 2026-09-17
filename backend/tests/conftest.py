@@ -51,7 +51,12 @@ os.environ["SECRET_KEY"] = "test-suite-signing-key-not-used-anywhere-else-012345
 # test database and the developer's real one would stop working a minute
 # later, silently. Empty values make any unpatched client report "not
 # configured" instead.
-for _name in ("ALLEGRO_CLIENT_ID", "ALLEGRO_CLIENT_SECRET", "ALLEGRO_REFRESH_TOKEN"):
+for _name in (
+    "ALLEGRO_CLIENT_ID",
+    "ALLEGRO_CLIENT_SECRET",
+    "ALLEGRO_REFRESH_TOKEN",
+    "ALLEGRO_USER_AGENT",
+):
     os.environ[_name] = ""
 
 

@@ -59,6 +59,7 @@ class AllegroClient:
         refresh_token: str | None = None,
         api_url: str | None = None,
         auth_url: str | None = None,
+        user_agent: str | None = None,
         http_client: httpx2.Client | None = None,
         token_store: RefreshTokenStore | None = None,
     ):
@@ -71,6 +72,9 @@ class AllegroClient:
         )
         self._api_url = (api_url or settings.allegro_api_url).rstrip("/")
         self._auth_url = (auth_url or settings.allegro_auth_url).rstrip("/")
+        self._user_agent = (
+            user_agent if user_agent is not None else settings.allegro_user_agent
+        )
         self._http = http_client or httpx2.Client(timeout=REQUEST_TIMEOUT_SECONDS)
 
         self._access_token: str | None = None
@@ -78,13 +82,20 @@ class AllegroClient:
 
     @property
     def is_configured(self) -> bool:
-        return bool(self._client_id and self._client_secret and self._token_store.current())
+        # Allegro blocks the application's key over calls without its own
+        # User-Agent, so none may go out until one is set
+        return bool(
+            self._client_id
+            and self._client_secret
+            and self._user_agent
+            and self._token_store.current()
+        )
 
     def _require_configuration(self) -> None:
         if not self.is_configured:
             raise IntegrationNotConfigured(
                 "Allegro credentials are missing; set ALLEGRO_CLIENT_ID, "
-                "ALLEGRO_CLIENT_SECRET and ALLEGRO_REFRESH_TOKEN"
+                "ALLEGRO_CLIENT_SECRET, ALLEGRO_USER_AGENT and ALLEGRO_REFRESH_TOKEN"
             )
 
     def _access_token_value(self) -> str:
@@ -97,6 +108,7 @@ class AllegroClient:
             response = self._http.post(
                 f"{self._auth_url}/token",
                 auth=httpx2.BasicAuth(self._client_id, self._client_secret),
+                headers={"User-Agent": self._user_agent},
                 data={
                     "grant_type": "refresh_token",
                     "refresh_token": refresh_token,
@@ -162,6 +174,7 @@ class AllegroClient:
                 headers={
                     "Authorization": f"Bearer {token}",
                     "Accept": ACCEPT_HEADER,
+                    "User-Agent": self._user_agent,
                 },
                 params={"limit": limit, "offset": offset},
             )
