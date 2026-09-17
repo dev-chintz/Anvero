@@ -132,9 +132,9 @@ Sandbox. Agreed plan, in order:
    point `ALLEGRO_API_URL` at `https://api.allegro.pl.allegrosandbox.pl` and
    `ALLEGRO_AUTH_URL` at `https://allegro.pl.allegrosandbox.pl/auth/oauth`,
    authorize with `scripts/authorize_allegro.py` (done 2026-09-17: the
-   sandbox application is registered and authorized on the main machine),
-   import,
-   and check the real responses against the mapping,
+   sandbox application is registered and authorized on a machine running
+   SQLite, not the main PostgreSQL one; import from that machine, since the
+   token chain is per machine, see `INTEGRATIONS.md`), import, and check the real responses against the mapping,
    the stored details and the token rotation across repeated imports. How
    payment works in the sandbox is not documented; find out on the first
    purchase.
