@@ -21,11 +21,77 @@
 - Change history,
 - Sample data.
 
-## Sprint 4 — First Integration
+## Sprint 4 — First Integration ✅
 
 - Secure credential configuration,
 - Allegro adapter,
 - Order import and mapping,
 - Error handling and logging.
 
-ERLI, shipping, and invoicing will be planned only after evaluating the usefulness of the first integration.
+Verified against the Allegro Sandbox on 2026-09-17: a real order imported and
+re-imported, from the script and from the button. Production Allegro is the
+remaining step; see `PROJECT_STATUS.md`.
+
+## After the MVP
+
+The first integration has now been evaluated, which is what the plan waited
+for. The MVP's own criterion is all but met: login, list, filters, details,
+status with history, and an import that has run against the real API. What
+follows is what daily work on real orders needs, in the order it is worth
+doing. Each item is a heading in itself, not a sprint plan; scope them when
+they come up.
+
+### 1. Allegro in production
+
+The owner's seller account, its own application, its own User-Agent and
+authorization, starting from a database with no sandbox orders in it. Until
+this runs, everything below is built on one test order.
+
+### 2. An import that runs without a person
+
+Today a button fetches one page of at most 100 orders, and only when someone
+clicks it. Real volume needs every page, incremental sync from Allegro's
+order event journal rather than re-reading the same page, and a schedule.
+This is what makes the data trustworthy without anyone watching it.
+
+### 3. Somewhere to run, and a way back
+
+Anvero runs on a laptop, started by hand in two terminals, with the database
+in a local file that nothing backs up and no procedure restores. Deployment
+and backups are a bigger gap than any missing feature: a lost file is lost
+order history. Docker was deliberately left out of Sprint 1 (`DECISIONS.md`)
+and belongs to this step's decision, along with where it runs and who can
+reach it.
+
+### 4. Shipments, so Anvero replaces the panel rather than mirroring it
+
+Carrier and tracking number are not imported at all — Allegro serves them
+from another endpoint — and there are no labels or invoices. Without them an
+order is handled in Allegro anyway, which undercuts the MVP's own goal of not
+switching between panels. Invoicing and courier labels stay out until
+shipments themselves are in.
+
+### 5. Status transition rules
+
+Any status can be set from any other, so a mistake has nothing to stop it.
+The rules are the owner's decision, not a technical one.
+
+### 6. The safety net around the code
+
+Tests run only in a local pre-commit hook a fresh clone can miss: they belong
+on GitHub Actions for every push. The frontend has no tests at all, only the
+type-check. 22 lint findings predate today.
+
+### 7. What real buyer data will demand
+
+The database and `.env` sit in plain text on a developer machine, a buyer's
+email shows on the order list, accounts are made by script with no password
+reset and tokens cannot be revoked before their eight hours are up.
+Acceptable on localhost; not once this is deployed anywhere with real
+buyers' data in it. Revisit alongside step 3.
+
+### 8. ERLI
+
+The second marketplace exists in the model and in the source enum, and
+nowhere else. Worth doing when Allegro has proved the shape of the work, and
+only if selling there.
