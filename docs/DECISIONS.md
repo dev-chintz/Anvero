@@ -118,6 +118,9 @@ unauthenticated route that makes outbound calls to a third party is an
 obvious thing to abuse, and rate limiting is not the right answer to it. This
 becomes an endpoint once auth is wired into the orders API.
 
+*Update 2026-09-17:* the orders API now requires a login, so the reason for
+keeping this a script is gone; the endpoint itself is a separate change.
+
 ## 2026-09-16 — Order Total Read from `summary.totalToPay`
 
 **Decision:** `total_amount` maps from Allegro's `summary.totalToPay.amount`.
@@ -149,6 +152,9 @@ but not who made it.
 user to attribute a change to. Adding a nullable column that nothing
 populates would look like a working feature. The column belongs with the
 auth dependency, in one change.
+
+*Superseded 2026-09-17:* the orders API now requires a login and the history
+records `changed_by_user_id`, added in the same change as the login check.
 
 ## 2026-09-16 — Shared `order_status` Enum Type
 

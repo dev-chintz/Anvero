@@ -58,10 +58,10 @@ unique, so running it twice does not duplicate anything.
 
 Exit codes: `2` not configured, `3` credentials refused, `1` other failure.
 
-This is a script rather than an HTTP endpoint because the orders endpoints
-carry no authentication yet; an unauthenticated route making outbound calls
-to a third party would be an obvious thing to abuse. It becomes an endpoint
-when auth is wired in.
+This is still a script rather than an HTTP endpoint. It was kept out of the
+API while the API had no login, since an open route making outbound calls to
+a third party would be easy to abuse; the orders API now requires a login, so
+turning the import into an endpoint is a planned next step, not yet done.
 
 ### Refresh token rotation
 

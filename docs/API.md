@@ -87,19 +87,20 @@ nothing.
 Returns the order's status transitions, most recent first:
 
 ```json
-[{"id": "...", "from_status": "NEW", "to_status": "CONFIRMED", "changed_at": "..."}]
+[{"id": "...", "from_status": "NEW", "to_status": "CONFIRMED", "changed_at": "...", "changed_by": "operator@example.com"}]
 ```
 
 An unknown order id returns 404, so it is distinguishable from an order that
 has never changed status, which returns an empty list.
 
-Entries do not record who made the change. The orders endpoints carry no
-authentication yet, so there is no user to attribute it to; add the column
-together with the auth dependency.
+`changed_by` is the email of the user who made the change. It is `null` for
+changes recorded before logins existed, and for a user whose account has been
+deleted.
 
 ## Conventions
 
 - API identifiers are opaque Anvero identifiers.
 - Errors have format `{"detail": "readable description"}` with appropriate HTTP code.
-- Data-changing operations require authentication when login mechanism is deployed.
-- Status change creates an entry in the status history.
+- Every `/api/v1/orders` endpoint, reading or writing, requires a login token
+  and answers `401` without one. `/api/v1/health` and `/api/v1/` stay public.
+- Status change creates an entry in the status history, recording who made it.

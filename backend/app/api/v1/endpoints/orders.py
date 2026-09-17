@@ -4,8 +4,10 @@ from datetime import date
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
+from app.core.security import get_current_user
 from app.db.session import get_db
 from app.models.order import OrderSource, OrderStatus
+from app.models.user import User
 from app.repositories.order_repository import OrderRepository
 from app.schemas.order import (
     OrderCreate,
@@ -17,7 +19,14 @@ from app.schemas.order import (
 )
 from app.services.order_service import OrderService
 
-router = APIRouter(prefix="/orders", tags=["Orders"])
+# Every order endpoint requires a logged-in user. Set on the router rather
+# than per endpoint, so an endpoint added later cannot be left open by
+# forgetting a parameter.
+router = APIRouter(
+    prefix="/orders",
+    tags=["Orders"],
+    dependencies=[Depends(get_current_user)],
+)
 
 
 @router.get("", response_model=OrderListResponse)
@@ -69,10 +78,15 @@ def get_order_status_history(order_id: uuid.UUID, db: Session = Depends(get_db))
 # because a change here is meant to record an entry in the status history
 @router.patch("/{order_id}/status", response_model=OrderRead)
 def update_order_status(
-    order_id: uuid.UUID, payload: OrderUpdate, db: Session = Depends(get_db)
+    order_id: uuid.UUID,
+    payload: OrderUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
     service = OrderService(OrderRepository(db))
-    return service.update_order_status(order_id, payload.status)
+    return service.update_order_status(
+        order_id, payload.status, changed_by_user_id=current_user.id
+    )
 
 
 @router.post("", response_model=OrderRead)

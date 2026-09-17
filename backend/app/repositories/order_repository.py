@@ -66,7 +66,12 @@ class OrderRepository:
         self.db.refresh(order)
         return order
 
-    def update_status(self, order: Order, status: OrderStatus) -> Order:
+    def update_status(
+        self,
+        order: Order,
+        status: OrderStatus,
+        changed_by_user_id: int | None = None,
+    ) -> Order:
         """Move the order to a new status and record the transition.
 
         The history row and the new status are committed together, so the
@@ -80,6 +85,7 @@ class OrderRepository:
                 order_id=order.id,
                 from_status=order.status,
                 to_status=status,
+                changed_by_user_id=changed_by_user_id,
                 # set here rather than leaning on the column's server default:
                 # SQLite's CURRENT_TIMESTAMP resolves to whole seconds, so two
                 # changes in the same second would sort unpredictably

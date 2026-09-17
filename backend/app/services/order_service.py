@@ -76,7 +76,10 @@ class OrderService:
         return order
 
     def update_order_status(
-        self, order_id: uuid.UUID, new_status: OrderStatus
+        self,
+        order_id: uuid.UUID,
+        new_status: OrderStatus,
+        changed_by_user_id: int | None = None,
     ) -> Order:
         """Move an order to a new status.
 
@@ -87,6 +90,8 @@ class OrderService:
         Args:
             order_id: The internal primary key of the order.
             new_status: The status to move the order to.
+            changed_by_user_id: The user making the change, recorded in the
+                status history.
 
         Raises:
             HTTPException: 404 if no order exists with that id.
@@ -95,7 +100,9 @@ class OrderService:
             The updated Order, with updated_at refreshed.
         """
         order = self.get_order(order_id)
-        return self.repository.update_status(order, new_status)
+        return self.repository.update_status(
+            order, new_status, changed_by_user_id=changed_by_user_id
+        )
 
     def get_status_history(self, order_id: uuid.UUID) -> list[OrderStatusHistory]:
         """List an order's status transitions, most recent first.

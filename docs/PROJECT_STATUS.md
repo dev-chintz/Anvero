@@ -44,8 +44,7 @@ against a real account. Both need steps only the project owner can take.
 
 - Order list and details — done
 - Filtering by source, status and date — done
-- Change history — done (status transitions; no author, since the orders
-  endpoints have no authentication yet)
+- Change history — done (status transitions and who made them)
 - Sample data — done (`backend/scripts/generate_sample_data.py --force`)
 
 ---

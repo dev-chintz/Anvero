@@ -7,11 +7,20 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
 from app.core.config import settings
+from app.core.security import create_access_token
 from app.db.base import Base
 from app.db.session import get_db
 from app.main import app
+from app.repositories.user_repository import UserRepository
+from app.schemas.user import UserCreate
+from app.services.user_service import UserService
 
+# `client` acts as a logged-in operator (see setup_module); `anonymous` never
+# sends a token, to prove the endpoints refuse it
 client = TestClient(app)
+anonymous = TestClient(app)
+
+OPERATOR_EMAIL = "operator@example.com"
 
 SQLALCHEMY_DATABASE_URL = settings.database_url
 
@@ -40,8 +49,18 @@ app.dependency_overrides[get_db] = override_get_db
 
 
 def setup_module():
-    """Create test database tables."""
+    """Create test database tables and log the test client in."""
     Base.metadata.create_all(bind=engine)
+    db = TestingSessionLocal()
+    try:
+        operator = UserService(UserRepository(db)).create_user(
+            UserCreate(email=OPERATOR_EMAIL, password="operator-password-123")
+        )
+        # minted directly rather than through /auth/login: login has its own
+        # tests, and this module is about what a logged-in user can do
+        client.headers["Authorization"] = f"Bearer {create_access_token(operator.id)}"
+    finally:
+        db.close()
 
 
 def teardown_module():
@@ -59,6 +78,27 @@ def _order_payload(**overrides):
     }
     payload.update(overrides)
     return payload
+
+
+def test_every_order_endpoint_refuses_an_anonymous_request():
+    """Regression: the orders API was open to anyone who could reach it."""
+    some_id = "00000000-0000-0000-0000-000000000000"
+    requests = [
+        ("get", "/api/v1/orders", None),
+        ("get", "/api/v1/orders/stats", None),
+        ("get", f"/api/v1/orders/{some_id}", None),
+        ("get", f"/api/v1/orders/{some_id}/history", None),
+        ("patch", f"/api/v1/orders/{some_id}/status", {"status": "SHIPPED"}),
+        ("post", "/api/v1/orders", _order_payload(external_id="ANON-1")),
+    ]
+
+    for method, path, body in requests:
+        response = getattr(anonymous, method)(path, **({"json": body} if body else {}))
+        assert response.status_code == 401, f"{method.upper()} {path}"
+
+
+def test_health_stays_public():
+    assert anonymous.get("/api/v1/health").status_code == 200
 
 
 def test_list_orders_empty():
@@ -206,6 +246,20 @@ def test_status_change_is_recorded_in_history():
     assert history[0]["to_status"] == "SHIPPED"
     assert history[1]["from_status"] == "NEW"
     assert history[1]["to_status"] == "CONFIRMED"
+
+
+def test_history_records_who_made_the_change():
+    """Deferred until logins existed; see DECISIONS.md."""
+    created = client.post(
+        "/api/v1/orders", json=_order_payload(external_id="HIST-AUTHOR")
+    ).json()
+
+    client.patch(
+        f"/api/v1/orders/{created['id']}/status", json={"status": "CONFIRMED"}
+    )
+    history = client.get(f"/api/v1/orders/{created['id']}/history").json()
+
+    assert history[0]["changed_by"] == OPERATOR_EMAIL
 
 
 def test_history_is_empty_for_an_unchanged_order():

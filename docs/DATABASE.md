@@ -37,8 +37,9 @@ All timestamps are stored in UTC. SQLite keeps no zone and returns them naive;
 the API attaches UTC on the way out.
 
 `order_status_history` matches the target: `order_id`, `from_status`,
-`to_status`, `changed_at`. It records no author — the orders endpoints have
-no authentication yet.
+`to_status`, `changed_at`, plus `changed_by_user_id`, a nullable reference to
+`users` that becomes null if the account is deleted, so the history outlives
+the user. Entries made before logins existed have no author.
 
 `integration_credentials` is not in the target table above; it is the first
 piece of `integration`. Allegro rotates its refresh token on every use, so

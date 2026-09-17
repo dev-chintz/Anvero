@@ -53,6 +53,9 @@ class OrderStatusHistoryRead(BaseModel):
     from_status: OrderStatus
     to_status: OrderStatus
     changed_at: UtcDateTime
+    # email of the user who made the change; null for changes recorded before
+    # logins existed, or whose account has since been deleted
+    changed_by: str | None = Field(default=None, validation_alias="changed_by_email")
 
     model_config = ConfigDict(from_attributes=True)
 

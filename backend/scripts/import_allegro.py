@@ -8,9 +8,9 @@ The client id and secret come from the environment. The refresh token is
 seeded from the environment too, but Allegro replaces it on every use, so the
 current one is kept in the database; see docs/INTEGRATIONS.md.
 
-This is a script rather than an HTTP endpoint on purpose: the orders
-endpoints carry no authentication yet, so an unauthenticated route that makes
-outbound calls to a third party would be an obvious thing to abuse.
+It is a script because it predates the API login: an open route making
+outbound calls to a third party would have been easy to abuse. Now that the
+orders API requires a login it can become an endpoint; see DECISIONS.md.
 """
 
 import argparse

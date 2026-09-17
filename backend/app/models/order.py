@@ -16,6 +16,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.types import Uuid
 
 from app.db.base import Base
+from app.models.user import User  # noqa: F401 -- resolves the "User" relationship
 
 
 class OrderSource(str, enum.Enum):
@@ -150,4 +151,16 @@ class OrderStatusHistory(Base):
         nullable=False,
     )
 
+    # Who made the change. Null for entries recorded before logins existed, and
+    # if the account is later deleted: the history must outlive the user.
+    changed_by_user_id: Mapped[int | None] = mapped_column(
+        ForeignKey("users.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+
     order: Mapped["Order"] = relationship(back_populates="status_history")
+    changed_by: Mapped["User | None"] = relationship()
+
+    @property
+    def changed_by_email(self) -> str | None:
+        return self.changed_by.email if self.changed_by is not None else None
