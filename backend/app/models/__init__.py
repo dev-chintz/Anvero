@@ -1,3 +1,4 @@
+from app.models.integration import IntegrationCredential
 from app.models.order import (
     Order,
     OrderSource,
@@ -7,6 +8,7 @@ from app.models.order import (
 from app.models.user import User
 
 __all__ = [
+    "IntegrationCredential",
     "Order",
     "OrderSource",
     "OrderStatus",

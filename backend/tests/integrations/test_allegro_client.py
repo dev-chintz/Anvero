@@ -5,7 +5,9 @@ import pytest
 
 from app.integrations.allegro.client import ACCEPT_HEADER, AllegroClient
 from app.integrations.base import (
+    InMemoryRefreshTokenStore,
     IntegrationAuthError,
+    IntegrationError,
     IntegrationNotConfigured,
     IntegrationUnavailable,
 )
@@ -176,6 +178,69 @@ def test_a_server_error_is_reported_as_unavailable():
 
     with pytest.raises(IntegrationUnavailable, match="503"):
         _client(handler).fetch_checkout_forms()
+
+
+def _rotating_token_handler(seen_refresh_tokens):
+    """Token endpoint that rotates the refresh token like Allegro does."""
+
+    def handler(request: httpx2.Request) -> httpx2.Response:
+        if request.url.path == "/token":
+            body = dict(
+                pair.split("=", 1) for pair in request.content.decode().split("&")
+            )
+            used = body["refresh_token"]
+            seen_refresh_tokens.append(used)
+            return httpx2.Response(
+                200,
+                json={
+                    "access_token": f"access-for-{used}",
+                    "refresh_token": f"{used}-next",
+                    "expires_in": 43200,
+                },
+            )
+        return httpx2.Response(200, json={"checkoutForms": []})
+
+    return handler
+
+
+def test_the_rotated_refresh_token_is_used_on_the_next_run():
+    """Regression: the rotated token was discarded, so a second run posted the
+    original token, which Allegro invalidates a minute after first use."""
+    seen = []
+    store = InMemoryRefreshTokenStore("refresh")
+
+    # two clients sharing one store stand in for two separate runs
+    _client(_rotating_token_handler(seen), token_store=store).fetch_checkout_forms()
+    _client(_rotating_token_handler(seen), token_store=store).fetch_checkout_forms()
+
+    assert seen == ["refresh", "refresh-next"]
+    assert store.current() == "refresh-next-next"
+
+
+def test_a_response_without_a_new_refresh_token_leaves_the_store_alone():
+    store = InMemoryRefreshTokenStore("refresh")
+
+    def handler(request: httpx2.Request) -> httpx2.Response:
+        if request.url.path == "/token":
+            return _token_response()
+        return httpx2.Response(200, json={"checkoutForms": []})
+
+    _client(handler, token_store=store).fetch_checkout_forms()
+
+    assert store.current() == "refresh"
+
+
+def test_failing_to_store_the_rotated_token_stops_with_a_clear_error():
+    """The old token is already dying, so this must not pass silently."""
+
+    class BrokenStore(InMemoryRefreshTokenStore):
+        def save(self, token: str) -> None:
+            raise RuntimeError("disk full")
+
+    with pytest.raises(IntegrationError, match="authorizing again"):
+        _client(
+            _rotating_token_handler([]), token_store=BrokenStore("refresh")
+        ).fetch_checkout_forms()
 
 
 def test_a_non_json_token_response_is_reported_as_unavailable():

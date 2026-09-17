@@ -63,6 +63,29 @@ carry no authentication yet; an unauthenticated route making outbound calls
 to a third party would be an obvious thing to abuse. It becomes an endpoint
 when auth is wired in.
 
+### Refresh token rotation
+
+Allegro rotates the refresh token on **every** use: each refresh returns a
+new refresh token, valid for three months, and the one just used stops
+working about 60 seconds later. The token in `.env` therefore works exactly
+once.
+
+The import handles this by storing each rotated token in the database table
+`integration_credentials` the moment it is issued, and reading it back on the
+next run. `ALLEGRO_REFRESH_TOKEN` only seeds that chain.
+
+After authorizing again, put the new token in `.env` as before. The stored
+chain remembers a fingerprint of the token it started from, so a different
+token in `.env` is recognised as a fresh authorization and replaces the stale
+chain automatically.
+
+**Run imports from one machine only.** The database is per machine, so each
+machine keeps its own chain. If two machines start from the same `.env`
+token, the first run rotates it and the second machine's copy dies a minute
+later. To import from another machine, authorize the application separately
+there. Whether Allegro keeps two separate authorizations of one application
+valid side by side has not been checked.
+
 ### Status mapping
 
 Allegro tracks two axes and Anvero has one, so the status is derived from
@@ -103,18 +126,18 @@ the whole order. `lineItems[].price` is a **unit** price and excludes
 delivery, so it cannot serve as a total, and `payment.paidAmount` is what has
 been paid so far — zero on an unpaid order, which the domain model rejects.
 
-An order missing a buyer email or a summary cannot be expressed as an Anvero
-order. Those are skipped and logged, so one malformed order does not cost the
-rest of the page.
+An order missing a buyer email or a summary, or failing the domain model's
+own validation (an email it rejects, a total with more than two decimal
+places), cannot be expressed as an Anvero order. Those are skipped and logged
+by field name — never by value, since the values include buyer emails — so
+one malformed order does not cost the rest of the page.
 
 ### Known limits
 
-- **The refresh token expires after about 3 months.** Allegro issues a new
-  one on each refresh, but the client reads it from the environment and has
-  nowhere to write a rotated value back to — persisting it needs the
-  `integration` table that `DATABASE.md` describes and that does not exist
-  yet. Until then the token has to be renewed by hand, and the import will
-  fail with "the application needs authorizing again" when it lapses.
+- **An unused token chain lapses after three months.** Each rotation grants
+  three more, so importing at least that often keeps it alive; otherwise
+  authorize again. The stored token sits in plain text in the local database
+  file, the same exposure as `.env`.
 - Only orders are imported. Line items, buyer details, delivery and payment
   are read from the payload but not stored; Anvero has no tables for them.
 - One page per run. There is no cursor, so a full backfill means calling the

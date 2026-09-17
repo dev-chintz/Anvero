@@ -1,8 +1,9 @@
 """HTTP client for the Allegro REST API.
 
 Reading a seller's orders requires a token issued in a user context, so this
-client refreshes a long-lived refresh token obtained once by hand rather than
-using the client-credentials flow, which only reaches public data.
+client works from a refresh token obtained once by hand rather than the
+client-credentials flow, which only reaches public data. Allegro rotates that
+token on every use, so it is read from and written back to a RefreshTokenStore.
 """
 
 import logging
@@ -13,9 +14,12 @@ import httpx2
 
 from app.core.config import settings
 from app.integrations.base import (
+    InMemoryRefreshTokenStore,
     IntegrationAuthError,
+    IntegrationError,
     IntegrationNotConfigured,
     IntegrationUnavailable,
+    RefreshTokenStore,
 )
 
 logger = logging.getLogger(__name__)
@@ -56,12 +60,13 @@ class AllegroClient:
         api_url: str | None = None,
         auth_url: str | None = None,
         http_client: httpx2.Client | None = None,
+        token_store: RefreshTokenStore | None = None,
     ):
         self._client_id = client_id if client_id is not None else settings.allegro_client_id
         self._client_secret = (
             client_secret if client_secret is not None else settings.allegro_client_secret
         )
-        self._refresh_token = (
+        self._token_store = token_store or InMemoryRefreshTokenStore(
             refresh_token if refresh_token is not None else settings.allegro_refresh_token
         )
         self._api_url = (api_url or settings.allegro_api_url).rstrip("/")
@@ -73,7 +78,7 @@ class AllegroClient:
 
     @property
     def is_configured(self) -> bool:
-        return bool(self._client_id and self._client_secret and self._refresh_token)
+        return bool(self._client_id and self._client_secret and self._token_store.current())
 
     def _require_configuration(self) -> None:
         if not self.is_configured:
@@ -87,13 +92,14 @@ class AllegroClient:
             return self._access_token
 
         self._require_configuration()
+        refresh_token = self._token_store.current()
         try:
             response = self._http.post(
                 f"{self._auth_url}/token",
                 auth=httpx2.BasicAuth(self._client_id, self._client_secret),
                 data={
                     "grant_type": "refresh_token",
-                    "refresh_token": self._refresh_token,
+                    "refresh_token": refresh_token,
                 },
             )
         except httpx2.RequestError as exc:
@@ -115,6 +121,20 @@ class AllegroClient:
         token = payload.get("access_token")
         if not token:
             raise IntegrationAuthError("Allegro returned no access_token")
+
+        # the token just used stops working about a minute from now; record
+        # its replacement before anything else can fail, or the next run has
+        # nothing valid left to start from
+        rotated = payload.get("refresh_token")
+        if rotated and rotated != refresh_token:
+            try:
+                self._token_store.save(rotated)
+            except Exception as exc:
+                raise IntegrationError(
+                    "Allegro issued a new refresh token that could not be stored; "
+                    "the previous one is now invalid, so the application needs "
+                    "authorizing again"
+                ) from exc
 
         self._access_token = token
         self._expires_at = (

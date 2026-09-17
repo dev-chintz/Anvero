@@ -1,5 +1,24 @@
 # Decision Log
 
+## 2026-09-17 — Rotated Allegro Refresh Tokens Live in the Database
+
+**Decision:** Each refresh token Allegro issues is written to
+`integration_credentials` immediately, in its own commit, and read back on the
+next run. `.env` only seeds the chain; a stored SHA-256 fingerprint of that
+seed tells a re-authorization (different `.env` token) apart from the normal
+case, so the fresh token replaces the stale chain.
+
+**Rationale:** Allegro invalidates a refresh token about 60 seconds after it
+is used and returns a replacement. The client used to discard the replacement
+and read `.env` again, so every import after the first failed and needed a
+manual re-authorization. The database was chosen over a token file because
+it already holds the data the credential belongs to and is the start of the
+`integration` entity in `DATABASE.md`. If the replacement cannot be stored the
+run stops with an explicit error, since the old token is already dying.
+
+A consequence for multi-machine work: each machine's database holds its own
+chain, so imports should run from one machine.
+
 ## 2026-09-17 — Pre-Commit Checks as a Git Hook
 
 **Decision:** Tests and type-checking run from a git pre-commit hook in

@@ -4,8 +4,9 @@
 Usage:
     python scripts/import_allegro.py [--limit N] [--offset N]
 
-Credentials come from the environment; see docs/INTEGRATIONS.md for the
-one-time authorization that produces the refresh token.
+The client id and secret come from the environment. The refresh token is
+seeded from the environment too, but Allegro replaces it on every use, so the
+current one is kept in the database; see docs/INTEGRATIONS.md.
 
 This is a script rather than an HTTP endpoint on purpose: the orders
 endpoints carry no authentication yet, so an unauthenticated route that makes
@@ -19,17 +20,23 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
+from app.core.config import settings
 from app.core.logging import setup_logging
 from app.db.session import SessionLocal
 from app.integrations.allegro import AllegroAdapter
-from app.integrations.allegro.client import MAX_PAGE_SIZE
+from app.integrations.allegro.client import MAX_PAGE_SIZE, AllegroClient
 from app.integrations.base import (
     IntegrationAuthError,
     IntegrationError,
     IntegrationNotConfigured,
 )
+from app.models.order import OrderSource
+from app.repositories.integration_credential_repository import (
+    IntegrationCredentialRepository,
+)
 from app.repositories.order_repository import OrderRepository
 from app.services.order_import_service import OrderImportService
+from app.services.refresh_token_store import DatabaseRefreshTokenStore
 
 logger = logging.getLogger(__name__)
 
@@ -67,7 +74,15 @@ def main() -> int:
 
     db = SessionLocal()
     try:
-        service = OrderImportService(OrderRepository(db), AllegroAdapter())
+        # Allegro rotates the refresh token on every use, so the rotated one is
+        # kept in the database for the next run rather than read from .env
+        token_store = DatabaseRefreshTokenStore(
+            IntegrationCredentialRepository(db),
+            provider=OrderSource.ALLEGRO.value,
+            configured_token=settings.allegro_refresh_token,
+        )
+        client = AllegroClient(token_store=token_store)
+        service = OrderImportService(OrderRepository(db), AllegroAdapter(client=client))
         result = service.import_orders(limit=args.limit, offset=args.offset)
     except IntegrationNotConfigured as exc:
         print(f"Allegro is not configured: {exc}", file=sys.stderr)

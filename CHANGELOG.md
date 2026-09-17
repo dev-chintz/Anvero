@@ -6,6 +6,21 @@ All significant changes to the Anvero project.
 
 ## 2026-09-17
 
+### 🔧 Fixed — Allegro integration (found by code review)
+
+- **The import worked only once.** Allegro returns a new refresh token on
+  every refresh and invalidates the used one about 60 seconds later; the
+  client discarded the new one and re-read `.env`, so the second run was
+  refused. Rotated tokens are now stored in `integration_credentials` the
+  moment they are issued. A new token in `.env` is recognised as a fresh
+  authorization. The 2026-09-16 entry's claim that the token lasts about three
+  months was wrong once the token had been used.
+- An order failing the domain model's validation (e.g. an email it rejects)
+  raised pydantic's `ValidationError`, which bypassed the per-order skip and
+  lost the whole page. It is now skipped and logged by field name.
+- A 200 response that is not a JSON object ended the import in a traceback;
+  it is now reported as the integration being unavailable.
+
 ### ✨ Added
 
 - Pre-commit hook in `.githooks/`: backend tests for commits touching

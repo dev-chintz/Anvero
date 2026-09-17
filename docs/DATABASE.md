@@ -16,8 +16,9 @@ The model will be deployed via migrations after framework selection, but a commo
 
 ## Implemented so far
 
-Migrations currently create `users`, `orders` and `order_status_history`.
-Everything else in the table above is still a target.
+Migrations currently create `users`, `orders`, `order_status_history` and
+`integration_credentials`. Everything else in the table above is still a
+target.
 
 `orders` deviates from the target shape while there are no integrations to
 point at:
@@ -31,3 +32,18 @@ point at:
 `order_status_history` matches the target: `order_id`, `from_status`,
 `to_status`, `changed_at`. It records no author — the orders endpoints have
 no authentication yet.
+
+`integration_credentials` is not in the target table above; it is the first
+piece of `integration`. Allegro rotates its refresh token on every use, so
+the latest token has to be kept between runs:
+
+| Column | Meaning |
+| --- | --- |
+| `provider` | primary key, e.g. `ALLEGRO` |
+| `refresh_token` | the most recently issued refresh token |
+| `seed_fingerprint` | SHA-256 of the `.env` token the chain started from; a different `.env` token means a fresh authorization |
+| `updated_at` | last rotation |
+
+The rule above about credentials is read as "never committed to Git and never
+logged": the token lives only in the local, git-ignored database file, as it
+already did in the git-ignored `.env`.

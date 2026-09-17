@@ -1,0 +1,100 @@
+import httpx2
+import pytest
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+from sqlalchemy.pool import StaticPool
+
+from app.db.base import Base
+from app.integrations.allegro.client import AllegroClient
+from app.repositories.integration_credential_repository import (
+    IntegrationCredentialRepository,
+)
+from app.services.refresh_token_store import DatabaseRefreshTokenStore
+
+
+@pytest.fixture
+def session():
+    engine = create_engine(
+        "sqlite://",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
+    Base.metadata.create_all(bind=engine)
+    db = sessionmaker(bind=engine, autoflush=False, autocommit=False)()
+    try:
+        yield db
+    finally:
+        db.close()
+        Base.metadata.drop_all(bind=engine)
+
+
+def _store(session, configured="env-token"):
+    return DatabaseRefreshTokenStore(
+        IntegrationCredentialRepository(session),
+        provider="ALLEGRO",
+        configured_token=configured,
+    )
+
+
+def test_the_environment_token_seeds_the_first_run(session):
+    assert _store(session).current() == "env-token"
+
+
+def test_a_rotated_token_outlives_the_process(session):
+    _store(session).save("rotated-1")
+
+    # a fresh store over the same database is the next run
+    assert _store(session).current() == "rotated-1"
+
+
+def test_a_new_environment_token_replaces_a_stale_chain(session):
+    """Authorizing again puts a new token in .env; the stored chain descends
+    from the old one and must not win over it."""
+    _store(session, configured="env-token").save("rotated-1")
+
+    assert _store(session, configured="reauthorized").current() == "reauthorized"
+
+
+def test_the_chain_continues_after_re_authorization(session):
+    _store(session, configured="env-token").save("rotated-1")
+    _store(session, configured="reauthorized").save("rotated-2")
+
+    assert _store(session, configured="reauthorized").current() == "rotated-2"
+
+
+def test_removing_the_environment_token_keeps_the_stored_chain(session):
+    _store(session, configured="env-token").save("rotated-1")
+
+    assert _store(session, configured="").current() == "rotated-1"
+
+
+def test_two_import_runs_against_one_database(session):
+    """End to end: the second run must present the token the first run was
+    given, not the one in the environment."""
+    posted = []
+
+    def handler(request: httpx2.Request) -> httpx2.Response:
+        if request.url.path == "/token":
+            body = dict(p.split("=", 1) for p in request.content.decode().split("&"))
+            posted.append(body["refresh_token"])
+            return httpx2.Response(
+                200,
+                json={
+                    "access_token": "access",
+                    "refresh_token": f"{body['refresh_token']}-next",
+                    "expires_in": 43200,
+                },
+            )
+        return httpx2.Response(200, json={"checkoutForms": []})
+
+    for _ in range(2):
+        AllegroClient(
+            client_id="id",
+            client_secret="secret",
+            api_url="https://api.test",
+            auth_url="https://auth.test",
+            http_client=httpx2.Client(transport=httpx2.MockTransport(handler)),
+            token_store=_store(session),
+        ).fetch_checkout_forms()
+
+    assert posted == ["env-token", "env-token-next"]
