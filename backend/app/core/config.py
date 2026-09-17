@@ -7,6 +7,26 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+# values shipped in examples or typed in a hurry; a token signed with any of
+# these can be forged by anyone who has read this repository
+_PLACEHOLDER_SECRET_KEYS = {"", "change_me", "changeme", "secret", "secret_key"}
+MIN_SECRET_KEY_LENGTH = 32
+
+
+def ensure_secret_key(value: str) -> None:
+    """Refuse to run the API with a signing key an attacker could guess.
+
+    Checked when the API starts rather than when settings load, so migrations
+    and scripts that never sign a token keep working on a fresh machine.
+    """
+    if value.strip().lower() in _PLACEHOLDER_SECRET_KEYS or len(value) < MIN_SECRET_KEY_LENGTH:
+        raise RuntimeError(
+            "SECRET_KEY is missing, a placeholder, or shorter than "
+            f"{MIN_SECRET_KEY_LENGTH} characters. Anyone knowing it can sign a "
+            "valid login token. Run scripts\\bootstrap.ps1, which generates one, "
+            "or set a long random value in backend/.env."
+        )
+
 
 class Settings(BaseSettings):
     app_name: str = Field(default="Anvero API")
@@ -22,6 +42,10 @@ class Settings(BaseSettings):
 
     database_url: str = Field(default="")
     secret_key: str = Field(default="")
+
+    # a working day: one login per day, and a stolen token is dead by evening.
+    # There is no revocation, so longer means a leaked token lives longer.
+    access_token_expire_minutes: int = Field(default=480, gt=0)
 
     # slowapi limit string format, e.g. "5/minute". See https://limits.readthedocs.io/en/stable/quickstart.html#rate-limit-string-notation
     rate_limit_login: str = Field(default="5/minute")

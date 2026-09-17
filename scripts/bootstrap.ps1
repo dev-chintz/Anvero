@@ -133,6 +133,48 @@ if (!(Test-Path $envFile) -and (Test-Path $envExample)) {
 
 }
 
+# SECRET_KEY
+#
+# The API refuses to start with an empty or placeholder signing key, since
+# anyone who knows the key can forge a login. Generate one per machine; only
+# an empty or known-placeholder value is replaced, never a real key.
+
+if (Test-Path $envFile) {
+
+    $envLines = @(Get-Content $envFile)
+    $placeholders = @("", "change_me", "changeme", "secret", "secret_key")
+    $index = -1
+    for ($i = 0; $i -lt $envLines.Count; $i++) {
+        if ($envLines[$i] -match '^\s*SECRET_KEY\s*=') { $index = $i; break }
+    }
+
+    $current = $null
+    if ($index -ge 0) {
+        $current = ($envLines[$index] -replace '^\s*SECRET_KEY\s*=', '').Trim()
+    }
+
+    if ($index -lt 0 -or $placeholders -contains $current.ToLower()) {
+        $bytes = New-Object byte[] 48
+        [System.Security.Cryptography.RandomNumberGenerator]::Create().GetBytes($bytes)
+        $newKey = [Convert]::ToBase64String($bytes).TrimEnd('=').Replace('+', '-').Replace('/', '_')
+
+        if ($index -ge 0) {
+            $envLines[$index] = "SECRET_KEY=$newKey"
+        }
+        else {
+            $envLines += "SECRET_KEY=$newKey"
+        }
+        # UTF-8 without BOM, so the settings loader reads the first line cleanly
+        [System.IO.File]::WriteAllLines($envFile, [string[]]$envLines, (New-Object System.Text.UTF8Encoding $false))
+
+        Write-Host "[OK] Generated a random SECRET_KEY in .env" -ForegroundColor Green
+    }
+    else {
+        Write-Host "[OK] SECRET_KEY already set" -ForegroundColor Green
+    }
+
+}
+
 # Git hooks
 #
 # Hooks under .git/hooks are not versioned, so the project keeps them in

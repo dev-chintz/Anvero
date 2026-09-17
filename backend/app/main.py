@@ -4,11 +4,14 @@ from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
 
 from app.api.v1.router import router as api_router
-from app.core.config import settings
+from app.core.config import ensure_secret_key, settings
 from app.core.logging import setup_logging
 from app.core.rate_limit import limiter
 
 setup_logging()
+
+# before anything can sign or accept a token
+ensure_secret_key(settings.secret_key)
 
 app = FastAPI(
     title=settings.app_name,

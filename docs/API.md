@@ -19,8 +19,21 @@ are days in the business timezone, `BUSINESS_TIMEZONE`, default
 | `GET` | `/api/v1/orders/{id}/history` | status change history |
 | `POST` | `/api/v1/orders` | create an order — local testing until marketplace ingestion exists |
 | `POST` | `/api/v1/auth/login` | obtain a JWT; rate limited to 5 attempts per minute per IP |
-| `POST` | `/api/v1/users/register` | register a user |
 | `GET` | `/api/v1/users/me` | current user |
+
+There is no registration endpoint. Accounts are created on the server with
+`scripts/create_user.py`; see `DECISIONS.md`.
+
+## `POST /api/v1/auth/login`
+
+Body: `{"email": "...", "password": "..."}`. Returns
+`{"access_token": "...", "token_type": "bearer"}`. Send the token as
+`Authorization: Bearer <token>`. It lasts `ACCESS_TOKEN_EXPIRE_MINUTES`,
+default 480 (a working day), and cannot be revoked early.
+
+A wrong password, an unknown email and a deactivated account all return the
+same `401 {"detail": "Invalid credentials"}`, taking comparable time, so the
+response does not reveal which emails have accounts.
 
 ## Planned
 

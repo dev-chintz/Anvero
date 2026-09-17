@@ -34,11 +34,11 @@ def verify_password(password: str, hashed_password: str) -> bool:
 
 
 def create_access_token(user_id: int) -> str:
-    expire = datetime.now(timezone.utc) + timedelta(minutes=30)
+    issued = datetime.now(timezone.utc)
     payload: dict[str, str | datetime] = {
         "sub": str(user_id),
-        "exp": expire,
-        "iat": datetime.now(timezone.utc),
+        "exp": issued + timedelta(minutes=settings.access_token_expire_minutes),
+        "iat": issued,
     }
     return jwt.encode(payload, settings.secret_key, algorithm="HS256")
 

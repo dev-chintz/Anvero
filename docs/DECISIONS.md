@@ -1,5 +1,21 @@
 # Decision Log
 
+## 2026-09-17 — Accounts Are Created by Script; Logins Last a Working Day
+
+**Decision:** There is no registration endpoint; `scripts/create_user.py`
+creates accounts. A login token lasts `ACCESS_TOKEN_EXPIRE_MINUTES`, default
+480. The API refuses to start unless `SECRET_KEY` is at least 32 characters
+and not a known placeholder, and `bootstrap.ps1` generates one per machine.
+Chosen by the project owner for registration and session length.
+
+**Rationale:** With open registration, anyone who can reach the API could give
+themselves an account, so protecting the orders endpoints would protect
+nothing. Eight hours means one login per working day while a stolen token
+still dies by evening; tokens cannot be revoked, so longer would widen that
+window. The signing key shipped as `CHANGE_ME`, with an empty default, and
+anyone who knows the key can sign a token for any user — enforcing it was a
+precondition for the login meaning anything.
+
 ## 2026-09-17 — Order Date Is Its Own Column; Days Are Business-Timezone Days
 
 **Decision:** Orders have `ordered_at` (when the buyer placed the order)

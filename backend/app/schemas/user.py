@@ -1,6 +1,8 @@
-from pydantic import BaseModel, ConfigDict, EmailStr
+from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
 from app.schemas.types import UtcDateTime
+
+MIN_PASSWORD_LENGTH = 12
 
 
 class UserBase(BaseModel):
@@ -8,7 +10,7 @@ class UserBase(BaseModel):
 
 
 class UserCreate(UserBase):
-    password: str
+    password: str = Field(min_length=MIN_PASSWORD_LENGTH)
 
 
 class UserRead(UserBase):

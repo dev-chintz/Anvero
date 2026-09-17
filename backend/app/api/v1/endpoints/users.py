@@ -1,25 +1,18 @@
 from typing import TYPE_CHECKING
 
 from fastapi import APIRouter, Depends
-from sqlalchemy.orm import Session
 
 from app.core.security import get_current_user
-from app.db.session import get_db
-from app.repositories.user_repository import UserRepository
-from app.schemas.user import UserCreate, UserRead
-from app.services.user_service import UserService
+from app.schemas.user import UserRead
 
 if TYPE_CHECKING:
     from app.models.user import User
 
 router = APIRouter(prefix="/users", tags=["Users"])
 
-
-@router.post("/register", response_model=UserRead)
-def register(user: UserCreate, db: Session = Depends(get_db)):
-    service = UserService(UserRepository(db))
-    new_user = service.create_user(user)
-    return new_user
+# There is deliberately no registration endpoint. With one, anyone who can
+# reach the API could create an account and pass every login check. Accounts
+# are created with scripts/create_user.py.
 
 
 @router.get("/me", response_model=UserRead)

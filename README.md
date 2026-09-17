@@ -41,7 +41,8 @@ npm install
 ```
 
 `bootstrap` created `backend/.env` from `backend/.env.example`, which uses a
-local SQLite file, so no database server is needed. Neither `.env` nor the
+local SQLite file, so no database server is needed. It also generated a random
+`SECRET_KEY`, without which the API refuses to start. Neither `.env` nor the
 database file is in Git; each machine builds its own.
 
 Create the database schema and, optionally, some orders to look at:
@@ -50,6 +51,14 @@ Create the database schema and, optionally, some orders to look at:
 cd backend
 .\.venv\Scripts\alembic.exe upgrade head
 .\.venv\Scripts\python.exe scripts\generate_sample_data.py --force
+```
+
+Create an account to log in with. There is no sign-up page; the script asks
+for a password of at least 12 characters:
+
+```powershell
+cd backend
+.\.venv\Scripts\python.exe scripts\create_user.py you@example.com
 ```
 
 Then start the two servers, each in its own terminal:
