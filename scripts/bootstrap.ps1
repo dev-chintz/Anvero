@@ -133,5 +133,29 @@ if (!(Test-Path $envFile) -and (Test-Path $envExample)) {
 
 }
 
+# Git hooks
+#
+# Hooks under .git/hooks are not versioned, so the project keeps them in
+# .githooks/ and points each clone at that folder. The setting lives in the
+# clone's own config, which is why every machine needs it once.
+
+if (Get-Command git -ErrorAction SilentlyContinue) {
+
+    & git -C $projectRoot config core.hooksPath .githooks
+
+    if ($LASTEXITCODE -eq 0) {
+        Write-Host "[OK] Git hooks enabled (.githooks)" -ForegroundColor Green
+    }
+    else {
+        Write-Host "[WARNING] Could not enable git hooks; not a git clone?" -ForegroundColor Yellow
+    }
+
+}
+else {
+
+    Write-Host "[WARNING] Git not found; pre-commit checks are not enabled." -ForegroundColor Yellow
+
+}
+
 Write-Host ""
 Write-Host "Bootstrap completed successfully." -ForegroundColor Green

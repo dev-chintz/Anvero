@@ -1,5 +1,16 @@
 # Decision Log
 
+## 2026-09-17 — Pre-Commit Checks as a Git Hook
+
+**Decision:** Tests and type-checking run from a git pre-commit hook in
+`.githooks/`, not from a Claude Code hook.
+
+**Rationale:** Code was committed that did not type-check, and a setup script
+was committed that had never run. The check has to catch that whoever
+commits: work here alternates between Claude Code and Kiro, and a Claude Code
+hook would not see Kiro's commits. The hook checks only the side a commit
+touches, so documentation commits are not slowed down.
+
 ## 2026-09-17 — SQLite Is the Default Local Database
 
 **Decision:** `backend/.env.example` sets `DATABASE_URL` to a local SQLite

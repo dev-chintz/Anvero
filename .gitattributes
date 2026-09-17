@@ -1,6 +1,8 @@
 * text=auto
 
 *.sh text eol=lf
+# git hooks have no extension and run under sh, which chokes on CRLF
+.githooks/* text eol=lf
 *.py text eol=lf
 *.yml text eol=lf
 *.yaml text eol=lf

@@ -35,7 +35,17 @@ To activate the environment manually:
 
 ## Quality Control
 
-Before submitting changes, run `./scripts/doctor.ps1`, then:
+`bootstrap` enables a pre-commit hook from `.githooks/`. It runs the backend
+tests when a commit touches `backend/`, and the frontend type-check when it
+touches `frontend/`; a commit that touches neither skips both. A failing check
+blocks the commit. `git commit --no-verify` bypasses it — for emergencies,
+since the whole point is that broken code does not reach the repository.
+
+The hook applies whoever commits, including Kiro. Git does not version
+`.git/hooks`, so the hook lives in `.githooks/` and each clone is pointed at
+it with `git config core.hooksPath .githooks`, which `bootstrap` does.
+
+To run the same checks by hand, run `./scripts/doctor.ps1`, then:
 
 ```powershell
 cd backend

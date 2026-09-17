@@ -1,0 +1,51 @@
+#!/bin/sh
+# Blocks a commit whose backend tests fail or whose frontend does not
+# type-check. Only the side that has staged changes is checked, so a
+# documentation-only commit stays instant.
+#
+# Enabled per clone by `git config core.hooksPath .githooks`, which
+# scripts/bootstrap.ps1 sets. Bypass in an emergency with
+# `git commit --no-verify`.
+#
+# Checks run against the working tree, not the staged snapshot, so unstaged
+# edits can make a check pass or fail on their own.
+
+root="$(git rev-parse --show-toplevel)" || exit 1
+staged="$(git diff --cached --name-only --diff-filter=ACMRD)"
+
+failed=0
+
+if printf '%s\n' "$staged" | grep -q '^backend/'; then
+    python="$root/backend/.venv/Scripts/python.exe"
+    [ -x "$python" ] || python="$root/backend/.venv/bin/python"
+    if [ ! -x "$python" ]; then
+        echo "pre-commit: backend/.venv not found; run scripts/bootstrap.ps1" >&2
+        exit 1
+    fi
+
+    echo "pre-commit: backend tests..."
+    if ! (cd "$root/backend" && "$python" -m pytest -q -p no:cacheprovider >/tmp/anvero-pytest.log 2>&1); then
+        tail -n 30 /tmp/anvero-pytest.log >&2
+        echo "pre-commit: backend tests failed" >&2
+        failed=1
+    fi
+fi
+
+if printf '%s\n' "$staged" | grep -q '^frontend/'; then
+    if [ ! -d "$root/frontend/node_modules" ]; then
+        echo "pre-commit: frontend/node_modules not found; run npm install in frontend/" >&2
+        exit 1
+    fi
+
+    echo "pre-commit: frontend type-check..."
+    if ! (cd "$root/frontend" && npx tsc --noEmit); then
+        echo "pre-commit: frontend type-check failed" >&2
+        failed=1
+    fi
+fi
+
+if [ "$failed" -eq 0 ] && ! printf '%s\n' "$staged" | grep -q -e '^backend/' -e '^frontend/'; then
+    echo "pre-commit: no backend or frontend changes, checks skipped"
+fi
+
+exit "$failed"
