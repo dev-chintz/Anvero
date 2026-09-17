@@ -252,10 +252,9 @@ one malformed order does not cost the rest of the page.
   them from a different endpoint.
 - One page per run. There is no cursor, so a full backfill means calling the
   script with increasing `--offset`.
-- **Only the sandbox has been exercised, and only through the script.** On
-  2026-09-17 the authorization, the token refresh with rotation, the orders
-  endpoint and the mapping all ran against the real sandbox API, on one
-  order: paid online, one line item, a pickup point and an invoice. A
-  cancelled order, several line items, more than one page and the import
-  endpoint and button have still never called Allegro, and production has its
-  own application and credentials.
+- **Only the sandbox has been exercised.** On 2026-09-17 the authorization,
+  the token refresh with rotation, the orders endpoint and the mapping all
+  ran against the real sandbox API, from the script and from the button, on
+  one order: paid online, one line item, a pickup point and an invoice. A
+  cancelled order, several line items and more than one page have still
+  never been seen, and production has its own application and credentials.

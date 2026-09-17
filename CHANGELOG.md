@@ -21,9 +21,11 @@ All significant changes to the Anvero project.
   online PayU payment, and the delivery, pickup point and invoice addresses.
 - The sample orders were deleted from the development database first, so the
   imported one is the only order there.
+- The button on the Orders page then imported the same order a third time,
+  from the interface: 0 created, 1 updated, the stored token replaced again,
+  no duplicate. Both ways of importing have now run against the real API.
 - Still untouched by a real call: a cancelled order, several line items,
-  more than one page, the import endpoint and button, and production
-  Allegro. See `PROJECT_STATUS.md`.
+  more than one page, and production Allegro. See `PROJECT_STATUS.md`.
 
 ## 2026-09-17 (Allegro User-Agent)
 

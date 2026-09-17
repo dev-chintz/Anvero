@@ -72,8 +72,7 @@ scripts/    PowerShell helpers for the local environment
 2. The sandbox import is done: authorized and a real order imported twice on
    2026-09-17, through the script, on the SQLite machine. Production Allegro
    needs its own application, User-Agent and authorization (INTEGRATIONS.md).
-   The import also runs from the interface, but that path has never called
-   Allegro.
+   The interface button was checked against the sandbox too.
 
 ---
 

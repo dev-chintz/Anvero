@@ -99,11 +99,14 @@ payment through PayU, the delivery, pickup point and invoice addresses, and
 an invoice with a tax id. So the client, the token rotation, the orders
 endpoint and the mapper all work against the real API.
 
-What the sandbox did **not** cover: the import endpoint and the button
-(only the script has run against Allegro; their tests still replace the
-import service with a fake), a cancelled order and the flag it sets, an
-order with several line items or without a pickup point, more than one page
-of orders, and production Allegro, which has its own application,
+The same order was then imported a third time from the interface, with the
+"Import from Allegro" button: it reported 0 created and 1 updated, the
+stored refresh token was replaced again, and no duplicate appeared. So both
+ways of importing have now run against the real API.
+
+What the sandbox did **not** cover: a cancelled order and the flag it sets,
+an order with several line items or without a pickup point, more than one
+page of orders, and production Allegro, which has its own application,
 credentials and real buyers.
 
 Verified on PostgreSQL 17.10 on the main machine: every migration up, all
@@ -129,9 +132,9 @@ Sandbox. Agreed plan, in order:
    re-imported; "Not yet verified" above says what that covered. Payment
    needed no special handling: the order arrived paid, through PayU. The
    authorization lives on the SQLite machine, and the token chain is per
-   machine, so imports run from there (`INTEGRATIONS.md`). Left from this
-   step, when there is a reason: a cancelled order, an order with several
-   line items, and importing through the button rather than the script.
+   machine, so imports run from there (`INTEGRATIONS.md`). Importing from
+   the interface button was checked too. Left from this step, when there is
+   a reason: a cancelled order and an order with several line items.
 3. **Production Allegro** with the owner's seller account, same steps.
 4. **What real data will likely demand:** importing every page rather than
    one (the button fetches up to 100 orders), incremental sync from Allegro's
