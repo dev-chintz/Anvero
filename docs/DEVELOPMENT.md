@@ -5,7 +5,8 @@
 - Windows PowerShell 5.1 or PowerShell 7,
 - Git,
 - Python 3.11 or newer,
-- Node.js 20 or newer,
+- Node.js 20.19 or newer on the 20 line, or 22.12 or newer (Node 21 is not
+  supported); Vite 8 requires it, and `scripts/doctor.ps1` checks it,
 - PostgreSQL 16 or newer — not needed yet. Local development runs on SQLite;
   PostgreSQL is the target, but its migration path has never been run.
 

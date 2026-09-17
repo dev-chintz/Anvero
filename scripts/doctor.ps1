@@ -96,6 +96,50 @@ else {
 Write-Host ""
 
 # ---------------------------------------------------------
+# Node.js
+# ---------------------------------------------------------
+
+Write-Host "Node.js"
+
+$node = Get-Command node -ErrorAction SilentlyContinue
+
+if ($node) {
+
+    $nodeVersion = [version]((node --version).Trim().TrimStart("v"))
+
+    # Vite 8 requires ^20.19.0 or >=22.12.0; Node 21 is not supported
+    $nodeSupported = (($nodeVersion.Major -eq 20) -and ($nodeVersion.Minor -ge 19)) -or
+        (($nodeVersion.Major -eq 22) -and ($nodeVersion.Minor -ge 12)) -or
+        ($nodeVersion.Major -gt 22)
+
+    if ($nodeSupported) {
+        Write-Host "  [OK] Node.js $nodeVersion"
+    }
+    else {
+        Write-Host "  [ERROR] Node.js $nodeVersion is too old; the frontend needs 20.19+ or 22.12+" -ForegroundColor Red
+    }
+
+}
+else {
+
+    Write-Host "  [ERROR] Node.js not installed" -ForegroundColor Red
+
+}
+
+if (Test-Path "frontend\node_modules") {
+
+    Write-Host "  [OK] frontend\node_modules exists"
+
+}
+else {
+
+    Write-Host "  [ERROR] frontend\node_modules not found; run npm install in frontend\" -ForegroundColor Red
+
+}
+
+Write-Host ""
+
+# ---------------------------------------------------------
 # VS Code
 # ---------------------------------------------------------
 

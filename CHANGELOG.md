@@ -4,6 +4,27 @@ All significant changes to the Anvero project.
 
 ---
 
+## 2026-09-17 (night)
+
+### 🔒 Security — frontend dependencies
+
+- `npm audit` reported 4 vulnerabilities (1 high, 3 moderate); it now reports
+  none. Vite 5 → 8 with `@vitejs/plugin-react` 4 → 6, which also removes
+  esbuild from the tree, and React Router 6 → 7. See `DECISIONS.md`.
+- The frontend now needs Node.js 20.19+ or 22.12+, declared in
+  `package.json` `engines` and checked by `scripts/doctor.ps1`, which now also
+  checks that `frontend/node_modules` exists.
+- After pulling this on another machine, run `npm install` in `frontend/`.
+
+### ✅ Verification
+
+`tsc --noEmit` is clean and `npm run build` succeeds. In the browser with the
+dev server on Vite 8: opening a protected order page while logged out leads to
+the login page, the page it came from is kept in router state for the return,
+and the console shows no errors or warnings (the React Router v7 future flag
+warnings are gone). The logged-in pages were not opened, since that needs a
+login.
+
 ## 2026-09-17 (evening)
 
 ### ✨ Added — Order details

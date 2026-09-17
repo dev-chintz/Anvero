@@ -14,6 +14,9 @@ this file only points at it and records how to work here without tripping.
 4. If the pull brought new files under `backend/migrations/versions/`, run
    `alembic upgrade head` in `backend/`. Each machine has its own database, and
    code ahead of its schema fails on the first request touching a new column.
+5. If the pull changed `frontend/package-lock.json`, run `npm install` in
+   `frontend/`. `node_modules` is per machine, and a stale one fails the
+   type-check in the pre-commit hook or the dev server itself.
 
 ## Rules that are easy to miss
 

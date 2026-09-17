@@ -1,5 +1,27 @@
 # Decision Log
 
+## 2026-09-17 — Frontend Moves to Vite 8 and React Router 7
+
+**Decision:** The four `npm audit` findings were fixed by upgrading to the
+current majors, Vite 8 (with `@vitejs/plugin-react` 6) and React Router 7,
+rather than to the oldest release that clears them. The frontend now needs
+Node.js 20.19+ or 22.12+.
+
+**Rationale:** Neither finding had a fix within the installed majors. The
+Vite ones are development server issues (another website reading the dev
+server's responses through esbuild; on Windows, reading files outside the
+project past `server.fs.deny`), which matter here because the dev server runs
+on a working machine while its browser visits other sites. The React Router
+ones (an open redirect through a backslash in a link target; a server
+rendering issue this app does not use) had low exposure: the only redirect
+target the app builds comes from router state, not from the URL. Vite 7
+would also have cleared them, but it is the previous major, and taking it
+would mean a second migration soon for no saving: both need the same Node
+version, and the app's Vite configuration is small enough that the move to
+Rolldown in Vite 8 changed nothing in it. React Router 7 keeps the v6 API
+this app uses; none of its behaviour changes (relative links inside splat
+routes, state updates in transitions) touch code here.
+
 ## 2026-09-17 — Order Details Are Stored; Unreadable Details Do Not Block an Order
 
 **Decision:** Orders store their items, buyer, delivery (with pickup point),
