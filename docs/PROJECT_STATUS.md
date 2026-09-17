@@ -93,7 +93,7 @@ shapes, which catches mapping mistakes but not a contract that differs from
 its documentation. The same is true of the import endpoint and button: their
 tests replace the import service with a fake, so the endpoint's own logic
 (auth, the lock, the rate limit, error mapping) is verified, but nothing has
-exercised the path all the way through to Allegro. 
+exercised the path all the way through to Allegro.
 
 Verified against the Allegro Sandbox on 2026-09-17: the authorization
 script completed a real device flow authorization of the owner's sandbox
