@@ -38,7 +38,7 @@ breakdown; the short version:
   history.
 - Allegro adapter, import script, an import endpoint and a button, one
   import at a time.
-- 168 tests passing.
+- 175 tests passing.
 
 - PostgreSQL 17 on the main machine, with the test suite running on it;
   SQLite is the no-setup default elsewhere. Check `DATABASE_URL` in

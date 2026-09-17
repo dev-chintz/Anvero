@@ -1,5 +1,23 @@
 # Decision Log
 
+## 2026-09-17 — Logs Carry No Values: SQL Parameters Hidden, Query Strings Dropped
+
+**Decision:** The database engine always runs with `hide_parameters=True`,
+and SQL echo is its own setting, `SQL_ECHO`, off by default, instead of
+following `DEBUG`. The uvicorn access log records request paths without
+their query strings.
+
+**Rationale:** `DEBUG=true` is the `.env.example` default, and it turned on
+an echo that printed every statement with its values: buyers' names,
+addresses, phone numbers and emails, and each rotated Allegro refresh token as
+it was stored. That contradicted what `DATABASE.md` and `INTEGRATIONS.md`
+promise, and it had to go before real Allegro data arrives. Hiding the values
+at the engine rather than only switching echo off also covers database error
+messages, which carry values and end up in tracebacks. The access log leaked
+the same data another way: searching orders for a buyer's email puts it in
+the URL. The statements and paths alone are enough to see what ran; when a
+value is really needed, it belongs in a debugger, not a log.
+
 ## 2026-09-17 — PostgreSQL Is Connected; the Tests Follow TEST_DATABASE_URL
 
 **Decision:** The main machine runs on PostgreSQL 17, in a database `anvero`

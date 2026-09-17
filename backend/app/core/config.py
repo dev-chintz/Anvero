@@ -62,6 +62,10 @@ class Settings(BaseSettings):
 
     environment: Literal["development", "test", "production"] = "development"
     debug: bool = True
+    # Logs every SQL statement. Kept separate from debug so turning on one
+    # does not flood the console with the other; values are hidden either way
+    # (see app/db/session.py).
+    sql_echo: bool = False
 
     host: str = "127.0.0.1"
     port: int = 8000

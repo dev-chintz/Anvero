@@ -4,6 +4,26 @@ All significant changes to the Anvero project.
 
 ---
 
+## 2026-09-17 (last)
+
+### 🔒 Security — no personal data or tokens in logs
+
+- SQL echo followed `DEBUG`, on by default, and printed every statement's
+  values: buyers' personal data and Allegro refresh tokens. It is now a
+  separate `SQL_ECHO` setting, off by default, and the engine hides values
+  always, in the echo and in database error messages alike.
+- The access log wrote full request URLs, including search terms such as a
+  buyer's email. It now logs the path and marks a dropped query string as
+  `?...`.
+
+### ✅ Verification
+
+175 tests pass on PostgreSQL and on SQLite (7 new). With value hiding turned
+off, three of the new tests fail. A server started with `SQL_ECHO=true` was
+sent an order search containing an email and a login attempt: the log showed
+the statements with `[SQL parameters hidden due to hide_parameters=True]` and
+`GET /api/v1/orders?...`, and neither email.
+
 ## 2026-09-17 (late night)
 
 ### ✨ PostgreSQL connected (closes Sprint 2)

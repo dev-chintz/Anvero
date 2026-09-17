@@ -39,7 +39,7 @@ Other machines stay on SQLite until PostgreSQL is set up there
   remains the no-setup default for a fresh clone)
 - Health endpoint and first order model — done
 - Minimal order list interface — done
-- Automated tests for core flows — done (168 passing across the suite)
+- Automated tests for core flows — done (175 passing across the suite)
 
 ---
 
@@ -109,10 +109,9 @@ details and changing its status. Only PostgreSQL 17 has been tried.
 Run the Allegro import against a real account, starting in the Allegro
 Sandbox. Agreed plan, in order:
 
-1. **Fix SQL logging first.** With `DEBUG=true` the engine echoes statements
-   with their parameters, so buyer personal data and Allegro refresh tokens
-   reach the console (`app/db/session.py`, `echo=settings.debug`). This must
-   be fixed before any real Allegro data or token passes through.
+1. ~~**Fix SQL logging first.**~~ Done 2026-09-17: SQL echo no longer
+   follows `DEBUG` and never shows values, and the access log drops query
+   strings. See `DECISIONS.md`.
 2. **Allegro Sandbox.** A test copy of Allegro, fully separate from
    production (own accounts, no real buyers; data not backed up, offers wiped
    quarterly; the SMS code is always `123456`). The project owner creates two
