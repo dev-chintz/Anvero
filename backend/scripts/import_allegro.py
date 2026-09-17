@@ -8,9 +8,8 @@ The client id and secret come from the environment. The refresh token is
 seeded from the environment too, but Allegro replaces it on every use, so the
 current one is kept in the database; see docs/INTEGRATIONS.md.
 
-It is a script because it predates the API login: an open route making
-outbound calls to a third party would have been easy to abuse. Now that the
-orders API requires a login it can become an endpoint; see DECISIONS.md.
+This still exists alongside `POST /integrations/allegro/import`, which uses
+the same wiring (app/services/allegro_import.py); see DECISIONS.md.
 """
 
 import argparse
@@ -20,23 +19,15 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from app.core.config import settings
 from app.core.logging import setup_logging
 from app.db.session import SessionLocal
-from app.integrations.allegro import AllegroAdapter
-from app.integrations.allegro.client import MAX_PAGE_SIZE, AllegroClient
+from app.integrations.allegro.client import MAX_PAGE_SIZE
 from app.integrations.base import (
     IntegrationAuthError,
     IntegrationError,
     IntegrationNotConfigured,
 )
-from app.models.order import OrderSource
-from app.repositories.integration_credential_repository import (
-    IntegrationCredentialRepository,
-)
-from app.repositories.order_repository import OrderRepository
-from app.services.order_import_service import OrderImportService
-from app.services.refresh_token_store import DatabaseRefreshTokenStore
+from app.services.allegro_import import build_allegro_import_service
 
 logger = logging.getLogger(__name__)
 
@@ -74,15 +65,10 @@ def main() -> int:
 
     db = SessionLocal()
     try:
-        # Allegro rotates the refresh token on every use, so the rotated one is
-        # kept in the database for the next run rather than read from .env
-        token_store = DatabaseRefreshTokenStore(
-            IntegrationCredentialRepository(db),
-            provider=OrderSource.ALLEGRO.value,
-            configured_token=settings.allegro_refresh_token,
-        )
-        client = AllegroClient(token_store=token_store)
-        service = OrderImportService(OrderRepository(db), AllegroAdapter(client=client))
+        # same wiring the /integrations/allegro/import endpoint uses, so both
+        # read and rotate the one stored refresh token; see
+        # app/services/allegro_import.py
+        service = build_allegro_import_service(db)
         result = service.import_orders(limit=args.limit, offset=args.offset)
     except IntegrationNotConfigured as exc:
         print(f"Allegro is not configured: {exc}", file=sys.stderr)

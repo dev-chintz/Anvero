@@ -20,6 +20,8 @@ are days in the business timezone, `BUSINESS_TIMEZONE`, default
 | `POST` | `/api/v1/orders` | create an order — local testing until marketplace ingestion exists |
 | `POST` | `/api/v1/auth/login` | obtain a JWT; rate limited to 5 attempts per minute per IP |
 | `GET` | `/api/v1/users/me` | current user |
+| `GET` | `/api/v1/integrations/allegro` | whether Allegro is configured |
+| `POST` | `/api/v1/integrations/allegro/import` | run an Allegro import; rate limited to 6 attempts per minute per IP |
 
 There is no registration endpoint. Accounts are created on the server with
 `scripts/create_user.py`; see `DECISIONS.md`.
@@ -35,11 +37,52 @@ A wrong password, an unknown email and a deactivated account all return the
 same `401 {"detail": "Invalid credentials"}`, taking comparable time, so the
 response does not reveal which emails have accounts.
 
-## Planned
+## `GET /api/v1/integrations/allegro`
 
-| Method | Path | Meaning |
-| --- | --- | --- |
-| `GET` | `/api/v1/integrations` | connected sources list |
+Returns `{"configured": true}` or `{"configured": false}` — nothing else.
+Never returns a credential, a token or any part of one, even when configured.
+Requires a login, like every endpoint below `/api/v1` except `/health` and
+the root.
+
+## `POST /api/v1/integrations/allegro/import`
+
+Runs one page of the Allegro import (the same work as
+`scripts/import_allegro.py`) and returns its result. Body, all optional:
+
+```json
+{"limit": 100, "offset": 0}
+```
+
+`limit` is 1-100 (Allegro's own page size limit; validation rejects anything
+outside that range with `422`), `offset` is 0 or more; both default as shown.
+
+Response:
+
+```json
+{"created": 3, "updated": 5, "cancellation_warnings": 1}
+```
+
+`cancellation_warnings` counts orders newly found cancelled on Allegro while
+still active in Anvero; see the "Marketplace Cancellations Warn" entry in
+`DECISIONS.md`.
+
+Rate limited to 6 attempts per minute per IP — it makes outbound calls to
+Allegro, so allowing unlimited retries would let a client hammer a third
+party through this API. Only one import may run at a time, since Allegro
+rotates the refresh token on every use and two imports refreshing it at once
+would race; a second request while one is in flight gets `409` immediately
+rather than queueing.
+
+Error responses:
+
+| Status | When |
+| --- | --- |
+| `409` | Allegro is not configured (`ALLEGRO_CLIENT_ID`/`_SECRET`/`_REFRESH_TOKEN` missing), or an import is already running |
+| `502` | Allegro rejected the credentials, or any other integration failure (unreachable, non-JSON response, etc.) |
+| `422` | `limit` or `offset` outside their allowed range |
+
+Every error detail is a plain description; none of them include a token,
+credential or raw Allegro response.
 
 ## `GET /api/v1/orders`
 
