@@ -75,9 +75,16 @@ Write-Host ""
 
 Write-Host "Virtual Environment"
 
-if (Test-Path "backend\.venv") {
+# checking the interpreter rather than the folder: a venv built by the wrong
+# Python leaves the folder behind with nothing usable inside
+if (Test-Path "backend\.venv\Scripts\python.exe") {
 
     Write-Host "  [OK] backend\.venv exists"
+
+}
+elseif (Test-Path "backend\.venv") {
+
+    Write-Host "  [ERROR] backend\.venv is broken (no Scripts\python.exe); run scripts\bootstrap.ps1 again" -ForegroundColor Red
 
 }
 else {
