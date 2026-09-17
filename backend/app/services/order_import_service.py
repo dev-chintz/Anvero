@@ -40,7 +40,9 @@ class OrderImportService:
         An order already present keeps its Anvero status. The status is the
         operator's, set by hand and recorded in the status history; letting a
         sync overwrite it would silently undo their work. The marketplace's
-        own status is therefore only used when the order is first seen.
+        own status is therefore only applied when the order is first seen,
+        and from then on kept in `marketplace_status`, where the interface
+        can show it when the two differ.
 
         The one marketplace change that cannot wait for the operator to notice
         is a cancellation, since shipping a cancelled order costs money. It is
@@ -75,6 +77,9 @@ class OrderImportService:
                 currency=data.currency,
                 cancelled_on_marketplace=cancelled,
                 ordered_at=data.ordered_at,
+                # not applied as the status, only recorded beside it
+                marketplace_status=data.status,
+                marketplace_status_label=data.marketplace_status_label,
             )
             updated += 1
 
@@ -107,6 +112,10 @@ class OrderImportService:
             external_id=data.external_id,
             source=data.source,
             status=data.status,
+            # the same value to begin with; they part company when the
+            # operator moves one or the marketplace the other
+            marketplace_status=data.status,
+            marketplace_status_label=data.marketplace_status_label,
             customer_email=data.customer_email,
             total_amount=data.total_amount,
             currency=data.currency,

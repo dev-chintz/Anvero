@@ -117,6 +117,8 @@ class OrderDetails(BaseModel):
 
 class OrderCreate(OrderBase, OrderDetails):
     status: OrderStatus = OrderStatus.NEW
+    # the marketplace's own status, unmapped; None for a hand-made order
+    marketplace_status_label: str | None = _text(64)
     # when the buyer placed the order; omitted means "now". A value without a
     # zone is taken as UTC.
     ordered_at: UtcDateTime | None = None
@@ -132,6 +134,12 @@ class OrderRead(OrderBase):
     ordered_at: UtcDateTime
     created_at: UtcDateTime
     updated_at: UtcDateTime
+    # what the marketplace's status mapped to at the last import; the
+    # interface shows it when it differs from `status`
+    marketplace_status: OrderStatus | None = None
+    # the same status in the marketplace's own words, which keep a distinction
+    # Anvero's five statuses do not, e.g. Allegro's READY_FOR_SHIPMENT
+    marketplace_status_label: str | None = None
     marketplace_cancelled_at: UtcDateTime | None = None
 
     model_config = ConfigDict(from_attributes=True)

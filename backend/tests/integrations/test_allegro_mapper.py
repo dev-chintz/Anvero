@@ -10,6 +10,7 @@ from app.integrations.allegro.mapper import (
     map_details,
     map_ordered_at,
     map_status,
+    map_status_label,
 )
 from app.models.order import OrderSource, OrderStatus, PaymentType
 from app.schemas.order import BUYER_MESSAGE_MAX_LENGTH
@@ -185,6 +186,51 @@ def test_unknown_fulfillment_status_is_treated_as_new_work():
     form = _checkout_form(status="BOUGHT", fulfillment={"status": "SOMETHING_NEW"})
 
     assert map_status(form) is OrderStatus.NEW
+
+
+@pytest.mark.parametrize(
+    ("form_kwargs", "expected"),
+    [
+        ({"fulfillment": {"status": "READY_FOR_SHIPMENT"}}, "READY_FOR_SHIPMENT"),
+        ({"fulfillment": {"status": "PROCESSING"}}, "PROCESSING"),
+        # Allegro adds statuses; the label passes them through untranslated
+        ({"fulfillment": {"status": "SOMETHING_NEW"}}, "SOMETHING_NEW"),
+    ],
+)
+def test_the_label_keeps_allegros_own_status(form_kwargs, expected):
+    """PROCESSING and READY_FOR_SHIPMENT are both CONFIRMED in Anvero, so
+    only the label tells the operator which one Allegro means."""
+    form = _checkout_form(status="READY_FOR_PROCESSING", **form_kwargs)
+
+    assert map_status_label(form) == expected
+    assert map_status(form) is OrderStatus.CONFIRMED
+
+
+def test_the_label_falls_back_to_the_checkout_status():
+    form = _checkout_form(status="BOUGHT")
+    form.pop("fulfillment")
+
+    assert map_status_label(form) == "BOUGHT"
+
+
+def test_a_cancelled_order_is_labelled_cancelled():
+    form = _checkout_form(status="CANCELLED", fulfillment={"status": "PROCESSING"})
+
+    assert map_status_label(form) == "CANCELLED"
+
+
+def test_no_label_when_allegro_reports_no_status():
+    form = _checkout_form()
+    form.pop("fulfillment")
+    form.pop("status")
+
+    assert map_status_label(form) is None
+
+
+def test_an_over_long_label_is_shortened_to_what_the_column_holds():
+    form = _checkout_form(fulfillment={"status": "X" * 200})
+
+    assert len(map_status_label(form)) == 64
 
 
 def test_rejects_a_form_without_a_buyer_email():

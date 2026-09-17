@@ -1,6 +1,12 @@
 import { Link } from "react-router-dom";
 import type { Order } from "../types/order";
-import { OrderSource, OrderStatus, hasCancellationWarning } from "../types/order";
+import {
+  OrderSource,
+  OrderStatus,
+  hasCancellationWarning,
+  marketplaceStatusDiffers,
+  marketplaceStatusText,
+} from "../types/order";
 
 const STATUS_CLASS: Record<OrderStatus, string> = {
   [OrderStatus.NEW]: "badge badge-new",
@@ -37,6 +43,14 @@ export function OrderRow({ order }: OrderRowProps) {
         {hasCancellationWarning(order) && (
           <span className="badge badge-warning">
             ⚠ Cancelled on {order.source}
+          </span>
+        )}
+        {marketplaceStatusDiffers(order) && (
+          <span
+            className="badge badge-marketplace-status"
+            title={`${order.source} reports ${marketplaceStatusText(order)}; the status here is yours to set.`}
+          >
+            {order.source}: {marketplaceStatusText(order)}
           </span>
         )}
       </td>

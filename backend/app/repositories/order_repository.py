@@ -47,17 +47,26 @@ class OrderRepository:
         currency: str,
         cancelled_on_marketplace: bool = False,
         ordered_at: datetime | None = None,
+        marketplace_status: OrderStatus | None = None,
+        marketplace_status_label: str | None = None,
     ) -> Order:
         """Refresh the fields a marketplace owns.
 
         Deliberately excludes status: that one belongs to the operator, and a
-        sync overwriting it would undo a decision recorded in the history. A
-        marketplace cancellation is recorded beside it instead, and only the
-        first time it is seen, so the timestamp says when it was noticed.
+        sync overwriting it would undo a decision recorded in the history.
+        What the marketplace says goes to `marketplace_status` beside it, so
+        the operator can see the two diverge. A cancellation is recorded as
+        well, and only the first time it is seen, so the timestamp says when
+        it was noticed.
         """
         order.customer_email = customer_email
         order.total_amount = total_amount
         order.currency = currency
+        if marketplace_status is not None:
+            order.marketplace_status = marketplace_status
+            # kept in step with it: a label left from an earlier import would
+            # describe a status the order has moved on from
+            order.marketplace_status_label = marketplace_status_label
         if ordered_at is not None:
             order.ordered_at = self._to_db_datetime(ordered_at.astimezone(UTC))
         if cancelled_on_marketplace and order.marketplace_cancelled_at is None:

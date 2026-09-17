@@ -24,6 +24,19 @@ export interface Order {
   /** When the row was created in Anvero. */
   created_at: string;
   updated_at: string;
+  /**
+   * What the marketplace's own status mapped to at the last import. Null for
+   * an order no import has touched. It is kept beside `status` rather than
+   * replacing it: `status` is the operator's. Optional in the type because a
+   * backend older than the field omits it.
+   */
+  marketplace_status?: OrderStatus | null;
+  /**
+   * The same status in the marketplace's own words, e.g. Allegro's
+   * `READY_FOR_SHIPMENT`. Anvero's five statuses collapse distinctions the
+   * marketplace's panel shows, so this is what to display.
+   */
+  marketplace_status_label?: string | null;
   marketplace_cancelled_at: string | null;
 }
 
@@ -107,6 +120,28 @@ export function hasCancellationWarning(order: Order): boolean {
     order.marketplace_cancelled_at !== null &&
     order.status !== OrderStatus.CANCELLED
   );
+}
+
+/**
+ * The marketplace has moved the order somewhere Anvero has not followed.
+ *
+ * A cancellation is left out: it has its own, louder warning, and showing
+ * both would say the same thing twice.
+ */
+export function marketplaceStatusDiffers(order: Order): boolean {
+  // `!= null` on purpose, so a response without the field at all — an older
+  // backend, or a page still holding one fetched before a deploy — reads as
+  // "nothing to show" rather than rendering an empty badge
+  return (
+    order.marketplace_status != null &&
+    order.marketplace_status !== order.status &&
+    order.marketplace_status !== OrderStatus.CANCELLED
+  );
+}
+
+/** What the marketplace calls the order's status, for showing to the operator. */
+export function marketplaceStatusText(order: Order): string {
+  return order.marketplace_status_label ?? order.marketplace_status ?? "";
 }
 
 export interface OrderListResponse {

@@ -4,6 +4,34 @@ All significant changes to the Anvero project.
 
 ---
 
+## 2026-09-17 (marketplace status visible)
+
+### ✨ The marketplace's status is shown beside ours
+
+- Moving the sandbox order on Allegro changed nothing in Anvero, and nothing
+  said why: the Anvero status is the operator's and an import must not
+  overwrite it. Each import now records what the marketplace says in two new
+  columns (migration `f3b8d1e6a204`): `marketplace_status`, mapped to our
+  vocabulary, and `marketplace_status_label`, Allegro's own word for it. The
+  order page and order list show the unmapped value whenever the mapped one
+  differs from ours. Nothing acts on it. A cancelled order keeps its louder
+  warning instead. See `DECISIONS.md`.
+- The unmapped value is what is displayed because our five statuses collapse
+  distinctions Allegro shows: `PROCESSING` and `READY_FOR_SHIPMENT` are both
+  `CONFIRMED`, so "CONFIRMED" could not tell the operator which one Allegro
+  meant.
+- Both fields are part of the order in the list and the detail response; see
+  `API.md` and `DATABASE.md`.
+
+### ✅ Verification
+
+209 backend tests pass (12 new): the status and the label are recorded on
+first import, follow the marketplace on re-import, leave the operator's status
+alone, replace a stale label, survive an unknown Allegro status, and stay null
+for an order no import touched. The migration ran up, down and up again with
+`alembic check` reporting no drift. `tsc --noEmit` is clean. On the real
+sandbox order, Anvero shows `NEW` while Allegro reports `READY_FOR_SHIPMENT`.
+
 ## 2026-09-17 (first real import)
 
 ### ✅ An order imported from the real Allegro API

@@ -1,7 +1,12 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { ApiError, ordersApi } from "../api/client";
-import { OrderStatus, hasCancellationWarning } from "../types/order";
+import {
+  OrderStatus,
+  hasCancellationWarning,
+  marketplaceStatusDiffers,
+  marketplaceStatusText,
+} from "../types/order";
 import type { OrderStatusChange, OrderWithDetails } from "../types/order";
 import { OrderDetailsPanel } from "./OrderDetailsPanel";
 import "../styles/OrderHistory.css";
@@ -143,6 +148,14 @@ export function OrderDetail() {
                 <span role="alert" className="error-message">
                   {saveError}
                 </span>
+              )}
+              {marketplaceStatusDiffers(order) && (
+                <p className="field-note">
+                  {order.source} reports {marketplaceStatusText(order)} as of
+                  the last import, which is {order.marketplace_status} here.
+                  The status above is yours: an import records what the
+                  marketplace says but never overwrites it.
+                </p>
               )}
             </dd>
           </div>

@@ -184,6 +184,24 @@ td {
   margin-left: 0.4rem;
 }
 
+/* The marketplace's status when it differs from ours: information, not a
+   warning, so quieter than .badge-warning next to it. */
+.badge-marketplace-status {
+  background: transparent;
+  border: 1px solid var(--color-border);
+  color: var(--color-muted);
+  margin-left: 0.4rem;
+}
+
+/* A quiet explanation under a field, e.g. what the marketplace says about a
+   status the operator owns. */
+.field-note {
+  color: var(--color-muted);
+  font-size: 0.85rem;
+  margin: 0.35rem 0 0;
+  max-width: 48ch;
+}
+
 .warning-banner {
   background: #fff7ed;
   border: 1px solid #fdba74;

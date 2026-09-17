@@ -27,6 +27,15 @@ point at:
 - `customer_email` is a column on the order rather than a `customer` row,
   and so are the other buyer details below. A `customer` row would need
   matching one buyer across orders, which nothing needs yet.
+- `marketplace_status` (nullable, the same `order_status` enum) is not in the
+  target. It holds what the marketplace's own status mapped to at the last
+  import, beside `status`, which stays the operator's; the interface shows it
+  when the two differ. NULL for an order no import has touched.
+- `marketplace_status_label` (nullable, 64 characters) holds the same status
+  unmapped, in the marketplace's own words, e.g. Allegro's
+  `READY_FOR_SHIPMENT`. Anvero's five statuses collapse distinctions the
+  marketplace's panel shows — `PROCESSING` and `READY_FOR_SHIPMENT` are both
+  `CONFIRMED` — and this is what the interface displays.
 - `marketplace_cancelled_at` (nullable) is not in the target. It records when
   an import first found the order cancelled on its marketplace; the Anvero
   status is left to the operator, so this is what flags the conflict.

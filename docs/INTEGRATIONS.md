@@ -165,6 +165,15 @@ that the Anvero status belongs to the operator: it is set by hand and
 recorded in the status history, and a sync overwriting it would silently undo
 that. See `DECISIONS.md`.
 
+Every import still records what the marketplace says in `marketplace_status`,
+beside the Anvero one, and Allegro's own value for it, unmapped, in
+`marketplace_status_label` — `READY_FOR_SHIPMENT` rather than `CONFIRMED`,
+since the table above sends several Allegro statuses to the same Anvero one.
+The order page and the order list show the unmapped value whenever the mapped
+one differs from the Anvero status, so an order moving on Allegro while
+Anvero stands still is visible instead of silent. Nothing acts on it: it is
+there for the operator to decide.
+
 **Cancellations are the exception that must not go unnoticed.** When an
 import finds an order cancelled on Allegro that is still active in Anvero, the
 status is left alone but the order is flagged (`marketplace_cancelled_at`):

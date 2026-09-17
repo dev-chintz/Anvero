@@ -39,7 +39,7 @@ Other machines stay on SQLite until PostgreSQL is set up there
   remains the no-setup default for a fresh clone)
 - Health endpoint and first order model — done
 - Minimal order list interface — done
-- Automated tests for core flows — done (197 passing across the suite)
+- Automated tests for core flows — done (209 passing across the suite)
 
 ---
 
@@ -80,6 +80,9 @@ re-imported. Production needs its own application and authorization; see
 - Unique constraint on `(source, external_id)`, so an import is safe to re-run
 - Allegro import as an endpoint and a button, one import at a time, rate
   limited
+- The marketplace's own status kept beside the operator's and shown, in the
+  marketplace's own words, when they differ (`marketplace_status`,
+  `marketplace_status_label`)
 - Dark mode
 - VS Code configuration and development scripts
 - Initial Figma dashboard prototype

@@ -1,5 +1,37 @@
 # Decision Log
 
+## 2026-09-17 — The Marketplace Status Is Shown, Not Applied
+
+**Decision:** Every import records the marketplace's own status twice: mapped
+to Anvero's vocabulary in `orders.marketplace_status`, and unmapped, in the
+marketplace's own words, in `orders.marketplace_status_label`. The Anvero
+`status` is still only set from the marketplace when the order is first seen.
+The order page and the order list show the unmapped value whenever the mapped
+one differs from ours, and nothing acts on the difference.
+
+**Rationale:** The first sandbox order made the gap concrete: it was moved to
+PROCESSING on Allegro, and Anvero went on showing NEW with nothing to say why
+— the operator would have to open Allegro to find out. Syncing the status
+instead was rejected for the reason it was rejected before: it silently undoes
+a decision the operator made and recorded in the history. Following the
+marketplace only until the operator first touches an order was considered and
+dropped as well, because whether a status was ever set by hand is a subtle
+rule to have to hold in your head when reading a list. Showing both keeps one
+owner for the status and still makes the divergence visible, the same shape as
+the existing cancellation flag. A cancellation keeps its louder warning and
+suppresses this quieter marker, so the same fact is not reported twice.
+
+Showing the mapped value alone was tried first and was not enough: the
+sandbox order sat in READY_FOR_SHIPMENT on Allegro while Anvero displayed
+CONFIRMED, which is also what PROCESSING maps to, so the marker could not
+answer the question it existed to answer. The unmapped value is stored as
+Allegro sends it rather than translated, because a table of our own labels
+would need maintaining and would drift from the words in Allegro's panel —
+the very thing the operator is comparing against. Adding an Anvero status
+between CONFIRMED and SHIPPED was the alternative and was dropped: it is a
+decision about how the business works, not about the integration, and it
+would spread through the enum, the filters, the statistics and the interface.
+
 ## 2026-09-17 — Allegro Calls Require the Application's Own User-Agent
 
 **Decision:** Every request to Allegro, the authorization and token

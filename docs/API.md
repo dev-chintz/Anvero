@@ -107,6 +107,18 @@ differ, and filters, sorting and the dashboard's `this_week` all use
 `ordered_at`. `POST /api/v1/orders` accepts an optional `ordered_at`; without
 it the order is dated now.
 
+Each order carries `marketplace_status`: what the marketplace's own status
+mapped to at the last import, or `null` for an order no import has touched. It
+is never applied to `status`, which belongs to the operator after the order is
+first seen, so the two can differ — that is the point of returning it, and the
+interface shows the difference. Both the list and the detail response include
+it.
+
+Beside it, `marketplace_status_label` carries the marketplace's own status
+unmapped, e.g. `"READY_FOR_SHIPMENT"`, since several of those map to one
+Anvero status. It is passed through as the marketplace sends it and is not a
+fixed set of values, so treat it as text to display, not to branch on.
+
 Each order carries `marketplace_cancelled_at`: `null`, or when an import first
 found the order cancelled on its marketplace. An import never changes the
 Anvero status, so an order with this set and a status other than `CANCELLED`
@@ -123,6 +135,7 @@ Returns the order with the fields the list has, plus its details:
   "id": "...", "external_id": "...", "source": "ALLEGRO", "status": "NEW",
   "customer_email": "...", "total_amount": "149.99", "currency": "PLN",
   "ordered_at": "...Z", "created_at": "...Z", "updated_at": "...Z",
+  "marketplace_status": "CONFIRMED", "marketplace_status_label": "READY_FOR_SHIPMENT",
   "marketplace_cancelled_at": null,
   "customer": {"login": "...", "first_name": "...", "last_name": "...", "company_name": null, "phone": "..."},
   "items": [

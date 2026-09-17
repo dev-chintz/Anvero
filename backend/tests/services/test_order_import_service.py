@@ -90,6 +90,84 @@ def test_re_import_keeps_the_status_the_operator_set(session):
     assert session.query(Order).one().status is OrderStatus.SHIPPED
 
 
+def test_a_new_order_records_the_marketplace_status_beside_its_own(session):
+    _service(session, [_order("ALG-1")]).import_orders()
+
+    stored = session.query(Order).one()
+    assert (stored.status, stored.marketplace_status) == (
+        OrderStatus.NEW,
+        OrderStatus.NEW,
+    )
+
+
+def test_re_import_records_where_the_marketplace_has_moved_to(session):
+    """The operator's status stands, but they must be able to see the gap.
+
+    Here Anvero says SHIPPED and the marketplace still says NEW; without
+    marketplace_status the divergence left no trace at all.
+    """
+    _service(session, [_order("ALG-1")]).import_orders()
+    stored = session.query(Order).one()
+    OrderRepository(session).update_status(stored, OrderStatus.SHIPPED)
+
+    _service(session, [_order("ALG-1")]).import_orders()
+
+    stored = session.query(Order).one()
+    assert stored.status is OrderStatus.SHIPPED
+    assert stored.marketplace_status is OrderStatus.NEW
+
+
+def test_re_import_follows_the_marketplace_status_as_it_changes(session):
+    _service(session, [_order("ALG-1")]).import_orders()
+    moved_on = _order("ALG-1").model_copy(
+        update={
+            "status": OrderStatus.CONFIRMED,
+            "marketplace_status_label": "READY_FOR_SHIPMENT",
+        }
+    )
+
+    _service(session, [moved_on]).import_orders()
+
+    stored = session.query(Order).one()
+    # the order the sandbox showed: Allegro in PROCESSING, Anvero untouched
+    assert stored.status is OrderStatus.NEW
+    assert stored.marketplace_status is OrderStatus.CONFIRMED
+    # Anvero has one status for both PROCESSING and READY_FOR_SHIPMENT, so
+    # only the label says which one Allegro means
+    assert stored.marketplace_status_label == "READY_FOR_SHIPMENT"
+
+
+def test_re_import_replaces_a_stale_marketplace_label(session):
+    """A label left behind would describe a status the order has left."""
+    first = _order("ALG-1").model_copy(
+        update={"marketplace_status_label": "READY_FOR_SHIPMENT"}
+    )
+    _service(session, [first]).import_orders()
+
+    moved_on = _order("ALG-1").model_copy(
+        update={"status": OrderStatus.SHIPPED, "marketplace_status_label": "SENT"}
+    )
+    _service(session, [moved_on]).import_orders()
+
+    assert session.query(Order).one().marketplace_status_label == "SENT"
+
+
+def test_an_order_never_imported_has_no_marketplace_status(session):
+    """A hand-made order has no marketplace to disagree with."""
+    order = OrderRepository(session).create(
+        Order(
+            external_id="MANUAL-1",
+            source=OrderSource.ALLEGRO,
+            status=OrderStatus.NEW,
+            customer_email="buyer@example.com",
+            total_amount=Decimal("10.00"),
+            currency="PLN",
+        )
+    )
+
+    assert order.marketplace_status is None
+
+
 def test_re_import_refreshes_the_fields_the_marketplace_owns(session):
     _service(session, [_order("ALG-1", email="old@example.com", amount="100.00")]).import_orders()
 

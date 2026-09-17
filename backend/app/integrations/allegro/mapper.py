@@ -95,6 +95,25 @@ def map_ordered_at(checkout_form: dict[str, Any]) -> datetime | None:
     return min(moments)
 
 
+def map_status_label(checkout_form: dict[str, Any]) -> str | None:
+    """Allegro's own status, kept as it comes for the operator to read.
+
+    The mapping to an Anvero status loses detail — PROCESSING and
+    READY_FOR_SHIPMENT both become CONFIRMED — and the operator comparing
+    Anvero with the Allegro panel needs the distinction. Stored as the raw
+    value rather than a translation, which would need maintaining and would
+    drift from what Allegro shows.
+    """
+    if checkout_form.get("status") == "CANCELLED":
+        return "CANCELLED"
+
+    fulfillment = _obj(checkout_form.get("fulfillment"))
+    label = fulfillment.get("status") or checkout_form.get("status")
+    if not isinstance(label, str) or not label.strip():
+        return None
+    return label.strip()[:64]
+
+
 def map_status(checkout_form: dict[str, Any]) -> OrderStatus:
     if checkout_form.get("status") == "CANCELLED":
         return OrderStatus.CANCELLED
@@ -388,6 +407,7 @@ def map_checkout_form(checkout_form: dict[str, Any]) -> OrderCreate:
             external_id=str(external_id),
             source=OrderSource.ALLEGRO,
             status=map_status(checkout_form),
+            marketplace_status_label=map_status_label(checkout_form),
             customer_email=email,
             total_amount=total_amount,
             currency=currency,

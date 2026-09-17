@@ -140,6 +140,24 @@ class Order(Base):
         nullable=False,
     )
 
+    # What the marketplace's own status mapped to at the last import, kept
+    # beside the Anvero status rather than replacing it: the operator owns
+    # theirs, but needs to see when the marketplace has moved on. NULL for an
+    # order no import has touched.
+    marketplace_status: Mapped[OrderStatus | None] = mapped_column(
+        ORDER_STATUS,
+        nullable=True,
+    )
+
+    # The same status in the marketplace's own words, unmapped: Anvero's five
+    # statuses collapse distinctions the operator can see in the marketplace's
+    # panel, e.g. Allegro's PROCESSING and READY_FOR_SHIPMENT are both
+    # CONFIRMED here.
+    marketplace_status_label: Mapped[str | None] = mapped_column(
+        String(64),
+        nullable=True,
+    )
+
     # Set when an import finds the order cancelled on the marketplace. The
     # Anvero status is the operator's and is not overwritten, so this is what
     # tells them; the warning stands until they set the status to CANCELLED.
