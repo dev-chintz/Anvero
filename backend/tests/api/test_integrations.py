@@ -281,3 +281,12 @@ def test_the_lock_is_released_after_a_failed_import_so_the_next_one_can_run(
 
     assert followup.status_code == 200
     assert followup.json()["created"] == 1
+
+
+def test_the_suite_never_sees_a_developers_real_allegro_credentials():
+    # unpatched on purpose: conftest.py blanks ALLEGRO_* so a test that forgets
+    # to patch the builders cannot refresh (and so rotate) a real token
+    response = client.get("/api/v1/integrations/allegro")
+
+    assert response.status_code == 200
+    assert response.json() == {"configured": False}

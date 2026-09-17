@@ -144,6 +144,7 @@ deleted.
 
 - API identifiers are opaque Anvero identifiers.
 - Errors have format `{"detail": "readable description"}` with appropriate HTTP code.
-- Every `/api/v1/orders` endpoint, reading or writing, requires a login token
-  and answers `401` without one. `/api/v1/health` and `/api/v1/` stay public.
+- Every `/api/v1/orders` and `/api/v1/integrations` endpoint, reading or
+  writing, requires a login token and answers `401` without one.
+  `/api/v1/health` and `/api/v1/` stay public.
 - Status change creates an entry in the status history, recording who made it.

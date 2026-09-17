@@ -45,7 +45,7 @@ Repository: <https://github.com/dev-chintz/Anvero>
   `integration_credentials`
 - Allegro adapter, order mapping, the import script, an import endpoint and
   a button, one import at a time and rate limited
-- 136 tests passing
+- 137 tests passing
 
 ---
 

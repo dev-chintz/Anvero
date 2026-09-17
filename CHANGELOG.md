@@ -40,6 +40,16 @@ clean. The new tests replace the service factory with a fake — nothing here
 has called the real Allegro API, and this machine has no credentials to call
 it with; see "Not yet verified" in `PROJECT_STATUS.md`.
 
+### 🔧 Review follow-ups
+
+- `tests/conftest.py` blanks `ALLEGRO_CLIENT_ID`/`_SECRET`/`_REFRESH_TOKEN`,
+  so a future test that forgets to patch the builders cannot use a
+  developer's real credentials: one refresh would rotate the real token into
+  the test database and kill the developer's chain. A test checks it (137
+  tests).
+- The Orders page no longer says "Allegro is not configured" when the status
+  request itself failed; it says the connection could not be checked.
+
 ---
 
 ## 2026-09-17

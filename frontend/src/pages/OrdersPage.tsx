@@ -44,6 +44,7 @@ export function OrdersPage({ addToast }: OrdersPageProps) {
   });
 
   const [allegroConfigured, setAllegroConfigured] = useState<boolean | null>(null);
+  const [allegroStatusFailed, setAllegroStatusFailed] = useState(false);
   const [importing, setImporting] = useState(false);
 
   useEffect(() => {
@@ -54,9 +55,10 @@ export function OrdersPage({ addToast }: OrdersPageProps) {
         if (!cancelled) setAllegroConfigured(allegroStatus.configured);
       })
       .catch(() => {
-        // treat an unreadable status as "not configured": the button stays
-        // disabled rather than offering an import that will just fail
-        if (!cancelled) setAllegroConfigured(false);
+        // the button stays disabled rather than offering an import that will
+        // just fail, but the hint must not claim Allegro is unconfigured when
+        // the truth is that the server could not be asked
+        if (!cancelled) setAllegroStatusFailed(true);
       });
     return () => {
       cancelled = true;
@@ -135,6 +137,11 @@ export function OrdersPage({ addToast }: OrdersPageProps) {
           {allegroConfigured === false && (
             <p className="allegro-import-hint">
               Allegro is not configured — see docs/INTEGRATIONS.md.
+            </p>
+          )}
+          {allegroStatusFailed && (
+            <p className="allegro-import-hint">
+              Could not check the Allegro connection. Reload to try again.
             </p>
           )}
         </div>

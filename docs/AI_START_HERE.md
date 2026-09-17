@@ -37,7 +37,7 @@ breakdown; the short version:
   detail with status editing and history.
 - Allegro adapter, import script, an import endpoint and a button, one
   import at a time.
-- 136 tests passing.
+- 137 tests passing.
 
 Two things are **not** done, and both need a person rather than more code:
 
