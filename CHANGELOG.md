@@ -28,6 +28,11 @@ All significant changes to the Anvero project.
 - `create_user.py` stored the byte-order mark Windows PowerShell adds to piped
   text as part of the password, so such an account could never log in. Found
   while verifying the login end to end.
+- A relative SQLite path such as `sqlite:///./test.db` was resolved against
+  the current directory, so a script started from the project root would
+  silently create and use a new, empty database there. It is now resolved
+  against `backend/`. Found when creating the first real account from the
+  wrong directory.
 
 ### 🔧 Fixed — Allegro integration (found by code review)
 

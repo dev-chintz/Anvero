@@ -22,7 +22,9 @@ The scripts do not install Python, Node.js, Git, or PostgreSQL and do not modify
 
 `backend/.env` is git-ignored, so it does not travel between machines. The
 default it is copied from points at a SQLite file, `backend/anvero.db`, which
-is also git-ignored: each machine builds its own database. See the README for
+is also git-ignored: each machine builds its own database. A relative SQLite
+path is always resolved against `backend/`, so the server, Alembic and the
+scripts use the same file whichever directory they are started from. See the README for
 creating the schema and sample data.
 
 ## Backend Dependencies

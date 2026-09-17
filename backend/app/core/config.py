@@ -4,8 +4,36 @@ from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+from sqlalchemy.engine import make_url
 
 BASE_DIR = Path(__file__).resolve().parent.parent
+BACKEND_DIR = BASE_DIR.parent
+
+
+def resolve_sqlite_path(database_url: str) -> str:
+    """Anchor a relative SQLite file path to backend/, not the current directory.
+
+    `sqlite:///./test.db` is otherwise resolved against wherever a command is
+    run. Started from the project root, a script silently created a new empty
+    database there and wrote to it, instead of failing or using the real one.
+    Absolute paths, in-memory databases and other backends pass through.
+    """
+    if not database_url:
+        return database_url
+
+    url = make_url(database_url)
+    database = url.database
+    if (
+        url.get_backend_name() != "sqlite"
+        or not database
+        or database == ":memory:"
+        or database.startswith("file:")
+        or Path(database).is_absolute()
+    ):
+        return database_url
+
+    resolved = (BACKEND_DIR / database).resolve()
+    return url.set(database=str(resolved)).render_as_string(hide_password=False)
 
 # values shipped in examples or typed in a hurry; a token signed with any of
 # these can be forged by anyone who has read this repository
@@ -65,6 +93,11 @@ class Settings(BaseSettings):
     allegro_api_url: str = Field(default="https://api.allegro.pl")
     allegro_auth_url: str = Field(default="https://allegro.pl/auth/oauth")
 
+    @field_validator("database_url")
+    @classmethod
+    def _anchor_sqlite_path(cls, value: str) -> str:
+        return resolve_sqlite_path(value)
+
     @field_validator("business_timezone")
     @classmethod
     def _known_timezone(cls, value: str) -> str:
@@ -76,7 +109,7 @@ class Settings(BaseSettings):
         return value
 
     model_config = SettingsConfigDict(
-        env_file=BASE_DIR.parent / ".env",
+        env_file=BACKEND_DIR / ".env",
         env_file_encoding="utf-8",
         extra="ignore",
         case_sensitive=False,
