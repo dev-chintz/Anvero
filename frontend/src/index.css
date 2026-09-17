@@ -222,6 +222,20 @@ td {
   border-radius: var(--radius);
 }
 
+/* padded like the other pages, and capped: on a wide monitor the full width
+   put an item's price a metre from its name and the cards pressed against
+   the sidebar */
+.order-detail {
+  padding: 2rem;
+  max-width: 1100px;
+}
+
+@media (max-width: 768px) {
+  .order-detail {
+    padding: 1rem;
+  }
+}
+
 .order-detail dl.order-fields {
   display: grid;
   grid-template-columns: 1fr;

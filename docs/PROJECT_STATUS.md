@@ -99,7 +99,8 @@ Verified on PostgreSQL 17.10 on the main machine: every migration up, all
 the way down and up again, with `alembic check` reporting no drift; the whole
 test suite, including the date filters, "this week" and the repository's
 per-dialect timestamp handling; sample data generation; the API starting and
-serving requests. Only PostgreSQL 17 has been tried.
+serving requests; logging in to the interface, opening an order with its
+details and changing its status. Only PostgreSQL 17 has been tried.
 
 ---
 

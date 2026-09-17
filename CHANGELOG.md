@@ -33,8 +33,18 @@ On PostgreSQL 17.10: all 9 migrations up, down to base and up again twice,
 `alembic check` reports no drift; 168 tests pass; sample data generates with
 item totals matching order totals; the API starts, answers health, refuses
 anonymous requests and runs the login query. The same migration cycle and the
-168 tests also pass on SQLite. Logging in to the interface on PostgreSQL was
-left to the project owner.
+168 tests also pass on SQLite. The project owner then created an account on
+PostgreSQL, logged in, opened an order with its details and changed its
+status, with the history recording the change and its author.
+
+### 🎨 Order page layout
+
+- The order page had no padding and no width limit: on a wide monitor its
+  cards sat against the sidebar and an item's price ended up far from its
+  name. It is now padded like the other pages and at most 1100px wide.
+  Measured in the app's shell at 1009px and 2100px wide with no horizontal
+  overflow; on a phone, where the collapsed sidebar leaves about 300px, the
+  items table scrolls inside its card rather than widening the page.
 
 ## 2026-09-17 (night)
 
