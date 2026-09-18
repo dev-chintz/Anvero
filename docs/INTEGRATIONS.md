@@ -200,6 +200,7 @@ refund.
 | `buyer_message` | `messageToSeller` |
 | `seller_note` | `note.text` — the seller's own note, written on Allegro itself, not the buyer's message |
 | `items[].external_id`, `offer_id`, `sku`, `name` | `lineItems[].id`, `offer.id`, `offer.external.id`, `offer.name` |
+| `items[].image_url` | the first entry of `images` from `GET /sale/product-offers/{offerId}` — a second call per distinct offer on the page, not part of the checkout form itself; best-effort, so a deleted offer, a missing scope or any other failure leaves it `null` rather than failing the import |
 | `items[].quantity`, `unit_price` | `lineItems[].quantity`, `price.amount` |
 | `delivery.method`, `cost` | `delivery.method.name`, `delivery.cost.amount` |
 | `delivery.address` | `delivery.address` (`zipCode` as `postal_code`, `phoneNumber` as `phone`) |

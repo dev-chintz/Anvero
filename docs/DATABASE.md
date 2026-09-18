@@ -72,7 +72,9 @@ PostgreSQL enum type needs its own migration.
 `order_items` (matches the target `order_item`): `order_id`, `position` (the
 marketplace's line order), `external_id`, `offer_id`, `sku` (the seller's own
 product code, if the listing has one), `name`, `quantity`, `unit_price` (per
-unit, in the order's currency, after discounts).
+unit, in the order's currency, after discounts), `image_url` (the offer's
+picture, fetched from Allegro's own product-offer resource at import time;
+best-effort, so a deleted offer or a missing scope leaves it null).
 
 `order_addresses` (matches the target `address`): `order_id`, `type`
 (`DELIVERY`, `INVOICE` or `PICKUP_POINT`, at most one of each per order,

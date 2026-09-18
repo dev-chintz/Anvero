@@ -1,5 +1,49 @@
 # Decision Log
 
+## 2026-09-18 — Item Pictures: a Second Allegro Call per Offer, Best-Effort
+
+**Decision:** `AllegroClient` gained `fetch_offer_image(offer_id)`, calling
+`GET /sale/product-offers/{offerId}` and returning the first entry of its
+`images` array — confirmed to exist by expanding the real response sample on
+developer.allegro.pl before writing any code, since the checkout-form
+resource the import already reads has no picture field at all.
+`AllegroAdapter.fetch_orders` calls it once per distinct `offer_id` on the
+page (not once per line item) and sets `OrderItemCreate.image_url`, a new
+nullable column on `order_items` (migration `c3e9a1f5b276`). Unlike
+`fetch_checkout_forms`, this method never raises: a 404, a 403, a network
+error or a non-JSON response all just return `None`, logged as a warning.
+The order page shows the picture as a small thumbnail next to the item name,
+scaling up in place on hover.
+
+**Rationale:** A missing picture is not a reason to fail an otherwise-valid
+order, so the leniency already established for optional fields
+(`buyer_message`, `seller_note`) extends here too — the difference is that
+this failure mode is a second network call rather than a malformed value in
+a payload already in hand. Deduplicating by `offer_id` within one page
+matters because the same offer commonly appears across several orders; without
+it, a page of 100 orders could mean 100 extra calls instead of however many
+distinct offers actually sold. Whether the application's current authorization
+carries the scope this endpoint needs is unverified - `GET
+/sale/product-offers/{offerId}` is public product data and should not need
+more than what listing orders already required, but this is confirmed only
+by trying it against the sandbox, not by reading documentation alone; if it
+returns 403, every item simply keeps no picture until that is resolved, since
+the method was built not to raise. The thumbnail scales in place on hover
+(one `<img>`, CSS `transform`) rather than opening a second, separately-
+fetched preview image, which keeps the implementation to CSS only; the
+tradeoff is that the enlarged image can clip against `.order-items-scroll`'s
+scrollbar on a narrow screen, judged acceptable since the item name stays
+readable there regardless.
+
+Verified with the client's own test double (`httpx2.MockTransport`) covering
+the picture, no-picture, 404, 403, network-error and non-JSON-response
+cases, the adapter's deduplication across two orders sharing an offer, and
+the existing API detail-response test extended to check `image_url`. 221
+backend tests passing, ruff clean; frontend `tsc --noEmit`, 32 tests, `npm
+run build` all clean. Not checked in a browser or against the real API - the
+sandbox check is the next step, and will show directly whether the scope
+question above is actually a problem.
+
 ## 2026-09-18 — Order List Reshaped Toward BaseLinker's Layout, Narrower Sidebar
 
 **Decision:** The owner asked for the order list organized more like

@@ -67,6 +67,9 @@ class OrderItemCreate(BaseModel):
     quantity: int = Field(gt=0)
     # per unit, in the order's currency; zero allows a free item
     unit_price: Decimal = Field(ge=0, max_digits=12, decimal_places=2)
+    # the offer's picture, fetched from Allegro at import time; best effort,
+    # so a deleted offer or a missing scope leaves this null
+    image_url: str | None = _text(500)
 
 
 class OrderItemRead(OrderItemCreate):

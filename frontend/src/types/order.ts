@@ -88,6 +88,10 @@ export interface OrderItem {
   quantity: number;
   /** Per unit, in the order's currency. */
   unit_price: string;
+  /** The offer's picture, fetched from Allegro at import time; null for a
+   * hand-entered order, an older import, or an offer whose picture could
+   * not be read. */
+  image_url: string | null;
 }
 
 /**

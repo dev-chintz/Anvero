@@ -605,7 +605,13 @@ def _details_payload(**overrides):
     details = {
         "customer": {"first_name": "Jan", "last_name": "Kowalski", "phone": "+48 600 100 200"},
         "items": [
-            {"name": "Widget", "sku": "SKU-W1", "quantity": 2, "unit_price": "76.00"},
+            {
+                "name": "Widget",
+                "sku": "SKU-W1",
+                "quantity": 2,
+                "unit_price": "76.00",
+                "image_url": "https://a.allegroimg.com/original/widget.jpg",
+            },
             {"name": "Gadget", "quantity": 1, "unit_price": "15.99"},
         ],
         "delivery": {
@@ -643,6 +649,8 @@ def test_an_order_returns_its_details():
     order = response.json()
     assert order["customer"]["last_name"] == "Kowalski"
     assert order["customer"]["login"] is None
+    assert order["items"][0]["image_url"] == "https://a.allegroimg.com/original/widget.jpg"
+    assert order["items"][1]["image_url"] is None
     assert [(i["name"], i["quantity"], i["unit_price"]) for i in order["items"]] == [
         ("Widget", 2, "76.00"),
         ("Gadget", 1, "15.99"),

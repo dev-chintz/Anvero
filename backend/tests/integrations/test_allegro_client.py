@@ -307,3 +307,68 @@ def test_rejects_a_page_size_the_api_will_not_accept():
 
     with pytest.raises(ValueError, match="between 1 and 100"):
         _client(handler).fetch_checkout_forms(limit=101)
+
+
+# --- fetch_offer_image: best-effort, never raises -------------------------
+
+
+def test_fetch_offer_image_returns_the_first_picture():
+    seen = {}
+
+    def handler(request: httpx2.Request) -> httpx2.Response:
+        if request.url.path == "/token":
+            return _token_response()
+        seen["path"] = request.url.path
+        return httpx2.Response(200, json={"images": ["https://img.test/a.jpg", "https://img.test/b.jpg"]})
+
+    image = _client(handler).fetch_offer_image("offer-1")
+
+    assert image == "https://img.test/a.jpg"
+    assert seen["path"] == "/sale/product-offers/offer-1"
+
+
+def test_fetch_offer_image_is_none_when_there_are_no_images():
+    def handler(request: httpx2.Request) -> httpx2.Response:
+        if request.url.path == "/token":
+            return _token_response()
+        return httpx2.Response(200, json={"images": []})
+
+    assert _client(handler).fetch_offer_image("offer-1") is None
+
+
+def test_fetch_offer_image_does_not_raise_on_a_missing_offer():
+    """A deleted or hidden offer must cost the item its picture, not the import."""
+
+    def handler(request: httpx2.Request) -> httpx2.Response:
+        if request.url.path == "/token":
+            return _token_response()
+        return httpx2.Response(404, json={})
+
+    assert _client(handler).fetch_offer_image("offer-1") is None
+
+
+def test_fetch_offer_image_does_not_raise_when_the_scope_is_missing():
+    def handler(request: httpx2.Request) -> httpx2.Response:
+        if request.url.path == "/token":
+            return _token_response()
+        return httpx2.Response(403, json={})
+
+    assert _client(handler).fetch_offer_image("offer-1") is None
+
+
+def test_fetch_offer_image_does_not_raise_on_a_network_failure():
+    def handler(request: httpx2.Request) -> httpx2.Response:
+        if request.url.path == "/token":
+            return _token_response()
+        raise httpx2.ConnectError("boom", request=request)
+
+    assert _client(handler).fetch_offer_image("offer-1") is None
+
+
+def test_fetch_offer_image_does_not_raise_on_a_non_json_response():
+    def handler(request: httpx2.Request) -> httpx2.Response:
+        if request.url.path == "/token":
+            return _token_response()
+        return httpx2.Response(200, content=b"not json")
+
+    assert _client(handler).fetch_offer_image("offer-1") is None

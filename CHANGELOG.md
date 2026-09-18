@@ -6,6 +6,17 @@ All significant changes to the Anvero project.
 
 ## 2026-09-18
 
+### 🖼️ Item pictures on the order page, fetched from Allegro
+
+Order items now show a small thumbnail (hover to enlarge in place), fetched
+from `GET /sale/product-offers/{offerId}` - a second call per distinct offer
+on the page, since the order data itself has no picture field. Best-effort:
+a deleted offer, a missing scope or a network error leaves the item without
+one rather than failing the import. New `order_items.image_url` column
+(migration `c3e9a1f5b276`). Whether the current Allegro authorization
+carries the scope this new endpoint needs is unverified until tried against
+the sandbox. See `DECISIONS.md`.
+
 ### 💅 Order list reshaped toward BaseLinker's layout, narrower sidebar
 
 - The order list's columns are now Order (external ID + buyer name + source,

@@ -144,7 +144,7 @@ Returns the order with the fields the list has, plus its details:
   "marketplace_cancelled_at": null,
   "customer": {"login": "...", "first_name": "...", "last_name": "...", "company_name": null, "phone": "..."},
   "items": [
-    {"id": "...", "external_id": "...", "offer_id": "...", "sku": "KUB-350", "name": "...", "quantity": 1, "unit_price": "24.99"}
+    {"id": "...", "external_id": "...", "offer_id": "...", "sku": "KUB-350", "name": "...", "quantity": 1, "unit_price": "24.99", "image_url": "https://a.allegroimg.com/original/..."}
   ],
   "delivery": {
     "method": "InPost Paczkomat 24/7", "cost": "12.99",

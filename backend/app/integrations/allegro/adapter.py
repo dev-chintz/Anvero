@@ -32,4 +32,22 @@ class AllegroAdapter:
                 # it is logged so the gap is visible rather than silent
                 logger.warning("Skipping Allegro order that could not be mapped: %s", exc)
 
+        self._attach_item_images(orders)
         return orders
+
+    def _attach_item_images(self, orders: list[OrderCreate]) -> None:
+        """Fetch each item's picture, one call per distinct offer in the page.
+
+        Best-effort: fetch_offer_image never raises, so a picture that could
+        not be read just leaves that item without one.
+        """
+        images_by_offer: dict[str, str | None] = {}
+        for order in orders:
+            for item in order.items:
+                if not item.offer_id:
+                    continue
+                if item.offer_id not in images_by_offer:
+                    images_by_offer[item.offer_id] = self._client.fetch_offer_image(
+                        item.offer_id
+                    )
+                item.image_url = images_by_offer[item.offer_id]

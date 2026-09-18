@@ -249,6 +249,10 @@ class OrderItem(Base):
     offer_id: Mapped[str | None] = mapped_column(String(255))
     # the seller's own product code, when the listing carries one
     sku: Mapped[str | None] = mapped_column(String(255))
+    # the offer's own picture, fetched from Allegro at import time; best
+    # effort, so a deleted offer or a missing scope leaves this null rather
+    # than failing the import
+    image_url: Mapped[str | None] = mapped_column(String(500))
 
     name: Mapped[str] = mapped_column(String(500), nullable=False)
     quantity: Mapped[int] = mapped_column(Integer, nullable=False)

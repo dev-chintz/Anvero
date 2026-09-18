@@ -135,8 +135,20 @@ export function OrderDetailsPanel({ order }: { order: OrderWithDetails }) {
                 {order.items.map((item) => (
                   <tr key={item.id}>
                     <td>
-                      {item.name}
-                      {item.sku && <span className="order-item-sku">SKU {item.sku}</span>}
+                      <div className="item-name-cell">
+                        {item.image_url && (
+                          <img
+                            src={item.image_url}
+                            alt=""
+                            loading="lazy"
+                            className="item-thumb"
+                          />
+                        )}
+                        <span>
+                          {item.name}
+                          {item.sku && <span className="order-item-sku">SKU {item.sku}</span>}
+                        </span>
+                      </div>
                     </td>
                     <td className="numeric">{item.quantity}</td>
                     <td className="numeric">{formatCents(toCents(item.unit_price))}</td>

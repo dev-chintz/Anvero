@@ -168,6 +168,35 @@
   color: var(--color-muted);
 }
 
+.item-name-cell {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* Scales the thumbnail itself in place on hover, rather than a second,
+   separately-fetched preview image. Simple, but on a narrow screen the
+   enlarged image can be clipped by .order-items-scroll's horizontal
+   scrollbar - acceptable there since the item name is still readable. */
+.item-thumb {
+  position: relative;
+  width: 32px;
+  height: 32px;
+  object-fit: cover;
+  border-radius: var(--radius);
+  border: 1px solid var(--color-border);
+  flex-shrink: 0;
+  cursor: zoom-in;
+  transition: transform 0.15s ease;
+  background: var(--color-bg);
+}
+
+.item-thumb:hover {
+  transform: scale(6);
+  z-index: 20;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+}
+
 /* four columns fit a phone once the padding shrinks; the prices are what the
    operator checks, so they must not be the part scrolled out of view */
 @media (max-width: 480px) {

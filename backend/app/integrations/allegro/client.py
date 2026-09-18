@@ -199,3 +199,42 @@ class AllegroClient:
         if not isinstance(forms, list):
             raise IntegrationUnavailable("Allegro checkout-forms is not a list")
         return forms
+
+    def fetch_offer_image(self, offer_id: str) -> str | None:
+        """Return the offer's first picture, or None if it cannot be read.
+
+        Unlike fetch_checkout_forms, failure here never raises: a picture is
+        not required for an order to be valid, so a deleted offer, a missing
+        scope or a network error should cost the item its thumbnail, not the
+        import. GET /sale/product-offers/{offerId} is public product data,
+        not an order resource, so it needs no scope beyond what listing the
+        order already required - the same access token is enough, but Allegro
+        may still refuse it if the application does not carry the right scope.
+        """
+        try:
+            token = self._access_token_value()
+            response = self._http.get(
+                f"{self._api_url}/sale/product-offers/{offer_id}",
+                headers={
+                    "Authorization": f"Bearer {token}",
+                    "Accept": ACCEPT_HEADER,
+                    "User-Agent": self._user_agent,
+                },
+            )
+            if response.status_code >= 400:
+                logger.warning(
+                    "Allegro offer %s: image request returned %s",
+                    offer_id,
+                    response.status_code,
+                )
+                return None
+
+            payload = _json_object(response, "Allegro product-offer")
+        except (httpx2.RequestError, IntegrationError) as exc:
+            logger.warning("Allegro offer %s: image unreachable: %s", offer_id, exc)
+            return None
+
+        images = payload.get("images")
+        if isinstance(images, list) and images and isinstance(images[0], str):
+            return images[0]
+        return None
