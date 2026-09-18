@@ -269,3 +269,7 @@ one malformed order does not cost the rest of the page.
   one order: paid online, one line item, a pickup point and an invoice. A
   cancelled order, several line items and more than one page have still
   never been seen, and production has its own application and credentials.
+  `scripts/sandbox_bulk_purchase.py` exists to generate more sandbox orders
+  for exactly this (buying one listed offer repeatedly, since Sandbox has no
+  bulk-purchase API); untested against the real page as of 2026-09-18, see
+  its own docstring before running it.
