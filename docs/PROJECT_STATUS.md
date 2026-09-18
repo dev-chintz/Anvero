@@ -1,5 +1,12 @@
 # PROJECT STATUS
 
+> **On your next pull on another machine:** two new migrations landed
+> 2026-09-18 (`seller_note`, `order_items.image_url`). Run, in `backend/`:
+> `.\.venv\Scripts\alembic.exe upgrade head` — otherwise the first request
+> touching an order fails. (This is also step 4 of `CLAUDE.md`'s own
+> "Start of every session" checklist; this note is just to make today's
+> specific migrations hard to miss. Safe to delete once you've run it.)
+
 ## Project
 
 Anvero
