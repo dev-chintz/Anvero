@@ -45,7 +45,16 @@ Repository: <https://github.com/dev-chintz/Anvero>
   `order_addresses`, `order_status_history` and `integration_credentials`
 - Allegro adapter, order mapping, the import script, an import endpoint and
   a button, one import at a time and rate limited
-- 209 tests passing
+- 2026-09-18: several additive interface capabilities and one more imported
+  field, pulled forward while production Allegro waits on the owner (not the
+  redesign below) — inline status editing in the list, status-history
+  timeline icons, the order detail view as a slide-over drawer, the order
+  list reorganized toward a denser reference layout, the seller's own
+  Allegro note imported alongside the buyer's message, and item pictures
+  fetched from Allegro's offer API (unverified against the sandbox for
+  scope). Full detail in `DECISIONS.md` and `CHANGELOG.md`.
+- 221 backend tests and 32 frontend tests (Vitest + React Testing Library)
+  passing
 
 ---
 
@@ -78,20 +87,31 @@ scripts/    PowerShell helpers for the local environment
 
 # UI Direction
 
-A visual rework is planned, but only after the system works unattended and
-runs somewhere with backups (`ROADMAP.md` item 5, `DECISIONS.md`
-2026-09-17). Until that starts, match what exists rather than redesign it,
-and fix legibility faults as they turn up.
+A visual rework — new colours, a component library, the Figma/purple-accent
+direction below — is planned only after the system works unattended and runs
+somewhere with backups (`ROADMAP.md` item 5, `DECISIONS.md` 2026-09-17). That
+is still on hold. What is *not* on hold, per the owner: additive interface
+capabilities that reuse what already exists rather than restyle it — see the
+2026-09-18 entries in `DECISIONS.md` for what that has meant in practice
+(inline editing, a drawer instead of a page, denser list columns). The
+distinction that matters: does it change what a screen *looks* like
+everywhere, or does it add a capability without touching the values already
+in `index.css`.
 
 What exists today:
 
-- Dark left sidebar, bright workspace, rounded corners
-- Plain CSS, ten stylesheets under `frontend/src/styles/` plus `index.css`;
-  no component library, no CSS framework
+- Dark left sidebar (200px open, 70px collapsed), bright workspace, rounded
+  corners
+- Plain CSS, stylesheets under `frontend/src/styles/` plus `index.css`; no
+  component library, no CSS framework. `index.css`'s `:root`/`:root.dark`
+  hold named tokens for values repeated across files (accent, surface,
+  divider, headings, radii, semantic colours) — see `DECISIONS.md`
+  2026-09-18 before assuming a value is a one-off
 - Colours, spacing and radii come from the variables in `index.css`; the
   accent is blue in light mode, teal in dark
 - Light and dark follow the system, with an explicit override
-- No frontend tests, only `tsc --noEmit`
+- Vitest + React Testing Library, wired into the pre-commit hook and CI
+  (`npm run test`); still thin, per `ROADMAP.md`
 
 The direction below — premium SaaS, purple accent, Linear and Stripe as
 models — and the Figma dashboard prototype are aspirations, not descriptions:

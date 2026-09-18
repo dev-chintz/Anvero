@@ -39,7 +39,8 @@ Other machines stay on SQLite until PostgreSQL is set up there
   remains the no-setup default for a fresh clone)
 - Health endpoint and first order model — done
 - Minimal order list interface — done
-- Automated tests for core flows — done (209 passing across the suite)
+- Automated tests for core flows — done (221 backend, 32 frontend passing
+  across the suite as of 2026-09-18)
 
 ---
 
@@ -154,16 +155,31 @@ list's worst readability faults fixed, and a pass over the CSS naming values
 that were already repeated across files (see `DECISIONS.md`,
 `CHANGELOG.md`).
 
-With production Allegro blocked on the owner's own steps, three more
-interface capabilities were pulled forward the same day, not the postponed
-redesign: order status is editable directly from the list, the status-history
-timeline shows an icon per entry, and the order detail view opens as a
-slide-over above the list instead of a full-page navigation, so the list's
-filters and scroll position survive. See `DECISIONS.md`.
+With production Allegro blocked on the owner's own steps, more interface
+work and one more imported field were pulled forward the same day, not the
+postponed redesign (`DECISIONS.md` has the full list):
+
+- Order status is editable directly from the list, colored options included.
+- The status-history timeline shows an icon per entry.
+- The order detail view opens as a slide-over above the list instead of a
+  full-page navigation, so the list's filters and scroll position survive.
+- The seller's own Allegro note (`note.text`, distinct from the buyer's
+  message) is now imported and shown in its own yellow-tinted card.
+- The order list is reorganized toward the owner's reference (BaseLinker):
+  one Order cell (id, buyer, source) replacing three columns and dropping
+  the raw email from the list, a real Payment column, and empty
+  Items/Shipping placeholders for what Anvero cannot show yet. Sidebar
+  narrowed to 200px.
+- Order items show a thumbnail fetched from Allegro's offer API
+  (`GET /sale/product-offers/{offerId}`, a second call the checkout-form
+  data does not carry), hover to enlarge in place. Best-effort: unverified
+  whether the current authorization's scope allows it until tried against
+  the sandbox.
 
 Still open: a browser check of the authenticated pages by the owner, since
 every screen needs a login and that verification is deliberately not
-something an assistant does.
+something an assistant does — including, now, whether the item pictures
+actually come through on a real Allegro order.
 
 ---
 
@@ -182,4 +198,4 @@ PostgreSQL 17, SQLite (no-setup default for a fresh clone)
 
 ## Last Update
 
-2026-09-17
+2026-09-18
