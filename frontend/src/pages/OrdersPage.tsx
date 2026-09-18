@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
-import { ApiError, integrationsApi } from '../api/client';
+import { Outlet, useSearchParams } from 'react-router-dom';
+import { ApiError, integrationsApi, ordersApi } from '../api/client';
 import { OrderList } from '../components/OrderList';
 import { AdvancedFilters, type Filters } from '../components/AdvancedFilters';
 import { useOrders } from '../hooks/useOrders';
@@ -11,6 +11,12 @@ const DEFAULT_LIMIT = 20;
 
 interface OrdersPageProps {
   addToast?: (message: string, type?: 'success' | 'error' | 'info' | 'warning') => void;
+}
+
+/** What the nested /orders/:id route (rendered via <Outlet>) can reach on its parent. */
+export interface OrdersOutletContext {
+  /** Re-fetches the list; call after the drawer changes something the list shows. */
+  onOrderChanged: () => void;
 }
 
 /**
@@ -46,6 +52,7 @@ export function OrdersPage({ addToast }: OrdersPageProps) {
   const [allegroConfigured, setAllegroConfigured] = useState<boolean | null>(null);
   const [allegroStatusFailed, setAllegroStatusFailed] = useState(false);
   const [importing, setImporting] = useState(false);
+  const [updatingOrderId, setUpdatingOrderId] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -88,6 +95,21 @@ export function OrdersPage({ addToast }: OrdersPageProps) {
         addToast?.(message, 'error');
       })
       .finally(() => setImporting(false));
+  };
+
+  const handleStatusChange = (orderId: string, status: OrderStatus) => {
+    setUpdatingOrderId(orderId);
+    ordersApi
+      .updateStatus(orderId, status)
+      .then(() => {
+        addToast?.(`Status set to ${status}`, 'success');
+        refetch();
+      })
+      .catch((err: unknown) => {
+        const message = err instanceof ApiError ? err.message : 'Failed to update status';
+        addToast?.(message, 'error');
+      })
+      .finally(() => setUpdatingOrderId(null));
   };
 
   const updateParams = (updates: Record<string, string | undefined>) => {
@@ -187,7 +209,13 @@ export function OrdersPage({ addToast }: OrdersPageProps) {
         skip={skip}
         limit={limit}
         onPageChange={(newSkip) => updateParams({ skip: String(newSkip) })}
+        onStatusChange={handleStatusChange}
+        updatingOrderId={updatingOrderId}
       />
+
+      {/* the order-detail route nested under /orders renders here, as a
+          slide-over above this still-mounted list rather than replacing it */}
+      <Outlet context={{ onOrderChanged: refetch } satisfies OrdersOutletContext} />
     </div>
   );
 }

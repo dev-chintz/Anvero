@@ -17,7 +17,7 @@
 .status-history-list {
   list-style: none;
   margin: 0;
-  padding: 0 0 0 1rem;
+  padding: 0 0 0 1.75rem;
   border-left: 2px solid var(--color-border);
 }
 
@@ -30,15 +30,19 @@
   padding: 0.6rem 0;
 }
 
-/* marker sitting on the timeline rule */
-.status-history-item::before {
-  content: "";
+/* the marker sitting on the timeline rule, colored and shaped by whichever
+   badge-<status> class it is combined with, one per entry's to_status */
+.status-history-icon {
   position: absolute;
-  left: calc(-1rem - 5px);
-  width: 8px;
-  height: 8px;
+  left: calc(-1.75rem - 11px);
+  width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   border-radius: 50%;
-  background: var(--color-primary);
+  font-size: 0.7rem;
+  line-height: 1;
 }
 
 .status-history-item time {

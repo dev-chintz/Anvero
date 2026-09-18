@@ -94,7 +94,21 @@ whether the Figma dashboard prototype and the premium-SaaS direction in
 rewrite of ten stylesheets, and what a design pass would cost. Judging that
 after real daily use costs least and is most likely to be right.
 
-Until then, nothing decorative, only what makes the screens readable:
+Until then, nothing decorative, only what makes the screens readable — plus,
+as of 2026-09-18, three additive interface capabilities pulled forward while
+production Allegro waits on the owner's own steps (not the redesign above,
+which is still on hold; see `DECISIONS.md`):
+
+- Order status can be changed directly from the list (a select styled as the
+  existing badge), instead of only from the order page.
+- The status-history timeline shows an icon for each entry's status instead
+  of a plain dot.
+- The order detail view opens as a slide-over above the list instead of
+  navigating to a full page, so the list's filters and scroll position
+  survive opening and closing an order. `OrdersPage.drawer.test.tsx` covers
+  the routing.
+
+And the smaller fixes:
 
 - ~~Fixes already visible in use: the order list scrolls sideways with a
   single order in it, badges crowd the status column, and the buyer's email

@@ -21,11 +21,16 @@ const SOURCE_CLASS: Record<OrderSource, string> = {
   [OrderSource.ERLI]: "badge badge-erli",
 };
 
+const ALL_STATUSES = Object.values(OrderStatus);
+
 interface OrderRowProps {
   order: Order;
+  onStatusChange: (orderId: string, status: OrderStatus) => void;
+  /** true while this row's own status update is in flight */
+  updating: boolean;
 }
 
-export function OrderRow({ order }: OrderRowProps) {
+export function OrderRow({ order, onStatusChange, updating }: OrderRowProps) {
   const formattedDate = new Date(order.ordered_at).toLocaleString();
 
   return (
@@ -40,7 +45,19 @@ export function OrderRow({ order }: OrderRowProps) {
       </td>
       <td>
         <div className="status-cell">
-          <span className={STATUS_CLASS[order.status]}>{order.status}</span>
+          <select
+            className={`status-select ${STATUS_CLASS[order.status]}`}
+            value={order.status}
+            disabled={updating}
+            aria-label={`Status for order ${order.external_id}`}
+            onChange={(e) => onStatusChange(order.id, e.target.value as OrderStatus)}
+          >
+            {ALL_STATUSES.map((s) => (
+              <option key={s} value={s}>
+                {s}
+              </option>
+            ))}
+          </select>
           {hasCancellationWarning(order) && (
             <span className="badge badge-warning">
               ⚠ Cancelled on {order.source}

@@ -6,6 +6,25 @@ All significant changes to the Anvero project.
 
 ## 2026-09-18
 
+### ✨ Inline status editing, timeline icons, and the order detail drawer
+
+Three interface ideas pulled forward while production Allegro waits on the
+owner's own steps (`ROADMAP.md`; not the postponed redesign, see
+`DECISIONS.md`):
+
+- The order list's status column is now an editable select, styled like the
+  existing badge, wired to the same `PATCH /orders/{id}/status` the detail
+  page already used. No more opening an order just to change its status.
+- The status-history timeline shows an icon per entry (🆕/✅/🚚/📦/✖) for the
+  status it moved to, instead of a plain dot.
+- `/orders/:id` opens as a slide-over above the order list instead of
+  navigating to a full page, so the list's scroll position and filters
+  survive opening and closing an order. Closes via its own button, Escape,
+  or the backdrop.
+
+New test file `OrdersPage.drawer.test.tsx` covers the drawer's routing and
+refetch behavior.
+
 ### 🎨 CSS values named once (no visual change)
 
 - `index.css` gains tokens for values `App.css` and `styles/*.css` already

@@ -1,5 +1,67 @@
 # Decision Log
 
+## 2026-09-18 — Three Interface Ideas Built Early, While Allegro Production Waits
+
+**Decision:** With production Allegro blocked on the owner's own steps
+(`ROADMAP.md`, item 1), three incremental interface ideas were pulled forward
+instead of waiting for the post-MVP visual pass: status changes directly from
+the order list, icons on the status-history timeline, and the order detail
+view as a slide-over drawer above the list instead of a full-page navigation.
+Chosen by the owner, from a short list gathered by browsing public design
+references (Dribbble, since Mobbin blocks this session's browser with a 403).
+
+**Rationale:** This is not the redesign `DECISIONS.md`'s 2026-09-17 entry
+postpones — each change is additive and keeps the current look, wiring a
+capability the backend already has (`PATCH /orders/{id}/status`) or extending
+a component that already exists (`OrderHistory.css`'s timeline,
+`OrderDetail.tsx`'s page) rather than restyling anything. Doing them now uses
+otherwise-blocked time productively without committing to the bigger,
+harder-to-reverse visual decisions (Figma prototype, component library) that
+are still deliberately on hold.
+
+### Order list: status is a select styled as the existing badge
+
+`OrderRow.tsx`'s status cell is now a `<select>` (`.status-select` in
+`index.css`, combined with the existing `.badge-*` class for its color)
+instead of a plain span, wired through `OrderList` to
+`OrdersPage.handleStatusChange`, which calls the existing
+`ordersApi.updateStatus` and refetches the list. Changing status no longer
+means opening the order. The three warning/marketplace-status badges next to
+it are unchanged.
+
+### Status history: an icon per event's `to_status`
+
+`OrderDetail.tsx`'s status-history timeline marker (`.status-history-item`,
+`OrderHistory.css`) was a plain colored dot; it is now a small circle showing
+an emoji for the status the entry moved *to* (🆕/✅/🚚/📦/✖), using the same
+emoji-as-icon convention the dashboard's stat cards already use
+(`Dashboard.tsx`). Purely visual; the underlying data and the badges next to
+it are unchanged.
+
+### Order detail: a slide-over, not a page
+
+`/orders/:id` is now nested under `/orders` (`App.tsx`) and rendered through
+`OrdersPage`'s own `<Outlet>`, so the list stays mounted - its scroll
+position and filters survive opening and closing an order. `OrderDetail.tsx`
+renders as a backdrop + panel sliding in from the right (`.order-drawer-*` in
+`index.css`), closable by its own button, the Escape key, or clicking the
+backdrop, all going through `navigate(-1)` rather than a hardcoded
+`/orders` so whatever filters were active are still there. Because the list
+no longer remounts (and so no longer refetches) when an order's status
+changes from inside the drawer, `OrdersPage` passes its `refetch` down via
+`useOutletContext` (`OrdersOutletContext`), and `OrderDetail` calls it after
+a successful status update - otherwise the row behind the drawer would show
+a stale status until the next unrelated refetch. `OrderDetailsPanel.tsx` and
+the status-history section inside the drawer are unchanged.
+
+Verified with `tsc --noEmit`, `npm run build`, and a new
+`OrdersPage.drawer.test.tsx` covering the nested-route composition (list and
+drawer both present), closing via button and Escape, and the refetch-on-
+status-change wiring - deliberately the most-tested of the three, since it is
+the one restructuring routing rather than only adding to a component. Not
+checked in a browser: every screen needs a login, and that check is the
+owner's, per `ROADMAP.md`.
+
 ## 2026-09-18 — CSS Values Named Once, Not Redesigned
 
 **Decision:** `index.css`'s `:root`/`:root.dark` gained tokens for values that

@@ -1,4 +1,4 @@
-import type { Order } from "../types/order";
+import type { Order, OrderStatus } from "../types/order";
 import { OrderRow } from "./OrderRow";
 
 interface OrderListProps {
@@ -9,6 +9,9 @@ interface OrderListProps {
   skip: number;
   limit: number;
   onPageChange: (skip: number) => void;
+  onStatusChange: (orderId: string, status: OrderStatus) => void;
+  /** id of the order whose status update is in flight, if any */
+  updatingOrderId: string | null;
 }
 
 export function OrderList({
@@ -19,6 +22,8 @@ export function OrderList({
   skip,
   limit,
   onPageChange,
+  onStatusChange,
+  updatingOrderId,
 }: OrderListProps) {
   const currentPage = Math.floor(skip / limit) + 1;
   const totalPages = Math.max(1, Math.ceil(count / limit));
@@ -55,7 +60,12 @@ export function OrderList({
             </thead>
             <tbody>
               {orders.map((order) => (
-                <OrderRow key={order.id} order={order} />
+                <OrderRow
+                  key={order.id}
+                  order={order}
+                  onStatusChange={onStatusChange}
+                  updating={updatingOrderId === order.id}
+                />
               ))}
             </tbody>
           </table>

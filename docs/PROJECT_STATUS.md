@@ -152,9 +152,18 @@ done as of 2026-09-18: backend lint findings cleared, a first set of frontend
 tests (Vitest + React Testing Library) wired into the hook and CI, the order
 list's worst readability faults fixed, and a pass over the CSS naming values
 that were already repeated across files (see `DECISIONS.md`,
-`CHANGELOG.md`). Still open: a browser check of the authenticated pages by
-the owner, since every screen needs a login and that verification is
-deliberately not something an assistant does.
+`CHANGELOG.md`).
+
+With production Allegro blocked on the owner's own steps, three more
+interface capabilities were pulled forward the same day, not the postponed
+redesign: order status is editable directly from the list, the status-history
+timeline shows an icon per entry, and the order detail view opens as a
+slide-over above the list instead of a full-page navigation, so the list's
+filters and scroll position survive. See `DECISIONS.md`.
+
+Still open: a browser check of the authenticated pages by the owner, since
+every screen needs a login and that verification is deliberately not
+something an assistant does.
 
 ---
 

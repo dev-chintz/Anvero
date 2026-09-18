@@ -161,6 +161,31 @@ td {
   color: #fff;
 }
 
+/* An order's status, editable in place: combined with a .badge-* class for
+   its color, so it looks like the same pill everywhere except the list,
+   where it is also a control. The native option list stays unstyled -
+   only the closed select needs to read as a badge. */
+.status-select {
+  border: none;
+  font: inherit;
+  font-weight: 600;
+  font-size: 0.75rem;
+  padding: 0.15rem 0.55rem;
+  border-radius: 999px;
+  color: #fff;
+  cursor: pointer;
+}
+
+.status-select:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+.status-select:focus-visible {
+  outline: 2px solid var(--color-text);
+  outline-offset: 2px;
+}
+
 .badge-new {
   background: var(--color-info);
 }
@@ -297,9 +322,59 @@ td {
   border-radius: var(--radius);
 }
 
-/* padded like the other pages, and capped: on a wide monitor the full width
-   put an item's price a metre from its name and the cards pressed against
-   the sidebar */
+/* A slide-over above the still-mounted order list (OrderDetail.tsx, rendered
+   through OrdersPage's <Outlet>), not a page of its own - so the list keeps
+   its scroll position and filters when the drawer closes. */
+.order-drawer-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  z-index: 1500;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.order-drawer {
+  position: relative;
+  width: min(720px, 100%);
+  height: 100vh;
+  overflow-y: auto;
+  background: var(--color-bg);
+  box-shadow: -8px 0 24px rgba(0, 0, 0, 0.2);
+  animation: order-drawer-in 0.2s ease-out;
+}
+
+@keyframes order-drawer-in {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+.order-drawer-close {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  background: none;
+  border: none;
+  font-size: 1.1rem;
+  line-height: 1;
+  cursor: pointer;
+  color: var(--color-muted);
+  padding: 0.5rem;
+  border-radius: 50%;
+}
+
+.order-drawer-close:hover {
+  color: var(--color-heading);
+  background: var(--color-divider);
+}
+
+/* padded like the other pages, and capped: at the drawer's own width this
+   never binds today, but keeps order-fields from stretching too wide if the
+   drawer is ever widened */
 .order-detail {
   padding: 2rem;
   max-width: 1100px;
@@ -308,6 +383,12 @@ td {
 @media (max-width: 768px) {
   .order-detail {
     padding: 1rem;
+  }
+}
+
+@media (max-width: 640px) {
+  .order-drawer {
+    width: 100%;
   }
 }
 

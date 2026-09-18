@@ -1,6 +1,6 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { OrderRow } from "./OrderRow";
 import { OrderSource, OrderStatus, type Order } from "../types/order";
 
@@ -23,16 +23,24 @@ function makeOrder(overrides: Partial<Order> = {}): Order {
   };
 }
 
-function renderRow(order: Order) {
-  return render(
-    <MemoryRouter>
-      <table>
-        <tbody>
-          <OrderRow order={order} />
-        </tbody>
-      </table>
-    </MemoryRouter>,
-  );
+function renderRow(
+  order: Order,
+  overrides: { onStatusChange?: (orderId: string, status: OrderStatus) => void; updating?: boolean } = {},
+) {
+  const onStatusChange = overrides.onStatusChange ?? vi.fn();
+  const updating = overrides.updating ?? false;
+  return {
+    onStatusChange,
+    ...render(
+      <MemoryRouter>
+        <table>
+          <tbody>
+            <OrderRow order={order} onStatusChange={onStatusChange} updating={updating} />
+          </tbody>
+        </table>
+      </MemoryRouter>,
+    ),
+  };
 }
 
 describe("OrderRow", () => {
@@ -82,12 +90,30 @@ describe("OrderRow", () => {
       }),
     );
 
-    const statusBadge = screen.getByText(OrderStatus.CONFIRMED);
-    const statusCell = statusBadge.closest(".status-cell");
+    const statusControl = screen.getByRole("combobox", { name: /status for order/i });
+    const statusCell = statusControl.closest(".status-cell");
     expect(statusCell).not.toBeNull();
     // regression: three badges crammed into a nowrap <td> forced the whole
     // table into horizontal scroll even for a single order (ROADMAP.md)
     expect(statusCell).toContainElement(screen.getByText(/Cancelled on/));
+  });
+
+  it("changes status in place via a select, without leaving the list", () => {
+    const order = makeOrder({ status: OrderStatus.NEW });
+    const { onStatusChange } = renderRow(order);
+
+    const select = screen.getByRole("combobox", { name: "Status for order ext-1" });
+    expect(select).toHaveValue(OrderStatus.NEW);
+
+    fireEvent.change(select, { target: { value: OrderStatus.SHIPPED } });
+
+    expect(onStatusChange).toHaveBeenCalledWith("1", OrderStatus.SHIPPED);
+  });
+
+  it("disables the status select while its own update is in flight", () => {
+    renderRow(makeOrder(), { updating: true });
+
+    expect(screen.getByRole("combobox", { name: /status for order/i })).toBeDisabled();
   });
 
   it("truncates the customer email but keeps the full address reachable on hover", () => {

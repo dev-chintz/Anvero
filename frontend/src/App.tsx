@@ -95,8 +95,11 @@ export default function App() {
               >
                 <Route path="/" element={<Home />} />
                 <Route path="/dashboard" element={<Dashboard />} />
-                <Route path="/orders" element={<OrdersPage addToast={addToast} />} />
-                <Route path="/orders/:id" element={<OrderDetail />} />
+                <Route path="/orders" element={<OrdersPage addToast={addToast} />}>
+                  {/* rendered by OrdersPage's own <Outlet />, as a slide-over
+                      above the still-mounted list, not a full-page navigation */}
+                  <Route path=":id" element={<OrderDetail />} />
+                </Route>
                 <Route path="/settings" element={<Settings />} />
                 <Route
                   path="*"
