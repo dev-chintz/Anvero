@@ -147,10 +147,10 @@ Sandbox. Agreed plan, in order:
    rules, and which of ERLI, shipping or invoicing comes after the MVP
    (`ROADMAP.md`).
 
-Smaller items to fit in along the way: frontend tests (there are none, only
-the type-check). Backend lint findings are cleared as of 2026-09-18 (see
-`DECISIONS.md`); ruff still isn't run from the pre-commit hook or CI, so
-nothing catches new ones yet.
+Smaller items, both done 2026-09-18: backend lint findings are cleared (see
+`DECISIONS.md`; ruff itself still isn't run from the hook or CI), and the
+frontend has a first set of tests (Vitest + React Testing Library), wired
+into the hook and CI (`CHANGELOG.md`).
 
 ---
 

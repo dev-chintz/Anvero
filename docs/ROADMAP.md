@@ -103,9 +103,11 @@ Until then, nothing decorative, only what makes the screens readable:
 - One pass over `index.css` so colours, spacing, radii and type are defined
   once, in the values already in use. This makes the later restyle a change
   in one place rather than ten.
-- The frontend has no tests, only the type-check. Anything larger than the
-  fixes above wants a few component tests first — and a redesign certainly
-  does.
+- ~~The frontend has no tests, only the type-check.~~ Done 2026-09-18: Vitest
+  and React Testing Library, wired into the hook and CI, with a first set of
+  tests covering `session.ts`, `types/order.ts` and `OrderRow` (`CHANGELOG.md`).
+  Still thin — the interface fixes above and any redesign want more component
+  tests before they land.
 - Every screen is behind a login, so the owner verifies interface work in the
   browser; assistants check the API instead.
 

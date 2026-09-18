@@ -6,6 +6,27 @@ All significant changes to the Anvero project.
 
 ## 2026-09-18
 
+### 🧪 Frontend has tests now (Vitest + React Testing Library)
+
+- The frontend had no tests at all, only the type-check. Added Vitest and
+  React Testing Library (`frontend/vite.config.ts`'s `test` block,
+  `frontend/src/testSetup.ts`), a `npm run test` script, and a first set of
+  tests: `auth/session.test.ts` (the localStorage guard, including when
+  storage throws), `types/order.test.ts` (`hasCancellationWarning`,
+  `marketplaceStatusDiffers`, `marketplaceStatusText` — the rules behind the
+  2026-09-17 marketplace-status decision) and `components/OrderRow.test.tsx`
+  (the same rules as rendered badges).
+- `npm run test` now runs in the pre-commit hook and in
+  `.github/workflows/checks.yml`, alongside the type-check.
+
+### 🧹 Backend lint findings cleared
+
+- `ruff check backend/` is clean. FastAPI's `Depends()`/`Query()` defaults
+  are allowlisted in the new `backend/pyproject.toml` instead of rewritten;
+  the rest (import order, three `subprocess.run` calls, one broad `except`)
+  were fixed or given a justified `noqa`. See `DECISIONS.md`. Ruff is not yet
+  run from the hook or CI.
+
 ### 🛡️ Checks on GitHub for every push
 
 - `.github/workflows/checks.yml` runs on every push and pull request: the

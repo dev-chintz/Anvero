@@ -1,5 +1,36 @@
 # Decision Log
 
+## 2026-09-18 — Frontend Tests Are Vitest + React Testing Library
+
+**Decision:** `frontend/vite.config.ts` gains a `test` block (jsdom
+environment, `src/testSetup.ts` for cleanup and jest-dom matchers); `npm run
+test` runs Vitest. Tests sit next to the code they test (`session.test.ts`
+beside `session.ts`), not in a parallel `tests/` tree, and import
+`describe`/`it`/`expect` explicitly rather than turning on Vitest's globals.
+
+**Rationale:** Vitest reuses the project's own Vite config and plugin
+pipeline (JSX, path resolution), so nothing needs a second bundler
+configuration the way Jest would have; `ROADMAP.md` already named it as the
+natural fit. React Testing Library is its ecosystem's standard for asserting
+on rendered output rather than component internals. Explicit imports over
+globals keep `noUnusedLocals`/`noUnusedParameters` meaningful in test files
+and match the rest of the codebase's style of not relying on ambient globals.
+React Testing Library's automatic per-test cleanup depends on `afterEach`
+being a global, which this setup does not enable, so `testSetup.ts` calls
+`cleanup()` explicitly — without it, a component from one test stayed mounted
+into the next.
+
+The first tests were chosen for where a silent regression would be worst:
+`auth/session.ts` (the try/catch around `localStorage`, including the
+private-mode/blocked-storage path) and `types/order.ts`'s
+`hasCancellationWarning`, `marketplaceStatusDiffers` and
+`marketplaceStatusText`, which are the rules behind the 2026-09-17
+marketplace-status decision — pure functions, easy to get subtly wrong, with
+a decision on record that explains why each edge case (a cancellation
+suppressing the other badge, a missing field reading as "nothing to show")
+is the way it is. `OrderRow.test.tsx` renders the same rules to check the
+badges actually appear, as a first component test.
+
 ## 2026-09-18 — Backend Lint Findings Cleared; FastAPI's `Depends`/`Query` Allowlisted
 
 **Decision:** `backend/pyproject.toml` now exists, holding one setting:
