@@ -22,11 +22,15 @@ address, elsewhere only through a VPN (Tailscale), never by forwarding port
 5432 on the router. A second container in the same Container Station app
 (`prodrigestivill/postgres-backup-local:17`) runs `pg_dump` nightly into the
 NAS shared folder `anvero-backup` (7 daily, 4 weekly, 3 monthly kept). The NAS
-has a single disk, so those dumps do not survive its failure: a copy outside
-the NAS (Hybrid Backup Sync to cloud or USB) is still open, and due before
-real orders go in. The first dump was restored into a scratch database and its
-row counts matched. The connection string holds
-the password and stays out of Git.
+has a single disk, so those dumps do not survive its failure: a Hybrid Backup
+Sync job copies the folder every day at 03:00 to a Google Drive account made
+only for this, with client-side encryption (`.qdff`, readable only through HBS
+or QNAP's decrypt tool, with the encryption password). The first dump was
+restored into a scratch database twice, from the NAS folder and from the
+Drive copy through an HBS restore job, and the row counts matched. The
+encryption password must be kept outside the NAS: HBS does not ask for it when
+restoring from its own job, so that test does not prove it is remembered. The
+connection string holds the password and stays out of Git.
 
 ## 2026-09-18 — Item Pictures: a Second Allegro Call per Offer, Best-Effort
 

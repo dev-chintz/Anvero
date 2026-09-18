@@ -11,8 +11,9 @@ All significant changes to the Anvero project.
 Development now runs on a single PostgreSQL 17 on the owner's QNAP NAS
 instead of a database per machine. The SQLite data (user, order, Allegro
 credentials) was copied into it, and a second container dumps it nightly into
-a NAS folder; a dump was restored into a scratch database and matched. A copy
-of the dumps outside the NAS is still to do. See `DECISIONS.md`.
+a NAS folder. That folder is copied daily to Google Drive, encrypted, and a
+dump restored from the Drive copy into a scratch database matched. The NAS is
+reached from any machine through Tailscale. See `DECISIONS.md`.
 
 ### 🖼️ Item pictures on the order page, fetched from Allegro
 

@@ -57,7 +57,12 @@ is signed in and running.
 
 A second container in the same Container Station app dumps the database each
 night into the NAS folder `anvero-backup` (7 daily, 4 weekly, 3 monthly). To
-restore, load a dump with `psql` into an empty database; the dumps contain no
+Hybrid Backup Sync copies that folder every day at 03:00 to a dedicated
+Google Drive account, encrypted (`.qdff`); to get a dump back, run an HBS
+restore job into a new NAS folder (it needs no password on the NAS that made
+the backup) and download the `.sql.gz`. The encryption password is kept in the
+owner's password manager, not in the repo. To restore, load a dump with
+`psql` into an empty database; the dumps contain no
 `CREATE DATABASE` or `DROP`, so they only ever go where they are pointed.
 
 ## Using PostgreSQL

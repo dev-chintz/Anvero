@@ -38,8 +38,8 @@ Since 2026-09-18 the development database is one shared PostgreSQL 17 on the
 owner's NAS, which every machine reaches through `DATABASE_URL` in its own
 `.env` (`DEVELOPMENT.md`, "Shared database on the NAS"; `DECISIONS.md`). A
 machine that has not been pointed at it still runs on its own SQLite file.
-Nightly dumps are kept on the NAS and one was restored into a scratch database
-as a test; a copy outside the NAS is still to do.
+Nightly dumps are kept on the NAS, copied daily to an encrypted Google Drive
+folder, and one was restored from that copy into a scratch database as a test.
 
 ---
 
