@@ -182,6 +182,7 @@ def _run_create_user(email: str, password: str) -> subprocess.CompletedProcess:
         text=True,
         cwd=BACKEND_DIR,
         timeout=60,
+        check=False,
     )
 
 
@@ -206,6 +207,7 @@ def test_create_user_script_ignores_the_bom_powershell_adds_to_piped_input():
         capture_output=True,
         cwd=BACKEND_DIR,
         timeout=60,
+        check=False,
     )
 
     assert result.returncode == 0, result.stderr

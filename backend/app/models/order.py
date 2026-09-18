@@ -20,7 +20,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.types import Uuid
 
 from app.db.base import Base
-from app.models.user import User  # noqa: F401 -- resolves the "User" relationship
+from app.models.user import User
 
 
 class OrderSource(str, enum.Enum):

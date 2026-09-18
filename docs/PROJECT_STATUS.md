@@ -148,8 +148,9 @@ Sandbox. Agreed plan, in order:
    (`ROADMAP.md`).
 
 Smaller items to fit in along the way: frontend tests (there are none, only
-the type-check), and 22
-pre-existing backend lint findings.
+the type-check). Backend lint findings are cleared as of 2026-09-18 (see
+`DECISIONS.md`); ruff still isn't run from the pre-commit hook or CI, so
+nothing catches new ones yet.
 
 ---
 

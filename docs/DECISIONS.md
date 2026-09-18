@@ -1,5 +1,34 @@
 # Decision Log
 
+## 2026-09-18 — Backend Lint Findings Cleared; FastAPI's `Depends`/`Query` Allowlisted
+
+**Decision:** `backend/pyproject.toml` now exists, holding one setting:
+`[tool.ruff.lint.flake8-bugbear] extend-immutable-calls` lists
+`fastapi.Depends`, `fastapi.Query`, `fastapi.Path` and `fastapi.Body`. The
+other findings (unsorted imports, three `subprocess.run` calls without
+`check=`, one broad `except Exception` in `generate_sample_data.py`) were
+fixed or, for the broad except, given an explicit `# noqa: BLE001` with a
+one-line reason. `ruff check backend/` is now clean.
+
+**Rationale:** All 16 `B008` findings were FastAPI's own dependency-injection
+pattern — every endpoint calls `Depends(get_db)` or `Query(...)` as an
+argument default, which is what the framework documents and requires. Ruff's
+bugbear rule cannot tell that apart from the mutable-default-argument bug it
+exists to catch unless told; rewriting working endpoint signatures to dodge a
+false positive would have made the code worse, not better. `extend-immutable-
+calls` is bugbear's own mechanism for exactly this, so it keeps B008 useful
+for any other function while clearing the noise. The three `subprocess.run`
+calls are test helpers that already assert on `result.returncode` themselves,
+so `check=False` documents that on purpose rather than by omission. The
+`except Exception` in the sample-data script is a CLI script's top-level
+safety net around a whole run, not a place narrowing to specific exceptions
+would help; a `noqa` with a reason was chosen over silencing the rule
+project-wide.
+
+Ruff is still not run from the pre-commit hook or from CI, so this only
+clears the existing backlog — nothing yet stops a new finding from landing
+unnoticed.
+
 ## 2026-09-18 — Checks Run on GitHub Actions for Every Push
 
 **Decision:** A GitHub Actions workflow runs on every push and pull request:

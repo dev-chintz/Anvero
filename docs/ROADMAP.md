@@ -119,9 +119,11 @@ The rules are the owner's decision, not a technical one.
 ~~Tests run only in a local pre-commit hook a fresh clone can miss.~~ Done
 2026-09-18: GitHub Actions runs the backend tests on SQLite and on
 PostgreSQL 17, the migrations up, down and up, and the frontend type-check and
-build on every push (`.github/workflows/checks.yml`). Still open: the frontend
-has no tests at all, only the type-check, and 22 lint findings predate
-2026-09-17.
+build on every push (`.github/workflows/checks.yml`). ~~22 lint findings
+predate 2026-09-17.~~ Done 2026-09-18: `ruff check backend/` is clean; see
+`DECISIONS.md`. Still open: the frontend has no tests at all, only the
+type-check, and ruff is not wired into the pre-commit hook or CI, so nothing
+stops new findings from accumulating again.
 
 ### 8. What real buyer data will demand
 

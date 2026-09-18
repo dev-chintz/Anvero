@@ -10,10 +10,10 @@ so the script can run unattended.
 """
 
 import sys
-from pathlib import Path
+import uuid
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal
-import uuid
+from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
@@ -320,7 +320,7 @@ def generate_sample_data(force: bool = False):
         total_revenue = db.query(func.sum(Order.total_amount)).scalar() or 0
         print(f"\n💰 Total revenue: {total_revenue:,.2f} PLN")
 
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001 -- CLI script: report and roll back on any failure
         print(f"✗ Error: {e}")
         db.rollback()
     finally:

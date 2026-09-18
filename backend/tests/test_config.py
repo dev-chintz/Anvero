@@ -56,6 +56,7 @@ def test_the_database_is_the_same_whichever_directory_a_command_runs_from():
         text=True,
         timeout=60,
         env={**os.environ, "DATABASE_URL": "sqlite:///./cwd_probe.db"},
+        check=False,
     )
 
     assert result.returncode == 0, result.stderr

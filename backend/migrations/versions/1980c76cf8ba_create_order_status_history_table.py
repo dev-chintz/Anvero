@@ -9,10 +9,9 @@ Create Date: 2026-09-16 15:13:56.216228
 from collections.abc import Sequence
 
 import sqlalchemy as sa
+from alembic import op
 from sqlalchemy import func
 from sqlalchemy.dialects import postgresql
-
-from alembic import op
 
 # revision identifiers, used by Alembic.
 revision: str = "1980c76cf8ba"
