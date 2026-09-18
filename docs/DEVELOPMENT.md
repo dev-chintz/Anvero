@@ -23,14 +23,37 @@ The scripts do not install Python, Node.js, Git, or PostgreSQL and do not modify
 
 `backend/.env` is git-ignored, so it does not travel between machines. The
 default it is copied from points at a SQLite file, `backend/anvero.db`, which
-is also git-ignored: each machine builds its own database. A relative SQLite
+is also git-ignored: a machine left on it builds its own database, separate
+from the shared one on the NAS. A relative SQLite
 path is always resolved against `backend/`, so the server, Alembic and the
 scripts use the same file whichever directory they are started from. See the README for
 creating the schema and sample data.
 
+## Shared database on the NAS
+
+Development runs on one PostgreSQL 17 on the owner's QNAP NAS
+(`postgres:17` in Container Station, database and role `anvero`), so every
+machine sees the same data. To use it, put in `backend/.env`:
+
+```
+DATABASE_URL=postgresql+psycopg://anvero:PASSWORD@NAS_ADDRESS:5432/anvero
+```
+
+`NAS_ADDRESS` is its LAN address at home and its VPN (Tailscale) address
+elsewhere; port 5432 is never forwarded on the router. The password is not in
+Git. Then `alembic upgrade head` in `backend/` if the pull brought migrations.
+Keep `TEST_DATABASE_URL` on a local database: the tests drop every table and
+must not touch the shared one.
+
+A second container in the same Container Station app dumps the database each
+night into the NAS folder `anvero-backup` (7 daily, 4 weekly, 3 monthly). To
+restore, load a dump with `psql` into an empty database; the dumps contain no
+`CREATE DATABASE` or `DROP`, so they only ever go where they are pointed.
+
 ## Using PostgreSQL
 
-Each machine has its own database, so these steps are per machine.
+The section above is the normal route. These steps are for a separate local
+PostgreSQL, per machine, which is what the test database needs.
 
 1. Create a role and two databases, one for the application and one for the
    tests, as the `postgres` superuser:

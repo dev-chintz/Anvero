@@ -34,8 +34,12 @@ machine: the migrations and the full test suite run on it. The Allegro
 import has now run against the real API in the Allegro Sandbox, so what
 remains is the same on production Allegro, with the owner's seller account.
 
-Other machines stay on SQLite until PostgreSQL is set up there
-(`DEVELOPMENT.md`, "Using PostgreSQL"); each machine has its own database.
+Since 2026-09-18 the development database is one shared PostgreSQL 17 on the
+owner's NAS, which every machine reaches through `DATABASE_URL` in its own
+`.env` (`DEVELOPMENT.md`, "Shared database on the NAS"; `DECISIONS.md`). A
+machine that has not been pointed at it still runs on its own SQLite file.
+Nightly dumps are kept on the NAS and one was restored into a scratch database
+as a test; a copy outside the NAS is still to do.
 
 ---
 
@@ -143,8 +147,10 @@ Sandbox. Agreed plan, in order:
    seller account, and a real order the sandbox buyer placed was imported and
    re-imported; "Not yet verified" above says what that covered. Payment
    needed no special handling: the order arrived paid, through PayU. The
-   authorization lives on the SQLite machine, and the token chain is per
-   machine, so imports run from there (`INTEGRATIONS.md`). Importing from
+   authorization was made on the SQLite machine, and the token chain was per
+   machine (`INTEGRATIONS.md`). On 2026-09-18 its credentials row was copied
+   into the shared PostgreSQL; an import from another machine against that
+   database has not been tried yet. Importing from
    the interface button was checked too. Left from this step, when there is
    a reason: a cancelled order and an order with several line items.
 3. **Production Allegro** with the owner's seller account, same steps.

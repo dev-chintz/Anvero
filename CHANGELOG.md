@@ -6,6 +6,14 @@ All significant changes to the Anvero project.
 
 ## 2026-09-18
 
+### 🗄️ One shared PostgreSQL on the home NAS, with nightly backups
+
+Development now runs on a single PostgreSQL 17 on the owner's QNAP NAS
+instead of a database per machine. The SQLite data (user, order, Allegro
+credentials) was copied into it, and a second container dumps it nightly into
+a NAS folder; a dump was restored into a scratch database and matched. A copy
+of the dumps outside the NAS is still to do. See `DECISIONS.md`.
+
 ### 🖼️ Item pictures on the order page, fetched from Allegro
 
 Order items now show a small thumbnail (hover to enlarge in place), fetched

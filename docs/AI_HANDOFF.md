@@ -24,8 +24,9 @@ Version: 0.1.0
 
 Phase: Foundation
 
-Sprint: Sprints 2, 3 and 4 delivered. PostgreSQL 17 is connected on the main
-machine; other machines use SQLite until it is set up there.
+Sprint: Sprints 2, 3 and 4 delivered. The development database is a shared
+PostgreSQL 17 on the owner's NAS (since 2026-09-18); a machine whose `.env`
+still points at SQLite has its own separate data.
 
 Repository: <https://github.com/dev-chintz/Anvero>
 

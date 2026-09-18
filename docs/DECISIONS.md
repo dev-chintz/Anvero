@@ -1,5 +1,33 @@
 # Decision Log
 
+## 2026-09-18 — One Shared PostgreSQL on the Home NAS
+
+**Decision:** The development database is now a single PostgreSQL 17 on the
+owner's QNAP NAS (TS-251B, container `postgres:17` run from Container
+Station, database and role `anvero`, data in a Docker named volume). Every
+machine points `DATABASE_URL` in its own `.env` at it. The SQLite file on
+this machine was copied into it once (users, orders, items, addresses and the
+Allegro credentials row) and is no longer used. `TEST_DATABASE_URL` stays a
+local database: the API tests drop all tables on teardown and must never run
+against the shared one.
+
+**Rationale:** Until now each machine had its own database, and the Allegro
+refresh token, which rotates on every use, tied imports to one machine. A
+shared database removes both problems, and the target was PostgreSQL anyway.
+The NAS costs nothing and keeps the data at home; a hosted free tier (Neon,
+Supabase) was the alternative.
+
+**Consequences:** The NAS must be reachable: on the home network by its LAN
+address, elsewhere only through a VPN (Tailscale), never by forwarding port
+5432 on the router. A second container in the same Container Station app
+(`prodrigestivill/postgres-backup-local:17`) runs `pg_dump` nightly into the
+NAS shared folder `anvero-backup` (7 daily, 4 weekly, 3 monthly kept). The NAS
+has a single disk, so those dumps do not survive its failure: a copy outside
+the NAS (Hybrid Backup Sync to cloud or USB) is still open, and due before
+real orders go in. The first dump was restored into a scratch database and its
+row counts matched. The connection string holds
+the password and stays out of Git.
+
 ## 2026-09-18 — Item Pictures: a Second Allegro Call per Offer, Best-Effort
 
 **Decision:** `AllegroClient` gained `fetch_offer_image(offer_id)`, calling

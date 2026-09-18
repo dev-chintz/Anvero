@@ -40,9 +40,11 @@ breakdown; the short version:
   import at a time.
 - 221 backend and 32 frontend tests passing.
 
-- PostgreSQL 17 on the main machine, with the test suite running on it;
-  SQLite is the no-setup default elsewhere. Check `DATABASE_URL` in
-  `backend/.env` to see which one a machine uses.
+- One shared PostgreSQL 17 on the owner's NAS is the development database;
+  each machine's `backend/.env` points at it (the password is not in Git, ask
+  the owner). SQLite remains the no-setup default for a fresh clone. Check
+  `DATABASE_URL` in `backend/.env` to see which one a machine uses. Away from
+  home the NAS is reachable only through a VPN (`DEVELOPMENT.md`).
 
 The Allegro import **has** now run against the real API, in the Allegro
 Sandbox: one order imported and re-imported on 2026-09-17. Production
