@@ -6,6 +6,17 @@ All significant changes to the Anvero project.
 
 ## 2026-09-18
 
+### 🎨 CSS values named once (no visual change)
+
+- `index.css` gains tokens for values `App.css` and `styles/*.css` already
+  repeated across files byte-for-byte: a teal accent, a soft panel
+  background, a divider color, headings, two radii, and four semantic colors
+  shared by order-status badges and toast types. `Dashboard.css` gets its own
+  scoped tokens for the five status colors it wrote out twice. Values that
+  merely looked similar but were not identical (e.g. two different near-
+  blacks used for "muted" text) were kept as separate values rather than
+  merged, so nothing renders differently. See `DECISIONS.md`.
+
 ### 💅 Order list: badges wrap, the email column no longer eats a third of the row
 
 - The status cell's up to three badges now sit in a wrapping flex container

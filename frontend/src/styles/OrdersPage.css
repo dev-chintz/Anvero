@@ -3,9 +3,9 @@
 }
 
 .orders-page .page-header {
-  background: #f8f9fa;
+  background: var(--color-surface-alt);
   padding: 2rem;
-  border-bottom: 1px solid #e9ecef;
+  border-bottom: 1px solid var(--color-divider);
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
@@ -13,20 +13,11 @@
   flex-wrap: wrap;
 }
 
-:root.dark .orders-page .page-header {
-  background: #2d2d2d;
-  border-bottom-color: #3d3d3d;
-}
-
 .orders-page .page-header h1 {
   margin: 0 0 0.5rem 0;
   font-size: 2rem;
-  color: #212529;
+  color: var(--color-heading);
   font-weight: 600;
-}
-
-:root.dark .orders-page .page-header h1 {
-  color: #e0e0e0;
 }
 
 .orders-page .page-header .subtitle {
@@ -36,7 +27,7 @@
 }
 
 :root.dark .orders-page .page-header .subtitle {
-  color: #999;
+  color: var(--color-muted);
 }
 
 .orders-page .allegro-import {
@@ -50,8 +41,8 @@
 .orders-page .allegro-import-button {
   padding: 0.6rem 1.2rem;
   border: none;
-  border-radius: 0.5rem;
-  background: #0d7377;
+  border-radius: var(--radius-md);
+  background: var(--color-accent);
   color: #fff;
   font-weight: 600;
   font-size: 0.9rem;
@@ -70,7 +61,6 @@
 }
 
 :root.dark .orders-page .allegro-import-button {
-  background: #14b8a6;
   color: #1a1a1a;
 }
 
@@ -86,7 +76,7 @@
 }
 
 :root.dark .orders-page .allegro-import-hint {
-  color: #999;
+  color: var(--color-muted);
 }
 
 .orders-page > :not(.page-header) {

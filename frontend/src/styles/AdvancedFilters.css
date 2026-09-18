@@ -1,14 +1,9 @@
 .advanced-filters {
-  background: #f8f9fa;
+  background: var(--color-surface-alt);
   padding: 1.5rem;
-  border-radius: 0.75rem;
-  border: 1px solid #e9ecef;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--color-divider);
   margin-bottom: 1.5rem;
-}
-
-:root.dark .advanced-filters {
-  background: #2d2d2d;
-  border-color: #3d3d3d;
 }
 
 /* Filters Header */
@@ -27,21 +22,23 @@
   width: 100%;
   padding: 0.75rem 1rem;
   border: 1px solid #dee2e6;
-  border-radius: 0.5rem;
+  border-radius: var(--radius-md);
   font-size: 0.95rem;
   background: white;
-  color: #212529;
+  color: var(--color-heading);
   transition: border-color 0.2s, box-shadow 0.2s;
 }
 
 :root.dark .search-input {
   background: #1e1e1e;
-  border-color: #3d3d3d;
-  color: #e0e0e0;
+  border-color: var(--color-border);
 }
 
 .search-input:focus {
   outline: none;
+  /* no dark-mode override for the focus border exists, so it stays this
+     teal in both themes rather than switching to --color-accent's dark
+     value */
   border-color: #0d7377;
   box-shadow: 0 0 0 3px rgba(13, 115, 119, 0.1);
 }
@@ -55,19 +52,15 @@
   align-items: center;
   gap: 0.5rem;
   padding: 0.75rem 1.25rem;
-  background: #0d7377;
+  background: var(--color-accent);
   color: white;
   border: none;
-  border-radius: 0.5rem;
+  border-radius: var(--radius-md);
   font-size: 0.95rem;
   font-weight: 600;
   cursor: pointer;
   transition: background 0.2s, transform 0.2s;
   white-space: nowrap;
-}
-
-:root.dark .filters-toggle {
-  background: #14b8a6;
 }
 
 .filters-toggle:hover {
@@ -97,7 +90,7 @@
 }
 
 :root.dark .filters-panel {
-  border-top-color: #3d3d3d;
+  border-top-color: var(--color-border);
 }
 
 @keyframes slideDown {
@@ -128,42 +121,32 @@
 .filter-group label {
   font-size: 0.85rem;
   font-weight: 600;
-  color: #495057;
+  color: var(--color-muted-strong);
   text-transform: uppercase;
   letter-spacing: 0.5px;
-}
-
-:root.dark .filter-group label {
-  color: #b0b0b0;
 }
 
 .filter-select,
 .filter-input {
   padding: 0.75rem;
   border: 1px solid #dee2e6;
-  border-radius: 0.5rem;
+  border-radius: var(--radius-md);
   font-size: 0.95rem;
   background: white;
-  color: #212529;
+  color: var(--color-heading);
   transition: border-color 0.2s;
 }
 
 :root.dark .filter-select,
 :root.dark .filter-input {
   background: #1e1e1e;
-  border-color: #3d3d3d;
-  color: #e0e0e0;
+  border-color: var(--color-border);
 }
 
 .filter-select:focus,
 .filter-input:focus {
   outline: none;
-  border-color: #0d7377;
-}
-
-:root.dark .filter-select:focus,
-:root.dark .filter-input:focus {
-  border-color: #14b8a6;
+  border-color: var(--color-accent);
 }
 
 /* Clear Filters Button */
@@ -174,7 +157,7 @@
   background: #dc2626;
   color: white;
   border: none;
-  border-radius: 0.5rem;
+  border-radius: var(--radius-md);
   font-size: 0.9rem;
   font-weight: 600;
   cursor: pointer;

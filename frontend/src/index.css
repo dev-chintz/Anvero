@@ -6,6 +6,28 @@
   --color-bg: #ffffff;
   --radius: 6px;
   --color-scheme: light;
+
+  /*
+   * Added 2026-09-18: names for values that styles/*.css already repeated
+   * identically across several files (the teal accent, a soft panel grey, a
+   * divider grey, headings, radii, the semantic badge/toast colors). This is
+   * consolidation, not a restyle: each token is set to the value already in
+   * use everywhere it now replaces, so nothing renders differently. Where an
+   * existing near-duplicate value (e.g. #212529 vs --color-text's #1a1a2e, or
+   * #e9ecef vs --color-border's #e5e7eb) was NOT byte-identical, it kept its
+   * own token rather than being merged into a close-but-different one.
+   */
+  --radius-md: 0.5rem;
+  --radius-lg: 0.75rem;
+  --color-accent: #0d7377;
+  --color-surface-alt: #f8f9fa;
+  --color-divider: #e9ecef;
+  --color-heading: #212529;
+  --color-muted-strong: #495057;
+  --color-success: #22c55e;
+  --color-error: #ef4444;
+  --color-warning: #f59e0b;
+  --color-info: #3b82f6;
 }
 
 :root.dark {
@@ -15,6 +37,15 @@
   --color-primary: #14b8a6;
   --color-bg: #1a1a1a;
   --color-scheme: dark;
+
+  --color-accent: #14b8a6;
+  --color-surface-alt: #2d2d2d;
+  /* every dark override of a #e9ecef divider maps it to #3d3d3d except
+     Sidebar's, which uses #333 instead and keeps its own explicit override
+     for that reason (see Sidebar.css) */
+  --color-divider: var(--color-border);
+  --color-heading: var(--color-text);
+  --color-muted-strong: #b0b0b0;
 }
 
 * {
@@ -131,7 +162,7 @@ td {
 }
 
 .badge-new {
-  background: #3b82f6;
+  background: var(--color-info);
 }
 
 .badge-confirmed {
@@ -139,15 +170,15 @@ td {
 }
 
 .badge-shipped {
-  background: #f59e0b;
+  background: var(--color-warning);
 }
 
 .badge-delivered {
-  background: #22c55e;
+  background: var(--color-success);
 }
 
 .badge-cancelled {
-  background: #ef4444;
+  background: var(--color-error);
 }
 
 .badge-allegro {

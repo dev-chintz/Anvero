@@ -147,14 +147,14 @@ Sandbox. Agreed plan, in order:
    rules, and which of ERLI, shipping or invoicing comes after the MVP
    (`ROADMAP.md`).
 
-Smaller items, all done 2026-09-18: backend lint findings are cleared (see
-`DECISIONS.md`; ruff itself still isn't run from the hook or CI), the
-frontend has a first set of tests (Vitest + React Testing Library), wired
-into the hook and CI, and the order list's worst readability faults (badges
-crowding the status column, the email column eating a third of the row) are
-fixed (`CHANGELOG.md`). Still open from `ROADMAP.md`'s interface section: one
-pass over `index.css`, and a browser check by the owner, since every screen
-needs a login.
+All the smaller items from `ROADMAP.md`'s interface/safety-net sections are
+done as of 2026-09-18: backend lint findings cleared, a first set of frontend
+tests (Vitest + React Testing Library) wired into the hook and CI, the order
+list's worst readability faults fixed, and a pass over the CSS naming values
+that were already repeated across files (see `DECISIONS.md`,
+`CHANGELOG.md`). Still open: a browser check of the authenticated pages by
+the owner, since every screen needs a login and that verification is
+deliberately not something an assistant does.
 
 ---
 

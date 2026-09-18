@@ -15,22 +15,18 @@
   gap: 0.5rem;
   padding: 2rem;
   border: 1px solid var(--color-border);
-  border-radius: 0.75rem;
+  border-radius: var(--radius-lg);
   background: #fff;
 }
 
 :root.dark .login-card {
-  background: #2d2d2d;
+  background: var(--color-surface-alt);
 }
 
 .login-brand {
   font-weight: 600;
   font-size: 1.1rem;
-  color: #0d7377;
-}
-
-:root.dark .login-brand {
-  color: #14b8a6;
+  color: var(--color-accent);
 }
 
 .login-card h1 {
@@ -49,13 +45,17 @@
 .login-card input {
   padding: 0.65rem 0.75rem;
   border: 1px solid var(--color-border);
-  border-radius: 0.5rem;
+  border-radius: var(--radius-md);
   font-size: 1rem;
   background: var(--color-bg);
   color: var(--color-text);
 }
 
 .login-card input:focus {
+  /* deliberately not var(--color-accent): unlike everywhere else this teal
+     uses, there was never a dark-mode override here, so it has always
+     stayed the same color in both themes rather than switching to
+     --color-accent's dark value */
   outline: none;
   border-color: #0d7377;
   box-shadow: 0 0 0 3px rgba(13, 115, 119, 0.15);
@@ -65,7 +65,7 @@
   margin-top: 1.25rem;
   padding: 0.7rem;
   border: none;
-  border-radius: 0.5rem;
+  border-radius: var(--radius-md);
   background: #0d7377;
   color: #fff;
   font-size: 1rem;

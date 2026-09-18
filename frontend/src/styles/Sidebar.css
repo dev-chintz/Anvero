@@ -3,8 +3,8 @@
   left: 0;
   top: 0;
   height: 100vh;
-  background: #f8f9fa;
-  border-right: 1px solid #e9ecef;
+  background: var(--color-surface-alt);
+  border-right: 1px solid var(--color-divider);
   display: flex;
   flex-direction: column;
   transition: width 0.3s ease;
@@ -25,14 +25,17 @@
 }
 
 :root.dark .sidebar .nav-item {
-  color: #e0e0e0;
+  color: var(--color-text);
 }
 
 :root.dark .sidebar .nav-item:hover {
-  background: #2d2d2d;
+  background: var(--color-surface-alt);
 }
 
 :root.dark .sidebar .nav-item.active {
+  /* deliberately the light-mode accent value, not var(--color-accent): this
+     rule uses it as a dark background for contrast with white text, not as
+     "the accent color in dark mode" */
   background: #0d7377;
   color: white;
 }
@@ -43,7 +46,7 @@
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  border-bottom: 1px solid #e9ecef;
+  border-bottom: 1px solid var(--color-divider);
 }
 
 :root.dark .sidebar .sidebar-header {
@@ -56,15 +59,13 @@
   font-size: 1.2rem;
   cursor: pointer;
   padding: 0.25rem;
-  color: #495057;
+  color: var(--color-muted-strong);
   transition: color 0.2s;
 }
 
-:root.dark .sidebar .toggle-btn {
-  color: #b0b0b0;
-}
-
 .toggle-btn:hover {
+  /* no dark-mode override exists, so this stays the same teal in both
+     themes rather than switching to --color-accent's dark value */
   color: #0d7377;
 }
 
@@ -83,14 +84,10 @@
 .logo-text {
   font-weight: 600;
   font-size: 1.1rem;
-  color: #0d7377;
+  color: var(--color-accent);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-}
-
-:root.dark .sidebar .logo-text {
-  color: #14b8a6;
 }
 
 /* Navigation */
@@ -105,21 +102,24 @@
   align-items: center;
   gap: 1rem;
   padding: 0.75rem 1rem;
-  color: #495057;
+  color: var(--color-muted-strong);
   text-decoration: none;
   transition: all 0.2s;
   margin: 0.25rem 0.5rem;
-  border-radius: 0.5rem;
+  border-radius: var(--radius-md);
 }
 
 .nav-item:hover {
-  background: #e9ecef;
+  background: var(--color-divider);
+  /* no dark-mode override for this hover color exists, so it stays this
+     teal in both themes rather than switching to --color-accent's dark
+     value */
   color: #0d7377;
 }
 
 .nav-item.active {
   background: #d0f0ed;
-  color: #0d7377;
+  color: var(--color-accent);
   font-weight: 600;
 }
 
@@ -138,7 +138,7 @@
 /* Sidebar Footer */
 .sidebar-footer {
   padding: 1rem;
-  border-top: 1px solid #e9ecef;
+  border-top: 1px solid var(--color-divider);
   display: flex;
   align-items: center;
   gap: 0.75rem;
@@ -159,16 +159,16 @@
   font-size: 1.25rem;
   cursor: pointer;
   padding: 0.5rem;
-  border-radius: 0.5rem;
+  border-radius: var(--radius-md);
   transition: background 0.2s;
 }
 
 .theme-toggle:hover {
-  background: #e9ecef;
+  background: var(--color-divider);
 }
 
 :root.dark .sidebar .theme-toggle:hover {
-  background: #2d2d2d;
+  background: var(--color-surface-alt);
 }
 
 .user-profile {
@@ -192,14 +192,10 @@
   margin: 0;
   font-size: 0.9rem;
   font-weight: 600;
-  color: #212529;
+  color: var(--color-heading);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-}
-
-:root.dark .sidebar .user-name {
-  color: #e0e0e0;
 }
 
 .user-role {
@@ -212,7 +208,7 @@
 }
 
 :root.dark .sidebar .user-role {
-  color: #999;
+  color: var(--color-muted);
 }
 
 .logout-button {
@@ -228,15 +224,11 @@
 }
 
 .logout-button:hover {
-  color: #0d7377;
+  color: var(--color-accent);
 }
 
 :root.dark .sidebar .logout-button {
-  color: #999;
-}
-
-:root.dark .sidebar .logout-button:hover {
-  color: #14b8a6;
+  color: var(--color-muted);
 }
 
 /* Responsive */

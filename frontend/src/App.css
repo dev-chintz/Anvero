@@ -1,11 +1,7 @@
 ﻿.app {
   display: flex;
   min-height: 100vh;
-  background: #fff;
-}
-
-:root.dark .app {
-  background: #1a1a1a;
+  background: var(--color-bg);
 }
 
 /* Main Content Area */
@@ -13,32 +9,20 @@
   flex: 1;
   margin-left: 250px;
   overflow-y: auto;
-  background: #fff;
-}
-
-:root.dark .app .app-content {
-  background: #1a1a1a;
+  background: var(--color-bg);
 }
 
 /* Page Header */
 .page-header {
   padding: 2rem;
-  border-bottom: 1px solid #e9ecef;
-}
-
-:root.dark .app .page-header {
-  border-bottom-color: #3d3d3d;
+  border-bottom: 1px solid var(--color-divider);
 }
 
 .page-header h1 {
   margin: 0;
   font-size: 2rem;
-  color: #212529;
+  color: var(--color-heading);
   font-weight: 600;
-}
-
-:root.dark .app .page-header h1 {
-  color: #e0e0e0;
 }
 
 .page-header .subtitle {
@@ -48,7 +32,7 @@
 }
 
 :root.dark .app .page-header .subtitle {
-  color: #999;
+  color: var(--color-muted);
 }
 
 /* Settings Page */
@@ -61,26 +45,17 @@
 }
 
 .settings-section {
-  background: #f8f9fa;
+  background: var(--color-surface-alt);
   padding: 1.5rem;
-  border-radius: 0.75rem;
-  border: 1px solid #e9ecef;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--color-divider);
   margin-bottom: 1.5rem;
-}
-
-:root.dark .app .settings-section {
-  background: #2d2d2d;
-  border-color: #3d3d3d;
 }
 
 .settings-section h2 {
   margin: 0 0 1rem 0;
   font-size: 1.1rem;
-  color: #212529;
-}
-
-:root.dark .app .settings-section h2 {
-  color: #e0e0e0;
+  color: var(--color-heading);
 }
 
 /* Page Not Found */
@@ -97,11 +72,7 @@
   margin: 0;
   font-size: 4rem;
   font-weight: 600;
-  color: #212529;
-}
-
-:root.dark .app .page-not-found h1 {
-  color: #e0e0e0;
+  color: var(--color-heading);
 }
 
 .page-not-found p {
@@ -111,7 +82,7 @@
 }
 
 :root.dark .app .page-not-found p {
-  color: #999;
+  color: var(--color-muted);
 }
 
 /* Responsive Layout */

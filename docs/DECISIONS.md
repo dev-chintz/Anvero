@@ -1,5 +1,48 @@
 # Decision Log
 
+## 2026-09-18 — CSS Values Named Once, Not Redesigned
+
+**Decision:** `index.css`'s `:root`/`:root.dark` gained tokens for values that
+`App.css` and `styles/*.css` already repeated identically across several
+files: `--color-accent` (the teal used for buttons, links and active nav),
+`--color-surface-alt` (a soft panel background), `--color-divider` (a soft
+border/divider, with its dark value pointing at the existing `--color-border`
+since every one of its dark overrides except Sidebar's already matched it),
+`--color-heading`, `--color-muted-strong`, `--radius-md`/`--radius-lg`, and
+four semantic colors (`--color-success/error/warning/info`) shared by the
+order-status badges and the toast types, which already used the same hex
+values. `Dashboard.css` additionally gained its own `.dashboard`-scoped
+tokens for the five status colors, each of which was written out twice in
+that one file (the stats/status-breakdown section and the recent-orders
+list).
+
+**Rationale:** `ROADMAP.md`'s interface section asks for exactly this: names
+for the values already in use, so a later restyle changes one token instead
+of every call site, without redesigning anything now. That constraint drove
+every substitution: a value was only replaced with a theme-aware token where
+an explicit override already existed for that exact selector and property in
+the other theme (so the override keeps winning regardless of what the base
+rule's token resolves to), or where the value had no theme-specific override
+at all (so a plain token, or none, could not change it). Several near-
+duplicate values were deliberately kept apart instead of merged, because they
+were not actually the same value to begin with: `#212529` (now
+`--color-heading`) is not `--color-text`'s `#1a1a2e`; `#6c757d` is not
+`--color-muted`'s `#6b7280`; `#e9ecef` (now `--color-divider`) is not
+`--color-border`'s `#e5e7eb`, though its *dark* counterpart turned out to
+already match `--color-border` everywhere except Sidebar.css, which uses
+`#333` and keeps its own explicit override for that reason. A handful of
+`#0d7377` (the light-mode teal) uses were left hardcoded on purpose because
+no dark-mode override for that selector ever existed — those elements have
+always rendered the same teal in both themes, and pointing them at
+`--color-accent` would have made them switch to its dark value, a real visual
+change disguised as a rename.
+
+Verified with `tsc --noEmit`, the full test suite, `npm run build` (identical
+CSS bundle size before and after), and the login page in a browser in both
+themes — the only page that needs no login, per `ROADMAP.md`'s "Every screen
+is behind a login" note. The authenticated pages are unverified visually; the
+owner checks those.
+
 ## 2026-09-18 — Order List: Status Badges Wrap, the Email Column Truncates
 
 **Decision:** In the orders table only (`.orders-table` in `index.css`, set on

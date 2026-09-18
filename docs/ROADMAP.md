@@ -103,9 +103,17 @@ Until then, nothing decorative, only what makes the screens readable:
   full address on hover/focus (`DECISIONS.md`). Covered by
   `OrderRow.test.tsx`; not yet checked in a browser — that is the owner's
   step, per the note below.
-- One pass over `index.css` so colours, spacing, radii and type are defined
-  once, in the values already in use. This makes the later restyle a change
-  in one place rather than ten.
+- ~~One pass over `index.css` so colours, spacing, radii and type are defined
+  once, in the values already in use.~~ Done 2026-09-18: named tokens for the
+  teal accent, the soft panel/divider greys, headings, two radii, and the
+  badge/toast semantic colors, added where the exact same value already
+  recurred across files (`index.css`'s `:root`/`:root.dark`, plus
+  `.dashboard`-scoped tokens for its status-color pairs). Deliberately not a
+  redesign: near-duplicate values that were not byte-identical (e.g.
+  `#212529` vs `--color-text`'s `#1a1a2e`) kept separate tokens rather than
+  being merged, so nothing renders differently — see `DECISIONS.md`. Checked
+  in the browser only on the login page (no login needed there); the
+  authenticated pages are the owner's to verify, per the note below.
 - ~~The frontend has no tests, only the type-check.~~ Done 2026-09-18: Vitest
   and React Testing Library, wired into the hook and CI, with a first set of
   tests covering `session.ts`, `types/order.ts` and `OrderRow` (`CHANGELOG.md`).
