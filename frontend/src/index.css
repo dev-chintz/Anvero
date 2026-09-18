@@ -163,8 +163,10 @@ td {
 
 /* An order's status, editable in place: combined with a .badge-* class for
    its color, so it looks like the same pill everywhere except the list,
-   where it is also a control. The native option list stays unstyled -
-   only the closed select needs to read as a badge. */
+   where it is also a control. Each <option> carries its own badge-* class
+   too, so the open dropdown lists every status in its own color, not just
+   the closed control. Most browsers style option background/color; where
+   one does not, the option still shows as plain text and works the same. */
 .status-select {
   border: none;
   font: inherit;
@@ -174,6 +176,10 @@ td {
   border-radius: 999px;
   color: #fff;
   cursor: pointer;
+}
+
+.status-select option {
+  color: #fff;
 }
 
 .status-select:disabled {

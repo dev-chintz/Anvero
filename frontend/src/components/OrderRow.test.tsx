@@ -116,6 +116,17 @@ describe("OrderRow", () => {
     expect(screen.getByRole("combobox", { name: /status for order/i })).toBeDisabled();
   });
 
+  it("colors every option in the open dropdown, not just the closed control", () => {
+    renderRow(makeOrder());
+
+    const select = screen.getByRole("combobox", { name: /status for order/i });
+    const options = Array.from(select.querySelectorAll("option"));
+    expect(options.map((o) => o.value)).toEqual(Object.values(OrderStatus));
+    for (const option of options) {
+      expect(option).toHaveClass(`badge-${option.value.toLowerCase()}`);
+    }
+  });
+
   it("truncates the customer email but keeps the full address reachable on hover", () => {
     renderRow(makeOrder({ customer_email: "a-fairly-long-buyer-address@example.com" }));
 

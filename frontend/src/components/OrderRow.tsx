@@ -53,7 +53,7 @@ export function OrderRow({ order, onStatusChange, updating }: OrderRowProps) {
             onChange={(e) => onStatusChange(order.id, e.target.value as OrderStatus)}
           >
             {ALL_STATUSES.map((s) => (
-              <option key={s} value={s}>
+              <option key={s} value={s} className={`badge-${s.toLowerCase()}`}>
                 {s}
               </option>
             ))}
