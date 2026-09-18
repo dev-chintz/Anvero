@@ -45,6 +45,16 @@ Git. Then `alembic upgrade head` in `backend/` if the pull brought migrations.
 Keep `TEST_DATABASE_URL` on a local database: the tests drop every table and
 must not touch the shared one.
 
+**Away from home.** Both at home and away the NAS is reached through
+Tailscale, with the same URL: `NAS_ADDRESS` is its Tailscale address
+(`100.112.158.37`, machine `domowy`). On each working machine install
+Tailscale and sign in with the GitHub account `dev-chintz`, the same as on the
+NAS; `tailscale status` should then show `domowy` as active. At home the link
+is direct, elsewhere it goes through a Tailscale relay and is slower. The
+Tailscale package on the NAS is version 1.40.0 from the QNAP App Center; if
+`domowy` shows as offline, open the app on the NAS from App Center and check it
+is signed in and running.
+
 A second container in the same Container Station app dumps the database each
 night into the NAS folder `anvero-backup` (7 daily, 4 weekly, 3 monthly). To
 restore, load a dump with `psql` into an empty database; the dumps contain no
