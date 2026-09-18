@@ -116,9 +116,12 @@ The rules are the owner's decision, not a technical one.
 
 ### 7. The safety net around the code
 
-Tests run only in a local pre-commit hook a fresh clone can miss: they belong
-on GitHub Actions for every push. The frontend has no tests at all, only the
-type-check. 22 lint findings predate today.
+~~Tests run only in a local pre-commit hook a fresh clone can miss.~~ Done
+2026-09-18: GitHub Actions runs the backend tests on SQLite and on
+PostgreSQL 17, the migrations up, down and up, and the frontend type-check and
+build on every push (`.github/workflows/checks.yml`). Still open: the frontend
+has no tests at all, only the type-check, and 22 lint findings predate
+2026-09-17.
 
 ### 8. What real buyer data will demand
 

@@ -92,6 +92,14 @@ touches `frontend/`; a commit that touches neither skips both. A failing check
 blocks the commit. `git commit --no-verify` bypasses it — for emergencies,
 since the whole point is that broken code does not reach the repository.
 
+GitHub runs the same checks again on every push and pull request
+(`.github/workflows/checks.yml`): the backend tests on SQLite and on
+PostgreSQL 17, the migrations up, all the way down and up again, and the
+frontend type-check and production build. That catches what the hook cannot:
+a clone where it was never enabled, a commit made with `--no-verify`, and
+anything that works on one machine only. The result shows on each commit on
+GitHub and in the badge at the top of the README.
+
 The hook applies whoever commits, including Kiro. Git does not version
 `.git/hooks`, so the hook lives in `.githooks/` and each clone is pointed at
 it with `git config core.hooksPath .githooks`, which `bootstrap` does.

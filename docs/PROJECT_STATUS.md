@@ -148,8 +148,7 @@ Sandbox. Agreed plan, in order:
    (`ROADMAP.md`).
 
 Smaller items to fit in along the way: frontend tests (there are none, only
-the type-check), tests on GitHub Actions for every push (today only the local
-pre-commit hook guards, and a new clone can miss enabling it), and 22
+the type-check), and 22
 pre-existing backend lint findings.
 
 ---

@@ -1,0 +1,106 @@
+# The same checks as the local pre-commit hook (.githooks/pre-commit), run by
+# GitHub on every push and pull request. The hook only guards a clone where
+# bootstrap.ps1 enabled it; this guards whatever reaches GitHub, whoever or
+# whatever committed it.
+name: Checks
+
+on:
+  push:
+  pull_request:
+
+# a newer push to the same branch makes an older run's result irrelevant
+concurrency:
+  group: checks-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  backend-sqlite:
+    name: Backend tests (SQLite)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.14"
+          cache: pip
+          cache-dependency-path: backend/requirements.txt
+      - run: pip install -r requirements.txt
+      # tests/conftest.py falls back to its own SQLite file when
+      # TEST_DATABASE_URL is unset, as on a fresh clone
+      - run: python -m pytest -q
+
+  backend-postgres:
+    name: Backend tests and migrations (PostgreSQL 17)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          # throwaway credentials for a database that lives only as long as
+          # this job; nothing real is stored in it
+          POSTGRES_USER: anvero
+          POSTGRES_PASSWORD: anvero-ci
+          POSTGRES_DB: anvero
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U anvero"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      # two databases, as on a developer machine: the migrations run against
+      # one, and the test suite, which drops every table, against the other
+      DATABASE_URL: postgresql+psycopg://anvero:anvero-ci@localhost:5432/anvero
+      TEST_DATABASE_URL: postgresql+psycopg://anvero:anvero-ci@localhost:5432/anvero_test
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.14"
+          cache: pip
+          cache-dependency-path: backend/requirements.txt
+      - run: pip install -r requirements.txt
+      - name: Create the test database
+        run: psql "postgresql://anvero:anvero-ci@localhost:5432/anvero" -c "CREATE DATABASE anvero_test"
+      # up, all the way down and up again: a downgrade that leaves something
+      # behind (as the orders migration once left its enum types) fails the
+      # second upgrade
+      - name: Migrations up, down and up again
+        run: |
+          alembic upgrade head
+          alembic check
+          alembic downgrade base
+          alembic upgrade head
+      - run: python -m pytest -q
+
+  frontend:
+    name: Frontend type-check and build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          # the oldest line package.json's engines accepts that is still
+          # maintained, so a machine on it is covered
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci
+      - run: npx tsc --noEmit
+      - run: npm run build

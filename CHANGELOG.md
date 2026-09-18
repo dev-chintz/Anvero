@@ -4,6 +4,17 @@ All significant changes to the Anvero project.
 
 ---
 
+## 2026-09-18
+
+### 🛡️ Checks on GitHub for every push
+
+- `.github/workflows/checks.yml` runs on every push and pull request: the
+  backend tests on SQLite, the backend tests on PostgreSQL 17 after running
+  the migrations up, down and up again, and the frontend type-check and
+  build. The README shows the result as a badge.
+- The local pre-commit hook stays; GitHub catches what it cannot, such as a
+  clone where it was never enabled.
+
 ## 2026-09-17 (marketplace status visible)
 
 ### ✨ The marketplace's status is shown beside ours

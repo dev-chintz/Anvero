@@ -1,5 +1,7 @@
 # Anvero
 
+[![Checks](https://github.com/dev-chintz/Anvero/actions/workflows/checks.yml/badge.svg)](https://github.com/dev-chintz/Anvero/actions/workflows/checks.yml)
+
 Anvero is a locally developed system supporting marketplace sales management. The first version focuses on a single, unified view of orders and preparing architecture for Allegro and ERLI integrations.
 
 ## Status

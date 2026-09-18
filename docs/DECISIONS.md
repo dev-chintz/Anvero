@@ -1,5 +1,24 @@
 # Decision Log
 
+## 2026-09-18 — Checks Run on GitHub Actions for Every Push
+
+**Decision:** A GitHub Actions workflow runs on every push and pull request:
+the backend tests on SQLite and, in a separate job, on PostgreSQL 17 together
+with the migrations up, down to base and up again; and the frontend
+type-check and production build. The local pre-commit hook stays.
+
+**Rationale:** The hook guards only a clone where `bootstrap.ps1` enabled it,
+and it is skipped by `--no-verify`. Work here comes from several machines and
+from both Claude Code and Kiro, so the one place every change passes through
+is GitHub. Both databases are tested because they behave differently where it
+has already mattered: the enum types a downgrade left behind, and timestamps
+returned with or without a zone, showed up only on PostgreSQL. The migration
+cycle runs there for the same reason. The frontend job builds as well as
+type-checks, since a build can fail on what `tsc` accepts. Node 22 is used
+because it is the oldest maintained line `package.json` allows, so a machine
+on it is covered; the main machine runs 24. The repository is public, so the
+minutes cost nothing.
+
 ## 2026-09-17 — The Interface Is Postponed, Not Settled
 
 **Decision:** The visual design is a task for later, after the system works
