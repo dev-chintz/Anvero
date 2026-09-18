@@ -214,6 +214,45 @@ def test_create_user_script_ignores_the_bom_powershell_adds_to_piped_input():
     assert _login(email, "powershell-piped-password").status_code == 200
 
 
+def _run_reset_password(email: str, password: str) -> subprocess.CompletedProcess:
+    return subprocess.run(
+        [sys.executable, "scripts/reset_password.py", email],
+        input=password + "\n",
+        capture_output=True,
+        text=True,
+        cwd=BACKEND_DIR,
+        timeout=60,
+        check=False,
+    )
+
+
+def test_reset_password_script_replaces_the_password():
+    email = _create_user()
+
+    result = _run_reset_password(email, "a-brand-new-password")
+
+    assert result.returncode == 0, result.stderr
+    assert _login(email, "a-brand-new-password").status_code == 200
+    assert _login(email, PASSWORD).status_code == 401
+
+
+def test_reset_password_script_rejects_an_unknown_email():
+    result = _run_reset_password(f"nobody-{uuid.uuid4()}@example.com", "a-perfectly-good-password")
+
+    assert result.returncode == 1
+    assert "No user" in result.stderr
+
+
+def test_reset_password_script_rejects_a_short_password_and_keeps_the_old_one():
+    email = _create_user()
+
+    result = _run_reset_password(email, "short-pw")
+
+    assert result.returncode == 1
+    assert "short-pw" not in result.stdout + result.stderr
+    assert _login(email, PASSWORD).status_code == 200
+
+
 def test_create_user_script_rejects_a_short_password_without_echoing_it():
     email = f"scripted-{uuid.uuid4()}@example.com"
 

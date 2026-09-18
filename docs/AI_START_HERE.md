@@ -32,7 +32,8 @@ breakdown; the short version:
 
 - FastAPI backend with orders, status changes, status history and statistics.
 - Login: every orders endpoint and every page requires it. Accounts are
-  created with `backend/scripts/create_user.py`; there is no sign-up.
+  created with `backend/scripts/create_user.py`, passwords changed with
+  `backend/scripts/reset_password.py`; there is no sign-up.
 - React + TypeScript frontend: dashboard, order list with filtering, order
   detail with items, buyer, delivery, payment and invoice, status editing and
   history.

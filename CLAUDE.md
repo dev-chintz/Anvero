@@ -39,6 +39,7 @@ and use `npm.cmd` / `npx.cmd` there.
 .\.venv\Scripts\python.exe -m uvicorn app.main:app --reload
 .\.venv\Scripts\alembic.exe upgrade head
 .\.venv\Scripts\python.exe scripts\create_user.py you@example.com
+.\.venv\Scripts\python.exe scripts\reset_password.py you@example.com
 
 # frontend/
 npx.cmd tsc --noEmit

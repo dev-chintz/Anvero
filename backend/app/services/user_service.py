@@ -24,5 +24,16 @@ class UserService:
         )
         return self.repository.create(user)
 
+    def set_password(self, email: str, password: str) -> User:
+        user = self.repository.get_by_email(email)
+        if user is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="No user with this email",
+            )
+
+        user.hashed_password = hash_password(password)
+        return self.repository.save(user)
+
     def get_user_by_email(self, email: str) -> User | None:
         return self.repository.get_by_email(email)

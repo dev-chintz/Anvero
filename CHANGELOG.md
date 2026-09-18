@@ -4,6 +4,16 @@ All significant changes to the Anvero project.
 
 ---
 
+## 2026-09-19
+
+### 🔑 `reset_password.py`: change an existing user's password
+
+`create_user.py` refuses an email that already exists, so there was no way to
+change a password short of editing the database. `backend/scripts/reset_password.py`
+does it: it asks twice without echoing, enforces the same 12-character minimum
+and never accepts the password on the command line. `UserService.set_password`
+does the work; three tests cover it.
+
 ## 2026-09-18
 
 ### 🗄️ One shared PostgreSQL on the home NAS, with nightly backups

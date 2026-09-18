@@ -64,6 +64,11 @@ cd backend
 .\.venv\Scripts\python.exe scripts\create_user.py you@example.com
 ```
 
+To set a new password for an account that already exists (the create script
+refuses an existing email), run `scripts\reset_password.py you@example.com` the
+same way. Both ask for the password without echoing it; never put it on the
+command line.
+
 Then start the two servers, each in its own terminal:
 
 ```powershell
