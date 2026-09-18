@@ -104,6 +104,13 @@ export function OrderDetailsPanel({ order }: { order: OrderWithDetails }) {
 
   return (
     <div className="order-details-panel">
+      {order.seller_note && (
+        <section className="order-card order-note" aria-label="Your note">
+          <h2>Your note</h2>
+          <p>{order.seller_note}</p>
+        </section>
+      )}
+
       {order.buyer_message && (
         <section className="order-card order-message" aria-label="Message from the buyer">
           <h2>Message from the buyer</h2>

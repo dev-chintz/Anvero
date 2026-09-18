@@ -6,6 +6,15 @@ All significant changes to the Anvero project.
 
 ## 2026-09-18
 
+### ✨ The seller's own Allegro note is imported too
+
+`GET /order/checkout-forms/{id}` carries a `note.text` field distinct from
+the buyer's `messageToSeller` - the seller's own note, written in Allegro's
+panel. It's now mapped to a new `seller_note` column (migration
+`a7f3c9e2b418`) and shown in the order detail drawer as its own
+yellow-tinted card, next to the buyer's blue-tinted message. Read-only, like
+every imported detail. See `DECISIONS.md`.
+
 ### ✨ Inline status editing, timeline icons, and the order detail drawer
 
 Three interface ideas pulled forward while production Allegro waits on the

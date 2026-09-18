@@ -198,6 +198,7 @@ refund.
 | `ordered_at` | earliest `lineItems[].boughtAt`, in UTC |
 | `customer.login`, `first_name`, `last_name`, `company_name`, `phone` | `buyer.login`, `firstName`, `lastName`, `companyName`, `phoneNumber` |
 | `buyer_message` | `messageToSeller` |
+| `seller_note` | `note.text` — the seller's own note, written on Allegro itself, not the buyer's message |
 | `items[].external_id`, `offer_id`, `sku`, `name` | `lineItems[].id`, `offer.id`, `offer.external.id`, `offer.name` |
 | `items[].quantity`, `unit_price` | `lineItems[].quantity`, `price.amount` |
 | `delivery.method`, `cost` | `delivery.method.name`, `delivery.cost.amount` |

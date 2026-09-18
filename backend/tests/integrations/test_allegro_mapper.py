@@ -13,7 +13,7 @@ from app.integrations.allegro.mapper import (
     map_status_label,
 )
 from app.models.order import OrderSource, OrderStatus, PaymentType
-from app.schemas.order import BUYER_MESSAGE_MAX_LENGTH
+from app.schemas.order import BUYER_MESSAGE_MAX_LENGTH, SELLER_NOTE_MAX_LENGTH
 
 
 def _checkout_form(**overrides):
@@ -29,6 +29,7 @@ def _checkout_form(**overrides):
         "status": "READY_FOR_PROCESSING",
         "fulfillment": {"status": "NEW"},
         "messageToSeller": "Please pack it well",
+        "note": {"text": "Regular customer, ship first"},
         "buyer": {
             "id": "buyer-1",
             "email": "buyer@example.com",
@@ -433,6 +434,11 @@ def test_maps_the_buyer_message():
     assert map_checkout_form(_checkout_form()).buyer_message == "Please pack it well"
 
 
+def test_maps_the_seller_note():
+    """The seller's own note, written on Allegro itself - not the buyer's message."""
+    assert map_checkout_form(_checkout_form()).seller_note == "Regular customer, ship first"
+
+
 def test_a_form_without_details_still_maps():
     """Only the fields an order cannot exist without are required."""
     form = {
@@ -450,16 +456,18 @@ def test_a_form_without_details_still_maps():
     assert order.invoice.required is False
     assert order.invoice.address is None
     assert order.buyer_message is None
+    assert order.seller_note is None
 
 
 def test_blank_values_become_null_not_empty_strings():
-    form = _checkout_form(messageToSeller="")
+    form = _checkout_form(messageToSeller="", note={"text": ""})
     form["buyer"]["companyName"] = "   "
 
     order = map_checkout_form(form)
 
     assert order.customer.company_name is None
     assert order.buyer_message is None
+    assert order.seller_note is None
 
 
 def test_an_unreadable_line_item_is_skipped_but_the_order_and_other_items_kept(caplog):
@@ -504,6 +512,7 @@ def test_malformed_detail_sections_do_not_lose_the_order():
         delivery="not an object",
         payment={"type": "ONLINE", "paidAmount": {"amount": "NaN"}, "finishedAt": "soon"},
         invoice=["not", "an", "object"],
+        note="not an object either",
     )
     form["lineItems"].extend([None, 42])
 
@@ -515,6 +524,7 @@ def test_malformed_detail_sections_do_not_lose_the_order():
     assert order.payment.paid_amount is None
     assert order.payment.paid_at is None
     assert order.invoice.required is False
+    assert order.seller_note is None
     assert [item.name for item in order.items] == ["Widget"]
 
 
@@ -525,3 +535,12 @@ def test_an_overlong_buyer_message_is_shortened_not_dropped():
 
     assert len(message) == BUYER_MESSAGE_MAX_LENGTH
     assert message.startswith("xxx")
+
+
+def test_an_overlong_seller_note_is_shortened_not_dropped():
+    form = _checkout_form(note={"text": "x" * (SELLER_NOTE_MAX_LENGTH + 50)})
+
+    note = map_details(form).seller_note
+
+    assert len(note) == SELLER_NOTE_MAX_LENGTH
+    assert note.startswith("xxx")

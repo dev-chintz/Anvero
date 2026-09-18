@@ -148,7 +148,8 @@ Returns the order with the fields the list has, plus its details:
   },
   "payment": {"type": "ONLINE", "provider": "P24", "paid_amount": "149.99", "paid_at": "...Z"},
   "invoice": {"required": false, "address": null},
-  "buyer_message": null
+  "buyer_message": null,
+  "seller_note": null
 }
 ```
 

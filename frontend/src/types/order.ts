@@ -107,6 +107,8 @@ export interface OrderWithDetails extends Order {
     address: Address | null;
   };
   buyer_message: string | null;
+  /** The seller's own note on the order, e.g. Allegro's checkout-form note. */
+  seller_note: string | null;
 }
 
 /**

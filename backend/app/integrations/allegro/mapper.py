@@ -15,6 +15,7 @@ from app.integrations.base import IntegrationError
 from app.models.order import OrderSource, OrderStatus, PaymentType
 from app.schemas.order import (
     BUYER_MESSAGE_MAX_LENGTH,
+    SELLER_NOTE_MAX_LENGTH,
     Address,
     Customer,
     Delivery,
@@ -352,18 +353,29 @@ def map_details(checkout_form: dict[str, Any]) -> OrderDetails:
         delivery=delivery_details or Delivery(),
         payment=payment_details or Payment(),
         invoice=invoice_details,
-        buyer_message=_message(external_id, checkout_form.get("messageToSeller")),
+        buyer_message=_shorten(
+            "buyer message",
+            external_id,
+            checkout_form.get("messageToSeller"),
+            BUYER_MESSAGE_MAX_LENGTH,
+        ),
+        seller_note=_shorten(
+            "seller note",
+            external_id,
+            _obj(checkout_form.get("note")).get("text"),
+            SELLER_NOTE_MAX_LENGTH,
+        ),
     )
 
 
-def _message(external_id: Any, value: Any) -> str | None:
-    message = _text(value)
-    if message is not None and len(message) > BUYER_MESSAGE_MAX_LENGTH:
-        # shortened rather than dropped: the start of a note to the seller
-        # ("please ship by Friday") is worth more than nothing
-        logger.warning("Order %s: buyer message shortened to fit", external_id)
-        message = message[: BUYER_MESSAGE_MAX_LENGTH - 1] + "…"
-    return message
+def _shorten(field_label: str, external_id: Any, value: Any, max_length: int) -> str | None:
+    text = _text(value)
+    if text is not None and len(text) > max_length:
+        # shortened rather than dropped: the start of a note ("please ship by
+        # Friday") is worth more than nothing
+        logger.warning("Order %s: %s shortened to fit", external_id, field_label)
+        text = text[: max_length - 1] + "…"
+    return text
 
 
 def map_checkout_form(checkout_form: dict[str, Any]) -> OrderCreate:

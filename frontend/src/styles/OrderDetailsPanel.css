@@ -36,6 +36,31 @@
   margin-top: 0.75rem;
 }
 
+/* A note left at checkout is easy to miss among cards that all look the
+   same; a tinted background (as BaseLinker's buyer-message field does)
+   makes it stand out instead of blending in. */
+.order-message {
+  background: #eff6ff;
+  border-color: #bfdbfe;
+}
+
+:root.dark .order-message {
+  background: #1e3a5f;
+  border-color: #2563eb;
+}
+
+/* The seller's own note, not the buyer's - a different tint so the two are
+   never mistaken for each other at a glance. */
+.order-note {
+  background: #fefce8;
+  border-color: #fde047;
+}
+
+:root.dark .order-note {
+  background: #3f3405;
+  border-color: #a16207;
+}
+
 .order-muted {
   color: var(--color-muted);
 }

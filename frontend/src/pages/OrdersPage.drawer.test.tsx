@@ -59,6 +59,7 @@ function makeOrderDetails(overrides: Partial<Order> = {}): OrderWithDetails {
     payment: { type: PaymentType.ONLINE, provider: null, paid_amount: null, paid_at: null },
     invoice: { required: false, address: null },
     buyer_message: null,
+    seller_note: null,
   };
 }
 

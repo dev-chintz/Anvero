@@ -1,5 +1,26 @@
 # Decision Log
 
+## 2026-09-18 — The Seller's Own Allegro Note Is Imported Too
+
+**Decision:** `GET /order/checkout-forms/{id}` — the same resource the
+import already reads — carries a `note.text` field: the seller's own note on
+the order, written in Allegro's own panel, distinct from `messageToSeller`
+(the buyer's note). It is now mapped to a new `seller_note` column, alongside
+`buyer_message`, and shown in the order detail drawer as its own card with a
+yellow tint, so it is never confused with the buyer's (blue) message.
+Read-only, like every imported detail: a re-import refreshes it, and nothing
+in Anvero writes it back.
+
+**Rationale:** The owner asked whether a note added to an order on Allegro's
+side could be pulled in, the way the buyer's message already is. The field's
+existence was confirmed against `developer.allegro.pl`'s own response sample
+for this endpoint (Mobbin is blocked for this session's browser, so the
+public REST API docs were checked directly) rather than assumed. Since the
+import already fetches the full checkout form, this is the same shape of
+change as `buyer_message` was: a mapper field, a nullable `Text` column
+(migration `a7f3c9e2b418`), and a schema/model/frontend field carried
+through unchanged — no new API call, no new permission.
+
 ## 2026-09-18 — Three Interface Ideas Built Early, While Allegro Production Waits
 
 **Decision:** With production Allegro blocked on the owner's own steps

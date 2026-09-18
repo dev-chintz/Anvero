@@ -13,6 +13,7 @@ from app.models.order import (
 from app.schemas.types import UtcDateTime
 
 BUYER_MESSAGE_MAX_LENGTH = 4000
+SELLER_NOTE_MAX_LENGTH = 4000
 
 
 def _text(max_length: int):
@@ -113,6 +114,10 @@ class OrderDetails(BaseModel):
     payment: Payment = Field(default_factory=Payment)
     invoice: Invoice = Field(default_factory=Invoice)
     buyer_message: str | None = _text(BUYER_MESSAGE_MAX_LENGTH)
+    # the seller's own note on the order, e.g. Allegro's "note" on the
+    # checkout form; written by the seller, not the buyer, and read-only
+    # here - a re-import refreshes it like every other detail
+    seller_note: str | None = _text(SELLER_NOTE_MAX_LENGTH)
 
 
 class OrderCreate(OrderBase, OrderDetails):
@@ -194,6 +199,7 @@ class OrderDetailRead(OrderRead, OrderDetails):
                 address=_address(order, AddressType.INVOICE),
             ),
             buyer_message=order.buyer_message,
+            seller_note=order.seller_note,
         )
 
 

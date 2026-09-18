@@ -57,6 +57,7 @@ Columns on `orders`, one per order:
 | --- | --- |
 | `customer_login`, `customer_first_name`, `customer_last_name`, `customer_company_name`, `customer_phone` | the buyer |
 | `buyer_message` | what the buyer wrote to the seller at checkout |
+| `seller_note` | the seller's own note on the order, written on the marketplace itself; read-only here |
 | `delivery_method`, `delivery_cost` | how it ships and what the buyer paid for that |
 | `pickup_point_id`, `pickup_point_name` | the parcel locker or pickup point, if any |
 | `payment_type` | `ONLINE`, `BANK_TRANSFER`, `CASH_ON_DELIVERY`, `DEFERRED` or `OTHER` |

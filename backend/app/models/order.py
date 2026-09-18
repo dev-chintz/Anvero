@@ -179,6 +179,9 @@ class Order(Base):
 
     # what the buyer wrote to the seller at checkout
     buyer_message: Mapped[str | None] = mapped_column(Text)
+    # the seller's own note on the order, written on the marketplace itself
+    # (e.g. Allegro's checkout-form "note"); read-only here
+    seller_note: Mapped[str | None] = mapped_column(Text)
 
     delivery_method: Mapped[str | None] = mapped_column(String(255))
     delivery_cost: Mapped[Decimal | None] = mapped_column(Numeric(12, 2))

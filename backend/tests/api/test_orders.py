@@ -626,6 +626,7 @@ def _details_payload(**overrides):
         },
         "invoice": {"required": True, "address": {"company_name": "Firma", "tax_id": "1234563218"}},
         "buyer_message": "Please pack it well",
+        "seller_note": "Regular customer, ship first",
     }
     details.update(overrides)
     return _order_payload(**details)
@@ -661,6 +662,7 @@ def test_an_order_returns_its_details():
     assert order["invoice"]["required"] is True
     assert order["invoice"]["address"]["tax_id"] == "1234563218"
     assert order["buyer_message"] == "Please pack it well"
+    assert order["seller_note"] == "Regular customer, ship first"
 
 
 def test_an_order_without_details_has_the_same_shape_with_nulls():
@@ -682,6 +684,7 @@ def test_an_order_without_details_has_the_same_shape_with_nulls():
     assert set(order["payment"].values()) == {None}
     assert order["invoice"] == {"required": False, "address": None}
     assert order["buyer_message"] is None
+    assert order["seller_note"] is None
 
 
 def test_a_status_change_response_keeps_the_details():

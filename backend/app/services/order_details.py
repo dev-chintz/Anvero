@@ -19,6 +19,7 @@ def apply_details(order: Order, details: OrderDetails) -> None:
     order.customer_phone = customer.phone
 
     order.buyer_message = details.buyer_message
+    order.seller_note = details.seller_note
 
     delivery = details.delivery
     pickup_point = delivery.pickup_point

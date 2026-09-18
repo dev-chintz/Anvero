@@ -247,6 +247,7 @@ def sample_details(index: int, total: Decimal) -> OrderDetails:
             ),
         ),
         buyer_message="Proszę o staranne zapakowanie." if index % 4 == 0 else None,
+        seller_note="Stały klient, wysyłka priorytetowa." if index % 5 == 0 else None,
     )
 
 
