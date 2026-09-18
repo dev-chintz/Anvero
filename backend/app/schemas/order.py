@@ -146,6 +146,13 @@ class OrderRead(OrderBase):
     # Anvero's five statuses do not, e.g. Allegro's READY_FOR_SHIPMENT
     marketplace_status_label: str | None = None
     marketplace_cancelled_at: UtcDateTime | None = None
+    # already flat columns on `orders`, so free to add to the list response:
+    # no join, unlike items, which is why those are not here too
+    customer_login: str | None = None
+    customer_first_name: str | None = None
+    customer_last_name: str | None = None
+    payment_type: PaymentType | None = None
+    payment_provider: str | None = None
 
     model_config = ConfigDict(from_attributes=True)
 

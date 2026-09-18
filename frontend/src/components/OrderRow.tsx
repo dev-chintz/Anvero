@@ -3,10 +3,28 @@ import type { Order } from "../types/order";
 import {
   OrderSource,
   OrderStatus,
+  PAYMENT_TYPE_LABELS,
   hasCancellationWarning,
   marketplaceStatusDiffers,
   marketplaceStatusText,
 } from "../types/order";
+
+// name, then login (an Allegro account may have no name on file), then
+// email as the last resort so the cell is never blank
+function buyerDisplayName(order: Order): string {
+  const name = [order.customer_first_name, order.customer_last_name]
+    .filter(Boolean)
+    .join(" ");
+  return name || order.customer_login || order.customer_email;
+}
+
+// payment_type/provider are already on the list row (see types/order.ts);
+// an order imported before that field existed, or entered by hand, has none
+function paymentSummary(order: Order): string {
+  if (!order.payment_type) return "—";
+  const label = PAYMENT_TYPE_LABELS[order.payment_type];
+  return order.payment_provider ? `${label} · ${order.payment_provider}` : label;
+}
 
 const STATUS_CLASS: Record<OrderStatus, string> = {
   [OrderStatus.NEW]: "badge badge-new",
@@ -36,13 +54,21 @@ export function OrderRow({ order, onStatusChange, updating }: OrderRowProps) {
   return (
     <tr>
       <td>
-        <Link to={`/orders/${order.id}`} className="order-link">
-          {order.external_id}
-        </Link>
+        <div className="order-cell">
+          <Link to={`/orders/${order.id}`} className="order-link">
+            {order.external_id}
+          </Link>
+          <span className="order-cell-buyer" title={buyerDisplayName(order)}>
+            {buyerDisplayName(order)}
+          </span>
+          <span className={SOURCE_CLASS[order.source]}>{order.source}</span>
+        </div>
       </td>
-      <td>
-        <span className={SOURCE_CLASS[order.source]}>{order.source}</span>
+      <td className="cell-placeholder" aria-label="Items (not shown in the list yet)">
+        <div className="item-thumb-placeholder" aria-hidden="true" />
+        <span>—</span>
       </td>
+      <td>{paymentSummary(order)}</td>
       <td>
         <div className="status-cell">
           <select
@@ -73,8 +99,8 @@ export function OrderRow({ order, onStatusChange, updating }: OrderRowProps) {
           )}
         </div>
       </td>
-      <td className="cell-customer" title={order.customer_email}>
-        {order.customer_email}
+      <td className="cell-placeholder" aria-label="Shipping (not tracked yet)">
+        —
       </td>
       <td>
         {order.total_amount} {order.currency}

@@ -263,13 +263,43 @@ td {
   margin-left: 0;
 }
 
-/* The buyer's email is personal data on a screen that may be left open, and
-   unconstrained it took up to a third of the row. Truncated, with the full
-   address available on hover/focus via the title attribute. */
-.orders-table .cell-customer {
-  max-width: 220px;
+/* The Order cell: external ID, buyer identity and source stacked, instead
+   of three separate columns. The buyer's email used to be its own column
+   and, unconstrained, took up to a third of the row - personal data on a
+   screen that may be left open. Showing the buyer's name/login here instead
+   drops the email from the list entirely; it is still on the order page. */
+.orders-table .order-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.2rem;
+}
+
+.orders-table .order-cell-buyer {
+  color: var(--color-muted);
+  font-size: 0.8rem;
+  max-width: 180px;
   overflow: hidden;
   text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Items and Shipping have no data behind them yet (order_items needs a join
+   the list does not do; carrier/tracking are not imported at all - see
+   ROADMAP.md). Held here, empty, so the row's eventual shape is visible now
+   rather than added later as a layout change. */
+.orders-table .cell-placeholder {
+  color: var(--color-muted);
+}
+
+.orders-table .item-thumb-placeholder {
+  display: inline-block;
+  width: 32px;
+  height: 32px;
+  margin-right: 0.4rem;
+  vertical-align: middle;
+  background: var(--color-divider);
+  border-radius: var(--radius);
 }
 
 /* The marketplace's status when it differs from ours: information, not a

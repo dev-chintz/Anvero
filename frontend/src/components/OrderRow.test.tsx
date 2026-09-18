@@ -2,7 +2,7 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { describe, expect, it, vi } from "vitest";
 import { OrderRow } from "./OrderRow";
-import { OrderSource, OrderStatus, type Order } from "../types/order";
+import { OrderSource, OrderStatus, PaymentType, type Order } from "../types/order";
 
 function makeOrder(overrides: Partial<Order> = {}): Order {
   return {
@@ -19,6 +19,11 @@ function makeOrder(overrides: Partial<Order> = {}): Order {
     marketplace_status: null,
     marketplace_status_label: null,
     marketplace_cancelled_at: null,
+    customer_login: null,
+    customer_first_name: null,
+    customer_last_name: null,
+    payment_type: null,
+    payment_provider: null,
     ...overrides,
   };
 }
@@ -48,8 +53,50 @@ describe("OrderRow", () => {
     renderRow(makeOrder());
 
     expect(screen.getByRole("link", { name: "ext-1" })).toHaveAttribute("href", "/orders/1");
-    expect(screen.getByText("buyer@example.com")).toBeInTheDocument();
     expect(screen.getByText("45.49 PLN")).toBeInTheDocument();
+  });
+
+  it("shows the buyer's name, falling back to login then email", () => {
+    const { rerender } = renderRow(
+      makeOrder({ customer_first_name: "Jan", customer_last_name: "Kowalski" }),
+    );
+    expect(screen.getByText("Jan Kowalski")).toBeInTheDocument();
+
+    rerender(
+      <MemoryRouter>
+        <table>
+          <tbody>
+            <OrderRow
+              order={makeOrder({ customer_login: "jan_k" })}
+              onStatusChange={vi.fn()}
+              updating={false}
+            />
+          </tbody>
+        </table>
+      </MemoryRouter>,
+    );
+    expect(screen.getByText("jan_k")).toBeInTheDocument();
+    expect(screen.queryByText("Jan Kowalski")).not.toBeInTheDocument();
+  });
+
+  it("falls back to the email when there is no name or login", () => {
+    renderRow(makeOrder());
+
+    expect(screen.getByText("buyer@example.com")).toBeInTheDocument();
+  });
+
+  it("shows the payment method already carried on the list row", () => {
+    renderRow(makeOrder({ payment_type: PaymentType.ONLINE, payment_provider: "P24" }));
+
+    expect(screen.getByText("Online payment · P24")).toBeInTheDocument();
+  });
+
+  it("shows a dash for items, payment and shipping when there is nothing to show yet", () => {
+    renderRow(makeOrder());
+
+    // items and shipping have no backing data at all yet (see index.css's
+    // .cell-placeholder); payment_type null is the same "nothing to show"
+    expect(screen.getAllByText("—")).toHaveLength(3);
   });
 
   it("warns when the marketplace cancelled an order Anvero still shows as active", () => {
@@ -127,11 +174,11 @@ describe("OrderRow", () => {
     }
   });
 
-  it("truncates the customer email but keeps the full address reachable on hover", () => {
+  it("keeps a long buyer name reachable via the title attribute", () => {
     renderRow(makeOrder({ customer_email: "a-fairly-long-buyer-address@example.com" }));
 
     const cell = screen.getByText("a-fairly-long-buyer-address@example.com");
-    expect(cell).toHaveClass("cell-customer");
+    expect(cell).toHaveClass("order-cell-buyer");
     expect(cell).toHaveAttribute("title", "a-fairly-long-buyer-address@example.com");
   });
 });

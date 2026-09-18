@@ -99,7 +99,12 @@ database, so `total` counts every match rather than the returned page.
 | `cancellation_warning` | `true` returns only orders cancelled on their marketplace whose Anvero status is not `CANCELLED` |
 
 Response: `{"items": [...], "total": N, "skip": N, "limit": N}`, newest
-`ordered_at` first.
+`ordered_at` first. Each item also carries `customer_login`,
+`customer_first_name`, `customer_last_name`, `payment_type` and
+`payment_provider` — flat columns on `orders`, so the list gets them at no
+extra query cost, unlike `items`, `delivery` and the rest of
+`GET /api/v1/orders/{id}`'s nested detail, which needs a join the list
+does not do.
 
 Each order has two dates: `ordered_at`, when the buyer placed it, and
 `created_at`, when the row was created in Anvero. For an imported order they

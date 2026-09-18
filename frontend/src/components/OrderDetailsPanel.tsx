@@ -1,14 +1,6 @@
-import { PaymentType } from "../types/order";
+import { PAYMENT_TYPE_LABELS, PaymentType } from "../types/order";
 import type { Address, OrderWithDetails } from "../types/order";
 import "../styles/OrderDetailsPanel.css";
-
-const PAYMENT_TYPE_LABELS: Record<PaymentType, string> = {
-  [PaymentType.ONLINE]: "Online payment",
-  [PaymentType.BANK_TRANSFER]: "Bank transfer",
-  [PaymentType.CASH_ON_DELIVERY]: "Cash on delivery",
-  [PaymentType.DEFERRED]: "Deferred payment",
-  [PaymentType.OTHER]: "Other",
-};
 
 // amounts arrive as decimal strings; summing in whole cents keeps
 // 0.1 + 0.2 style float errors out of the totals shown to the operator

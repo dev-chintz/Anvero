@@ -50,10 +50,11 @@ export function OrderList({
             <caption className="sr-only">List of marketplace orders</caption>
             <thead>
               <tr>
-                <th scope="col">External ID</th>
-                <th scope="col">Source</th>
+                <th scope="col">Order</th>
+                <th scope="col">Items</th>
+                <th scope="col">Payment</th>
                 <th scope="col">Status</th>
-                <th scope="col">Customer</th>
+                <th scope="col">Shipping</th>
                 <th scope="col">Amount</th>
                 <th scope="col">Ordered</th>
               </tr>

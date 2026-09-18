@@ -38,6 +38,16 @@ export interface Order {
    */
   marketplace_status_label?: string | null;
   marketplace_cancelled_at: string | null;
+  /**
+   * Flat columns on `orders`, so the list carries them at no extra query
+   * cost — unlike items, which need a join `GET /orders` does not do.
+   * Optional because a backend older than the field omits them.
+   */
+  customer_login?: string | null;
+  customer_first_name?: string | null;
+  customer_last_name?: string | null;
+  payment_type?: PaymentType | null;
+  payment_provider?: string | null;
 }
 
 export enum PaymentType {
@@ -47,6 +57,14 @@ export enum PaymentType {
   DEFERRED = "DEFERRED",
   OTHER = "OTHER",
 }
+
+export const PAYMENT_TYPE_LABELS: Record<PaymentType, string> = {
+  [PaymentType.ONLINE]: "Online payment",
+  [PaymentType.BANK_TRANSFER]: "Bank transfer",
+  [PaymentType.CASH_ON_DELIVERY]: "Cash on delivery",
+  [PaymentType.DEFERRED]: "Deferred payment",
+  [PaymentType.OTHER]: "Other",
+};
 
 export interface Address {
   first_name: string | null;

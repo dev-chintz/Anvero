@@ -6,6 +6,22 @@ All significant changes to the Anvero project.
 
 ## 2026-09-18
 
+### 💅 Order list reshaped toward BaseLinker's layout, narrower sidebar
+
+- The order list's columns are now Order (external ID + buyer name + source,
+  stacked, replacing the separate External ID/Source/Customer columns and
+  dropping the raw email from the list), Items (placeholder - no product
+  images yet), Payment (real data - already on the row, no extra query),
+  Status (unchanged), Shipping (placeholder - no carrier data yet), Amount,
+  Ordered. `GET /orders` now also returns `customer_login`,
+  `customer_first_name`, `customer_last_name`, `payment_type` and
+  `payment_provider`.
+- `.sidebar.open` narrowed from 250px to 200px.
+
+See `DECISIONS.md` for what a full BaseLinker-style list would still need
+(product images, carrier/tracking, quick actions) and why those are left as
+empty placeholders rather than faked.
+
 ### ✨ The seller's own Allegro note is imported too
 
 `GET /order/checkout-forms/{id}` carries a `note.text` field distinct from

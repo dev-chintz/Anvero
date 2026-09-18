@@ -12,7 +12,9 @@
 }
 
 .sidebar.open {
-  width: 250px;
+  /* narrowed from 250px to give the order list more room; keep in sync
+     with .app-content's margin-left in App.css */
+  width: 200px;
 }
 
 .sidebar.closed {

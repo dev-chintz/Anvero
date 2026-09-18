@@ -665,6 +665,20 @@ def test_an_order_returns_its_details():
     assert order["seller_note"] == "Regular customer, ship first"
 
 
+def test_the_list_already_carries_the_buyer_name_and_payment_method():
+    """No join needed for these: they are flat columns on `orders` already,
+    unlike items, so the list can show them without extra query cost."""
+    client.post("/api/v1/orders", json=_details_payload(external_id="LIST-DETAILS-1"))
+
+    response = client.get("/api/v1/orders?search=LIST-DETAILS-1")
+
+    order = response.json()["items"][0]
+    assert order["customer_first_name"] == "Jan"
+    assert order["customer_last_name"] == "Kowalski"
+    assert order["payment_type"] == "ONLINE"
+    assert order["payment_provider"] == "P24"
+
+
 def test_an_order_without_details_has_the_same_shape_with_nulls():
     """Orders entered before details existed, or by hand, have none."""
     created = client.post(

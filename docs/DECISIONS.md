@@ -1,5 +1,47 @@
 # Decision Log
 
+## 2026-09-18 — Order List Reshaped Toward BaseLinker's Layout, Narrower Sidebar
+
+**Decision:** The owner asked for the order list organized more like
+BaseLinker's, sidebar included. Two columns became one: External ID, Source
+and the buyer's email are now a single "Order" cell (external ID linked,
+buyer name below it, source badge below that), dropping the raw email from
+the list entirely — it is still on the order page. A new "Payment" column
+shows `payment_type`/`payment_provider`, already stored per order and now
+also returned by `GET /orders` (`OrderRead` gained `customer_login`,
+`customer_first_name`, `customer_last_name`, `payment_type`,
+`payment_provider` — flat columns on `orders`, so free to add). "Items" and
+"Shipping" columns exist too, but empty (an em dash, a placeholder box where
+a thumbnail would go): Anvero has neither product images nor carrier data
+(`ROADMAP.md`'s "Shipments" item), and the owner asked for the row's eventual
+shape to be visible now rather than added as a second layout change later.
+`.sidebar.open` narrowed from 250px to 200px (`.app-content`'s margin-left
+in `App.css` kept in sync).
+
+**Rationale:** A literal copy of BaseLinker's list is not possible today —
+its thumbnails, carrier badges and quick-action icons (print label, print
+invoice) all need data or features Anvero does not have, confirmed before
+starting rather than guessed. What's shown was chosen by what is genuinely
+free: `customer_first_name`/`last_name`/`login` and `payment_type`/
+`payment_provider` are already columns on the same `orders` row `GET
+/orders` reads, so exposing them costs nothing — unlike `items`, which is a
+separate table and would need a join or a second query per page. Dropping
+the buyer's email from the list (shown only as a fallback when there is no
+name or login) continues the same privacy reasoning as the 2026-09-18 order-
+list readability fixes: it is personal data on a screen someone can leave
+open, and the buyer's name identifies them well enough for the list to be
+useful. The empty Items/Shipping columns are placeholders, not stubs meant
+to look functional — no fake action icons, since a button that does nothing
+when clicked reads as broken, while an empty cell or a grey box reads as
+"not built yet."
+
+Verified with `tsc --noEmit`, `npm run build`, and updated
+`OrderRow.test.tsx`/`OrdersPage.drawer.test.tsx` covering the buyer-name
+fallback chain (name → login → email) and the payment/placeholder cells.
+Backend: `test_the_list_already_carries_the_buyer_name_and_payment_method`
+in `test_orders.py`; 212 tests passing, ruff clean. Not checked in a
+browser: every screen needs a login, and that check is the owner's.
+
 ## 2026-09-18 — The Seller's Own Allegro Note Is Imported Too
 
 **Decision:** `GET /order/checkout-forms/{id}` — the same resource the
