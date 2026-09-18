@@ -72,4 +72,29 @@ describe("OrderRow", () => {
 
     expect(screen.queryByText(/^ALLEGRO:/)).not.toBeInTheDocument();
   });
+
+  it("puts every status badge in a wrapping flex container, not a nowrap cell", () => {
+    renderRow(
+      makeOrder({
+        status: OrderStatus.CONFIRMED,
+        marketplace_cancelled_at: "2026-09-17T12:00:00Z",
+        marketplace_status: OrderStatus.SHIPPED,
+      }),
+    );
+
+    const statusBadge = screen.getByText(OrderStatus.CONFIRMED);
+    const statusCell = statusBadge.closest(".status-cell");
+    expect(statusCell).not.toBeNull();
+    // regression: three badges crammed into a nowrap <td> forced the whole
+    // table into horizontal scroll even for a single order (ROADMAP.md)
+    expect(statusCell).toContainElement(screen.getByText(/Cancelled on/));
+  });
+
+  it("truncates the customer email but keeps the full address reachable on hover", () => {
+    renderRow(makeOrder({ customer_email: "a-fairly-long-buyer-address@example.com" }));
+
+    const cell = screen.getByText("a-fairly-long-buyer-address@example.com");
+    expect(cell).toHaveClass("cell-customer");
+    expect(cell).toHaveAttribute("title", "a-fairly-long-buyer-address@example.com");
+  });
 });

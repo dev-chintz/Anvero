@@ -96,10 +96,13 @@ after real daily use costs least and is most likely to be right.
 
 Until then, nothing decorative, only what makes the screens readable:
 
-- Fixes already visible in use: the order list scrolls sideways with a single
-  order in it, badges crowd the status column, and the buyer's email takes a
-  third of the row — personal data, on a screen someone leaves open. Cheap,
-  and worth doing whenever.
+- ~~Fixes already visible in use: the order list scrolls sideways with a
+  single order in it, badges crowd the status column, and the buyer's email
+  takes a third of the row.~~ Done 2026-09-18: the status column's badges wrap
+  instead of forcing the row wide, and the email column is truncated with the
+  full address on hover/focus (`DECISIONS.md`). Covered by
+  `OrderRow.test.tsx`; not yet checked in a browser — that is the owner's
+  step, per the note below.
 - One pass over `index.css` so colours, spacing, radii and type are defined
   once, in the values already in use. This makes the later restyle a change
   in one place rather than ten.

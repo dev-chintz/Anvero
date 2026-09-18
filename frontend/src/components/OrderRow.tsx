@@ -39,22 +39,26 @@ export function OrderRow({ order }: OrderRowProps) {
         <span className={SOURCE_CLASS[order.source]}>{order.source}</span>
       </td>
       <td>
-        <span className={STATUS_CLASS[order.status]}>{order.status}</span>
-        {hasCancellationWarning(order) && (
-          <span className="badge badge-warning">
-            ⚠ Cancelled on {order.source}
-          </span>
-        )}
-        {marketplaceStatusDiffers(order) && (
-          <span
-            className="badge badge-marketplace-status"
-            title={`${order.source} reports ${marketplaceStatusText(order)}; the status here is yours to set.`}
-          >
-            {order.source}: {marketplaceStatusText(order)}
-          </span>
-        )}
+        <div className="status-cell">
+          <span className={STATUS_CLASS[order.status]}>{order.status}</span>
+          {hasCancellationWarning(order) && (
+            <span className="badge badge-warning">
+              ⚠ Cancelled on {order.source}
+            </span>
+          )}
+          {marketplaceStatusDiffers(order) && (
+            <span
+              className="badge badge-marketplace-status"
+              title={`${order.source} reports ${marketplaceStatusText(order)}; the status here is yours to set.`}
+            >
+              {order.source}: {marketplaceStatusText(order)}
+            </span>
+          )}
+        </div>
       </td>
-      <td>{order.customer_email}</td>
+      <td className="cell-customer" title={order.customer_email}>
+        {order.customer_email}
+      </td>
       <td>
         {order.total_amount} {order.currency}
       </td>

@@ -184,6 +184,32 @@ td {
   margin-left: 0.4rem;
 }
 
+/* Status column can hold up to three badges (status, cancellation warning,
+   marketplace status). Left to the td's own nowrap they fought for one line
+   and forced the whole table into horizontal scroll even for a single order;
+   this lets them wrap onto their own line instead. */
+.orders-table .status-cell {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.3rem;
+  white-space: normal;
+}
+
+.orders-table .status-cell .badge-warning,
+.orders-table .status-cell .badge-marketplace-status {
+  margin-left: 0;
+}
+
+/* The buyer's email is personal data on a screen that may be left open, and
+   unconstrained it took up to a third of the row. Truncated, with the full
+   address available on hover/focus via the title attribute. */
+.orders-table .cell-customer {
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 /* The marketplace's status when it differs from ours: information, not a
    warning, so quieter than .badge-warning next to it. */
 .badge-marketplace-status {

@@ -1,5 +1,27 @@
 # Decision Log
 
+## 2026-09-18 — Order List: Status Badges Wrap, the Email Column Truncates
+
+**Decision:** In the orders table only (`.orders-table` in `index.css`, set on
+the `<table>` in `OrderList.tsx`), the status cell's badges sit in a flex
+container that wraps (`.status-cell` in `OrderRow.tsx`) instead of the cell's
+inherited `white-space: nowrap`, and the customer-email cell has a 220px
+`max-width` with `text-overflow: ellipsis`, with the full address still
+available via a `title` attribute on the cell.
+
+**Rationale:** `th, td { white-space: nowrap }` is global, so a status cell
+holding up to three badges (status, cancellation warning, marketplace status)
+and an unbounded email column together could force a row wider than the
+viewport, scrolling the whole table sideways even with a single order in it —
+the fix scopes narrowly to `.orders-table` rather than changing the shared
+rule, since the item table in `OrderDetailsPanel.tsx` has no such problem and
+wasn't touched. Truncating the email rather than hiding it outright keeps it
+reachable (hover or keyboard focus shows the title), which is enough given
+the concern was screen space, not the address being visible at all — the
+screen is already behind a login. Verified with `OrderRow.test.tsx`; not
+checked in a browser, since every screen requires a login and that step is
+the owner's (`ROADMAP.md`, "Interface" section).
+
 ## 2026-09-18 — Frontend Tests Are Vitest + React Testing Library
 
 **Decision:** `frontend/vite.config.ts` gains a `test` block (jsdom

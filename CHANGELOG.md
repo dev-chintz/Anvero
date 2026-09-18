@@ -6,6 +6,16 @@ All significant changes to the Anvero project.
 
 ## 2026-09-18
 
+### 💅 Order list: badges wrap, the email column no longer eats a third of the row
+
+- The status cell's up to three badges now sit in a wrapping flex container
+  (`.status-cell`) instead of fighting for one line, and the customer-email
+  column truncates at 220px with the full address on hover/focus. Together
+  these were what forced the order list to scroll sideways even with a
+  single order in it. Scoped to the orders table only
+  (`.orders-table` in `index.css`); the order-items table is untouched. See
+  `DECISIONS.md`.
+
 ### 🧪 Frontend has tests now (Vitest + React Testing Library)
 
 - The frontend had no tests at all, only the type-check. Added Vitest and

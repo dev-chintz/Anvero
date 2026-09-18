@@ -41,7 +41,7 @@ export function OrderList({
 
       {!loading && !error && orders.length > 0 && (
         <div className="table-wrapper">
-          <table>
+          <table className="orders-table">
             <caption className="sr-only">List of marketplace orders</caption>
             <thead>
               <tr>
