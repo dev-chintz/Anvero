@@ -1,6 +1,8 @@
 import logging
+from datetime import UTC, datetime
 
 from app.integrations.allegro.adapter import AllegroAdapter
+from app.integrations.base import IntegrationUnavailable
 from app.models.order import OrderSource
 
 
@@ -13,8 +15,13 @@ class FakeClient:
         self.image_calls = []
         self._images = images or {}
 
-    def fetch_checkout_forms(self, limit=100, offset=0):
+    def fetch_checkout_forms(
+        self, limit=100, offset=0, bought_since=None, updated_since=None
+    ):
         self.calls.append((limit, offset))
+        self.filters = (bought_since, updated_since)
+        if callable(self.checkout_forms):
+            return self.checkout_forms(offset)
         return self.checkout_forms
 
     def fetch_offer_image(self, offer_id):
@@ -121,3 +128,48 @@ def test_an_image_the_client_could_not_fetch_leaves_the_item_without_one():
     orders = AllegroAdapter(client=client).fetch_orders()
 
     assert orders[0].items[0].image_url is None
+
+
+def test_pages_through_everything_and_stops_on_a_short_raw_page():
+    full = [_form(f"ALG-{i}") for i in range(100)]
+    client = FakeClient(lambda offset: {0: full, 100: full, 200: [_form("ALG-LAST")]}[offset])
+
+    pages = list(AllegroAdapter(client=client).iter_order_pages())
+
+    assert [len(page) for page in pages] == [100, 100, 1]
+    assert [call[1] for call in client.calls] == [0, 100, 200]
+
+
+def test_an_unmappable_order_does_not_end_the_paging_early():
+    """A full raw page with one order dropped is still a full page: counting
+    what is left would stop here and leave every later page unfetched."""
+    broken = _form("ALG-BAD")
+    broken.pop("summary")
+    full = [broken] + [_form(f"ALG-{i}") for i in range(99)]
+    client = FakeClient(lambda offset: {0: full, 100: [_form("ALG-LAST")]}[offset])
+
+    pages = list(AllegroAdapter(client=client).iter_order_pages())
+
+    assert [len(page) for page in pages] == [99, 1]
+
+
+def test_passes_the_time_filters_to_every_page():
+    since = datetime(2026, 9, 14, tzinfo=UTC)
+    client = FakeClient([])
+
+    list(AllegroAdapter(client=client).iter_order_pages(updated_since=since))
+
+    assert client.filters == (None, since)
+
+
+def test_running_out_of_pages_is_an_error_not_a_quiet_stop(monkeypatch):
+    monkeypatch.setattr("app.integrations.allegro.adapter.MAX_PAGES", 2)
+    full = [_form(f"ALG-{i}") for i in range(100)]
+    client = FakeClient(full)
+
+    try:
+        list(AllegroAdapter(client=client).iter_order_pages())
+    except IntegrationUnavailable as exc:
+        assert "more than 200 orders" in str(exc)
+    else:
+        raise AssertionError("expected IntegrationUnavailable")

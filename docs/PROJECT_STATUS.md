@@ -1,12 +1,5 @@
 # PROJECT STATUS
 
-> **On your next pull on another machine:** two new migrations landed
-> 2026-09-18 (`seller_note`, `order_items.image_url`). Run, in `backend/`:
-> `.\.venv\Scripts\alembic.exe upgrade head` — otherwise the first request
-> touching an order fails. (This is also step 4 of `CLAUDE.md`'s own
-> "Start of every session" checklist; this note is just to make today's
-> specific migrations hard to miss. Safe to delete once you've run it.)
-
 ## Project
 
 Anvero
@@ -154,9 +147,11 @@ Sandbox. Agreed plan, in order:
    the interface button was checked too. Left from this step, when there is
    a reason: a cancelled order and an order with several line items.
 3. **Production Allegro** with the owner's seller account, same steps.
-4. **What real data will likely demand:** importing every page rather than
-   one (the button fetches up to 100 orders), incremental sync from Allegro's
-   order event journal, and a scheduled import.
+4. **What real data will likely demand:** ~~importing every page and only
+   what changed~~ done 2026-09-21 (first import: last 7 days, then only new
+   or changed orders, all pages; `DECISIONS.md`); what remains is a
+   scheduled import, and the order event journal if `updatedAt` proves too
+   coarse.
 5. **Owner decisions after using it on real orders:** status transition
    rules, and which of ERLI, shipping or invoicing comes after the MVP
    (`ROADMAP.md`).

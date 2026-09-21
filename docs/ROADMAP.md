@@ -62,10 +62,13 @@ comfort, not a blocker.
 
 ### 2. An import that runs without a person
 
-Today a button fetches one page of at most 100 orders, and only when someone
-clicks it. Real volume needs every page, incremental sync from Allegro's
-order event journal rather than re-reading the same page, and a schedule.
-This is what makes the data trustworthy without anyone watching it.
+~~Today a button fetches one page of at most 100 orders.~~ Done 2026-09-21:
+an import pages through everything, the first reaching back seven days and
+every later one fetching only what is new or changed since the last that
+finished (`DECISIONS.md`). Still only when someone clicks it: what remains is
+a schedule, and, if `updatedAt` filtering ever proves too coarse, the order
+event journal. This is what makes the data trustworthy without anyone
+watching it.
 
 ### 3. Somewhere to run, and a way back
 

@@ -98,8 +98,11 @@ created; see `DECISIONS.md`, "Rotated Allegro Refresh Tokens Live in the
 Database":
 
 ```
-python scripts/import_allegro.py [--limit N] [--offset N]
+python scripts/import_allegro.py [--days N]
 ```
+
+`--days N` ignores the recorded sync point and fetches orders bought in the
+last N days (a backfill); the point still moves forward afterwards.
 
 Matching is on `(source, external_id)`, which the database enforces as
 unique, so running it twice does not duplicate anything.
@@ -114,6 +117,28 @@ both try to refresh it, and the one that loses the race is left holding an
 already-invalidated token. A second click on the button while one import is
 running gets `409` immediately. Running the script by hand while the button
 is mid-import is not guarded against — do not do both at once.
+
+### What an import fetches
+
+An import does not read "the latest page"; it asks Allegro for a time window
+and pages through all of it, 100 orders at a time:
+
+- **First import** (no sync point recorded yet): orders with a line item
+  bought in the last `ALLEGRO_INITIAL_IMPORT_DAYS` days (default 7,
+  `lineItems.boughtAt.gte`).
+- **Every later import**: orders changed since the recorded point
+  (`updatedAt.gte`), which covers new orders and updates to old ones alike.
+- The point is the moment the last *complete* import started, less five
+  minutes, kept in `integration_credentials.last_synced_at`. It moves only
+  after every page was fetched and stored; an import that fails part way
+  leaves it, and the next one repeats the same ground (orders match by
+  `(source, external_id)`, so nothing is duplicated). Re-authorizing the
+  application clears it, since another seller account has another history.
+- No sort is requested, so Allegro's default (newest purchase first) applies:
+  a purchase time never changes, so paging stays stable while orders are
+  updated during the run.
+- Stopping after 500 pages (50,000 orders) is an error, not a quiet end, so a
+  sync is never recorded as complete when it was not.
 
 ### Refresh token rotation
 
@@ -261,8 +286,13 @@ one malformed order does not cost the rest of the page.
   file, the same exposure as `.env`.
 - Shipments (carrier, tracking number) are not imported; Allegro serves
   them from a different endpoint.
-- One page per run. There is no cursor, so a full backfill means calling the
-  script with increasing `--offset`.
+- An import runs only when someone starts it (the button or the script);
+  nothing schedules it yet.
+- An order bought more than the first window ago, and changed since, arrives as
+  a new order the first time it is seen, because `updatedAt` cannot tell "new
+  to Anvero" from "new to Allegro".
+- An order that cannot be mapped is skipped with a warning and is not retried
+  unless Allegro changes it again.
 - **Only the sandbox has been exercised.** On 2026-09-17 the authorization,
   the token refresh with rotation, the orders endpoint and the mapping all
   ran against the real sandbox API, from the script and from the button, on

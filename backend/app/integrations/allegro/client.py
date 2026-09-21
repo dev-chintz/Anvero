@@ -8,6 +8,7 @@ token on every use, so it is read from and written back to a RefreshTokenStore.
 
 import logging
 import time
+from datetime import UTC, datetime
 from typing import Any
 
 import httpx2
@@ -33,6 +34,12 @@ TOKEN_EXPIRY_MARGIN_SECONDS = 60
 REQUEST_TIMEOUT_SECONDS = 30.0
 
 MAX_PAGE_SIZE = 100
+
+
+def _timestamp(value: datetime) -> str:
+    """Allegro's date-time format: UTC, millisecond precision, a trailing Z."""
+    utc = value.astimezone(UTC)
+    return utc.strftime("%Y-%m-%dT%H:%M:%S.") + f"{utc.microsecond // 1000:03d}Z"
 
 
 def _json_object(response: httpx2.Response, what: str) -> dict[str, Any]:
@@ -157,15 +164,33 @@ class AllegroClient:
         return token
 
     def fetch_checkout_forms(
-        self, limit: int = MAX_PAGE_SIZE, offset: int = 0
+        self,
+        limit: int = MAX_PAGE_SIZE,
+        offset: int = 0,
+        bought_since: datetime | None = None,
+        updated_since: datetime | None = None,
     ) -> list[dict[str, Any]]:
         """Return one page of raw checkout forms.
+
+        `bought_since` keeps orders with a line item bought at or after that
+        time; `updated_since` keeps orders changed at or after it, which also
+        covers new ones. No sort is requested, so Allegro's default applies
+        (newest purchase first): a purchase time never changes, so paging by
+        offset stays stable while orders are updated mid-run, and a new order
+        can only push others onto the next page, repeating one, never
+        skipping one.
 
         The payload stays raw on purpose: translating it is the mapper's job,
         so nothing outside this package depends on Allegro's field names.
         """
         if not 1 <= limit <= MAX_PAGE_SIZE:
             raise ValueError(f"limit must be between 1 and {MAX_PAGE_SIZE}")
+
+        params: dict[str, Any] = {"limit": limit, "offset": offset}
+        if bought_since is not None:
+            params["lineItems.boughtAt.gte"] = _timestamp(bought_since)
+        if updated_since is not None:
+            params["updatedAt.gte"] = _timestamp(updated_since)
 
         token = self._access_token_value()
         try:
@@ -176,7 +201,7 @@ class AllegroClient:
                     "Accept": ACCEPT_HEADER,
                     "User-Agent": self._user_agent,
                 },
-                params={"limit": limit, "offset": offset},
+                params=params,
             )
         except httpx2.RequestError as exc:
             raise IntegrationUnavailable(f"Allegro API unreachable: {exc}") from exc

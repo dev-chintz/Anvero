@@ -2,7 +2,13 @@
 """Import orders from Allegro into Anvero.
 
 Usage:
-    python scripts/import_allegro.py [--limit N] [--offset N]
+    python scripts/import_allegro.py [--days N]
+
+The first run fetches orders bought in the last ALLEGRO_INITIAL_IMPORT_DAYS
+(default 7); every later run fetches only orders new or changed since the last
+one that finished, all pages of them. `--days N` ignores that recorded point
+and fetches orders bought in the last N days instead (a backfill); the
+recorded point still moves forward afterwards.
 
 The client id and secret come from the environment. The refresh token is
 seeded from the environment too, but Allegro replaces it on every use, so the
@@ -21,7 +27,6 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from app.core.logging import setup_logging
 from app.db.session import SessionLocal
-from app.integrations.allegro.client import MAX_PAGE_SIZE
 from app.integrations.base import (
     IntegrationAuthError,
     IntegrationError,
@@ -32,32 +37,20 @@ from app.services.allegro_import import build_allegro_import_service
 logger = logging.getLogger(__name__)
 
 
-def _page_size(value: str) -> int:
-    size = int(value)
-    if not 1 <= size <= MAX_PAGE_SIZE:
-        raise argparse.ArgumentTypeError(
-            f"must be between 1 and {MAX_PAGE_SIZE}; Allegro rejects larger pages"
-        )
-    return size
-
-
-def _offset(value: str) -> int:
-    offset = int(value)
-    if offset < 0:
-        raise argparse.ArgumentTypeError("must not be negative")
-    return offset
+def _days(value: str) -> int:
+    days = int(value)
+    if not 1 <= days <= 365:
+        raise argparse.ArgumentTypeError("must be between 1 and 365")
+    return days
 
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="Import orders from Allegro")
     parser.add_argument(
-        "--limit",
-        type=_page_size,
-        default=MAX_PAGE_SIZE,
-        help=f"orders per page, 1-{MAX_PAGE_SIZE} (default {MAX_PAGE_SIZE})",
-    )
-    parser.add_argument(
-        "--offset", type=_offset, default=0, help="skip this many orders"
+        "--days",
+        type=_days,
+        default=None,
+        help="fetch orders bought in the last N days, ignoring the recorded sync point",
     )
     args = parser.parse_args()
 
@@ -69,7 +62,7 @@ def main() -> int:
         # read and rotate the one stored refresh token; see
         # app/services/allegro_import.py
         service = build_allegro_import_service(db)
-        result = service.import_orders(limit=args.limit, offset=args.offset)
+        result = service.sync_orders(days=args.days)
     except IntegrationNotConfigured as exc:
         print(f"Allegro is not configured: {exc}", file=sys.stderr)
         return 2

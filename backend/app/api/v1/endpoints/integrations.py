@@ -11,11 +11,7 @@ from app.integrations.base import (
     IntegrationError,
     IntegrationNotConfigured,
 )
-from app.schemas.integration import (
-    AllegroImportRequest,
-    AllegroImportResult,
-    AllegroStatus,
-)
+from app.schemas.integration import AllegroImportResult, AllegroStatus
 from app.services.allegro_import import (
     build_allegro_client,
     build_allegro_import_service,
@@ -45,7 +41,6 @@ def get_allegro_status(db: Session = Depends(get_db)):
 @limiter.limit("6/minute")
 def import_from_allegro(
     request: Request,
-    body: AllegroImportRequest,
     db: Session = Depends(get_db),
 ):
     if not _import_lock.acquire(blocking=False):
@@ -55,7 +50,7 @@ def import_from_allegro(
         )
     try:
         service = build_allegro_import_service(db)
-        result = service.import_orders(limit=body.limit, offset=body.offset)
+        result = service.sync_orders()
     except IntegrationNotConfigured as exc:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,

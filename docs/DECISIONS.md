@@ -1,5 +1,47 @@
 # Decision Log
 
+## 2026-09-21 — Import Is a Time Window, Then Only What Changed
+
+**Decision:** An Allegro import no longer reads one page of the newest 100
+orders. The first one (no sync point recorded) fetches orders bought in the
+last `ALLEGRO_INITIAL_IMPORT_DAYS` days, default 7 (`lineItems.boughtAt.gte`);
+every later one fetches orders changed since the recorded point
+(`updatedAt.gte`), so new orders and updates to old ones arrive together. Both
+page through everything. The point lives in
+`integration_credentials.last_synced_at` (migration `d5b8e2f7a391`), is the
+start of the last complete run less five minutes, and moves only after every
+page was fetched and stored. Re-authorizing clears it. The endpoint lost its
+`limit`/`offset` body; the script's `--limit`/`--offset` became `--days N`, a
+backfill that ignores the recorded point. `import_orders` (one raw page) is
+kept for callers that want exactly that.
+
+**Rationale:** The owner asked for seven days on the first import and only
+changes after that. `updatedAt.gte` was chosen over Allegro's order event
+journal because the orders endpoint the import already reads supports it, so
+no second resource and no event-to-order lookup; the journal remains the
+answer if that proves too coarse. The point is set to when the run *started*,
+not when it ended, and overlapped by five minutes, because an order changed
+while a run is in progress must land in the next one, and Allegro's clock is
+not ours; the price is a few repeated orders, which matching on `(source,
+external_id)` makes free. A run that fails part way deliberately leaves the
+point alone: the pages already stored are kept, and the next run repeats
+them. No sort is requested, so paging by offset uses Allegro's default (newest
+purchase first): a purchase time never changes, whereas sorting by update time
+would let an order updated mid-run jump to the end and shift the rest down
+one, skipping an order. Paging ends on the first *raw* page shorter than 100,
+not the first mapped one, since an unmappable order is dropped from a page and
+counting what is left would stop the run early. Running past 500 pages raises
+instead of ending quietly, so an incomplete sync is never recorded as
+complete. Resetting the point on re-authorization matters for the planned move
+from the sandbox to production: another seller account has another order
+history, and carrying the old point over would skip its orders.
+
+Known edge: an order bought before the first window and changed later arrives
+as a new order, since `updatedAt` cannot tell "new to Anvero" from "new to
+Allegro". Not checked against the real API yet (the sandbox has few orders):
+the filter parameter names come from Allegro's published documentation, and
+the tests cover the request format with a mock transport.
+
 ## 2026-09-18 — One Shared PostgreSQL on the Home NAS
 
 **Decision:** The development database is now a single PostgreSQL 17 on the

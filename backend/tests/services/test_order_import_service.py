@@ -1,4 +1,4 @@
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 
 from app.models.order import (
@@ -23,7 +23,7 @@ from app.schemas.order import (
     PickupPoint,
 )
 from app.schemas.types import _as_utc
-from app.services.order_import_service import OrderImportService
+from app.services.order_import_service import SYNC_OVERLAP, OrderImportService
 
 
 class FakeAdapter:
@@ -339,3 +339,129 @@ def test_an_order_from_another_marketplace_is_not_a_duplicate(session):
 
     assert result.created == 1
     assert session.query(Order).count() == 2
+
+
+# --- sync_orders: first window, then only what changed --------------------
+
+
+class PagedFakeAdapter:
+    """Records the filters it is asked for and serves pages of orders."""
+
+    source = OrderSource.ALLEGRO
+
+    def __init__(self, pages, fail_on_page=None):
+        self.pages = pages
+        self.fail_on_page = fail_on_page
+        self.requests = []
+
+    def fetch_orders(self, limit: int = 100, offset: int = 0):
+        return []
+
+    def iter_order_pages(self, bought_since=None, updated_since=None):
+        self.requests.append({"bought_since": bought_since, "updated_since": updated_since})
+        for index, page in enumerate(self.pages):
+            if index == self.fail_on_page:
+                raise RuntimeError("Allegro went away")
+            yield page
+
+
+def _credentials(session):
+    from app.models.integration import IntegrationCredential
+    from app.repositories.integration_credential_repository import (
+        IntegrationCredentialRepository,
+    )
+
+    session.add(
+        IntegrationCredential(provider="ALLEGRO", refresh_token="t", seed_fingerprint="f")
+    )
+    session.commit()
+    return IntegrationCredentialRepository(session)
+
+
+def _sync_service(session, adapter, credentials, initial_days=7):
+    return OrderImportService(
+        OrderRepository(session), adapter, credentials=credentials, initial_days=initial_days
+    )
+
+
+def test_the_first_sync_reaches_back_the_initial_window_by_purchase_date(session):
+    adapter = PagedFakeAdapter([[_order("ALG-1")]])
+    credentials = _credentials(session)
+
+    _sync_service(session, adapter, credentials, initial_days=7).sync_orders()
+    after = datetime.now(UTC)
+
+    (request,) = adapter.requests
+    assert request["updated_since"] is None
+    window = after - request["bought_since"]
+    assert timedelta(days=7) <= window < timedelta(days=7, minutes=1)
+
+
+def test_a_later_sync_asks_only_for_what_changed_since_the_recorded_point(session):
+    credentials = _credentials(session)
+    _sync_service(session, PagedFakeAdapter([[_order("ALG-1")]]), credentials).sync_orders()
+    recorded = credentials.last_synced_at("ALLEGRO")
+
+    adapter = PagedFakeAdapter([[_order("ALG-1")]])
+    result = _sync_service(session, adapter, credentials).sync_orders()
+
+    (request,) = adapter.requests
+    assert request == {"bought_since": None, "updated_since": recorded}
+    # the same order again is an update, not a second copy
+    assert (result.created, result.updated) == (0, 1)
+
+
+def test_every_page_is_stored(session):
+    adapter = PagedFakeAdapter([[_order("ALG-1")], [_order("ALG-2")], [_order("ALG-3")]])
+
+    result = _sync_service(session, adapter, _credentials(session)).sync_orders()
+
+    assert result.created == 3
+    assert session.query(Order).count() == 3
+
+
+def test_the_recorded_point_is_the_start_of_the_run_less_a_small_overlap(session):
+    credentials = _credentials(session)
+    before = datetime.now(UTC)
+
+    _sync_service(session, PagedFakeAdapter([[_order("ALG-1")]]), credentials).sync_orders()
+
+    recorded = credentials.last_synced_at("ALLEGRO")
+    assert before - SYNC_OVERLAP <= recorded <= datetime.now(UTC) - SYNC_OVERLAP
+
+
+def test_a_failed_sync_keeps_the_recorded_point_and_the_pages_already_stored(session):
+    credentials = _credentials(session)
+    adapter = PagedFakeAdapter([[_order("ALG-1")], [_order("ALG-2")]], fail_on_page=1)
+
+    try:
+        _sync_service(session, adapter, credentials).sync_orders()
+    except RuntimeError:
+        pass
+
+    assert credentials.last_synced_at("ALLEGRO") is None
+    assert session.query(Order).count() == 1
+
+
+def test_days_forces_a_purchase_window_even_when_a_point_is_recorded(session):
+    credentials = _credentials(session)
+    _sync_service(session, PagedFakeAdapter([[]]), credentials).sync_orders()
+
+    adapter = PagedFakeAdapter([[]])
+    _sync_service(session, adapter, credentials).sync_orders(days=30)
+
+    (request,) = adapter.requests
+    assert request["updated_since"] is None
+    assert request["bought_since"] is not None
+
+
+def test_reauthorizing_forgets_the_recorded_point(session):
+    """A different seller account has a different order history, so what was
+    fetched for the old one says nothing about the new one."""
+    credentials = _credentials(session)
+    _sync_service(session, PagedFakeAdapter([[]]), credentials).sync_orders()
+    assert credentials.last_synced_at("ALLEGRO") is not None
+
+    credentials.save("ALLEGRO", "new-token", "another-seed")
+
+    assert credentials.last_synced_at("ALLEGRO") is None

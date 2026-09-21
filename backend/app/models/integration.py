@@ -26,6 +26,14 @@ class IntegrationCredential(Base):
     # application again, and the stored chain is stale.
     seed_fingerprint: Mapped[str] = mapped_column(String(64), nullable=False)
 
+    # when the last import that fetched everything it set out to finished
+    # (minus a small overlap); the next one asks only for orders changed
+    # since. Null until one has, and again after re-authorization, since a
+    # different seller account has a different order history.
+    last_synced_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         server_default=func.now(),

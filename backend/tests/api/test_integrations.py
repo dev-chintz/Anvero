@@ -94,10 +94,10 @@ class _FakeService:
     def __init__(self, result=None, error=None):
         self._result = result
         self._error = error
-        self.calls: list[tuple[int, int]] = []
+        self.calls = 0
 
-    def import_orders(self, limit: int = 100, offset: int = 0):
-        self.calls.append((limit, offset))
+    def sync_orders(self):
+        self.calls += 1
         if self._error is not None:
             raise self._error
         return self._result
@@ -159,9 +159,7 @@ def test_successful_import_returns_the_fake_services_counts(monkeypatch):
     fake = _FakeService(result=_FakeResult(created=3, updated=2, cancellation_warnings=1))
     _patch_service(monkeypatch, fake)
 
-    response = client.post(
-        "/api/v1/integrations/allegro/import", json={"limit": 50, "offset": 10}
-    )
+    response = client.post("/api/v1/integrations/allegro/import", json={})
 
     assert response.status_code == 200
     assert response.json() == {
@@ -169,17 +167,7 @@ def test_successful_import_returns_the_fake_services_counts(monkeypatch):
         "updated": 2,
         "cancellation_warnings": 1,
     }
-    assert fake.calls == [(50, 10)]
-
-
-def test_import_defaults_limit_and_offset_when_the_body_is_empty(monkeypatch):
-    fake = _FakeService(result=_FakeResult(created=0, updated=0, cancellation_warnings=0))
-    _patch_service(monkeypatch, fake)
-
-    response = client.post("/api/v1/integrations/allegro/import", json={})
-
-    assert response.status_code == 200
-    assert fake.calls == [(100, 0)]
+    assert fake.calls == 1
 
 
 def test_not_configured_is_reported_as_409(monkeypatch):
@@ -217,36 +205,6 @@ def test_generic_integration_error_is_reported_as_502(monkeypatch):
     assert response.json()["detail"] == "Allegro API returned 503"
 
 
-def test_limit_zero_is_rejected(monkeypatch):
-    fake = _FakeService(result=_FakeResult(created=0, updated=0, cancellation_warnings=0))
-    _patch_service(monkeypatch, fake)
-
-    response = client.post("/api/v1/integrations/allegro/import", json={"limit": 0})
-
-    assert response.status_code == 422
-    assert fake.calls == []
-
-
-def test_limit_above_the_page_size_is_rejected(monkeypatch):
-    fake = _FakeService(result=_FakeResult(created=0, updated=0, cancellation_warnings=0))
-    _patch_service(monkeypatch, fake)
-
-    response = client.post("/api/v1/integrations/allegro/import", json={"limit": 101})
-
-    assert response.status_code == 422
-    assert fake.calls == []
-
-
-def test_negative_offset_is_rejected(monkeypatch):
-    fake = _FakeService(result=_FakeResult(created=0, updated=0, cancellation_warnings=0))
-    _patch_service(monkeypatch, fake)
-
-    response = client.post("/api/v1/integrations/allegro/import", json={"offset": -1})
-
-    assert response.status_code == 422
-    assert fake.calls == []
-
-
 def test_a_second_import_while_the_first_holds_the_lock_is_refused(monkeypatch):
     """Allegro rotates the refresh token on every use, so two imports
     running at once would race to refresh it. The lock is acquired
@@ -262,7 +220,7 @@ def test_a_second_import_while_the_first_holds_the_lock_is_refused(monkeypatch):
 
     assert response.status_code == 409
     assert response.json()["detail"] == "An Allegro import is already running"
-    assert fake.calls == []
+    assert fake.calls == 0
 
 
 def test_the_lock_is_released_after_a_failed_import_so_the_next_one_can_run(

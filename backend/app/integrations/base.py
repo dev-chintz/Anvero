@@ -1,3 +1,5 @@
+from collections.abc import Iterator
+from datetime import datetime
 from typing import Protocol
 
 from app.models.order import OrderSource
@@ -62,4 +64,16 @@ class MarketplaceAdapter(Protocol):
 
     def fetch_orders(self, limit: int = 100, offset: int = 0) -> list[OrderCreate]:
         """Return a page of orders already translated to the domain shape."""
+        ...
+
+    def iter_order_pages(
+        self,
+        bought_since: datetime | None = None,
+        updated_since: datetime | None = None,
+    ) -> Iterator[list[OrderCreate]]:
+        """Yield every page of orders bought, or changed, since the given time.
+
+        Raises rather than ending quietly if it cannot reach the end, so a
+        caller never mistakes a partial fetch for a complete one.
+        """
         ...

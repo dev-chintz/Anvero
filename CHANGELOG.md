@@ -4,6 +4,21 @@ All significant changes to the Anvero project.
 
 ---
 
+## 2026-09-21
+
+### 🔄 Import fetches a time window, then only what changed
+
+- The first Allegro import now fetches every order bought in the last 7 days
+  (`ALLEGRO_INITIAL_IMPORT_DAYS`), all pages; each later one fetches only
+  orders new or changed since the last complete import, so updates to
+  existing orders come in without re-reading everything. Previously an import
+  read one page of the newest 100 orders and never went further.
+- The sync point is kept in `integration_credentials.last_synced_at`
+  (migration `d5b8e2f7a391`) and moves only after a fully fetched, fully
+  stored run. `POST /integrations/allegro/import` takes no body any more;
+  `scripts/import_allegro.py --days N` replaces `--limit`/`--offset` for a
+  backfill. See `DECISIONS.md`.
+
 ## 2026-09-19
 
 ### 🔑 `reset_password.py`: change an existing user's password

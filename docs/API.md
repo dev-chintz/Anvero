@@ -46,15 +46,13 @@ the root.
 
 ## `POST /api/v1/integrations/allegro/import`
 
-Runs one page of the Allegro import (the same work as
-`scripts/import_allegro.py`) and returns its result. Body, all optional:
-
-```json
-{"limit": 100, "offset": 0}
-```
-
-`limit` is 1-100 (Allegro's own page size limit; validation rejects anything
-outside that range with `422`), `offset` is 0 or more; both default as shown.
+Runs an Allegro sync (the same work as `scripts/import_allegro.py`) and
+returns its result. There is no request body. The first sync fetches orders
+bought in the last `ALLEGRO_INITIAL_IMPORT_DAYS` (default 7); every later one
+fetches only orders new or changed since the last one that finished, all pages
+of them. A sync that fails part way does not move that point, so the next one
+covers the same ground again; orders are matched by `(source, external_id)`, so
+that costs nothing but time. See `INTEGRATIONS.md`, "What an import fetches".
 
 Response:
 
@@ -79,7 +77,6 @@ Error responses:
 | --- | --- |
 | `409` | Allegro is not configured (`ALLEGRO_CLIENT_ID`/`_SECRET`/`_USER_AGENT`/`_REFRESH_TOKEN` missing), or an import is already running |
 | `502` | Allegro rejected the credentials, or any other integration failure (unreachable, non-JSON response, etc.) |
-| `422` | `limit` or `offset` outside their allowed range |
 
 Every error detail is a plain description; none of them include a token,
 credential or raw Allegro response.

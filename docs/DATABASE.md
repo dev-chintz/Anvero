@@ -106,6 +106,7 @@ the latest token has to be kept between runs:
 | `provider` | primary key, e.g. `ALLEGRO` |
 | `refresh_token` | the most recently issued refresh token |
 | `seed_fingerprint` | SHA-256 of the `.env` token the chain started from; a different `.env` token means a fresh authorization |
+| `last_synced_at` | where the next import resumes: when the last one that fetched everything started, less five minutes; null until one has, and reset by a re-authorization, since another seller account has another order history |
 | `updated_at` | last rotation |
 
 The rule above about credentials is read as "never committed to Git and never

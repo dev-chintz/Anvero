@@ -1,4 +1,5 @@
 import base64
+from datetime import UTC, datetime, timedelta, timezone
 
 import httpx2
 import pytest
@@ -372,3 +373,36 @@ def test_fetch_offer_image_does_not_raise_on_a_non_json_response():
         return httpx2.Response(200, content=b"not json")
 
     assert _client(handler).fetch_offer_image("offer-1") is None
+
+
+def test_sends_the_time_filters_in_allegros_format():
+    seen = {}
+
+    def handler(request: httpx2.Request) -> httpx2.Response:
+        if request.url.path == "/token":
+            return _token_response()
+        seen["params"] = dict(request.url.params)
+        return httpx2.Response(200, json={"checkoutForms": []})
+
+    _client(handler).fetch_checkout_forms(
+        bought_since=datetime(2026, 9, 14, 8, 30, 15, 123456, tzinfo=UTC),
+        updated_since=datetime(2026, 9, 14, 12, 0, tzinfo=timezone(timedelta(hours=2))),
+    )
+
+    assert seen["params"]["lineItems.boughtAt.gte"] == "2026-09-14T08:30:15.123Z"
+    # converted to UTC, whatever zone it arrived in
+    assert seen["params"]["updatedAt.gte"] == "2026-09-14T10:00:00.000Z"
+
+
+def test_sends_no_time_filter_unless_asked():
+    seen = {}
+
+    def handler(request: httpx2.Request) -> httpx2.Response:
+        if request.url.path == "/token":
+            return _token_response()
+        seen["params"] = dict(request.url.params)
+        return httpx2.Response(200, json={"checkoutForms": []})
+
+    _client(handler).fetch_checkout_forms()
+
+    assert set(seen["params"]) == {"limit", "offset"}

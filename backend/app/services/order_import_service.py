@@ -1,9 +1,12 @@
 import logging
 from dataclasses import dataclass
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 
 from app.integrations.base import MarketplaceAdapter
 from app.models.order import Order, OrderStatus
+from app.repositories.integration_credential_repository import (
+    IntegrationCredentialRepository,
+)
 from app.repositories.order_repository import OrderRepository
 from app.schemas.order import OrderCreate
 from app.services.order_details import apply_details
@@ -23,16 +26,89 @@ class ImportResult:
     def total(self) -> int:
         return self.created + self.updated
 
+    def __add__(self, other: "ImportResult") -> "ImportResult":
+        return ImportResult(
+            created=self.created + other.created,
+            updated=self.updated + other.updated,
+            cancellation_warnings=self.cancellation_warnings + other.cancellation_warnings,
+        )
+
+
+# Allegro stamps an order's change time itself, and a moment lost between its
+# clock and ours must not leave an order out of two consecutive runs
+SYNC_OVERLAP = timedelta(minutes=5)
+
 
 class OrderImportService:
     """Brings marketplace orders into Anvero without losing local decisions."""
 
-    def __init__(self, repository: OrderRepository, adapter: MarketplaceAdapter):
+    def __init__(
+        self,
+        repository: OrderRepository,
+        adapter: MarketplaceAdapter,
+        credentials: IntegrationCredentialRepository | None = None,
+        initial_days: int = 7,
+    ):
         self.repository = repository
         self.adapter = adapter
+        # where the point the last sync reached is kept; only sync_orders
+        # needs it
+        self.credentials = credentials
+        self.initial_days = initial_days
+
+    def sync_orders(self, days: int | None = None) -> ImportResult:
+        """Fetch what is new or changed since the last successful sync.
+
+        The first time - nothing recorded yet - it reaches back `initial_days`
+        by purchase date; `days` forces that window again regardless of what
+        is recorded, for a backfill. Every later run asks only for orders
+        changed since the recorded point, which covers new orders and updates
+        to old ones alike, and pages through all of them.
+
+        The point moves forward only when every page was fetched and stored,
+        and it moves to when this run *started*, less SYNC_OVERLAP, so an
+        order changed while the run was in progress is caught by the next.
+        A run that fails part way leaves it where it was: the pages already
+        stored stay stored, and the next run repeats them harmlessly, since
+        matching is by (source, external_id).
+        """
+        if self.credentials is None:
+            raise RuntimeError("sync_orders needs the credential repository")
+
+        provider = self.adapter.source.value
+        started_at = datetime.now(UTC)
+        recorded = self.credentials.last_synced_at(provider)
+
+        if days is not None or recorded is None:
+            window = days if days is not None else self.initial_days
+            filters = {"bought_since": started_at - timedelta(days=window)}
+            logger.info("Importing %s orders bought in the last %d days", provider, window)
+        else:
+            filters = {"updated_since": recorded}
+            logger.info("Importing %s orders changed since %s", provider, recorded)
+
+        result = ImportResult(created=0, updated=0)
+        for orders in self.adapter.iter_order_pages(**filters):
+            result += self._store(orders)
+
+        if not self.credentials.set_last_synced_at(provider, started_at - SYNC_OVERLAP):
+            logger.warning(
+                "No stored credentials for %s, so the sync point was not recorded; "
+                "the next import starts from the beginning again",
+                provider,
+            )
+        return result
 
     def import_orders(self, limit: int = 100, offset: int = 0) -> ImportResult:
-        """Fetch a page of orders and store them.
+        """Fetch one page of orders and store them, whatever their age.
+
+        Does not read or move the sync point; `sync_orders` is what the
+        interface uses.
+        """
+        return self._store(self.adapter.fetch_orders(limit=limit, offset=offset))
+
+    def _store(self, orders: list[OrderCreate]) -> ImportResult:
+        """Store orders that have already been fetched.
 
         Matching is on (source, external_id), so running this twice does not
         duplicate anything.
@@ -52,7 +128,7 @@ class OrderImportService:
         updated = 0
         cancellation_warnings = 0
 
-        for data in self.adapter.fetch_orders(limit=limit, offset=offset):
+        for data in orders:
             cancelled = data.status is OrderStatus.CANCELLED
             existing = self.repository.get_by_external_id(
                 data.source, data.external_id

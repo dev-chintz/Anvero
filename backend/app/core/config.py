@@ -100,6 +100,9 @@ class Settings(BaseSettings):
     allegro_user_agent: str = Field(default="")
     allegro_api_url: str = Field(default="https://api.allegro.pl")
     allegro_auth_url: str = Field(default="https://allegro.pl/auth/oauth")
+    # how far back the very first import reaches; after that only what changed
+    # since the last successful one is fetched
+    allegro_initial_import_days: int = Field(default=7, ge=1, le=365)
 
     @field_validator("database_url")
     @classmethod

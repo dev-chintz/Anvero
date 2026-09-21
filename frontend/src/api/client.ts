@@ -133,11 +133,6 @@ export interface AllegroStatus {
   configured: boolean;
 }
 
-export interface AllegroImportParams {
-  limit?: number;
-  offset?: number;
-}
-
 export interface AllegroImportResult {
   created: number;
   updated: number;
@@ -149,10 +144,9 @@ export const integrationsApi = {
     return request<AllegroStatus>("/integrations/allegro");
   },
 
-  importAllegro(params: AllegroImportParams = {}): Promise<AllegroImportResult> {
+  importAllegro(): Promise<AllegroImportResult> {
     return request<AllegroImportResult>("/integrations/allegro/import", {
       method: "POST",
-      body: JSON.stringify(params),
     });
   },
 };

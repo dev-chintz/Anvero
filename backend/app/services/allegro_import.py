@@ -32,4 +32,9 @@ def build_allegro_client(db: Session) -> AllegroClient:
 def build_allegro_import_service(db: Session) -> OrderImportService:
     """Build the same OrderImportService the import script builds."""
     client = build_allegro_client(db)
-    return OrderImportService(OrderRepository(db), AllegroAdapter(client=client))
+    return OrderImportService(
+        OrderRepository(db),
+        AllegroAdapter(client=client),
+        credentials=IntegrationCredentialRepository(db),
+        initial_days=settings.allegro_initial_import_days,
+    )
