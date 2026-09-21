@@ -66,14 +66,16 @@ a schedule, and, if `updatedAt` filtering ever proves too coarse, the order
 event journal. This is what makes the data trustworthy without anyone
 watching it.
 
-### 3. Somewhere to run, and a way back
+### 3. Somewhere to run
 
-Anvero runs on a laptop, started by hand in two terminals, with the database
-in a local file that nothing backs up and no procedure restores. Deployment
-and backups are a bigger gap than any missing feature: a lost file is lost
-order history. Docker was deliberately left out of Sprint 1 (`DECISIONS.md`)
-and belongs to this step's decision, along with where it runs and who can
-reach it.
+~~The database and a way back~~ Done: PostgreSQL lives on the NAS, dumped
+nightly and copied encrypted to Google Drive by Hybrid Backup Sync, and a
+restore from that copy has been tried (`DECISIONS.md`, `DEVELOPMENT.md`).
+What remains is the application itself: it still runs on a laptop, started by
+hand in two terminals, so nothing runs unattended (item 2 needs a process that
+stays up). Docker was deliberately left out of Sprint 1 (`DECISIONS.md`) and
+belongs to this step's decision, along with where it runs (the NAS is the
+obvious candidate) and who can reach it (Tailscale, HTTPS).
 
 ### 4. Shipments, so Anvero replaces the panel rather than mirroring it
 
