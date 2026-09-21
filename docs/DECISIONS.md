@@ -906,3 +906,11 @@ branch is unverified: only the SQLite path has been run.
 **Rationale:** A scheduler inside the process needs no extra service, and sharing `run_import` keeps one lock and one record for both triggers. It is off by default because the lock is per process while the database is shared by several machines, and Allegro rotates the refresh token on every use: two backends importing on their own would invalidate each other's token. Enabling it in the environment, not in the database, ties it to the one machine meant to run it.
 
 **Consequences:** Imports happen only while that backend runs, so it must be hosted somewhere that stays up (`ROADMAP.md` item 3). There is no leader election; turning the setting on for two backends against one database is a misconfiguration. Not exercised against Allegro here: this machine has no connected account, so the scheduled path was checked up to "skips when not configured", and `run_import` itself by tests.
+
+## 2026-09-21 — Hosting: containers on the NAS, images from GitHub, reached over Tailscale
+
+**Decision:** The application runs as two containers (API, and nginx serving the interface and forwarding `/api`) in Container Station beside the PostgreSQL one. Images are built by GitHub Actions after Checks pass on `main` and published to `ghcr.io`; the NAS only pulls. The port is open on the home network and through Tailscale, not to the internet, and served over plain HTTP.
+
+**Rationale:** The scheduled import needs a process that stays up, and the NAS already is one, next to the database. Building in CI means the NAS, with its modest processor, only pulls, and what it runs has passed the same tests as everything else. Tailscale already encrypts the way in from elsewhere, so a certificate and an internet-facing login page would add work and risk (the page fronts customers' names and addresses) without a need. This supersedes "No Docker in Sprint 1" for deployment; development stays native.
+
+**Consequences:** The backend migrates the database on every start, so an image never runs ahead of its schema (and a bad migration blocks startup). Secrets live in the compose file inside Container Station on the NAS, not in Git. Images are built for both amd64 and arm64 because the NAS's processor was not checked. Not yet built or run: `DEPLOYMENT.md` is the first attempt's script.

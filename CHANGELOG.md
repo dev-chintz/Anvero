@@ -6,6 +6,14 @@ All significant changes to the Anvero project.
 
 ## 2026-09-21
 
+### 🐳 Running on the NAS (prepared, not yet run)
+
+- Dockerfiles for the backend and the frontend (nginx, forwarding `/api`),
+  `deploy/docker-compose.yml` for Container Station, and a GitHub Actions
+  workflow that publishes the images to `ghcr.io` once Checks pass on `main`.
+  Steps in `docs/DEPLOYMENT.md`. Access is home network plus Tailscale, plain
+  HTTP on port 8080; nothing is exposed to the internet.
+
 ### ⏱️ Scheduled imports and the last import on the orders page
 
 - `ALLEGRO_IMPORT_INTERVAL_MINUTES` (default 0, off) makes the backend import

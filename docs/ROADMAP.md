@@ -73,11 +73,12 @@ schedule only runs while the process does.
 ~~The database and a way back~~ Done: PostgreSQL lives on the NAS, dumped
 nightly and copied encrypted to Google Drive by Hybrid Backup Sync, and a
 restore from that copy has been tried (`DECISIONS.md`, `DEVELOPMENT.md`).
-What remains is the application itself: it still runs on a laptop, started by
-hand in two terminals, so nothing runs unattended (item 2 needs a process that
-stays up). Docker was deliberately left out of Sprint 1 (`DECISIONS.md`) and
-belongs to this step's decision, along with where it runs (the NAS is the
-obvious candidate) and who can reach it (Tailscale, HTTPS).
+What remains is the application itself, which still runs on a laptop, started
+by hand in two terminals, so nothing runs unattended (item 2 needs a process
+that stays up). Prepared 2026-09-21: containers for the NAS, published by
+GitHub Actions, reached over the home network and Tailscale
+(`DEPLOYMENT.md`, `DECISIONS.md`). Not done until the first deployment has
+actually run.
 
 ### 4. Shipments, so Anvero replaces the panel rather than mirroring it
 

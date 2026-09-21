@@ -1,0 +1,37 @@
+# Anvero on the NAS: paste this into a new application in Container Station
+# (docs/DEPLOYMENT.md). Replace every CHANGE_ME below, in the NAS's copy only:
+# real values must never be committed.
+name: anvero
+
+services:
+  backend:
+    image: ghcr.io/dev-chintz/anvero-backend:latest
+    restart: unless-stopped
+    environment:
+      ENVIRONMENT: production
+      DEBUG: "false"
+      # the PostgreSQL container's own address from here: the NAS's LAN
+      # address and the published port 5432 (not "localhost", which is this
+      # container)
+      DATABASE_URL: postgresql+psycopg://anvero:CHANGE_ME@CHANGE_ME_NAS_LAN_ADDRESS:5432/anvero
+      # at least 32 random characters; a new value logs everyone out
+      SECRET_KEY: CHANGE_ME
+      # the backend imports from Allegro by itself; on for this backend only
+      ALLEGRO_IMPORT_INTERVAL_MINUTES: "15"
+      # only while the Allegro application is not yet entered in Settings:
+      # ALLEGRO_CLIENT_ID / ALLEGRO_CLIENT_SECRET / ALLEGRO_USER_AGENT
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/v1/health')"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 40s
+
+  web:
+    image: ghcr.io/dev-chintz/anvero-web:latest
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      # the only port reachable from outside: http://NAS_ADDRESS:8080
+      - "8080:80"
