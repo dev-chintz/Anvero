@@ -44,6 +44,14 @@ class DeviceAuthorization:
     expires_in: int
 
 
+@dataclass(frozen=True)
+class DevicePoll:
+    """One answer to "has the person confirmed yet?"."""
+
+    refresh_token: str | None = None
+    slow_down: bool = False
+
+
 def _positive_int(value: object, default: int) -> int:
     # Allegro's documented examples send these numbers as strings
     try:
@@ -126,12 +134,58 @@ class AllegroDeviceAuthorizer:
             ),
         )
 
-    def wait_for_refresh_token(self, authorization: DeviceAuthorization) -> str:
-        """Poll until the person confirms, then return the refresh token.
+    def poll_once(self, authorization: DeviceAuthorization) -> "DevicePoll":
+        """Ask Allegro once whether the person has confirmed yet.
 
-        Only the refresh token is returned: the access token that comes with
-        it expires within hours, and the import obtains its own.
+        Returns the refresh token when they have, `pending` otherwise (with
+        `slow_down` set when Allegro wants the polling eased off). Raises when
+        the person declined, the code expired, or Allegro refused something.
+        Only the refresh token is kept: the access token that comes with it
+        expires within hours, and the import obtains its own.
         """
+        response = self._post(
+            "token",
+            {
+                "grant_type": DEVICE_CODE_GRANT,
+                "device_code": authorization.device_code,
+            },
+        )
+
+        if response.status_code == 200:
+            payload = _json_object(response, "Allegro token endpoint")
+            refresh_token = payload.get("refresh_token")
+            if not isinstance(refresh_token, str) or not refresh_token:
+                raise IntegrationAuthError("Allegro returned no refresh_token")
+            return DevicePoll(refresh_token=refresh_token)
+
+        if response.status_code == 401:
+            raise IntegrationAuthError("Allegro refused the client id or secret")
+        if response.status_code != 400:
+            raise IntegrationUnavailable(
+                f"Allegro token endpoint returned {response.status_code}"
+            )
+
+        try:
+            error = _json_object(response, "Allegro token endpoint").get("error")
+        except IntegrationUnavailable:
+            error = None
+        if error == "authorization_pending":
+            return DevicePoll()
+        if error == "slow_down":
+            return DevicePoll(slow_down=True)
+        if error == "access_denied":
+            raise AuthorizationDenied("the authorization was declined on Allegro's page")
+        if error == "expired_token":
+            raise AuthorizationExpired(
+                "the authorization was not confirmed in time; start it again"
+            )
+        # Allegro answers an unknown or already used device code this way
+        raise IntegrationAuthError(
+            f"Allegro refused the device code ({error or 'no reason given'})"
+        )
+
+    def wait_for_refresh_token(self, authorization: DeviceAuthorization) -> str:
+        """Poll until the person confirms, then return the refresh token."""
         deadline = self._clock() + authorization.expires_in
         interval = authorization.interval
 
@@ -141,47 +195,8 @@ class AllegroDeviceAuthorizer:
                 raise AuthorizationExpired(
                     "the authorization was not confirmed in time; run the script again"
                 )
-
-            response = self._post(
-                "token",
-                {
-                    "grant_type": DEVICE_CODE_GRANT,
-                    "device_code": authorization.device_code,
-                },
-            )
-
-            if response.status_code == 200:
-                payload = _json_object(response, "Allegro token endpoint")
-                refresh_token = payload.get("refresh_token")
-                if not isinstance(refresh_token, str) or not refresh_token:
-                    raise IntegrationAuthError("Allegro returned no refresh_token")
-                return refresh_token
-
-            if response.status_code == 401:
-                raise IntegrationAuthError("Allegro refused the client id or secret")
-            if response.status_code != 400:
-                raise IntegrationUnavailable(
-                    f"Allegro token endpoint returned {response.status_code}"
-                )
-
-            try:
-                error = _json_object(response, "Allegro token endpoint").get("error")
-            except IntegrationUnavailable:
-                error = None
-            if error == "authorization_pending":
-                continue
-            if error == "slow_down":
+            result = self.poll_once(authorization)
+            if result.refresh_token is not None:
+                return result.refresh_token
+            if result.slow_down:
                 interval += SLOW_DOWN_STEP_SECONDS
-                continue
-            if error == "access_denied":
-                raise AuthorizationDenied(
-                    "the authorization was declined on Allegro's page"
-                )
-            if error == "expired_token":
-                raise AuthorizationExpired(
-                    "the authorization was not confirmed in time; run the script again"
-                )
-            # Allegro answers an unknown or already used device code this way
-            raise IntegrationAuthError(
-                f"Allegro refused the device code ({error or 'no reason given'})"
-            )

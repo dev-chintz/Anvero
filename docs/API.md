@@ -20,7 +20,11 @@ are days in the business timezone, `BUSINESS_TIMEZONE`, default
 | `POST` | `/api/v1/orders` | create an order — local testing until marketplace ingestion exists |
 | `POST` | `/api/v1/auth/login` | obtain a JWT; rate limited to 5 attempts per minute per IP |
 | `GET` | `/api/v1/users/me` | current user |
-| `GET` | `/api/v1/integrations/allegro` | whether Allegro is configured |
+| `GET` | `/api/v1/integrations/allegro` | the Allegro connection's state, never a secret |
+| `PUT` | `/api/v1/integrations/allegro/settings` | store the Allegro application's credentials |
+| `POST` | `/api/v1/integrations/allegro/connect` | start connecting a seller account; rate limited to 10 per minute per IP |
+| `GET` | `/api/v1/integrations/allegro/connect/{flow_id}` | has the seller confirmed yet; rate limited to 60 per minute per IP |
+| `DELETE` | `/api/v1/integrations/allegro/connection` | forget the connected account |
 | `POST` | `/api/v1/integrations/allegro/import` | run an Allegro import; rate limited to 6 attempts per minute per IP |
 
 There is no registration endpoint. Accounts are created on the server with
@@ -39,10 +43,50 @@ response does not reveal which emails have accounts.
 
 ## `GET /api/v1/integrations/allegro`
 
-Returns `{"configured": true}` or `{"configured": false}` — nothing else.
-Never returns a credential, a token or any part of one, even when configured.
-Requires a login, like every endpoint below `/api/v1` except `/health` and
-the root.
+What Settings shows about the connection:
+
+```json
+{"configured": true, "connected": true, "application_complete": true,
+ "client_id": "...", "user_agent": "...", "environment": "sandbox",
+ "source": "settings", "account_login": "seller_login"}
+```
+
+`configured` means ready to import (credentials and a token); `connected` that
+a seller account has been connected; `application_complete` that client id,
+client secret and User-Agent are all set; `source` is `settings` (entered
+there) or `environment` (`backend/.env`). Never returns the client secret, a
+token or any part of one. Requires a login, like every endpoint below
+`/api/v1` except `/health` and the root.
+
+## `PUT /api/v1/integrations/allegro/settings`
+
+Body: `client_id`, `client_secret` (blank or absent keeps the stored one; `422`
+if there is none yet), `user_agent`, `environment` (`sandbox` or
+`production`). Returns the same status as above. Changing the client id or the
+environment disconnects the account (`connected` comes back `false`), since a
+token belongs to one application in one environment. `409` while an import is
+running.
+
+## `POST /api/v1/integrations/allegro/connect`
+
+Starts connecting a seller account by the OAuth device flow. Returns
+`{"flow_id", "verification_uri", "user_code", "interval", "expires_in"}`: the
+seller opens `verification_uri`, logged in, and confirms. `409` if the
+application's credentials are not set, `502` if Allegro refused them. Starting
+again replaces the sign-in in progress.
+
+## `GET /api/v1/integrations/allegro/connect/{flow_id}`
+
+Returns `{"status": "pending"}` until the seller confirms, then
+`{"status": "connected", "account_login": "..."}` and the token is stored.
+Asking sooner than `interval` seconds does not reach Allegro. Errors: `404`
+unknown or replaced sign-in, `410` expired, `403` declined, `502` Allegro
+refused something.
+
+## `DELETE /api/v1/integrations/allegro/connection`
+
+Forgets the connected account and keeps the application's credentials.
+Returns the status. `409` while an import is running.
 
 ## `POST /api/v1/integrations/allegro/import`
 

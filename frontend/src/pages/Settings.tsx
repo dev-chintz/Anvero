@@ -1,3 +1,5 @@
+import { AllegroSettings } from '../components/AllegroSettings';
+
 export const Settings: React.FC = () => {
   return (
     <div className="settings-page">
@@ -7,11 +9,9 @@ export const Settings: React.FC = () => {
       </header>
 
       <div className="settings-content">
-        <section className="settings-section">
-          <h2>General</h2>
-          <p style={{ color: '#6c757d', marginBottom: '1rem' }}>
-            Settings section coming soon...
-          </p>
+        <section className="settings-section" aria-label="Allegro">
+          <h2>Allegro</h2>
+          <AllegroSettings />
         </section>
       </div>
     </div>

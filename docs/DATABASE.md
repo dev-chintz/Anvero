@@ -108,7 +108,14 @@ the latest token has to be kept between runs:
 | `refresh_token` | the most recently issued refresh token |
 | `seed_fingerprint` | SHA-256 of the `.env` token the chain started from; a different `.env` token means a fresh authorization |
 | `last_synced_at` | where the next import resumes: when the last one that fetched everything started, less five minutes; null until one has, and reset by a re-authorization, since another seller account has another order history |
+| `account_login` | the connected seller's login, read once when the account is connected; only a label |
 | `updated_at` | last rotation |
+
+`integration_settings` holds the application's own credentials when they were
+entered in Settings, and are then used instead of the `ALLEGRO_*` variables:
+`provider` (primary key), `client_id`, `client_secret` (plain text, never
+returned by the API), `user_agent`, `environment` (`sandbox` or `production`),
+`updated_at`.
 
 The rule above about credentials is read as "never committed to Git and never
 logged": the token lives only in the local, git-ignored database file, as it

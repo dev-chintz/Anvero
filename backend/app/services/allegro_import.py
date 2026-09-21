@@ -3,13 +3,12 @@ from sqlalchemy.orm import Session
 from app.core.config import settings
 from app.integrations.allegro import AllegroAdapter
 from app.integrations.allegro.client import AllegroClient
-from app.models.order import OrderSource
 from app.repositories.integration_credential_repository import (
     IntegrationCredentialRepository,
 )
 from app.repositories.order_repository import OrderRepository
+from app.services.allegro_settings import build_client
 from app.services.order_import_service import OrderImportService
-from app.services.refresh_token_store import DatabaseRefreshTokenStore
 
 
 def build_allegro_client(db: Session) -> AllegroClient:
@@ -19,14 +18,10 @@ def build_allegro_client(db: Session) -> AllegroClient:
     endpoints so both read and rotate the same stored token. A second copy of
     this wiring would read a stale token and could not persist a rotation it
     did not know about; see DECISIONS.md, "Rotated Allegro Refresh Tokens
-    Live in the Database".
+    Live in the Database". Which application's credentials it uses (entered
+    in Settings, else the environment) is decided in allegro_settings.
     """
-    token_store = DatabaseRefreshTokenStore(
-        IntegrationCredentialRepository(db),
-        provider=OrderSource.ALLEGRO.value,
-        configured_token=settings.allegro_refresh_token,
-    )
-    return AllegroClient(token_store=token_store)
+    return build_client(db)
 
 
 def build_allegro_import_service(db: Session) -> OrderImportService:

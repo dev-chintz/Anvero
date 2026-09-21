@@ -1,5 +1,45 @@
 # Decision Log
 
+## 2026-09-21 — Allegro Is Connected From Settings, by the Device Flow
+
+**Decision:** Settings has an Allegro section: environment (sandbox or
+production), client id, client secret and User-Agent, saved to a new
+`integration_settings` table (migration `e6c1d9a4f725`), and a Connect
+account button. Connecting runs the OAuth device flow that
+`scripts/authorize_allegro.py` already used, driven from the page: the
+backend asks Allegro for a link and code and returns them, the page shows
+them and polls `GET /integrations/allegro/connect/{flow_id}` on Allegro's
+interval until the seller has confirmed in their own logged-in browser; the
+token is then stored, and `GET /me` is read once to label the account
+(`integration_credentials.account_login`). Credentials entered there are used
+instead of the `ALLEGRO_*` variables; with none, the environment applies as
+before. One account: reconnecting replaces it.
+
+**Rationale:** The owner asked for the account to be added from Settings
+rather than by editing keys into `.env`. The device flow needs no redirect
+URI, no callback route and no public address, which the authorization code
+flow would (the roadmap's earlier plan, left open on whether Allegro accepts
+`localhost`); the flow class was already written and tested, and only had to
+be split into a single-step poll. Entering the client id and secret in
+Settings too, chosen by the owner over a button alone, means they are stored
+in the database as plain text, the same exposure as the refresh token beside
+it and as `.env`; the secret is write-only: the API never returns it and the
+form shows "Unchanged". A token belongs to one application in one
+environment, so changing the client id or the environment disconnects the
+account, whether the previous credentials came from Settings or `.env`;
+connecting always clears the sync point, since the account may be another
+seller's. The sign-in in progress is held in the server's memory, not the
+database: it lives for minutes and holds a device code that is worthless
+afterwards, at the price that a restart mid-sign-in means starting again and
+that it assumes one server process, as the import lock does. Polling faster
+than Allegro's interval never reaches Allegro, and completing a connection
+takes the same lock an import holds (it refreshes the token once, to read the
+login), answering "pending" rather than racing it. Known gap: a token still
+in `ALLEGRO_REFRESH_TOKEN` is not something Disconnect can remove; it has to
+go from `.env` too. Not tried against the real Allegro yet: the flow is
+covered with a fake Allegro, and `GET /me` needs no scope the orders one does
+not, but that is documentation, not an observation.
+
 ## 2026-09-21 — The Anvero Status Follows Allegro
 
 **Decision:** Reverses three earlier decisions ("An Import Never Overwrites the

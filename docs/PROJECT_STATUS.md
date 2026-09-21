@@ -43,8 +43,8 @@ folder, and one was restored from that copy into a scratch database as a test.
   remains the no-setup default for a fresh clone)
 - Health endpoint and first order model — done
 - Minimal order list interface — done
-- Automated tests for core flows — done (221 backend, 32 frontend passing
-  across the suite as of 2026-09-18)
+- Automated tests for core flows — done (253 backend, 38 frontend passing
+  across the suite as of 2026-09-21)
 
 ---
 

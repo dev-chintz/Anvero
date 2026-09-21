@@ -9,6 +9,30 @@ The `client_credentials` flow reaches public data only, so it cannot be used
 here. A human has to authorize the application once; the refresh token that
 authorization produces is what the import then runs on.
 
+### Connecting from Settings
+
+The Settings page has an Allegro section that replaces steps 3 and 4 below,
+with nothing edited by hand: choose the environment (sandbox or production),
+enter the application's client id, client secret and User-Agent, save, and
+click **Connect account**. It shows a link and a code; open the link **logged
+in as the seller** and confirm, and the page notices (it polls on Allegro's
+own interval) and shows `Connected as <login>`. The credentials are kept in
+`integration_settings` and used instead of the `ALLEGRO_*` variables of the
+same meaning; the token in `integration_credentials`, as before. The secret
+is written but never returned by the API, and sits in the database as plain
+text, the same exposure as the refresh token beside it. The client id and
+secret are still those of the owner's own application (step 1): only that
+application can be connected, and it must be registered as one without a
+browser callback, since Settings uses the same device flow as the script.
+
+Changing the client id or the environment disconnects the account, because a
+token belongs to one application in one environment. Connecting always
+forgets where the last sync got to, so the next import starts from the
+first-import window. Disconnect forgets the token and keeps the credentials.
+A token still set in `ALLEGRO_REFRESH_TOKEN` cannot be forgotten this way:
+delete it from `.env` too. The sign-in in progress lives in the server's
+memory, so restarting the backend mid-sign-in means starting it again.
+
 ### One-time setup
 
 1. Register an application at <https://apps.developer.allegro.pl/>

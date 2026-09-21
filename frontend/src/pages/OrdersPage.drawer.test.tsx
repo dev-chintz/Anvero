@@ -84,7 +84,16 @@ beforeEach(() => {
   });
   vi.mocked(ordersApi.get).mockResolvedValue(makeOrderDetails());
   vi.mocked(ordersApi.history).mockResolvedValue([]);
-  vi.mocked(integrationsApi.allegroStatus).mockResolvedValue({ configured: false });
+  vi.mocked(integrationsApi.allegroStatus).mockResolvedValue({
+    configured: false,
+    connected: false,
+    application_complete: false,
+    client_id: null,
+    user_agent: null,
+    environment: "sandbox",
+    source: "environment",
+    account_login: null,
+  });
 });
 
 afterEach(() => {

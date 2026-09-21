@@ -133,7 +133,7 @@ def test_status_reports_configured_true(monkeypatch):
     response = client.get("/api/v1/integrations/allegro")
 
     assert response.status_code == 200
-    assert response.json() == {"configured": True}
+    assert response.json()["configured"] is True
 
 
 def test_status_reports_configured_false(monkeypatch):
@@ -142,17 +142,31 @@ def test_status_reports_configured_false(monkeypatch):
     response = client.get("/api/v1/integrations/allegro")
 
     assert response.status_code == 200
-    assert response.json() == {"configured": False}
+    assert response.json()["configured"] is False
 
 
-def test_status_never_leaks_anything_beyond_the_configured_flag(monkeypatch):
-    """However AllegroClient is configured, the response must carry nothing
-    that could be a credential, token or secret."""
+def test_status_never_leaks_a_credential_or_token(monkeypatch):
+    """However the application is configured, the response must carry nothing
+    that could be a secret or a token - the client id is not one, the secret
+    and the refresh token are."""
     _patch_client(monkeypatch, configured=True)
+    monkeypatch.setattr(settings, "allegro_client_secret", "SECRET-VALUE")
+    monkeypatch.setattr(settings, "allegro_refresh_token", "TOKEN-VALUE")
 
     response = client.get("/api/v1/integrations/allegro")
 
-    assert set(response.json().keys()) == {"configured"}
+    assert "SECRET-VALUE" not in response.text
+    assert "TOKEN-VALUE" not in response.text
+    assert set(response.json()) == {
+        "configured",
+        "connected",
+        "application_complete",
+        "client_id",
+        "user_agent",
+        "environment",
+        "source",
+        "account_login",
+    }
 
 
 def test_successful_import_returns_the_fake_services_counts(monkeypatch):
@@ -247,4 +261,4 @@ def test_the_suite_never_sees_a_developers_real_allegro_credentials():
     response = client.get("/api/v1/integrations/allegro")
 
     assert response.status_code == 200
-    assert response.json() == {"configured": False}
+    assert response.json()["configured"] is False

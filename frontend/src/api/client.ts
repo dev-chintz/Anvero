@@ -129,8 +129,43 @@ export const authApi = {
   },
 };
 
+export type AllegroEnvironment = "sandbox" | "production";
+
 export interface AllegroStatus {
+  /** Ready to import: the application's credentials and a token are both there. */
   configured: boolean;
+  /** A seller account has been connected. */
+  connected: boolean;
+  /** Client id, client secret and User-Agent are all set. */
+  application_complete: boolean;
+  client_id: string | null;
+  user_agent: string | null;
+  environment: AllegroEnvironment;
+  /** Entered in Settings, or read from backend/.env. */
+  source: "settings" | "environment";
+  /** The connected seller's login, when known. */
+  account_login: string | null;
+}
+
+export interface AllegroSettingsInput {
+  client_id: string;
+  /** Blank keeps the stored secret; it is never sent back. */
+  client_secret: string;
+  user_agent: string;
+  environment: AllegroEnvironment;
+}
+
+export interface AllegroConnectStart {
+  flow_id: string;
+  verification_uri: string;
+  user_code: string;
+  interval: number;
+  expires_in: number;
+}
+
+export interface AllegroConnectPoll {
+  status: "pending" | "connected";
+  account_login: string | null;
 }
 
 export interface AllegroImportResult {
@@ -142,6 +177,32 @@ export interface AllegroImportResult {
 export const integrationsApi = {
   allegroStatus(): Promise<AllegroStatus> {
     return request<AllegroStatus>("/integrations/allegro");
+  },
+
+  saveAllegroSettings(input: AllegroSettingsInput): Promise<AllegroStatus> {
+    return request<AllegroStatus>("/integrations/allegro/settings", {
+      method: "PUT",
+      body: JSON.stringify({
+        ...input,
+        client_secret: input.client_secret || null,
+      }),
+    });
+  },
+
+  startAllegroConnection(): Promise<AllegroConnectStart> {
+    return request<AllegroConnectStart>("/integrations/allegro/connect", {
+      method: "POST",
+    });
+  },
+
+  pollAllegroConnection(flowId: string): Promise<AllegroConnectPoll> {
+    return request<AllegroConnectPoll>(`/integrations/allegro/connect/${flowId}`);
+  },
+
+  disconnectAllegro(): Promise<AllegroStatus> {
+    return request<AllegroStatus>("/integrations/allegro/connection", {
+      method: "DELETE",
+    });
   },
 
   importAllegro(): Promise<AllegroImportResult> {

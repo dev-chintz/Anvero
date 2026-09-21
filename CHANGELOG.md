@@ -19,6 +19,17 @@ All significant changes to the Anvero project.
   `scripts/import_allegro.py --days N` replaces `--limit`/`--offset` for a
   backfill. See `DECISIONS.md`.
 
+### 🔌 Allegro is connected from Settings
+
+- Settings gets an Allegro section: environment, client id, client secret and
+  User-Agent, and a **Connect account** button that shows a link and code and
+  waits for the seller to confirm on Allegro (device flow, no redirect URI).
+  It shows who is connected and can disconnect. Nothing has to be edited into
+  `backend/.env` any more, though that still works. New table
+  `integration_settings` and column `integration_credentials.account_login`
+  (migration `e6c1d9a4f725`); new endpoints under `/integrations/allegro`.
+  See `DECISIONS.md`.
+
 ### 🔁 The Anvero status follows Allegro
 
 - When an import finds that an order's status has moved on Allegro since the

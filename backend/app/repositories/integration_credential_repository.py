@@ -30,6 +30,44 @@ class IntegrationCredentialRepository:
         self.db.commit()
         return True
 
+    def connect(
+        self,
+        provider: str,
+        refresh_token: str,
+        seed_fingerprint: str,
+        account_login: str | None,
+    ) -> None:
+        """Store the token of a freshly connected account, replacing any other.
+
+        Unlike `save`, which follows a rotation of the same chain, this always
+        forgets where the last sync got to: the account just connected may be
+        another seller's, or the same one reconnected, and either way starting
+        from the first-import window is the safe choice.
+        """
+        credential = self.get(provider)
+        if credential is None:
+            credential = IntegrationCredential(provider=provider)
+            self.db.add(credential)
+        credential.refresh_token = refresh_token
+        credential.seed_fingerprint = seed_fingerprint
+        credential.account_login = account_login
+        credential.last_synced_at = None
+        self.db.commit()
+
+    def set_account_login(self, provider: str, login: str | None) -> None:
+        credential = self.get(provider)
+        if credential is not None:
+            credential.account_login = login
+            self.db.commit()
+
+    def disconnect(self, provider: str) -> bool:
+        credential = self.get(provider)
+        if credential is None:
+            return False
+        self.db.delete(credential)
+        self.db.commit()
+        return True
+
     def save(self, provider: str, refresh_token: str, seed_fingerprint: str) -> None:
         credential = self.get(provider)
         if credential is None:

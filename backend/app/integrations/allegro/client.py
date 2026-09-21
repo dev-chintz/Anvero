@@ -225,6 +225,34 @@ class AllegroClient:
             raise IntegrationUnavailable("Allegro checkout-forms is not a list")
         return forms
 
+    def fetch_account_login(self) -> str | None:
+        """Return the login of the seller the token belongs to, or None.
+
+        Best-effort, like fetch_offer_image: it only labels the connected
+        account in Settings, so failing to read it must not undo a
+        connection that worked.
+        """
+        try:
+            token = self._access_token_value()
+            response = self._http.get(
+                f"{self._api_url}/me",
+                headers={
+                    "Authorization": f"Bearer {token}",
+                    "Accept": ACCEPT_HEADER,
+                    "User-Agent": self._user_agent,
+                },
+            )
+            if response.status_code >= 400:
+                logger.warning("Allegro /me returned %s", response.status_code)
+                return None
+            payload = _json_object(response, "Allegro /me")
+        except (httpx2.RequestError, IntegrationError) as exc:
+            logger.warning("Allegro account login unreadable: %s", exc)
+            return None
+
+        login = payload.get("login")
+        return login if isinstance(login, str) and login else None
+
     def fetch_offer_image(self, offer_id: str) -> str | None:
         """Return the offer's first picture, or None if it cannot be read.
 

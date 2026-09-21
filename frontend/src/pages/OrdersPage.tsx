@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Outlet, useSearchParams } from 'react-router-dom';
+import { Link, Outlet, useSearchParams } from 'react-router-dom';
 import { ApiError, integrationsApi, ordersApi } from '../api/client';
 import { OrderList } from '../components/OrderList';
 import { AdvancedFilters, type Filters } from '../components/AdvancedFilters';
@@ -158,7 +158,7 @@ export function OrdersPage({ addToast }: OrdersPageProps) {
           </button>
           {allegroConfigured === false && (
             <p className="allegro-import-hint">
-              Allegro is not configured — see docs/INTEGRATIONS.md.
+              Allegro is not connected — <Link to="/settings">connect it in Settings</Link>.
             </p>
           )}
           {allegroStatusFailed && (

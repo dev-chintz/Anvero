@@ -34,6 +34,41 @@ class IntegrationCredential(Base):
         DateTime(timezone=True), nullable=True
     )
 
+    # who the token belongs to, as the marketplace names them; read once when
+    # the account is connected, purely so Settings can say which account it is
+    account_login: Mapped[str | None] = mapped_column(String(255), nullable=True)
+
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        onupdate=func.now(),
+        nullable=False,
+    )
+
+
+class IntegrationSettings(Base):
+    """A marketplace application's own credentials, entered in Settings.
+
+    The client id and secret identify the application registered on the
+    marketplace's developer portal, as opposed to IntegrationCredential, which
+    holds the token a seller granted it. When a row exists it is used instead
+    of the environment variables of the same meaning; without one the
+    environment applies, as before. The secret is stored as plain text, the
+    same exposure as the refresh token beside it and as `.env`, and is never
+    returned by the API.
+    """
+
+    __tablename__ = "integration_settings"
+
+    provider: Mapped[str] = mapped_column(String(50), primary_key=True)
+    client_id: Mapped[str] = mapped_column(String(255), nullable=False)
+    client_secret: Mapped[str] = mapped_column(Text, nullable=False)
+    # the User-Agent generated for the application on the developer portal
+    user_agent: Mapped[str] = mapped_column(String(255), nullable=False)
+    # "sandbox" or "production": which of the marketplace's two worlds the
+    # application is registered in, and so which URLs it talks to
+    environment: Mapped[str] = mapped_column(String(20), nullable=False)
+
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         server_default=func.now(),
