@@ -27,7 +27,8 @@ export interface Order {
   /**
    * What the marketplace's own status mapped to at the last import. Null for
    * an order no import has touched. It is kept beside `status` rather than
-   * replacing it: `status` is the operator's. Optional in the type because a
+   * replacing it: it is what the next import compares against, and a
+   * status set by hand stands until it moves. Optional in the type because a
    * backend older than the field omits it.
    */
   marketplace_status?: OrderStatus | null;

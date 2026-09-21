@@ -29,8 +29,9 @@ point at:
   matching one buyer across orders, which nothing needs yet.
 - `marketplace_status` (nullable, the same `order_status` enum) is not in the
   target. It holds what the marketplace's own status mapped to at the last
-  import, beside `status`, which stays the operator's; the interface shows it
-  when the two differ. NULL for an order no import has touched.
+  import, beside `status`; a move in it moves `status` too, and the interface
+  shows it when the two differ (the operator has set something Allegro has
+  not caught up with). NULL for an order no import has touched.
 - `marketplace_status_label` (nullable, 64 characters) holds the same status
   unmapped, in the marketplace's own words, e.g. Allegro's
   `READY_FOR_SHIPMENT`. Anvero's five statuses collapse distinctions the

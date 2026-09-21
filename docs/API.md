@@ -111,9 +111,10 @@ it the order is dated now.
 
 Each order carries `marketplace_status`: what the marketplace's own status
 mapped to at the last import, or `null` for an order no import has touched. It
-is never applied to `status`, which belongs to the operator after the order is
-first seen, so the two can differ — that is the point of returning it, and the
-interface shows the difference. Both the list and the detail response include
+is what the last import compared against: when it moves, `status` moves to it
+(recorded in the history with no author), but a status the operator set by hand
+stands until it does, so the two can differ — that is the point of returning
+it, and the interface shows the difference. Both the list and the detail response include
 it.
 
 Beside it, `marketplace_status_label` carries the marketplace's own status
@@ -122,11 +123,11 @@ Anvero status. It is passed through as the marketplace sends it and is not a
 fixed set of values, so treat it as text to display, not to branch on.
 
 Each order carries `marketplace_cancelled_at`: `null`, or when an import first
-found the order cancelled on its marketplace. An import never changes the
-Anvero status, so an order with this set and a status other than `CANCELLED`
-needs the operator's attention. `GET /api/v1/orders/stats` reports how many
+found the order cancelled on its marketplace. The import then sets the status
+to `CANCELLED`, so an order with this set and any other status is one the
+operator has since moved on, and needs their attention. `GET /api/v1/orders/stats` reports how many
 such orders exist as `cancellation_warnings`, using the same definition as the
-filter above. The warning clears when the status is set to `CANCELLED`.
+filter above. The warning clears when the status is `CANCELLED` again.
 
 ## `GET /api/v1/orders/{id}`
 

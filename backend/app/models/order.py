@@ -158,9 +158,9 @@ class Order(Base):
         nullable=True,
     )
 
-    # Set when an import finds the order cancelled on the marketplace. The
-    # Anvero status is the operator's and is not overwritten, so this is what
-    # tells them; the warning stands until they set the status to CANCELLED.
+    # Set when an import finds the order cancelled on the marketplace, and
+    # kept: the import sets the status to CANCELLED, so this is what stays
+    # visible if the operator later moves it back to an active one.
     marketplace_cancelled_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True),
         nullable=True,

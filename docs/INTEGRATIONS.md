@@ -185,31 +185,31 @@ is checked first.
 `CONFIRMED`. An unrecognised value maps to `NEW`, so an order Allegro
 introduces a new status for surfaces as work to do rather than disappearing.
 
-The marketplace status is only applied when an order is **first seen**. After
-that the Anvero status belongs to the operator: it is set by hand and
-recorded in the status history, and a sync overwriting it would silently undo
-that. See `DECISIONS.md`.
+**The Anvero status follows Allegro.** When an import finds that the status
+Allegro reports for an order has *moved* since the last import, the Anvero
+status moves to it, and the change goes into the status history with no author
+(no one made it). What counts as a move is a change in the mapped status
+against the one stored as `marketplace_status` at the previous import, not a
+difference from the Anvero status: a status the operator set by hand stands
+until Allegro itself changes, instead of being reverted every time an import
+happens to see the order again. When Allegro does move, it wins over the
+operator's status, since Anvero does not write statuses back to Allegro. See
+`DECISIONS.md`, 2026-09-21.
 
-Every import still records what the marketplace says in `marketplace_status`,
+Every import also records what the marketplace says in `marketplace_status`,
 beside the Anvero one, and Allegro's own value for it, unmapped, in
 `marketplace_status_label` — `READY_FOR_SHIPMENT` rather than `CONFIRMED`,
 since the table above sends several Allegro statuses to the same Anvero one.
 The order page and the order list show the unmapped value whenever the mapped
-one differs from the Anvero status, so an order moving on Allegro while
-Anvero stands still is visible instead of silent. Nothing acts on it: it is
-there for the operator to decide.
+one differs from the Anvero status, which now means the operator has set
+something Allegro has not caught up with.
 
-**Cancellations are the exception that must not go unnoticed.** When an
-import finds an order cancelled on Allegro that is still active in Anvero, the
-status is left alone but the order is flagged (`marketplace_cancelled_at`):
-
-- the import prints a warning with the number of such orders,
-- the dashboard shows a banner linking to them,
-- the order list marks the row and can be filtered to just those orders,
-- the order page shows a "do not ship" banner.
-
-The flag clears once the operator sets the status to `CANCELLED`. An order that
-has already shipped stays flagged, deliberately: it still needs a return or a
+**Cancellations still get a warning.** An import that takes an active order
+to `CANCELLED` because Allegro cancelled it counts it in
+`cancellation_warnings` (the import output and the toast after the button).
+`marketplace_cancelled_at` records when the cancellation was first noticed; an
+order the operator has set back to an active status after that stays flagged
+until it is `CANCELLED` again, deliberately: it still needs a return or a
 refund.
 
 ### Field mapping

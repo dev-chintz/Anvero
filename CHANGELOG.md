@@ -19,6 +19,16 @@ All significant changes to the Anvero project.
   `scripts/import_allegro.py --days N` replaces `--limit`/`--offset` for a
   backfill. See `DECISIONS.md`.
 
+### 🔁 The Anvero status follows Allegro
+
+- When an import finds that an order's status has moved on Allegro since the
+  last import, the Anvero status moves too, recorded in the status history
+  with no author. A status set by hand stands until Allegro itself moves. A
+  cancellation on Allegro now sets the order to `CANCELLED` (and still counts
+  in the import's cancellation warnings). This reverses the earlier "an import
+  never overwrites the status" rule at the owner's request; see
+  `DECISIONS.md`, 2026-09-21.
+
 ## 2026-09-19
 
 ### 🔑 `reset_password.py`: change an existing user's password

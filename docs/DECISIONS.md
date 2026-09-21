@@ -1,5 +1,36 @@
 # Decision Log
 
+## 2026-09-21 — The Anvero Status Follows Allegro
+
+**Decision:** Reverses three earlier decisions ("An Import Never Overwrites the
+Anvero Status", "The Marketplace Status Is Shown, Not Applied", "Marketplace
+Cancellations Warn, They Do Not Change Status"), at the owner's request: when
+an import finds that the status Allegro reports for an existing order has
+moved, the Anvero status moves with it, and the transition is recorded in the
+status history with no author. "Moved" means the mapped marketplace status
+differs from `orders.marketplace_status` as stored by the previous import - not
+that it differs from the Anvero status. A cancellation on Allegro now sets the
+order to `CANCELLED`, and still counts in `cancellation_warnings` when it takes
+an active order there, so the toast and the import output keep saying so.
+
+**Rationale:** The owner wants the status to be the same as on Allegro, and
+because Anvero does not write statuses back, Allegro is the only place a
+marketplace-driven change can come from. Comparing against the previous
+marketplace status rather than the Anvero one is the narrower reading that
+still delivers that: an import that only sees the order again (any other field
+changed on Allegro, or the incremental sync picking it up for a new address)
+leaves a status the operator set by hand alone, so inline editing in the list
+is not undone by the next click on "Import from Allegro". The cost, chosen
+knowingly: when Allegro *does* move, it overrides the operator's status,
+including backwards (an order marked SHIPPED here, then moved to PROCESSING on
+Allegro, returns to CONFIRMED), and an order that already differed before this
+change stays as it is until Allegro moves. If that proves too blunt, the
+alternative is to apply only forward moves, or to write statuses back to
+Allegro (`PUT /order/checkout-forms/{id}/fulfillment`), which would make the
+two genuinely one status. The history entry names no one, so it reads like a
+pre-login entry; a "changed by import" marker would need a column and was left
+out.
+
 ## 2026-09-21 — Import Is a Time Window, Then Only What Changed
 
 **Decision:** An Allegro import no longer reads one page of the newest 100
@@ -444,6 +475,8 @@ between CONFIRMED and SHIPPED was the alternative and was dropped: it is a
 decision about how the business works, not about the integration, and it
 would spread through the enum, the filters, the statistics and the interface.
 
+*Superseded 2026-09-21:* the status now follows the marketplace; see "The Anvero Status Follows Allegro".
+
 ## 2026-09-17 — Allegro Calls Require the Application's Own User-Agent
 
 **Decision:** Every request to Allegro, the authorization and token
@@ -627,6 +660,8 @@ status is the operator's. A warning keeps the rule and makes the conflict
 impossible to miss. It is deliberately not auto-dismissed for orders already
 shipped, since those still need a return or refund.
 
+*Superseded 2026-09-21:* the status now follows the marketplace; see "The Anvero Status Follows Allegro".
+
 ## 2026-09-17 — Rotated Allegro Refresh Tokens Live in the Database
 
 **Decision:** Each refresh token Allegro issues is written to
@@ -684,6 +719,8 @@ not move Anvero by itself — visible, and preferable to destroying local work.
 
 *Amended 2026-09-17:* cancellations are now flagged as a warning; see the
 entry "Marketplace Cancellations Warn, They Do Not Change Status".
+
+*Superseded 2026-09-21:* the status now follows the marketplace; see "The Anvero Status Follows Allegro".
 
 ## 2026-09-16 — Import Runs as a Script, Not an Endpoint
 

@@ -196,8 +196,8 @@ export function OrderDetail() {
                   <p className="field-note">
                     {order.source} reports {marketplaceStatusText(order)} as of
                     the last import, which is {order.marketplace_status} here.
-                    The status above is yours: an import records what the
-                    marketplace says but never overwrites it.
+                    The status above is one you set; it stays until the
+                    marketplace's own status changes, and then follows it.
                   </p>
                 )}
               </dd>

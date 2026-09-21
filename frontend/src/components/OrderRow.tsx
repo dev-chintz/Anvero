@@ -92,7 +92,7 @@ export function OrderRow({ order, onStatusChange, updating }: OrderRowProps) {
           {marketplaceStatusDiffers(order) && (
             <span
               className="badge badge-marketplace-status"
-              title={`${order.source} reports ${marketplaceStatusText(order)}; the status here is yours to set.`}
+              title={`${order.source} reports ${marketplaceStatusText(order)}; the status here follows it when it changes.`}
             >
               {order.source}: {marketplaceStatusText(order)}
             </span>

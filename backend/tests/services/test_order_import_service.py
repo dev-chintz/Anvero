@@ -73,12 +73,9 @@ def test_re_import_does_not_duplicate(session):
     assert session.query(Order).count() == 1
 
 
-def test_re_import_keeps_the_status_the_operator_set(session):
-    """The Anvero status is the operator's, recorded in the status history.
-
-    A sync overwriting it would silently undo their work, so an order already
-    present keeps its status even though the marketplace still reports NEW.
-    """
+def test_re_import_keeps_a_status_the_operator_set_while_the_marketplace_has_not_moved(session):
+    """Only a *move* on the marketplace is applied. Seeing the same order again
+    with the same marketplace status must not revert what the operator did."""
     orders = [_order("ALG-1")]
     _service(session, orders).import_orders()
 
@@ -129,12 +126,47 @@ def test_re_import_follows_the_marketplace_status_as_it_changes(session):
     _service(session, [moved_on]).import_orders()
 
     stored = session.query(Order).one()
-    # the order the sandbox showed: Allegro in PROCESSING, Anvero untouched
-    assert stored.status is OrderStatus.NEW
+    assert stored.status is OrderStatus.CONFIRMED
     assert stored.marketplace_status is OrderStatus.CONFIRMED
     # Anvero has one status for both PROCESSING and READY_FOR_SHIPMENT, so
     # only the label says which one Allegro means
     assert stored.marketplace_status_label == "READY_FOR_SHIPMENT"
+
+
+def test_a_status_followed_from_the_marketplace_is_recorded_in_the_history(session):
+    _service(session, [_order("ALG-1")]).import_orders()
+    shipped = _order("ALG-1").model_copy(update={"status": OrderStatus.SHIPPED})
+
+    _service(session, [shipped]).import_orders()
+
+    (entry,) = OrderRepository(session).list_status_history(session.query(Order).one().id)
+    assert (entry.from_status, entry.to_status) == (OrderStatus.NEW, OrderStatus.SHIPPED)
+    # no one made this change, so no one is named
+    assert entry.changed_by_user_id is None
+
+
+def test_when_the_marketplace_moves_it_wins_over_the_operators_status(session):
+    """The owner's rule: what changes on Allegro changes here, even over a
+    status set by hand - Anvero does not write back, so Allegro is the truth."""
+    _service(session, [_order("ALG-1")]).import_orders()
+    OrderRepository(session).update_status(session.query(Order).one(), OrderStatus.SHIPPED)
+    confirmed = _order("ALG-1").model_copy(update={"status": OrderStatus.CONFIRMED})
+
+    _service(session, [confirmed]).import_orders()
+
+    assert session.query(Order).one().status is OrderStatus.CONFIRMED
+
+
+def test_no_history_entry_when_the_status_already_matches(session):
+    _service(session, [_order("ALG-1")]).import_orders()
+    OrderRepository(session).update_status(session.query(Order).one(), OrderStatus.SHIPPED)
+    shipped = _order("ALG-1").model_copy(update={"status": OrderStatus.SHIPPED})
+
+    _service(session, [shipped]).import_orders()
+
+    history = OrderRepository(session).list_status_history(session.query(Order).one().id)
+    # only the operator's own change; the import had nothing to add
+    assert len(history) == 1
 
 
 def test_re_import_replaces_a_stale_marketplace_label(session):
@@ -184,7 +216,7 @@ def _cancelled(order):
     return order.model_copy(update={"status": OrderStatus.CANCELLED})
 
 
-def test_a_marketplace_cancellation_warns_instead_of_changing_status(session):
+def test_a_marketplace_cancellation_cancels_the_order_and_warns(session):
     """Regression: a cancellation on Allegro used to vanish without trace, so
     an operator could ship an order the buyer had cancelled."""
     _service(session, [_order("ALG-1")]).import_orders()
@@ -192,7 +224,7 @@ def test_a_marketplace_cancellation_warns_instead_of_changing_status(session):
     result = _service(session, [_cancelled(_order("ALG-1"))]).import_orders()
 
     stored = session.query(Order).one()
-    assert stored.status is OrderStatus.NEW
+    assert stored.status is OrderStatus.CANCELLED
     assert stored.marketplace_cancelled_at is not None
     assert result.cancellation_warnings == 1
 

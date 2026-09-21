@@ -52,12 +52,13 @@ class OrderRepository:
     ) -> Order:
         """Refresh the fields a marketplace owns.
 
-        Deliberately excludes status: that one belongs to the operator, and a
-        sync overwriting it would undo a decision recorded in the history.
-        What the marketplace says goes to `marketplace_status` beside it, so
-        the operator can see the two diverge. A cancellation is recorded as
-        well, and only the first time it is seen, so the timestamp says when
-        it was noticed.
+        Excludes `status`: whether the marketplace's status moves it is the
+        import service's call (it needs the previous `marketplace_status`,
+        which this overwrites), and goes through `update_status` so the change
+        lands in the history. What the marketplace says goes to
+        `marketplace_status` beside it. A cancellation is recorded as well,
+        and only the first time it is seen, so the timestamp says when it was
+        noticed.
         """
         order.customer_email = customer_email
         order.total_amount = total_amount

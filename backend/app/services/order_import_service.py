@@ -113,16 +113,18 @@ class OrderImportService:
         Matching is on (source, external_id), so running this twice does not
         duplicate anything.
 
-        An order already present keeps its Anvero status. The status is the
-        operator's, set by hand and recorded in the status history; letting a
-        sync overwrite it would silently undo their work. The marketplace's
-        own status is therefore only applied when the order is first seen,
-        and from then on kept in `marketplace_status`, where the interface
-        can show it when the two differ.
+        An order already present follows the marketplace: when the status the
+        marketplace reports has moved since the last import, the Anvero status
+        moves to it and the change is recorded in the status history (with no
+        author, since no one made it). Only a *move* is applied - the status
+        the marketplace reported last time is kept in `marketplace_status` for
+        exactly that comparison - so a status the operator set by hand stands
+        until the marketplace itself changes its mind, instead of being
+        reverted by every import that happens to see the order again.
 
-        The one marketplace change that cannot wait for the operator to notice
-        is a cancellation, since shipping a cancelled order costs money. It is
-        recorded on the order as a warning rather than applied as a status.
+        A cancellation is applied like any other move, and is also counted in
+        `cancellation_warnings` when it takes an active order to CANCELLED, so
+        the operator hears about it: shipping a cancelled order costs money.
         """
         created = 0
         updated = 0
@@ -138,11 +140,8 @@ class OrderImportService:
                 created += 1
                 continue
 
-            newly_warned = (
-                cancelled
-                and existing.marketplace_cancelled_at is None
-                and existing.status is not OrderStatus.CANCELLED
-            )
+            # compared before the import overwrites what it is compared with
+            status_moved = data.status != existing.marketplace_status
             # the marketplace owns the details as well; staged here and
             # committed together with the fields below
             apply_details(existing, data)
@@ -153,19 +152,30 @@ class OrderImportService:
                 currency=data.currency,
                 cancelled_on_marketplace=cancelled,
                 ordered_at=data.ordered_at,
-                # not applied as the status, only recorded beside it
                 marketplace_status=data.status,
                 marketplace_status_label=data.marketplace_status_label,
             )
             updated += 1
 
-            if newly_warned:
+            if not status_moved or data.status == existing.status:
+                continue
+
+            previous = existing.status
+            self.repository.update_status(existing, data.status)
+            logger.info(
+                "Order %s moved from %s to %s to follow %s",
+                data.external_id,
+                previous.value,
+                data.status.value,
+                data.source.value,
+            )
+            if cancelled:
                 cancellation_warnings += 1
                 logger.warning(
-                    "Order %s was cancelled on %s but is %s in Anvero",
+                    "Order %s was cancelled on %s and was %s in Anvero",
                     data.external_id,
                     data.source.value,
-                    existing.status.value,
+                    previous.value,
                 )
 
         logger.info(
