@@ -396,3 +396,9 @@ and the order's total less them.
   for exactly this (buying one listed offer repeatedly, since Sandbox has no
   bulk-purchase API); untested against the real page as of 2026-09-18, see
   its own docstring before running it.
+  `scripts/sandbox_order_from_csv.py` builds on it: given the "import and list"
+  CSV the offers were listed from, it finds each offer through
+  `GET /sale/offers?external.id=` (using the connected Sandbox account) and
+  buys each as a separate buyer account. `--dry-run` only shows what it found.
+  It refuses to run unless the connection is the Sandbox one, and, like the
+  script it reuses, has never been run against the real page.

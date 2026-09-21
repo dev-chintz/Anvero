@@ -317,6 +317,23 @@ class AllegroClient:
             raise IntegrationUnavailable("Allegro billing entries is not a list")
         return [e for e in entries if isinstance(e, dict)]
 
+    def fetch_offers_by_external_id(self, external_ids: list[str]) -> list[dict[str, Any]]:
+        """Return the seller's active offers whose external id (signature) is one of these.
+
+        `GET /sale/offers?external.id=..&external.id=..`; each item carries
+        `id`, `name` and `external.id`. Used by the Sandbox ordering script to
+        find the offers a CSV import created; not part of the import itself.
+        """
+        if not external_ids:
+            return []
+        params = [("external.id", value) for value in external_ids]
+        params += [("publication.status", "ACTIVE"), ("limit", "1000")]
+        payload = self._get_object("/sale/offers", "offers", params=params)
+        offers = payload.get("offers", [])
+        if not isinstance(offers, list):
+            raise IntegrationUnavailable("Allegro offers is not a list")
+        return [o for o in offers if isinstance(o, dict)]
+
     def fetch_account_login(self) -> str | None:
         """Return the login of the seller the token belongs to, or None.
 

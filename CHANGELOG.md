@@ -6,6 +6,14 @@ All significant changes to the Anvero project.
 
 ## 2026-09-21
 
+### 🛒 Script: order the offers of an import CSV on the Sandbox
+
+- `backend/scripts/sandbox_order_from_csv.py` reads the CSV offers were listed
+  from, finds each offer by its external id and buys each as a Sandbox buyer,
+  to generate test orders. `--dry-run` lists what it found. Sandbox only, by
+  refusing any other connection. New client call `fetch_offers_by_external_id`.
+  Untried against Allegro, like `sandbox_bulk_purchase.py`, which it reuses.
+
 ### 💸 Allegro's fees, per order
 
 - Every import also reads the seller's billing entries (commission and other
