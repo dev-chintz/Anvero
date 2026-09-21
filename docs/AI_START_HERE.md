@@ -27,6 +27,9 @@ Read the following files in order:
 
 ## Current State
 
+**Open question:** whether to build labels, invoices and stock or adopt an
+existing product (`ALTERNATIVES.md`).
+
 **Open task:** the first deployment to the NAS is prepared but not yet run; see "PICK UP HERE" in `PROJECT_STATUS.md` and `DEPLOYMENT.md`.
 
 Backend and frontend both run. See PROJECT_STATUS.md for the sprint-by-sprint

@@ -82,6 +82,10 @@ actually run.
 
 ### 4. Shipments, so Anvero replaces the panel rather than mirroring it
 
+**Before building labels, invoices or stock here, read `ALTERNATIVES.md`:**
+two existing products (AlleIntegrator, self-hosted and free; Ritevo, SaaS)
+already do them, and whether to build, adopt or borrow ideas is undecided.
+
 Carrier and tracking number are not imported at all — Allegro serves them
 from another endpoint — and there are no labels or invoices. Without them an
 order is handled in Allegro anyway, which undercuts the MVP's own goal of not
