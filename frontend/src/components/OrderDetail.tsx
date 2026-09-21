@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate, useOutletContext, useParams } from "react-router-dom";
+import { useLocation, useNavigate, useOutletContext, useParams } from "react-router-dom";
 import { ApiError, ordersApi } from "../api/client";
 import type { OrdersOutletContext } from "../pages/OrdersPage";
 import {
@@ -25,6 +25,7 @@ const STATUS_ICON: Record<OrderStatus, string> = {
 export function OrderDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
   // set by OrdersPage's <Outlet context>; this route only ever renders
   // nested under /orders, as the slide-over above the still-mounted list
   const { onOrderChanged } = useOutletContext<OrdersOutletContext>();
@@ -73,9 +74,19 @@ export function OrderDetail() {
     };
   }, [id]);
 
-  // a drawer over the list, not a page of its own: closing it means going
-  // back to wherever the list's own filters and scroll position already are
-  const handleClose = () => navigate(-1);
+  // A drawer over the list, not a page of its own: closing it means going
+  // back to wherever the list's own filters and scroll position already are.
+  // Two cases where "back" would be wrong: a link from elsewhere (the
+  // dashboard) that names where to close to, since back would return there
+  // instead of showing the list, and a page opened directly, with nothing
+  // to go back to. Both close to the list itself.
+  const closeTo = (location.state as { closeTo?: string } | null)?.closeTo;
+  const hasHistory = (window.history.state as { idx?: number } | null)?.idx;
+  const handleClose = () => {
+    if (closeTo) navigate(closeTo, { replace: true });
+    else if (hasHistory) navigate(-1);
+    else navigate("/orders", { replace: true });
+  };
 
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {

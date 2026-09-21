@@ -498,3 +498,26 @@
     align-items: flex-start;
   }
 }
+
+/* A stat card that is also a link: same card, and it reads as clickable. */
+a.stat-link {
+  color: inherit;
+  text-decoration: none;
+  cursor: pointer;
+  transition: box-shadow 0.2s, transform 0.2s;
+}
+
+a.stat-link:hover,
+a.stat-link:focus-visible {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  transform: translateY(-2px);
+}
+
+.order-id-link {
+  color: var(--color-primary);
+  text-decoration: none;
+}
+
+.order-id-link:hover {
+  text-decoration: underline;
+}

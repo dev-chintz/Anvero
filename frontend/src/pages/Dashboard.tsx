@@ -53,6 +53,7 @@ export const Dashboard: React.FC = () => {
           value={stats.total_orders}
           icon="📦"
           color="primary"
+          to="/orders"
         />
         <StatCard
           title="This Week"
@@ -133,7 +134,18 @@ export const Dashboard: React.FC = () => {
                   {order.source}
                 </span>
                 <div className="order-details">
-                  <p className="order-id">{order.order_label}</p>
+                  <p className="order-id">
+                    {/* opens the order's details over the orders list; the
+                        state tells the drawer to close to /orders, since
+                        going back would land on this page instead */}
+                    <Link
+                      to={`/orders/${order.id}`}
+                      state={{ closeTo: '/orders' }}
+                      className="order-id-link"
+                    >
+                      {order.order_label}
+                    </Link>
+                  </p>
                   <p className="order-customer">{order.customer_email}</p>
                 </div>
               </div>
@@ -162,14 +174,26 @@ interface StatCardProps {
   value: string | number;
   icon: string;
   color: 'primary' | 'success' | 'warning' | 'danger';
+  /** Makes the whole card a link to this path. */
+  to?: string;
 }
 
-const StatCard: React.FC<StatCardProps> = ({ title, value, icon, color }) => (
-  <div className={`stat-card stat-${color}`}>
-    <div className="stat-icon">{icon}</div>
-    <div className="stat-content">
-      <p className="stat-title">{title}</p>
-      <p className="stat-value">{value}</p>
-    </div>
-  </div>
-);
+const StatCard: React.FC<StatCardProps> = ({ title, value, icon, color, to }) => {
+  const content = (
+    <>
+      <div className="stat-icon">{icon}</div>
+      <div className="stat-content">
+        <p className="stat-title">{title}</p>
+        <p className="stat-value">{value}</p>
+      </div>
+    </>
+  );
+  const className = `stat-card stat-${color}`;
+  return to ? (
+    <Link to={to} className={`${className} stat-link`} aria-label={`${title}: ${value}, view orders`}>
+      {content}
+    </Link>
+  ) : (
+    <div className={className}>{content}</div>
+  );
+};

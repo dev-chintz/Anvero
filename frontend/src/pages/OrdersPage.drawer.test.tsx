@@ -1,5 +1,5 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { MemoryRouter, Route, Routes } from "react-router-dom";
+import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { OrderDetail } from "../components/OrderDetail";
 import { OrdersPage } from "./OrdersPage";
@@ -150,5 +150,38 @@ describe("the order detail drawer, nested under /orders", () => {
     });
 
     await waitFor(() => expect(ordersApi.list).toHaveBeenCalledTimes(2));
+  });
+
+  it("closes to the orders list when opened from another page, not back to it", async () => {
+    function Elsewhere() {
+      return <p>the dashboard</p>;
+    }
+    function Path() {
+      return <p data-testid="path">{useLocation().pathname}</p>;
+    }
+    render(
+      <MemoryRouter
+        initialEntries={[
+          "/dashboard",
+          { pathname: "/orders/order-1", state: { closeTo: "/orders" } },
+        ]}
+        initialIndex={1}
+      >
+        <Path />
+        <Routes>
+          <Route path="/dashboard" element={<Elsewhere />} />
+          <Route path="/orders" element={<OrdersPage />}>
+            <Route path=":id" element={<OrderDetail />} />
+          </Route>
+        </Routes>
+      </MemoryRouter>,
+    );
+    await screen.findByRole("region", { name: "Order details" });
+
+    fireEvent.click(screen.getByRole("button", { name: "Close order details" }));
+
+    await waitFor(() => expect(screen.getByTestId("path")).toHaveTextContent(/^\/orders$/));
+    expect(screen.queryByText("the dashboard")).not.toBeInTheDocument();
+    expect(await screen.findByRole("link", { name: "AN-000007" })).toBeInTheDocument();
   });
 });

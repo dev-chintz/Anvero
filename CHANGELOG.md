@@ -6,6 +6,14 @@ All significant changes to the Anvero project.
 
 ## 2026-09-21
 
+### 🔗 Dashboard links into the orders
+
+- The Total Orders card links to the orders list, and a recent order's number
+  (`AN-000001`) opens that order's details over the orders list. The drawer
+  closes to the list when it was opened from the dashboard (going back would
+  land on the dashboard) or when the page was opened directly (nothing to go
+  back to); from the list itself it still goes back, keeping filters and scroll.
+
 ### 🔄 Import fetches a time window, then only what changed
 
 - The first Allegro import now fetches every order bought in the last 7 days
