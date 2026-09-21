@@ -3,10 +3,12 @@ import { Navigate, useLocation } from "react-router-dom";
 import type { Location } from "react-router-dom";
 import { ApiError } from "../api/client";
 import { useAuth } from "../auth/AuthContext";
+import { LANGUAGES, useTranslation } from "../i18n";
 import "../styles/Login.css";
 
 export function LoginPage() {
   const { status, login } = useAuth();
+  const { t, language, setLanguage } = useTranslation();
   const location = useLocation();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -28,7 +30,7 @@ export function LoginPage() {
       await login(email, password);
       // the redirect above takes over once the session is authenticated
     } catch (err: unknown) {
-      setError(err instanceof ApiError ? err.message : "Login failed");
+      setError(err instanceof ApiError ? err.message : t("login.failed"));
       setPassword("");
       setSubmitting(false);
     }
@@ -40,7 +42,19 @@ export function LoginPage() {
         <div className="login-brand">
           <span aria-hidden="true">📦</span> Anvero
         </div>
-        <h1 id="login-title">Log in</h1>
+        <div className="login-language">
+          {LANGUAGES.map((code) => (
+            <button
+              key={code}
+              type="button"
+              aria-pressed={language === code}
+              onClick={() => setLanguage(code)}
+            >
+              {code.toUpperCase()}
+            </button>
+          ))}
+        </div>
+        <h1 id="login-title">{t("login.title")}</h1>
 
         {error && (
           <p role="alert" className="error-message">
@@ -48,7 +62,7 @@ export function LoginPage() {
           </p>
         )}
 
-        <label htmlFor="login-email">Email</label>
+        <label htmlFor="login-email">{t("login.email")}</label>
         <input
           id="login-email"
           type="email"
@@ -59,7 +73,7 @@ export function LoginPage() {
           disabled={submitting}
         />
 
-        <label htmlFor="login-password">Password</label>
+        <label htmlFor="login-password">{t("login.password")}</label>
         <input
           id="login-password"
           type="password"
@@ -71,11 +85,11 @@ export function LoginPage() {
         />
 
         <button type="submit" className="login-submit" disabled={submitting}>
-          {submitting ? "Logging in…" : "Log in"}
+          {submitting ? t("login.submitting") : t("login.submit")}
         </button>
 
         <p className="login-hint">
-          No account? Accounts are created by an administrator with
+          {t("login.hint")}
           <code> scripts/create_user.py</code>.
         </p>
       </form>

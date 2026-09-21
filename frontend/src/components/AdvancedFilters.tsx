@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { OrderSource, OrderStatus } from '../types/order';
+import { useTranslation } from '../i18n';
 import '../styles/AdvancedFilters.css';
 
 // long enough to avoid a request per keystroke, short enough to feel live
@@ -34,6 +35,7 @@ export const AdvancedFilters: React.FC<AdvancedFiltersProps> = ({
   onFiltersChange,
   onClearFilters,
 }) => {
+  const { t } = useTranslation();
   const [filters, setFilters] = useState<Filters>(
     initialFilters ?? { search: '' },
   );
@@ -99,7 +101,7 @@ export const AdvancedFilters: React.FC<AdvancedFiltersProps> = ({
         <div className="search-bar">
           <input
             type="text"
-            placeholder="🔍 Search by order number, ID or email..."
+            placeholder={t('filters.search')}
             value={filters.search}
             onChange={handleSearchChange}
             className="search-input"
@@ -108,9 +110,9 @@ export const AdvancedFilters: React.FC<AdvancedFiltersProps> = ({
         <button
           className="filters-toggle"
           onClick={() => setIsOpen(!isOpen)}
-          title="Advanced filters"
+          title={t('filters.toggleTitle')}
         >
-          ⚙️ Filters {hasActiveFilters && <span className="badge">on</span>}
+          {t('filters.toggle')} {hasActiveFilters && <span className="badge">{t('filters.on')}</span>}
         </button>
       </div>
 
@@ -118,38 +120,38 @@ export const AdvancedFilters: React.FC<AdvancedFiltersProps> = ({
         <div className="filters-panel">
           <div className="filters-grid">
             <div className="filter-group">
-              <label htmlFor="source-filter">Source</label>
+              <label htmlFor="source-filter">{t('filters.source')}</label>
               <select
                 id="source-filter"
                 value={filters.source || ''}
                 onChange={handleSourceChange}
                 className="filter-select"
               >
-                <option value="">All sources</option>
+                <option value="">{t('filters.allSources')}</option>
                 <option value="ALLEGRO">Allegro</option>
                 <option value="ERLI">ERLI</option>
               </select>
             </div>
 
             <div className="filter-group">
-              <label htmlFor="status-filter">Status</label>
+              <label htmlFor="status-filter">{t('filters.status')}</label>
               <select
                 id="status-filter"
                 value={filters.status || ''}
                 onChange={handleStatusChange}
                 className="filter-select"
               >
-                <option value="">All statuses</option>
-                <option value="NEW">New</option>
-                <option value="CONFIRMED">Confirmed</option>
-                <option value="SHIPPED">Shipped</option>
-                <option value="DELIVERED">Delivered</option>
-                <option value="CANCELLED">Cancelled</option>
+                <option value="">{t('filters.allStatuses')}</option>
+                <option value="NEW">{t('status.NEW')}</option>
+                <option value="CONFIRMED">{t('status.CONFIRMED')}</option>
+                <option value="SHIPPED">{t('status.SHIPPED')}</option>
+                <option value="DELIVERED">{t('status.DELIVERED')}</option>
+                <option value="CANCELLED">{t('status.CANCELLED')}</option>
               </select>
             </div>
 
             <div className="filter-group">
-              <label htmlFor="date-from">From date</label>
+              <label htmlFor="date-from">{t('filters.from')}</label>
               <input
                 id="date-from"
                 type="date"
@@ -160,7 +162,7 @@ export const AdvancedFilters: React.FC<AdvancedFiltersProps> = ({
             </div>
 
             <div className="filter-group">
-              <label htmlFor="date-to">To date</label>
+              <label htmlFor="date-to">{t('filters.to')}</label>
               <input
                 id="date-to"
                 type="date"
@@ -173,7 +175,7 @@ export const AdvancedFilters: React.FC<AdvancedFiltersProps> = ({
 
           {hasActiveFilters && (
             <button className="clear-filters-btn" onClick={handleClearFilters}>
-              Clear all filters
+              {t('filters.clear')}
             </button>
           )}
         </div>

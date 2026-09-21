@@ -7,6 +7,7 @@ import type {
 } from "../types/order";
 import type { OrderSource, OrderStatus } from "../types/order";
 import type { Token, User } from "../types/user";
+import { translate } from "../i18n";
 
 // Vite's dev server proxies "/api" to the FastAPI backend (see vite.config.ts),
 // so this relative base works in both dev and behind a same-origin reverse
@@ -51,17 +52,17 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
       },
     });
   } catch {
-    throw new ApiError(0, "Network error: could not reach the server");
+    throw new ApiError(0, translate("error.network"));
   }
 
   if (!response.ok) {
     if (response.status === 401 && authenticated) {
       clearToken();
       window.dispatchEvent(new Event(SESSION_EXPIRED_EVENT));
-      throw new ApiError(401, "Your session has ended. Please log in again.");
+      throw new ApiError(401, translate("error.sessionEnded"));
     }
     if (response.status === 401) {
-      throw new ApiError(401, "Incorrect email or password");
+      throw new ApiError(401, translate("error.badCredentials"));
     }
     const message = await extractErrorMessage(response);
     throw new ApiError(response.status, message);
@@ -73,20 +74,20 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
 async function extractErrorMessage(response: Response): Promise<string> {
   switch (response.status) {
     case 404:
-      return "Not found";
+      return translate("error.notFound");
     case 429:
-      return "Too many requests: please slow down and try again shortly";
+      return translate("error.tooManyRequests");
     case 500:
-      return "Server error: something went wrong on our end";
+      return translate("error.server");
     default:
       break;
   }
 
   try {
     const body = (await response.json()) as { detail?: string; error?: string };
-    return body.detail ?? body.error ?? `Request failed (${response.status})`;
+    return body.detail ?? body.error ?? translate("error.requestFailed", { status: response.status });
   } catch {
-    return `Request failed (${response.status})`;
+    return translate("error.requestFailed", { status: response.status });
   }
 }
 

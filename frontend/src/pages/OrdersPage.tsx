@@ -5,6 +5,7 @@ import { OrderList } from '../components/OrderList';
 import { AdvancedFilters, type Filters } from '../components/AdvancedFilters';
 import { useOrders } from '../hooks/useOrders';
 import type { OrderSource, OrderStatus } from '../types/order';
+import { useTranslation } from '../i18n';
 import '../styles/OrdersPage.css';
 
 const DEFAULT_LIMIT = 20;
@@ -26,6 +27,7 @@ export interface OrdersOutletContext {
  */
 export function OrdersPage({ addToast }: OrdersPageProps) {
   const [searchParams, setSearchParams] = useSearchParams();
+  const { t } = useTranslation();
 
   const skip = Number(searchParams.get('skip') ?? 0);
   const limit = Number(searchParams.get('limit') ?? DEFAULT_LIMIT);
@@ -78,20 +80,19 @@ export function OrdersPage({ addToast }: OrdersPageProps) {
       .importAllegro()
       .then((result) => {
         addToast?.(
-          `Imported from Allegro: ${result.created} new, ${result.updated} updated`,
+          t('orders.imported', { created: result.created, updated: result.updated }),
           'success',
         );
         if (result.cancellation_warnings > 0) {
           addToast?.(
-            `${result.cancellation_warnings} order(s) were cancelled on Allegro ` +
-              'and must be checked before shipping.',
+            t('orders.importedCancelled', { count: result.cancellation_warnings }),
             'warning',
           );
         }
         refetch();
       })
       .catch((err: unknown) => {
-        const message = err instanceof ApiError ? err.message : 'Allegro import failed';
+        const message = err instanceof ApiError ? err.message : t('orders.importFailed');
         addToast?.(message, 'error');
       })
       .finally(() => setImporting(false));
@@ -102,11 +103,11 @@ export function OrdersPage({ addToast }: OrdersPageProps) {
     ordersApi
       .updateStatus(orderId, status)
       .then(() => {
-        addToast?.(`Status set to ${status}`, 'success');
+        addToast?.(t('orders.statusSet', { status: t(`status.${status}`) }), 'success');
         refetch();
       })
       .catch((err: unknown) => {
-        const message = err instanceof ApiError ? err.message : 'Failed to update status';
+        const message = err instanceof ApiError ? err.message : t('error.updateStatus');
         addToast?.(message, 'error');
       })
       .finally(() => setUpdatingOrderId(null));
@@ -137,15 +138,15 @@ export function OrdersPage({ addToast }: OrdersPageProps) {
 
   const handleClearFilters = () => {
     setSearchParams({});
-    addToast?.('Filters cleared', 'info');
+    addToast?.(t('orders.filtersCleared'), 'info');
   };
 
   return (
     <div className="orders-page">
       <header className="page-header">
         <div className="page-header-text">
-          <h1>Orders</h1>
-          <p className="subtitle">Manage your marketplace orders</p>
+          <h1>{t('orders.title')}</h1>
+          <p className="subtitle">{t('orders.subtitle')}</p>
         </div>
         <div className="allegro-import">
           <button
@@ -154,16 +155,16 @@ export function OrdersPage({ addToast }: OrdersPageProps) {
             onClick={handleAllegroImport}
             disabled={!allegroConfigured || importing}
           >
-            {importing ? 'Importing…' : 'Import from Allegro'}
+            {importing ? t('orders.importing') : t('orders.importButton')}
           </button>
           {allegroConfigured === false && (
             <p className="allegro-import-hint">
-              Allegro is not connected — <Link to="/settings">connect it in Settings</Link>.
+              {t('orders.notConnectedBefore')}<Link to="/settings">{t('orders.notConnectedLink')}</Link>{t('orders.notConnectedAfter')}
             </p>
           )}
           {allegroStatusFailed && (
             <p className="allegro-import-hint">
-              Could not check the Allegro connection. Reload to try again.
+              {t('orders.statusCheckFailed')}
             </p>
           )}
         </div>
@@ -186,8 +187,7 @@ export function OrdersPage({ addToast }: OrdersPageProps) {
         // the banner's own padding
         <div>
           <div role="status" className="warning-banner">
-            Showing only orders cancelled on the marketplace but still active
-            here.{' '}
+            {t('orders.cancelledOnlyBanner')}{' '}
             <button
               type="button"
               className="link-button"
@@ -195,7 +195,7 @@ export function OrdersPage({ addToast }: OrdersPageProps) {
                 updateParams({ cancellationWarning: undefined, skip: '0' })
               }
             >
-              Show all orders
+              {t('orders.showAll')}
             </button>
           </div>
         </div>

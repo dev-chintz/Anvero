@@ -1,15 +1,17 @@
 import { Navigate, Outlet, useLocation } from "react-router-dom";
 import { useAuth } from "./AuthContext";
+import { useTranslation } from "../i18n";
 
 /** Renders the protected routes only for a logged-in user. */
 export function RequireAuth() {
   const { status, retry } = useAuth();
   const location = useLocation();
+  const { t } = useTranslation();
 
   if (status === "checking") {
     return (
       <p role="status" className="session-message">
-        Checking your session…
+        {t("session.checking")}
       </p>
     );
   }
@@ -17,9 +19,9 @@ export function RequireAuth() {
   if (status === "unreachable") {
     return (
       <div role="alert" className="session-message">
-        <p>Could not reach the server to check your login.</p>
+        <p>{t("session.unreachable")}</p>
         <button type="button" onClick={retry}>
-          Try again
+          {t("session.retry")}
         </button>
       </div>
     );

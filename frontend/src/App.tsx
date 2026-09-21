@@ -11,7 +11,18 @@ import { Dashboard } from './pages/Dashboard';
 import { LoginPage } from './pages/LoginPage';
 import { OrdersPage } from './pages/OrdersPage';
 import { Settings } from './pages/Settings';
+import { useTranslation } from './i18n';
 import './App.css';
+
+function NotFound() {
+  const { t } = useTranslation();
+  return (
+    <div className="page-not-found">
+      <h1>404</h1>
+      <p>{t('error.notFoundPage')}</p>
+    </div>
+  );
+}
 
 interface LayoutProps {
   isDarkMode: boolean;
@@ -103,12 +114,7 @@ export default function App() {
                 <Route path="/settings" element={<Settings />} />
                 <Route
                   path="*"
-                  element={
-                    <div className="page-not-found">
-                      <h1>404</h1>
-                      <p>Page not found.</p>
-                    </div>
-                  }
+                  element={<NotFound />}
                 />
               </Route>
             </Route>

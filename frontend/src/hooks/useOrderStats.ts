@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { ApiError, ordersApi } from "../api/client";
+import { translate } from "../i18n";
 import type { OrderStats } from "../types/order";
 
 export interface UseOrderStatsResult {
@@ -29,7 +30,7 @@ export function useOrderStats(): UseOrderStatsResult {
       })
       .catch((err: unknown) => {
         if (cancelled) return;
-        setError(err instanceof ApiError ? err.message : "Failed to load stats");
+        setError(err instanceof ApiError ? err.message : translate("error.loadStats"));
         setStats(null);
       })
       .finally(() => {

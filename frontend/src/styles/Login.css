@@ -88,3 +88,25 @@
   padding: 2rem;
   color: var(--color-muted);
 }
+
+.login-language {
+  display: flex;
+  gap: 0.25rem;
+  justify-content: flex-end;
+}
+
+.login-language button {
+  width: auto;
+  padding: 0.2rem 0.5rem;
+  font-size: 0.75rem;
+  background: none;
+  color: inherit;
+  border: 1px solid var(--color-divider);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+}
+
+.login-language button[aria-pressed="true"] {
+  font-weight: 700;
+  border-color: currentColor;
+}

@@ -1,4 +1,5 @@
 import type { Order, OrderStatus } from "../types/order";
+import { useTranslation } from "../i18n";
 import { OrderRow } from "./OrderRow";
 
 interface OrderListProps {
@@ -25,14 +26,15 @@ export function OrderList({
   onStatusChange,
   updatingOrderId,
 }: OrderListProps) {
+  const { t } = useTranslation();
   const currentPage = Math.floor(skip / limit) + 1;
   const totalPages = Math.max(1, Math.ceil(count / limit));
   const canGoPrevious = skip > 0;
   const canGoNext = skip + limit < count;
 
   return (
-    <section aria-label="Orders">
-      {loading && <p role="status">Loading orders…</p>}
+    <section aria-label={t("orders.regionLabel")}>
+      {loading && <p role="status">{t("orders.loading")}</p>}
 
       {error && (
         <p role="alert" className="error-message">
@@ -41,22 +43,22 @@ export function OrderList({
       )}
 
       {!loading && !error && orders.length === 0 && (
-        <p role="status">No orders found.</p>
+        <p role="status">{t("orders.none")}</p>
       )}
 
       {!loading && !error && orders.length > 0 && (
         <div className="table-wrapper">
           <table className="orders-table">
-            <caption className="sr-only">List of marketplace orders</caption>
+            <caption className="sr-only">{t("orders.caption")}</caption>
             <thead>
               <tr>
-                <th scope="col">Order</th>
-                <th scope="col">Items</th>
-                <th scope="col">Payment</th>
-                <th scope="col">Status</th>
-                <th scope="col">Shipping</th>
-                <th scope="col">Amount</th>
-                <th scope="col">Ordered</th>
+                <th scope="col">{t("orders.col.order")}</th>
+                <th scope="col">{t("orders.col.items")}</th>
+                <th scope="col">{t("orders.col.payment")}</th>
+                <th scope="col">{t("orders.col.status")}</th>
+                <th scope="col">{t("orders.col.shipping")}</th>
+                <th scope="col">{t("orders.col.amount")}</th>
+                <th scope="col">{t("orders.col.ordered")}</th>
               </tr>
             </thead>
             <tbody>
@@ -73,23 +75,23 @@ export function OrderList({
         </div>
       )}
 
-      <nav className="pagination" aria-label="Pagination">
+      <nav className="pagination" aria-label={t("orders.pagination")}>
         <button
           type="button"
           onClick={() => onPageChange(Math.max(0, skip - limit))}
           disabled={!canGoPrevious}
         >
-          Previous
+          {t("orders.previous")}
         </button>
         <span>
-          Page {currentPage} of {totalPages} ({count} total)
+          {t("orders.page", { page: currentPage, pages: totalPages, count })}
         </span>
         <button
           type="button"
           onClick={() => onPageChange(skip + limit)}
           disabled={!canGoNext}
         >
-          Next
+          {t("orders.next")}
         </button>
       </nav>
     </section>

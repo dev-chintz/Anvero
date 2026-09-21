@@ -6,12 +6,10 @@ import {
   type AllegroEnvironment,
   type AllegroStatus,
 } from "../api/client";
+import { translate, useTranslation } from "../i18n";
 import "../styles/AllegroSettings.css";
 
-const ENVIRONMENT_LABELS: Record<AllegroEnvironment, string> = {
-  sandbox: "Sandbox (testing)",
-  production: "Production",
-};
+const ENVIRONMENTS: AllegroEnvironment[] = ["sandbox", "production"];
 
 function messageOf(err: unknown, fallback: string): string {
   return err instanceof ApiError ? err.message : fallback;
@@ -26,6 +24,7 @@ function messageOf(err: unknown, fallback: string): string {
  * The client secret is write-only: it is sent when typed and never shown again.
  */
 export function AllegroSettings() {
+  const { t } = useTranslation();
   const [status, setStatus] = useState<AllegroStatus | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
 
@@ -61,7 +60,7 @@ export function AllegroSettings() {
         if (!cancelled) applyStatus(next);
       })
       .catch((err: unknown) => {
-        if (!cancelled) setLoadError(messageOf(err, "Could not load the Allegro settings"));
+        if (!cancelled) setLoadError(messageOf(err, translate("allegro.loadFailed")));
       });
     return () => {
       cancelled = true;
@@ -83,8 +82,8 @@ export function AllegroSettings() {
           setFlow(null);
           setConnectedNote(
             result.account_login
-              ? `Connected as ${result.account_login}.`
-              : "Connected.",
+              ? translate("allegro.connectedNote", { login: result.account_login })
+              : translate("allegro.connectedNoteAnonymous"),
           );
           applyStatus(await integrationsApi.allegroStatus());
           return;
@@ -93,7 +92,7 @@ export function AllegroSettings() {
       } catch (err: unknown) {
         if (activeFlow.current !== flow.flow_id) return;
         setFlow(null);
-        setConnectError(messageOf(err, "The sign-in could not be completed"));
+        setConnectError(messageOf(err, translate("allegro.signInFailed")));
       }
     };
 
@@ -129,12 +128,12 @@ export function AllegroSettings() {
       setSaveMessage({
         text:
           wasConnected && !next.connected
-            ? "Saved. The application changed, so the account was disconnected: connect it again."
-            : "Saved.",
+            ? translate("allegro.savedDisconnected")
+            : translate("allegro.saved"),
         error: false,
       });
     } catch (err: unknown) {
-      setSaveMessage({ text: messageOf(err, "Could not save"), error: true });
+      setSaveMessage({ text: messageOf(err, translate("allegro.saveFailed")), error: true });
     } finally {
       setSaving(false);
     }
@@ -147,7 +146,7 @@ export function AllegroSettings() {
     try {
       setFlow(await integrationsApi.startAllegroConnection());
     } catch (err: unknown) {
-      setConnectError(messageOf(err, "Could not start the sign-in"));
+      setConnectError(messageOf(err, translate("allegro.startFailed")));
     } finally {
       setStarting(false);
     }
@@ -159,13 +158,13 @@ export function AllegroSettings() {
   };
 
   const handleDisconnect = async () => {
-    if (!window.confirm("Disconnect the Allegro account? Orders already imported stay.")) return;
+    if (!window.confirm(translate("allegro.confirmDisconnect"))) return;
     setConnectError(null);
     setConnectedNote(null);
     try {
       applyStatus(await integrationsApi.disconnectAllegro());
     } catch (err: unknown) {
-      setConnectError(messageOf(err, "Could not disconnect"));
+      setConnectError(messageOf(err, translate("allegro.disconnectFailed")));
     }
   };
 
@@ -176,7 +175,7 @@ export function AllegroSettings() {
       </p>
     );
   }
-  if (!status) return <p role="status">Loading…</p>;
+  if (!status) return <p role="status">{t("allegro.loading")}</p>;
 
   return (
     <div className="allegro-settings">
@@ -187,46 +186,46 @@ export function AllegroSettings() {
             <span>
               {status.account_login ? (
                 <>
-                  Connected as <strong>{status.account_login}</strong>
+                  {t("allegro.connectedAs")} <strong>{status.account_login}</strong>
                 </>
               ) : (
-                "Connected"
+                t("allegro.connected")
               )}{" "}
-              · {ENVIRONMENT_LABELS[status.environment]}
+              · {t(`allegro.env.${status.environment}`)}
             </span>
           </>
         ) : (
           <>
             <span className="allegro-account-dot" aria-hidden="true" />
-            <span>No account connected</span>
+            <span>{t("allegro.noAccount")}</span>
           </>
         )}
       </div>
 
       {status.source === "environment" && status.application_complete && (
         <p className="field-note">
-          These credentials come from <code>backend/.env</code>. Saving here
-          replaces them with the ones below.
+          {t("allegro.fromEnvBefore")} <code>backend/.env</code>
+          {t("allegro.fromEnvAfter")}
         </p>
       )}
 
       <form onSubmit={handleSave} className="allegro-form">
         <label>
-          Environment
+          {t("allegro.environment")}
           <select
             value={environment}
             onChange={(e) => setEnvironment(e.target.value as AllegroEnvironment)}
           >
-            {(Object.keys(ENVIRONMENT_LABELS) as AllegroEnvironment[]).map((key) => (
+            {ENVIRONMENTS.map((key) => (
               <option key={key} value={key}>
-                {ENVIRONMENT_LABELS[key]}
+                {t(`allegro.env.${key}`)}
               </option>
             ))}
           </select>
         </label>
 
         <label>
-          Client ID
+          {t("allegro.clientId")}
           <input
             type="text"
             value={clientId}
@@ -237,18 +236,18 @@ export function AllegroSettings() {
         </label>
 
         <label>
-          Client Secret
+          {t("allegro.clientSecret")}
           <input
             type="password"
             value={clientSecret}
             onChange={(e) => setClientSecret(e.target.value)}
-            placeholder={status.application_complete ? "Unchanged" : ""}
+            placeholder={status.application_complete ? t("allegro.secretUnchanged") : ""}
             autoComplete="new-password"
           />
         </label>
 
         <label>
-          User-Agent
+          {t("allegro.userAgent")}
           <input
             type="text"
             value={userAgent}
@@ -257,14 +256,13 @@ export function AllegroSettings() {
             spellCheck={false}
           />
           <span className="field-note">
-            The one generated for the application on Allegro's developer
-            portal, pasted unchanged.
+            {t("allegro.userAgentHelp")}
           </span>
         </label>
 
         <div className="allegro-actions">
           <button type="submit" disabled={!canSave || (!dirty && status.application_complete)}>
-            {saving ? "Saving…" : "Save"}
+            {saving ? t("allegro.saving") : t("allegro.save")}
           </button>
           {saveMessage && (
             <span role={saveMessage.error ? "alert" : "status"} className={saveMessage.error ? "error-message" : ""}>
@@ -275,18 +273,20 @@ export function AllegroSettings() {
       </form>
 
       <div className="allegro-connect">
-        <h3>Seller account</h3>
+        <h3>{t("allegro.sellerAccount")}</h3>
 
         {flow ? (
           <div className="allegro-flow" role="status">
             <p>
-              Open <a href={flow.verification_uri} target="_blank" rel="noreferrer">this Allegro page</a>{" "}
-              while logged in as the seller, and confirm. It should show the
-              code <strong className="allegro-code">{flow.user_code}</strong>.
+              {t("allegro.flowBefore")}{" "}
+              <a href={flow.verification_uri} target="_blank" rel="noreferrer">{t("allegro.flowLink")}</a>{" "}
+              {t("allegro.flowMiddle")}{" "}
+              <strong className="allegro-code">{flow.user_code}</strong>
+              {t("allegro.flowAfter")}
             </p>
-            <p className="field-note">Waiting for the confirmation…</p>
+            <p className="field-note">{t("allegro.waiting")}</p>
             <button type="button" onClick={handleCancelConnect}>
-              Cancel
+              {t("allegro.cancel")}
             </button>
           </div>
         ) : (
@@ -296,21 +296,21 @@ export function AllegroSettings() {
               onClick={handleConnect}
               disabled={starting || dirty || !status.application_complete}
             >
-              {starting ? "Starting…" : status.connected ? "Connect a different account" : "Connect account"}
+              {starting ? t("allegro.starting") : status.connected ? t("allegro.connectOther") : t("allegro.connect")}
             </button>
             {status.connected && (
               <button type="button" className="danger" onClick={handleDisconnect}>
-                Disconnect
+                {t("allegro.disconnect")}
               </button>
             )}
           </div>
         )}
 
         {dirty && status.application_complete && !flow && (
-          <p className="field-note">Save the changes above before connecting.</p>
+          <p className="field-note">{t("allegro.saveFirst")}</p>
         )}
         {!status.application_complete && !flow && (
-          <p className="field-note">Enter and save the application's credentials first.</p>
+          <p className="field-note">{t("allegro.enterCredentials")}</p>
         )}
         {connectedNote && <p role="status">{connectedNote}</p>}
         {connectError && (

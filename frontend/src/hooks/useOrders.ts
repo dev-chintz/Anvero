@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { ApiError, ordersApi } from "../api/client";
+import { translate } from "../i18n";
 import type { Order, OrderSource, OrderStatus } from "../types/order";
 
 export interface UseOrdersParams {
@@ -75,7 +76,7 @@ export function useOrders(params: UseOrdersParams): UseOrdersResult {
       .catch((err: unknown) => {
         if (cancelled) return;
         const message =
-          err instanceof ApiError ? err.message : "Failed to load orders";
+          err instanceof ApiError ? err.message : translate("error.loadOrders");
         setError(message);
         setOrders([]);
         setCount(0);

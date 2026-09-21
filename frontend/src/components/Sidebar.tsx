@@ -1,6 +1,7 @@
 import { Link, useLocation } from 'react-router-dom';
 import { useState } from 'react';
 import { useAuth } from '../auth/AuthContext';
+import { useTranslation, LANGUAGES, type Language } from '../i18n';
 import '../styles/Sidebar.css';
 
 interface SidebarProps {
@@ -12,13 +13,15 @@ export const Sidebar: React.FC<SidebarProps> = ({ isDarkMode, onThemeToggle }) =
   const [isOpen, setIsOpen] = useState(true);
   const location = useLocation();
   const { user, logout } = useAuth();
+  const { t, language, setLanguage } = useTranslation();
+  const otherLanguage: Language = LANGUAGES.find((l) => l !== language) ?? 'en';
 
   const isActive = (path: string) => location.pathname === path;
 
   const navItems = [
-    { path: '/dashboard', label: 'Dashboard', icon: '📊' },
-    { path: '/orders', label: 'Orders', icon: '📦' },
-    { path: '/settings', label: 'Settings', icon: '⚙️' },
+    { path: '/dashboard', label: t('nav.dashboard'), icon: '📊' },
+    { path: '/orders', label: t('nav.orders'), icon: '📦' },
+    { path: '/settings', label: t('nav.settings'), icon: '⚙️' },
   ];
 
   return (
@@ -27,7 +30,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isDarkMode, onThemeToggle }) =
         <button
           className="toggle-btn"
           onClick={() => setIsOpen(!isOpen)}
-          title={isOpen ? 'Collapse' : 'Expand'}
+          title={isOpen ? t('nav.collapse') : t('nav.expand')}
         >
           {isOpen ? '◀' : '▶'}
         </button>
@@ -57,9 +60,18 @@ export const Sidebar: React.FC<SidebarProps> = ({ isDarkMode, onThemeToggle }) =
         <button
           className="theme-toggle"
           onClick={onThemeToggle}
-          title={`Switch to ${isDarkMode ? 'light' : 'dark'} mode`}
+          title={isDarkMode ? t('nav.switchToLight') : t('nav.switchToDark')}
         >
           {isDarkMode ? '☀️' : '🌙'}
+        </button>
+        <button
+          type="button"
+          className="theme-toggle language-toggle"
+          onClick={() => setLanguage(otherLanguage)}
+          title={t('nav.switchLanguage')}
+          aria-label={t('nav.switchLanguage')}
+        >
+          {otherLanguage.toUpperCase()}
         </button>
         {isOpen && (
           <div className="user-profile">
@@ -69,7 +81,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isDarkMode, onThemeToggle }) =
                 {user?.email}
               </p>
               <button type="button" className="logout-button" onClick={logout}>
-                Log out
+                {t('nav.logout')}
               </button>
             </div>
           </div>
@@ -79,8 +91,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ isDarkMode, onThemeToggle }) =
             type="button"
             className="theme-toggle"
             onClick={logout}
-            title="Log out"
-            aria-label="Log out"
+            title={t('nav.logout')}
+            aria-label={t('nav.logout')}
           >
             ⎋
           </button>

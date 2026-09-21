@@ -64,14 +64,6 @@ export enum PaymentType {
   OTHER = "OTHER",
 }
 
-export const PAYMENT_TYPE_LABELS: Record<PaymentType, string> = {
-  [PaymentType.ONLINE]: "Online payment",
-  [PaymentType.BANK_TRANSFER]: "Bank transfer",
-  [PaymentType.CASH_ON_DELIVERY]: "Cash on delivery",
-  [PaymentType.DEFERRED]: "Deferred payment",
-  [PaymentType.OTHER]: "Other",
-};
-
 export interface Address {
   first_name: string | null;
   last_name: string | null;

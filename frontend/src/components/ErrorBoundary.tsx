@@ -1,4 +1,5 @@
 import { Component, type ErrorInfo, type ReactNode } from "react";
+import { translate } from "../i18n";
 
 interface ErrorBoundaryProps {
   children: ReactNode;
@@ -31,7 +32,7 @@ export class ErrorBoundary extends Component<
     if (this.state.error) {
       return (
         <div role="alert" className="error-message">
-          <h2>Something went wrong.</h2>
+          <h2>{translate("error.boundaryTitle")}</h2>
           <p>{this.state.error.message}</p>
         </div>
       );

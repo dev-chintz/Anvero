@@ -9,6 +9,7 @@ import {
   marketplaceStatusText,
 } from "../types/order";
 import type { OrderStatusChange, OrderWithDetails } from "../types/order";
+import { translate, useTranslation } from "../i18n";
 import { OrderDetailsPanel } from "./OrderDetailsPanel";
 import "../styles/OrderHistory.css";
 
@@ -25,6 +26,7 @@ const STATUS_ICON: Record<OrderStatus, string> = {
 export function OrderDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { t, formatDateTime, formatMoney } = useTranslation();
   const location = useLocation();
   // set by OrdersPage's <Outlet context>; this route only ever renders
   // nested under /orders, as the slide-over above the still-mounted list
@@ -61,7 +63,7 @@ export function OrderDetail() {
           setNotFound(true);
         } else {
           setError(
-            err instanceof ApiError ? err.message : "Failed to load order",
+            err instanceof ApiError ? err.message : translate("error.loadOrder"),
           );
         }
       })
@@ -117,7 +119,7 @@ export function OrderDetail() {
       onOrderChanged();
     } catch (err: unknown) {
       setSaveError(
-        err instanceof ApiError ? err.message : "Failed to update status",
+        err instanceof ApiError ? err.message : translate("error.updateStatus"),
       );
     } finally {
       setSaving(false);
@@ -128,23 +130,23 @@ export function OrderDetail() {
     <div className="order-drawer-backdrop" onClick={handleClose}>
       <section
         className="order-detail order-drawer"
-        aria-label="Order details"
+        aria-label={t("order.regionLabel")}
         onClick={(e) => e.stopPropagation()}
       >
         <button
           type="button"
           className="order-drawer-close"
           onClick={handleClose}
-          aria-label="Close order details"
+          aria-label={t("order.close")}
         >
           ✕
         </button>
 
-        {loading && <p role="status">Loading order…</p>}
+        {loading && <p role="status">{t("order.loading")}</p>}
 
         {notFound && (
           <p role="alert" className="error-message">
-            Order not found.
+            {t("order.notFound")}
           </p>
         )}
 
@@ -156,35 +158,35 @@ export function OrderDetail() {
 
         {!loading && !error && !notFound && order && hasCancellationWarning(order) && (
           <div role="alert" className="warning-banner">
-            <strong>Cancelled on {order.source} — do not ship.</strong> An import
-            found this order cancelled on the marketplace on{" "}
-            {new Date(order.marketplace_cancelled_at as string).toLocaleString()},
-            but it is still {order.status} here. Set the status to CANCELLED once
-            it is handled; this warning then clears.
+            <strong>{t("order.cancelledBannerTitle", { source: order.source })}</strong>{" "}
+            {t("order.cancelledBannerBody", {
+              date: formatDateTime(order.marketplace_cancelled_at as string),
+              status: t(`status.${order.status}`),
+            })}
           </div>
         )}
 
         {!loading && !error && !notFound && order && (
           <dl className="order-fields">
             <div>
-              <dt>Order number</dt>
+              <dt>{t("order.number")}</dt>
               <dd>{order.order_label}</dd>
             </div>
             <div>
-              <dt>Order ID</dt>
+              <dt>{t("order.id")}</dt>
               <dd>{order.id}</dd>
             </div>
             <div>
-              <dt>External ID</dt>
+              <dt>{t("order.externalId")}</dt>
               <dd>{order.external_id}</dd>
             </div>
             <div>
-              <dt>Source</dt>
+              <dt>{t("order.source")}</dt>
               <dd>{order.source}</dd>
             </div>
             <div>
               <dt>
-                <label htmlFor="order-status">Status</label>
+                <label htmlFor="order-status">{t("order.status")}</label>
               </dt>
               <dd>
                 <select
@@ -197,11 +199,11 @@ export function OrderDetail() {
                 >
                   {STATUSES.map((s) => (
                     <option key={s} value={s}>
-                      {s}
+                      {t(`status.${s}`)}
                     </option>
                   ))}
                 </select>
-                {saving && <span role="status"> Saving…</span>}
+                {saving && <span role="status">{t("order.saving")}</span>}
                 {saveError && (
                   <span role="alert" className="error-message">
                     {saveError}
@@ -209,35 +211,36 @@ export function OrderDetail() {
                 )}
                 {marketplaceStatusDiffers(order) && (
                   <p className="field-note">
-                    {order.source} reports {marketplaceStatusText(order)} as of
-                    the last import, which is {order.marketplace_status} here.
-                    The status above is one you set; it stays until the
-                    marketplace's own status changes, and then follows it.
+                    {t("order.marketplaceNote", {
+                      source: order.source,
+                      reported: marketplaceStatusText(order),
+                      mapped: t(`status.${order.marketplace_status as OrderStatus}`),
+                    })}
                   </p>
                 )}
               </dd>
             </div>
             <div>
-              <dt>Customer Email</dt>
+              <dt>{t("order.customerEmail")}</dt>
               <dd>{order.customer_email}</dd>
             </div>
             <div>
-              <dt>Total Amount</dt>
+              <dt>{t("order.totalAmount")}</dt>
               <dd>
-                {order.total_amount} {order.currency}
+                {formatMoney(order.total_amount, order.currency)}
               </dd>
             </div>
             <div>
-              <dt>Ordered At</dt>
-              <dd>{new Date(order.ordered_at).toLocaleString()}</dd>
+              <dt>{t("order.orderedAt")}</dt>
+              <dd>{formatDateTime(order.ordered_at)}</dd>
             </div>
             <div>
-              <dt>Created At</dt>
-              <dd>{new Date(order.created_at).toLocaleString()}</dd>
+              <dt>{t("order.createdAt")}</dt>
+              <dd>{formatDateTime(order.created_at)}</dd>
             </div>
             <div>
-              <dt>Updated At</dt>
-              <dd>{new Date(order.updated_at).toLocaleString()}</dd>
+              <dt>{t("order.updatedAt")}</dt>
+              <dd>{formatDateTime(order.updated_at)}</dd>
             </div>
           </dl>
         )}
@@ -245,12 +248,14 @@ export function OrderDetail() {
         {!loading && !error && !notFound && order && <OrderDetailsPanel order={order} />}
 
         {!loading && !error && !notFound && order && (
-          <section className="status-history" aria-label="Status history">
-            <h2>Status history</h2>
+          <section className="status-history" aria-label={t("history.title")}>
+            <h2>{t("history.title")}</h2>
             {history.length === 0 ? (
               <p className="status-history-empty">
-                No status changes yet. Created as {order.status} on{" "}
-                {new Date(order.created_at).toLocaleString()}.
+                {t("history.empty", {
+                  status: t(`status.${order.status}`),
+                  date: formatDateTime(order.created_at),
+                })}
               </p>
             ) : (
               <ol className="status-history-list">
@@ -263,19 +268,19 @@ export function OrderDetail() {
                       {STATUS_ICON[entry.to_status]}
                     </span>
                     <time dateTime={entry.changed_at}>
-                      {new Date(entry.changed_at).toLocaleString()}
+                      {formatDateTime(entry.changed_at)}
                     </time>
                     <span className="status-history-move">
                       <span className={`badge badge-${entry.from_status.toLowerCase()}`}>
-                        {entry.from_status}
+                        {t(`status.${entry.from_status}`)}
                       </span>
                       <span aria-hidden="true">→</span>
                       <span className={`badge badge-${entry.to_status.toLowerCase()}`}>
-                        {entry.to_status}
+                        {t(`status.${entry.to_status}`)}
                       </span>
                     </span>
                     {entry.changed_by && (
-                      <span className="status-history-author">by {entry.changed_by}</span>
+                      <span className="status-history-author">{t("history.by", { user: entry.changed_by })}</span>
                     )}
                   </li>
                 ))}

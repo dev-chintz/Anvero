@@ -892,3 +892,9 @@ branch is unverified: only the SQLite path has been run.
 **Decision:** We run the local environment natively.
 
 **Rationale:** Reduces the entry barrier; containers will be added when they become genuinely needed.
+
+## 2026-09-21 — Interface language: own small i18n, Polish default
+
+**Decision:** UI text lives in typed dictionaries (`frontend/src/i18n/messages.ts`, English and Polish) behind a dependency-free store; the language is chosen per browser (localStorage) and defaults to Polish. Counted messages use `Intl.PluralRules` (Polish needs four forms). Tests start in English.
+
+**Rationale:** Two languages and one team do not justify a library; the compiler and a parity test guarantee Polish covers every English key. Error messages that come from the backend are not translated (they stay English) — translating them needs error codes in the API, a separate change.

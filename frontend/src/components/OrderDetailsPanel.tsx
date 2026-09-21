@@ -1,4 +1,5 @@
-import { PAYMENT_TYPE_LABELS, PaymentType } from "../types/order";
+import { PaymentType } from "../types/order";
+import { formatNumber, useTranslation } from "../i18n";
 import type { Address, OrderWithDetails } from "../types/order";
 import "../styles/OrderDetailsPanel.css";
 
@@ -9,7 +10,10 @@ function toCents(amount: string): number {
 }
 
 function formatCents(cents: number, currency?: string): string {
-  const amount = (cents / 100).toFixed(2);
+  const amount = formatNumber(cents / 100, {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
   return currency ? `${amount} ${currency}` : amount;
 }
 
@@ -26,6 +30,7 @@ function pickupPointLabel(point: { id: string | null; name: string | null }): st
 }
 
 function AddressLines({ address }: { address: Address }) {
+  const { t } = useTranslation();
   const lines = [
     joinParts(address.first_name, address.last_name),
     address.company_name,
@@ -39,23 +44,24 @@ function AddressLines({ address }: { address: Address }) {
       {lines.map((line, index) => (
         <span key={index}>{line}</span>
       ))}
-      {address.phone && <span>Phone: {address.phone}</span>}
-      {address.tax_id && <span>Tax ID: {address.tax_id}</span>}
+      {address.phone && <span>{t("details.phone", { phone: address.phone })}</span>}
+      {address.tax_id && <span>{t("details.taxId", { taxId: address.tax_id })}</span>}
     </address>
   );
 }
 
 function PaymentState({ order }: { order: OrderWithDetails }) {
+  const { t, formatDateTime } = useTranslation();
   const { payment, currency } = order;
 
   if (payment.paid_amount === null) {
     if (payment.type === null) {
-      return <p className="order-muted">No payment details.</p>;
+      return <p className="order-muted">{t("details.noPayment")}</p>;
     }
     return payment.type === PaymentType.CASH_ON_DELIVERY ? (
-      <p>Paid on delivery</p>
+      <p>{t("details.paidOnDelivery")}</p>
     ) : (
-      <p className="order-muted">Payment not confirmed</p>
+      <p className="order-muted">{t("details.paymentNotConfirmed")}</p>
     );
   }
 
@@ -64,16 +70,23 @@ function PaymentState({ order }: { order: OrderWithDetails }) {
   if (paid >= total) {
     return (
       <p className="order-paid">
-        Paid {formatCents(paid, currency)}
-        {payment.paid_at && ` on ${new Date(payment.paid_at).toLocaleString()}`}
+        {payment.paid_at
+          ? t("details.paidOn", {
+              amount: formatCents(paid, currency),
+              date: formatDateTime(payment.paid_at),
+            })
+          : t("details.paid", { amount: formatCents(paid, currency) })}
       </p>
     );
   }
   return (
     <p role="status" className="order-unpaid">
       {paid === 0
-        ? "Not paid"
-        : `Partly paid: ${formatCents(paid, currency)} of ${formatCents(total, currency)}`}
+        ? t("details.notPaid")
+        : t("details.partlyPaid", {
+            paid: formatCents(paid, currency),
+            total: formatCents(total, currency),
+          })}
     </p>
   );
 }
@@ -85,6 +98,7 @@ function PaymentState({ order }: { order: OrderWithDetails }) {
  */
 export function OrderDetailsPanel({ order }: { order: OrderWithDetails }) {
   const { customer, delivery, invoice, currency } = order;
+  const { t } = useTranslation();
 
   const itemsCents = order.items.reduce(
     (sum, item) => sum + toCents(item.unit_price) * item.quantity,
@@ -97,37 +111,37 @@ export function OrderDetailsPanel({ order }: { order: OrderWithDetails }) {
   return (
     <div className="order-details-panel">
       {order.seller_note && (
-        <section className="order-card order-note" aria-label="Your note">
-          <h2>Your note</h2>
+        <section className="order-card order-note" aria-label={t("details.yourNote")}>
+          <h2>{t("details.yourNote")}</h2>
           <p>{order.seller_note}</p>
         </section>
       )}
 
       {order.buyer_message && (
-        <section className="order-card order-message" aria-label="Message from the buyer">
-          <h2>Message from the buyer</h2>
+        <section className="order-card order-message" aria-label={t("details.buyerMessage")}>
+          <h2>{t("details.buyerMessage")}</h2>
           <p>{order.buyer_message}</p>
         </section>
       )}
 
-      <section className="order-card order-items" aria-label="Items">
-        <h2>Items</h2>
+      <section className="order-card order-items" aria-label={t("details.items")}>
+        <h2>{t("details.items")}</h2>
         {order.items.length === 0 ? (
-          <p className="order-muted">No items recorded for this order.</p>
+          <p className="order-muted">{t("details.noItems")}</p>
         ) : (
           <div className="order-items-scroll">
             <table>
               <thead>
                 <tr>
-                  <th scope="col">Product</th>
+                  <th scope="col">{t("details.product")}</th>
                   <th scope="col" className="numeric">
-                    Qty
+                    {t("details.qty")}
                   </th>
                   <th scope="col" className="numeric">
-                    Unit price ({currency})
+                    {t("details.unitPrice", { currency })}
                   </th>
                   <th scope="col" className="numeric">
-                    Total ({currency})
+                    {t("details.total", { currency })}
                   </th>
                 </tr>
               </thead>
@@ -146,7 +160,7 @@ export function OrderDetailsPanel({ order }: { order: OrderWithDetails }) {
                         )}
                         <span>
                           {item.name}
-                          {item.sku && <span className="order-item-sku">SKU {item.sku}</span>}
+                          {item.sku && <span className="order-item-sku">{t("details.sku", { sku: item.sku })}</span>}
                         </span>
                       </div>
                     </td>
@@ -161,21 +175,21 @@ export function OrderDetailsPanel({ order }: { order: OrderWithDetails }) {
               <tfoot>
                 <tr>
                   <th scope="row" colSpan={3}>
-                    Items
+                    {t("details.itemsRow")}
                   </th>
                   <td className="numeric">{formatCents(itemsCents)}</td>
                 </tr>
                 {deliveryCents !== null && (
                   <tr>
                     <th scope="row" colSpan={3}>
-                      Delivery
+                      {t("details.delivery")}
                     </th>
                     <td className="numeric">{formatCents(deliveryCents)}</td>
                   </tr>
                 )}
                 <tr className="order-items-total">
                   <th scope="row" colSpan={3}>
-                    Order total
+                    {t("details.orderTotal")}
                   </th>
                   <td className="numeric">
                     {formatCents(toCents(order.total_amount))}
@@ -188,26 +202,26 @@ export function OrderDetailsPanel({ order }: { order: OrderWithDetails }) {
       </section>
 
       <div className="order-cards">
-        <section className="order-card" aria-label="Buyer">
-          <h2>Buyer</h2>
+        <section className="order-card" aria-label={t("details.buyer")}>
+          <h2>{t("details.buyer")}</h2>
           {buyerName && <p>{buyerName}</p>}
           {customer.company_name && <p>{customer.company_name}</p>}
           <p>{order.customer_email}</p>
-          {customer.phone && <p>Phone: {customer.phone}</p>}
+          {customer.phone && <p>{t("details.phone", { phone: customer.phone })}</p>}
           {customer.login && (
             <p className="order-muted">
-              {order.source} login: {customer.login}
+              {t("details.sourceLogin", { source: order.source, login: customer.login })}
             </p>
           )}
-          {!hasCustomer && <p className="order-muted">No other buyer details.</p>}
+          {!hasCustomer && <p className="order-muted">{t("details.noBuyerDetails")}</p>}
         </section>
 
-        <section className="order-card" aria-label="Delivery">
-          <h2>Delivery</h2>
+        <section className="order-card" aria-label={t("details.delivery")}>
+          <h2>{t("details.delivery")}</h2>
           {delivery.method && <p>{delivery.method}</p>}
           {delivery.pickup_point && (
             <div className="order-subsection">
-              <h3>Pickup point</h3>
+              <h3>{t("details.pickupPoint")}</h3>
               <p>{pickupPointLabel(delivery.pickup_point)}</p>
               {delivery.pickup_point.address && (
                 <AddressLines address={delivery.pickup_point.address} />
@@ -216,28 +230,28 @@ export function OrderDetailsPanel({ order }: { order: OrderWithDetails }) {
           )}
           {delivery.address && (
             <div className="order-subsection">
-              <h3>Recipient</h3>
+              <h3>{t("details.recipient")}</h3>
               <AddressLines address={delivery.address} />
             </div>
           )}
           {!delivery.method && !delivery.address && !delivery.pickup_point && (
-            <p className="order-muted">No delivery details.</p>
+            <p className="order-muted">{t("details.noDelivery")}</p>
           )}
         </section>
 
-        <section className="order-card" aria-label="Payment">
-          <h2>Payment</h2>
-          {order.payment.type && <p>{PAYMENT_TYPE_LABELS[order.payment.type]}</p>}
+        <section className="order-card" aria-label={t("details.payment")}>
+          <h2>{t("details.payment")}</h2>
+          {order.payment.type && <p>{t(`payment.type.${order.payment.type}`)}</p>}
           {order.payment.provider && (
-            <p className="order-muted">via {order.payment.provider}</p>
+            <p className="order-muted">{t("details.via", { provider: order.payment.provider })}</p>
           )}
           <PaymentState order={order} />
         </section>
 
-        <section className="order-card" aria-label="Invoice">
-          <h2>Invoice</h2>
+        <section className="order-card" aria-label={t("details.invoice")}>
+          <h2>{t("details.invoice")}</h2>
           <p className={invoice.required ? "order-invoice-required" : undefined}>
-            {invoice.required ? "Buyer requested an invoice" : "No invoice requested"}
+            {invoice.required ? t("details.invoiceRequested") : t("details.noInvoice")}
           </p>
           {invoice.address && <AddressLines address={invoice.address} />}
         </section>

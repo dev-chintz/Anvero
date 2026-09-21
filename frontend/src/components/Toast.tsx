@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { useTranslation } from '../i18n';
 import '../styles/Toast.css';
 
 export type ToastType = 'success' | 'error' | 'info' | 'warning';
@@ -15,6 +16,7 @@ interface ToastProps {
 }
 
 export const Toast: React.FC<ToastProps> = ({ toast, onClose }) => {
+  const { t } = useTranslation();
   useEffect(() => {
     const timer = setTimeout(() => {
       onClose(toast.id);
@@ -39,7 +41,7 @@ export const Toast: React.FC<ToastProps> = ({ toast, onClose }) => {
       <button
         className="toast-close"
         onClick={() => onClose(toast.id)}
-        aria-label="Close notification"
+        aria-label={t('toast.close')}
       >
         ×
       </button>

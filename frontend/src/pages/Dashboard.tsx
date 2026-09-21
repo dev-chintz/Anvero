@@ -2,11 +2,14 @@ import { Link } from 'react-router-dom';
 import { useOrderStats } from '../hooks/useOrderStats';
 import { useOrders } from '../hooks/useOrders';
 import type { Order } from '../types/order';
+import { useTranslation } from '../i18n';
+import { en, type MessageKey } from '../i18n/messages';
 import '../styles/Dashboard.css';
 
 const RECENT_ORDERS_LIMIT = 5;
 
 export const Dashboard: React.FC = () => {
+  const { t, tc, formatMoney, formatNumber } = useTranslation();
   const { stats, loading: statsLoading, error: statsError } = useOrderStats();
   const { orders: recentOrders, error: ordersError } = useOrders({
     skip: 0,
@@ -14,14 +17,14 @@ export const Dashboard: React.FC = () => {
   });
 
   if (statsLoading) {
-    return <div className="dashboard loading">Loading dashboard...</div>;
+    return <div className="dashboard loading">{t('dashboard.loading')}</div>;
   }
 
   const error = statsError ?? ordersError;
   if (error || !stats) {
     return (
       <div className="dashboard error" role="alert">
-        Error loading dashboard: {error ?? 'no data returned'}
+        {t('dashboard.error', { message: error ?? t('dashboard.noData') })}
       </div>
     );
   }
@@ -31,47 +34,40 @@ export const Dashboard: React.FC = () => {
   return (
     <div className="dashboard">
       <header className="dashboard-header">
-        <h1>Dashboard</h1>
-        <p className="subtitle">Marketplace orders overview</p>
+        <h1>{t('dashboard.title')}</h1>
+        <p className="subtitle">{t('dashboard.subtitle')}</p>
       </header>
 
       {stats.cancellation_warnings > 0 && (
         <div role="alert" className="warning-banner">
-          <strong>
-            {stats.cancellation_warnings}{' '}
-            {stats.cancellation_warnings === 1 ? 'order was' : 'orders were'}{' '}
-            cancelled on the marketplace
-          </strong>{' '}
-          but {stats.cancellation_warnings === 1 ? 'is' : 'are'} still active here.{' '}
-          <Link to="/orders?cancellationWarning=true">Review before shipping</Link>
+          <strong>{tc('dashboard.cancelledStrong', stats.cancellation_warnings)}</strong>{' '}
+          {tc('dashboard.cancelledRest', stats.cancellation_warnings)}{' '}
+          <Link to="/orders?cancellationWarning=true">{t('dashboard.reviewBeforeShipping')}</Link>
         </div>
       )}
 
       <section className="stats-grid">
         <StatCard
-          title="Total Orders"
+          title={t('dashboard.totalOrders')}
           value={stats.total_orders}
           icon="📦"
           color="primary"
           to="/orders"
         />
         <StatCard
-          title="This Week"
+          title={t('dashboard.thisWeek')}
           value={stats.this_week}
           icon="📈"
           color="success"
         />
         <StatCard
-          title="Revenue"
-          value={`${revenue.toLocaleString('pl-PL', {
-            minimumFractionDigits: 2,
-            maximumFractionDigits: 2,
-          })} PLN`}
+          title={t('dashboard.revenue')}
+          value={formatMoney(revenue, 'PLN')}
           icon="💰"
           color="warning"
         />
         <StatCard
-          title="Pending"
+          title={t('dashboard.pending')}
           value={stats.pending}
           icon="⏳"
           color="danger"
@@ -80,12 +76,12 @@ export const Dashboard: React.FC = () => {
 
       <section className="charts-section">
         <div className="chart-card">
-          <h2>Orders by Status</h2>
+          <h2>{t('dashboard.ordersByStatus')}</h2>
           <div className="status-breakdown">
             {Object.entries(stats.by_status).map(([status, count]) => (
               <div key={status} className="status-item">
                 <span className={`status-label status-${status.toLowerCase()}`}>
-                  {status}
+                  {statusText(status, t)}
                 </span>
                 <div className="status-bar">
                   <div
@@ -100,7 +96,7 @@ export const Dashboard: React.FC = () => {
         </div>
 
         <div className="chart-card">
-          <h2>Orders by Source</h2>
+          <h2>{t('dashboard.ordersBySource')}</h2>
           <div className="source-breakdown">
             {Object.entries(stats.by_source).map(([source, count]) => {
               const share = percentage(count, stats.total_orders);
@@ -108,7 +104,7 @@ export const Dashboard: React.FC = () => {
                 <div key={source} className="source-item">
                   <div className="source-info">
                     <span className="source-name">{source}</span>
-                    <span className="source-percentage">{share.toFixed(1)}%</span>
+                    <span className="source-percentage">{formatNumber(share, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%</span>
                   </div>
                   <div className="source-bar">
                     <div
@@ -116,7 +112,7 @@ export const Dashboard: React.FC = () => {
                       style={{ width: `${share}%` }}
                     />
                   </div>
-                  <span className="source-count">{count} orders</span>
+                  <span className="source-count">{tc('dashboard.sourceCount', count)}</span>
                 </div>
               );
             })}
@@ -125,7 +121,7 @@ export const Dashboard: React.FC = () => {
       </section>
 
       <section className="recent-orders">
-        <h2>Recent Orders</h2>
+        <h2>{t('dashboard.recentOrders')}</h2>
         <div className="recent-orders-list">
           {recentOrders.map((order: Order) => (
             <div key={order.id} className="recent-order-item">
@@ -151,10 +147,10 @@ export const Dashboard: React.FC = () => {
               </div>
               <div className="order-right">
                 <span className={`order-status status-${order.status.toLowerCase()}`}>
-                  {order.status}
+                  {statusText(order.status, t)}
                 </span>
                 <p className="order-amount">
-                  {order.total_amount} {order.currency}
+                  {formatMoney(order.total_amount, order.currency)}
                 </p>
               </div>
             </div>
@@ -164,6 +160,11 @@ export const Dashboard: React.FC = () => {
     </div>
   );
 };
+
+function statusText(status: string, t: (key: MessageKey) => string): string {
+  const key = `status.${status}`;
+  return key in en ? t(key as MessageKey) : status;
+}
 
 function percentage(count: number, total: number): number {
   return total === 0 ? 0 : (count / total) * 100;
@@ -179,6 +180,7 @@ interface StatCardProps {
 }
 
 const StatCard: React.FC<StatCardProps> = ({ title, value, icon, color, to }) => {
+  const { t } = useTranslation();
   const content = (
     <>
       <div className="stat-icon">{icon}</div>
@@ -190,7 +192,7 @@ const StatCard: React.FC<StatCardProps> = ({ title, value, icon, color, to }) =>
   );
   const className = `stat-card stat-${color}`;
   return to ? (
-    <Link to={to} className={`${className} stat-link`} aria-label={`${title}: ${value}, view orders`}>
+    <Link to={to} className={`${className} stat-link`} aria-label={t('dashboard.totalOrdersLink', { title, value })}>
       {content}
     </Link>
   ) : (

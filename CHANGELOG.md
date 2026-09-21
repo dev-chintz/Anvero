@@ -6,6 +6,14 @@ All significant changes to the Anvero project.
 
 ## 2026-09-21
 
+### 🌐 Polish interface, English selectable
+
+- The whole interface is available in Polish and English. Polish is the default;
+  the choice is a button in the sidebar footer (and on the login page) and a
+  selector in Settings, and is kept per browser. Dates, numbers and amounts
+  follow the language; Polish plurals (1 / 2-4 / 5+) are handled.
+- Backend messages (`detail` of an error) are still English.
+
 ### 🔗 Dashboard links into the orders
 
 - The Total Orders card links to the orders list, and a recent order's number
