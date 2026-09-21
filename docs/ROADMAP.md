@@ -88,6 +88,64 @@ order is handled in Allegro anyway, which undercuts the MVP's own goal of not
 switching between panels. Invoicing and courier labels stay out until
 shipments themselves are in.
 
+#### What Allegro's API offers beyond this (surveyed 2026-09-21)
+
+From Allegro's developer documentation (the overview and the orders tutorial),
+read but never run. Endpoints marked *from memory* were not in what was read
+and must be confirmed before building on them.
+
+**Two-way today: none.** Anvero only reads. A status changed here never
+reaches Allegro; it goes one way, Allegro to Anvero.
+
+Read, not yet used:
+
+- **Order events**, `GET /order/events`: bought, filled in, ready for
+  processing, cancelled by the buyer, auto-cancelled, fulfillment status
+  changed; last 60 days only. More exact than polling `updatedAt`, and it
+  names *why* an order was cancelled.
+- **Shipments**, `GET /order/checkout-forms/{id}/shipments`, and carrier
+  tracking, `GET /order/carriers/{id}/tracking?waybill=`: carrier, waybill,
+  status history (60 days, at most 20 waybills per request). Fills the empty
+  "Shipping" column.
+- **Buyer messages** (`/messaging/...`, *from memory*), **returns**
+  (`/order/customer-returns`) and **disputes/claims**: an alert on an order
+  with an open case.
+- **Billing and payments** (`/billing/billing-entries`, payment operations):
+  Allegro's fees and refunds per order, so the real margin, not just the sale.
+- Offers (stock, prices) and ratings: outside order handling.
+
+Write, what could be sent to Allegro:
+
+1. **Fulfillment status**, `PUT /order/checkout-forms/{id}/fulfillment`
+   (NEW, PROCESSING, READY_FOR_SHIPMENT, SENT, READY_FOR_PICKUP, PICKED_UP,
+   DELIVERED, CANCELLED). Closes the loop: work an order in Anvero only.
+2. **Tracking number**, `POST /order/checkout-forms/{id}/shipments` (carrier
+   id and waybill); Allegro then notifies the buyer.
+3. **Invoices**, `POST .../invoices` and the PDF upload (10 per order, PDF up to
+   3 MB).
+4. **Messages to the buyer** and replies in disputes.
+5. **Refunds**, `POST /payments/refunds`, full or partial, with a reason.
+   Real money: needs an explicit confirmation in the interface.
+6. **Courier labels**, "Wysyłam z Allegro" (`/shipment-management/...`, *from
+   memory*): create and cancel shipments, labels, pickups. Needs an active
+   carrier contract on Allegro's side.
+7. Offers: price, stock, publish and unpublish. A large area of its own.
+
+Suggested order: 1 and 2 together with importing shipments and tracking (that
+is item 4 itself), then billing entries for margin, then messages and case
+alerts, and invoices and labels last, since they add contracts and formats.
+
+Cautions before any write:
+
+- **Scopes.** Writing needs OAuth scopes the application must carry, and the
+  account must be connected again in Settings to grant them. Which scopes the
+  current connection requests was not checked; a first write may be refused.
+- **Real consequences** (buyer notifications, invoices, money): each feature is
+  tried on the Sandbox first, and refunds and messages get a confirmation step.
+- **Who wins.** Status already follows Allegro when it moves
+  (`DECISIONS.md`); sending statuses back needs a rule for two changes at once,
+  decided before it is built.
+
 ### 5. The interface — a visual pass, once the system works
 
 The interface will be reworked, but deliberately after items 1–3, when
