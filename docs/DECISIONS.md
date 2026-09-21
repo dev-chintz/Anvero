@@ -166,7 +166,7 @@ Supabase) was the alternative.
 **Consequences:** The NAS must be reachable: on the home network by its LAN
 address, elsewhere only through a VPN (Tailscale), never by forwarding port
 5432 on the router. A second container in the same Container Station app
-(`prodrigestivill/postgres-backup-local:17`) runs `pg_dump` nightly into the
+(`prodrigestivill/postgres-backup-local:17`) runs `pg_dump` nightly (about midnight) into the
 NAS shared folder `anvero-backup` (7 daily, 4 weekly, 3 monthly kept). The NAS
 has a single disk, so those dumps do not survive its failure: a Hybrid Backup
 Sync job copies the folder every day at 03:00 to a Google Drive account made

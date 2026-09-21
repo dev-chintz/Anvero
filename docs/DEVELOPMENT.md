@@ -55,7 +55,7 @@ Tailscale package on the NAS is version 1.40.0 from the QNAP App Center; if
 `domowy` shows as offline, open the app on the NAS from App Center and check it
 is signed in and running.
 
-A second container in the same Container Station app dumps the database each
+A second container in the same Container Station app dumps the database at about midnight each
 night into the NAS folder `anvero-backup` (7 daily, 4 weekly, 3 monthly). To
 Hybrid Backup Sync copies that folder every day at 03:00 to a dedicated
 Google Drive account, encrypted (`.qdff`); to get a dump back, run an HBS
