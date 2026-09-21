@@ -19,8 +19,8 @@ The model will be deployed via migrations after framework selection, but a commo
 ## Implemented so far
 
 Migrations currently create `users`, `orders`, `order_items`,
-`order_addresses`, `order_shipments`, `order_status_history` and
-`integration_credentials`. `integration` and `customer` are still targets.
+`order_addresses`, `order_shipments`, `billing_entries`,
+`order_status_history` and `integration_credentials`. `integration` and `customer` are still targets.
 
 `orders` deviates from the target shape while there are no integrations to
 point at:
@@ -94,6 +94,17 @@ marketplace's clock), `tracking_status` (the carrier's latest code:
 parcels an import could not read are left as they were.
 
 All three child tables are deleted with their order.
+
+`billing_entries`: the marketplace's own record of fees and corrections on the
+seller's account, one row per operation, never changed once stored. `source`,
+`external_id` (the marketplace's id; unique together), `occurred_at`,
+`type_id` and `type_name` (its code and name for the kind of operation, e.g.
+`SUC`, sales commission), `amount` (signed: a charge is negative, a refund of
+a fee positive) and `currency`, `order_external_id` (the marketplace's order
+id, for the types that name one; indexed) and `offer_id`, `offer_name`. There
+is deliberately no foreign key to `orders`: an entry may be read before its
+order is, or belong to none (a subscription, an advertising fee). It is tied
+to an order by `(source, order_external_id)`.
 
 These columns hold buyers' personal data: names, addresses, phone numbers.
 It is never written to logs; mapping problems are logged by field name only.

@@ -322,6 +322,48 @@ class OrderShipment(Base):
     order: Mapped["Order"] = relationship(back_populates="shipments")
 
 
+class BillingEntry(Base):
+    """One operation on the seller's account with the marketplace: a fee, a
+    correction, a refund of a fee.
+
+    Kept by the marketplace's own id and never changed once stored, so a
+    re-read only adds what is new. Not tied to an order by a foreign key: the
+    entry names the marketplace's order id, and may be read before the order
+    itself is, or belong to none (a subscription, an advertising fee).
+    """
+
+    __tablename__ = "billing_entries"
+    __table_args__ = (
+        UniqueConstraint("source", "external_id", name="uq_billing_entries_source_external_id"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        Uuid(as_uuid=True),
+        primary_key=True,
+        default=uuid.uuid4,
+    )
+
+    source: Mapped[OrderSource] = mapped_column(
+        Enum(OrderSource, native_enum=False, length=32), nullable=False
+    )
+    external_id: Mapped[str] = mapped_column(String(255), nullable=False)
+
+    occurred_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+    # the marketplace's short code and name for the kind of operation
+    type_id: Mapped[str] = mapped_column(String(32), nullable=False)
+    type_name: Mapped[str | None] = mapped_column(String(255))
+
+    # signed: a charge is negative, a refund or credit positive
+    amount: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False)
+    currency: Mapped[str] = mapped_column(String(3), nullable=False)
+
+    # the marketplace's id of the order it concerns, for the types that name one
+    order_external_id: Mapped[str | None] = mapped_column(String(255), index=True)
+    offer_id: Mapped[str | None] = mapped_column(String(255))
+    offer_name: Mapped[str | None] = mapped_column(String(500))
+
+
 class OrderAddress(Base):
     """A delivery, invoice or pickup point address; at most one of each."""
 

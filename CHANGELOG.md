@@ -6,6 +6,16 @@ All significant changes to the Anvero project.
 
 ## 2026-09-21
 
+### 💸 Allegro's fees, per order
+
+- Every import also reads the seller's billing entries (commission and other
+  fees, and refunds of them) and stores each once (`billing_entries`,
+  migration `c4e8a2f6d139`, with its own sync point). `GET
+  /orders/{id}/billing` gives an order's entries and their sum; the order shows
+  them as "Marketplace fees" with the total after fees.
+- Best effort, like the shipments: a refusal (the billing scope) or failure
+  never fails an import. Not yet tried against the real API.
+
 ### 📦 Shipments and tracking, read from Allegro
 
 - An import now reads the parcels (carrier, waybill) of orders Allegro reports

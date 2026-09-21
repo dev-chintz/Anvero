@@ -8,8 +8,9 @@ import {
   marketplaceStatusDiffers,
   marketplaceStatusText,
 } from "../types/order";
-import type { OrderStatusChange, OrderWithDetails } from "../types/order";
+import type { OrderBilling, OrderStatusChange, OrderWithDetails } from "../types/order";
 import { translate, useTranslation } from "../i18n";
+import { OrderBillingCard } from "./OrderBillingCard";
 import { OrderDetailsPanel } from "./OrderDetailsPanel";
 import "../styles/OrderHistory.css";
 
@@ -39,6 +40,7 @@ export function OrderDetail() {
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [history, setHistory] = useState<OrderStatusChange[]>([]);
+  const [billing, setBilling] = useState<OrderBilling | null>(null);
 
   useEffect(() => {
     if (!id) return;
@@ -56,6 +58,12 @@ export function OrderDetail() {
         // a failure here must not hide the order itself
         const entries = await ordersApi.history(data.id).catch(() => []);
         if (!cancelled) setHistory(entries);
+        // like the history, its failure must not hide the order; the promise
+        // wrapper also catches a call that throws before returning one
+        const fees = await Promise.resolve()
+          .then(() => ordersApi.billing(data.id))
+          .catch(() => null);
+        if (!cancelled) setBilling(fees);
       })
       .catch((err: unknown) => {
         if (cancelled) return;
@@ -246,6 +254,10 @@ export function OrderDetail() {
         )}
 
         {!loading && !error && !notFound && order && <OrderDetailsPanel order={order} />}
+
+        {!loading && !error && !notFound && order && billing && (
+          <OrderBillingCard billing={billing} orderTotal={order.total_amount} />
+        )}
 
         {!loading && !error && !notFound && order && (
           <section className="status-history" aria-label={t("history.title")}>

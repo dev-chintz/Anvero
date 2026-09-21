@@ -1,5 +1,6 @@
 import uuid
 from datetime import date
+from decimal import Decimal
 
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
@@ -10,6 +11,7 @@ from app.models.order import OrderSource, OrderStatus
 from app.models.user import User
 from app.repositories.order_repository import OrderRepository
 from app.schemas.order import (
+    OrderBillingRead,
     OrderCreate,
     OrderDetailRead,
     OrderListResponse,
@@ -72,6 +74,19 @@ def get_order(order_id: uuid.UUID, db: Session = Depends(get_db)):
 def get_order_status_history(order_id: uuid.UUID, db: Session = Depends(get_db)):
     service = OrderService(OrderRepository(db))
     return service.get_status_history(order_id)
+
+
+@router.get("/{order_id}/billing", response_model=OrderBillingRead)
+def get_order_billing(order_id: uuid.UUID, db: Session = Depends(get_db)):
+    repository = OrderRepository(db)
+    order = OrderService(repository).get_order(order_id)
+    entries = repository.list_billing_entries(order)
+    return OrderBillingRead(
+        entries=entries,
+        # an entry in another currency cannot be added to the order's
+        total=sum((e.amount for e in entries if e.currency == order.currency), Decimal("0.00")),
+        currency=order.currency,
+    )
 
 
 # path follows the contract in docs/API.md: status is its own sub-resource

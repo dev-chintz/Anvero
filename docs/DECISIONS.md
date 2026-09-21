@@ -922,3 +922,11 @@ branch is unverified: only the SQLite path has been run.
 **Rationale:** The checkout form has no tracking numbers, so there is no way to get them without a call per order; limiting it to orders that have left keeps the cost small. Refreshing tracking separately is needed because a carrier moving a parcel does not change the order, so the import that fetches only changed orders would leave the first status showing forever. The order's status stays the marketplace's fulfillment status alone, so two sources cannot disagree about it.
 
 **Consequences:** More Allegro calls per import (one per newly sent order, plus batches of 20 waybills). The endpoints' scope is not documented and was not tried: if Allegro refuses, shipments simply stay empty and the log says so. Carriers Allegro cannot track never get a status. Tracking history exists for 60 days, so older parcels are not refreshed.
+
+## 2026-09-21 — Fees: stored as the marketplace's own entries, tied to orders by its order id
+
+**Decision:** The marketplace's billing entries are stored one row each in `billing_entries`, by the marketplace's id, never updated, and read by their own sync point with a one-day overlap. They are tied to an order by `(source, order_external_id)` with no foreign key, and served as a sub-resource, `GET /orders/{id}/billing`, with their sum. Reading them is best effort like shipments.
+
+**Rationale:** Entries are a stream of events that exist independently of orders: one may arrive before its order, or name none, so a foreign key would reject or lose them, and storing them whole keeps them available for account-level questions (advertising, subscriptions) later. Skipping ids already stored makes overlapping reads free and the overlap protects against late postings. A sub-resource, like the history, keeps the order's own response and its list unchanged.
+
+**Consequences:** One more read per import. The billing scope is not known to be granted, in which case the card stays empty and the log says why. What the history includes beyond fees is unverified, so the total is labelled net fees, and no margin is shown, since the cost of goods is not known to Anvero.

@@ -187,6 +187,25 @@ export function marketplaceStatusText(order: Order): string {
   return order.marketplace_status_label ?? order.marketplace_status ?? "";
 }
 
+/** One operation on the seller's marketplace account: a fee, a correction, a refunded fee. */
+export interface BillingEntry {
+  id: string;
+  occurred_at: string;
+  type_id: string;
+  type_name: string | null;
+  /** Signed: a charge is negative. */
+  amount: string;
+  currency: string;
+}
+
+/** What the marketplace has charged, and credited back, for one order. */
+export interface OrderBilling {
+  entries: BillingEntry[];
+  /** The entries added up in the order's currency; negative is a net charge. */
+  total: string;
+  currency: string;
+}
+
 export interface OrderListResponse {
   items: Order[];
   total: number;

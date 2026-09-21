@@ -9,6 +9,7 @@ from app.repositories.integration_credential_repository import (
 )
 from app.repositories.order_repository import OrderRepository
 from app.schemas.order import OrderCreate
+from app.schemas.types import _as_utc
 from app.services.order_details import apply_details
 
 logger = logging.getLogger(__name__)
@@ -37,6 +38,9 @@ class ImportResult:
 # Allegro stamps an order's change time itself, and a moment lost between its
 # clock and ours must not leave an order out of two consecutive runs
 SYNC_OVERLAP = timedelta(minutes=5)
+
+# billing entries may be posted a while after they occurred
+BILLING_OVERLAP = timedelta(days=1)
 
 
 class OrderImportService:
@@ -103,7 +107,37 @@ class OrderImportService:
                 provider,
             )
         self._refresh_tracking()
+        self._sync_billing(started_at)
         return result
+
+    def _sync_billing(self, started_at: datetime) -> None:
+        """Read the marketplace's billing entries (its fees) that are new.
+
+        Entries are events of their own, so they have their own sync point,
+        and reach back a day further than it: they are stored by the
+        marketplace's id, which makes reading the same ones twice harmless,
+        and an entry posted late is not missed. Best effort like the tracking:
+        a refusal (the application lacking the billing scope) or a failure is
+        logged and the point stays, so the next import tries the same ground.
+        """
+        fetch = getattr(self.adapter, "fetch_billing_entries", None)
+        if fetch is None or self.credentials is None:
+            return
+        provider = self.adapter.source.value
+        try:
+            recorded = self.credentials.last_billing_synced_at(provider)
+            since = (
+                _as_utc(recorded) - BILLING_OVERLAP
+                if recorded is not None
+                else started_at - timedelta(days=self.initial_days)
+            )
+            entries = fetch(since)
+            added = self.repository.add_billing_entries(entries)
+            self.credentials.set_last_billing_synced_at(provider, started_at - SYNC_OVERLAP)
+            logger.info("Billing entries read: %d, %d new", len(entries), added)
+        except Exception:
+            self.repository.db.rollback()
+            logger.exception("Reading billing entries failed; the import itself is unaffected")
 
     def _refresh_tracking(self) -> None:
         """Bring the tracking status of parcels on their way up to date.

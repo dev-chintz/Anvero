@@ -1,5 +1,6 @@
 import { SESSION_EXPIRED_EVENT, clearToken, getToken } from "../auth/session";
 import type {
+  OrderBilling,
   OrderListResponse,
   OrderStats,
   OrderStatusChange,
@@ -231,6 +232,10 @@ export const ordersApi = {
 
   get(orderId: string): Promise<OrderWithDetails> {
     return request<OrderWithDetails>(`/orders/${orderId}`);
+  },
+
+  billing(orderId: string): Promise<OrderBilling> {
+    return request<OrderBilling>(`/orders/${orderId}/billing`);
   },
 
   history(orderId: string): Promise<OrderStatusChange[]> {

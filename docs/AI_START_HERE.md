@@ -41,7 +41,7 @@ breakdown; the short version:
   history.
 - Allegro adapter, import script, an import endpoint and a button, one
   import at a time.
-- 305 backend and 62 frontend tests passing.
+- 325 backend and 65 frontend tests passing.
 
 - One shared PostgreSQL 17 on the owner's NAS is the development database;
   each machine's `backend/.env` points at it (the password is not in Git, ask

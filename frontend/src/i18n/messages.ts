@@ -251,6 +251,13 @@ export const en = {
   "allegro.connectedNote": "Connected as {login}.",
   "allegro.connectedNoteAnonymous": "Connected.",
 
+  // fees
+  "billing.title": "Marketplace fees",
+  "billing.total": "Fees, net",
+  "billing.afterFees": "Order total after fees",
+  "billing.empty": "No fees recorded for this order yet. They appear some time after the sale, and only once the marketplace's billing can be read.",
+  "billing.entryFallback": "Operation {type}",
+
   // shipments
   "details.shipments": "Shipments",
   "details.waybill": "Waybill {waybill}",
@@ -516,6 +523,12 @@ export const pl: Record<MessageKey, string> & Record<string, string> = {
   "allegro.enterCredentials": "Najpierw wpisz i zapisz dane aplikacji.",
   "allegro.connectedNote": "Połączono jako {login}.",
   "allegro.connectedNoteAnonymous": "Połączono.",
+
+  "billing.title": "Opłaty marketplace'u",
+  "billing.total": "Opłaty netto",
+  "billing.afterFees": "Wartość zamówienia po opłatach",
+  "billing.empty": "Brak zapisanych opłat dla tego zamówienia. Pojawiają się jakiś czas po sprzedaży i tylko wtedy, gdy da się odczytać rozliczenia marketplace'u.",
+  "billing.entryFallback": "Operacja {type}",
 
   "details.shipments": "Przesyłki",
   "details.waybill": "List przewozowy {waybill}",

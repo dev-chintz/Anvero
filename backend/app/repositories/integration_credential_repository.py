@@ -30,6 +30,18 @@ class IntegrationCredentialRepository:
         self.db.commit()
         return True
 
+    def last_billing_synced_at(self, provider: str) -> datetime | None:
+        credential = self.get(provider)
+        return credential.last_billing_synced_at if credential else None
+
+    def set_last_billing_synced_at(self, provider: str, value: datetime) -> bool:
+        credential = self.get(provider)
+        if credential is None:
+            return False
+        credential.last_billing_synced_at = value
+        self.db.commit()
+        return True
+
     def record_import(
         self,
         provider: str,
@@ -71,6 +83,7 @@ class IntegrationCredentialRepository:
         credential.seed_fingerprint = seed_fingerprint
         credential.account_login = account_login
         credential.last_synced_at = None
+        credential.last_billing_synced_at = None
         credential.last_import_at = None
         credential.last_import_created = None
         credential.last_import_updated = None
@@ -100,6 +113,7 @@ class IntegrationCredentialRepository:
             # authorized again, possibly as another seller: what was fetched
             # for the previous account says nothing about this one
             credential.last_synced_at = None
+            credential.last_billing_synced_at = None
         credential.refresh_token = refresh_token
         credential.seed_fingerprint = seed_fingerprint
         # committed on its own, immediately: the token it replaces dies within

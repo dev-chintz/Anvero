@@ -17,6 +17,7 @@ from app.schemas.order import (
     BUYER_MESSAGE_MAX_LENGTH,
     SELLER_NOTE_MAX_LENGTH,
     Address,
+    BillingEntryCreate,
     Customer,
     Delivery,
     Invoice,
@@ -238,6 +239,37 @@ def _moment(raw: Any) -> datetime | None:
     except ValueError:
         return None
     return (moment if moment.tzinfo else moment.replace(tzinfo=UTC)).astimezone(UTC)
+
+
+def map_billing_entry(raw: dict[str, Any]) -> BillingEntryCreate | None:
+    """One item of GET /billing/billing-entries, or None if it cannot be used.
+
+    Without an id, a type, an amount or a time there is nothing to keep; the
+    order and offer are optional, since only some types name them.
+    """
+    entry_type = _obj(raw.get("type"))
+    value = _obj(raw.get("value"))
+    occurred_at = _moment(raw.get("occurredAt"))
+    entry_id = _text(raw.get("id"))
+    if entry_id is None or occurred_at is None:
+        return None
+    return _build(
+        BillingEntryCreate,
+        entry_id,
+        "billing entry",
+        {
+            "source": OrderSource.ALLEGRO,
+            "external_id": entry_id,
+            "occurred_at": occurred_at,
+            "type_id": _text(entry_type.get("id")),
+            "type_name": _text(entry_type.get("name")),
+            "amount": _text(value.get("amount")),
+            "currency": _text(value.get("currency")),
+            "order_external_id": _text(_obj(raw.get("order")).get("id")),
+            "offer_id": _text(_obj(raw.get("offer")).get("id")),
+            "offer_name": _text(_obj(raw.get("offer")).get("name")),
+        },
+    )
 
 
 def map_tracking(raw: dict[str, Any]) -> tuple[str, datetime | None] | None:

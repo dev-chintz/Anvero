@@ -96,6 +96,8 @@ and must be confirmed before building on them.
 
 **Started 2026-09-21:** reading shipments and carrier tracking (the first two
 "Read" items below), shown in the list's Shipping column and on the order.
+Also started 2026-09-21: **billing entries**, Allegro's fees per order, shown
+on the order as "Marketplace fees" (not yet checked against real data).
 Everything else here is still to do.
 
 **Two-way today: none.** Anvero only reads. A status changed here never

@@ -34,6 +34,13 @@ class IntegrationCredential(Base):
         DateTime(timezone=True), nullable=True
     )
 
+    # where the next read of the marketplace's billing entries (fees) resumes,
+    # kept apart from `last_synced_at`: entries are a stream of their own.
+    # Null until one has run, and again after a re-authorization.
+    last_billing_synced_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+
     # how the last import ended, whoever started it (the button or the
     # schedule): when, what it stored, and the error if it failed. Kept beside
     # the token because an import is per marketplace account.

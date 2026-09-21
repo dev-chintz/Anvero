@@ -9,6 +9,7 @@ from app.integrations.allegro.client import (
 )
 from app.integrations.allegro.mapper import (
     OrderMappingError,
+    map_billing_entry,
     map_checkout_form,
     map_shipment,
     map_tracking,
@@ -19,7 +20,7 @@ from app.integrations.base import (
     IntegrationUnavailable,
 )
 from app.models.order import OrderSource, OrderStatus
-from app.schemas.order import OrderCreate
+from app.schemas.order import BillingEntryCreate, OrderCreate
 
 logger = logging.getLogger(__name__)
 
@@ -75,6 +76,36 @@ class AllegroAdapter:
             f"Allegro returned more than {MAX_PAGES * MAX_PAGE_SIZE} orders for one "
             "import; narrow the window and run it again"
         )
+
+    def fetch_billing_entries(self, since: datetime) -> list[BillingEntryCreate]:
+        """Every billing entry that occurred at or after `since`, all pages.
+
+        Raises rather than returning what it has if a page fails, so the
+        caller does not record a complete read it did not make. Entries that
+        cannot be mapped are skipped and logged by count.
+        """
+        entries: list[BillingEntryCreate] = []
+        skipped = 0
+        for page_number in range(MAX_PAGES):
+            raw = self._client.fetch_billing_entries(
+                since, MAX_PAGE_SIZE, page_number * MAX_PAGE_SIZE
+            )
+            for item in raw:
+                entry = map_billing_entry(item)
+                if entry is None:
+                    skipped += 1
+                else:
+                    entries.append(entry)
+            if len(raw) < MAX_PAGE_SIZE:
+                break
+        else:
+            raise IntegrationUnavailable(
+                f"Allegro returned more than {MAX_PAGES * MAX_PAGE_SIZE} billing entries; "
+                "narrow the window and run it again"
+            )
+        if skipped:
+            logger.warning("%d billing entries could not be mapped and were skipped", skipped)
+        return entries
 
     def _fetch_page(
         self,

@@ -292,6 +292,31 @@ class AllegroClient:
             raise IntegrationUnavailable("Allegro tracking is not a list")
         return [w for w in found if isinstance(w, dict)]
 
+    def fetch_billing_entries(
+        self, occurred_since: datetime, limit: int = MAX_PAGE_SIZE, offset: int = 0
+    ) -> list[dict[str, Any]]:
+        """Return one page of the seller's billing entries (fees, corrections).
+
+        `GET /billing/billing-entries`, newest first, for operations that
+        occurred at or after `occurred_since`. Each carries `type`, a signed
+        `value` and, for the types that name one, `order.id`.
+        """
+        if not 1 <= limit <= MAX_PAGE_SIZE:
+            raise ValueError(f"limit must be between 1 and {MAX_PAGE_SIZE}")
+        payload = self._get_object(
+            "/billing/billing-entries",
+            "billing entries",
+            params=[
+                ("occurredAt.gte", _timestamp(occurred_since)),
+                ("limit", str(limit)),
+                ("offset", str(offset)),
+            ],
+        )
+        entries = payload.get("billingEntries", [])
+        if not isinstance(entries, list):
+            raise IntegrationUnavailable("Allegro billing entries is not a list")
+        return [e for e in entries if isinstance(e, dict)]
+
     def fetch_account_login(self) -> str | None:
         """Return the login of the seller the token belongs to, or None.
 

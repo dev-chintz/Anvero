@@ -9,12 +9,14 @@ from sqlalchemy.orm import Query, Session
 from app.core.config import settings
 from app.core.order_number import parse_order_number
 from app.models.order import (
+    BillingEntry,
     Order,
     OrderShipment,
     OrderSource,
     OrderStatus,
     OrderStatusHistory,
 )
+from app.schemas.order import BillingEntryCreate
 
 PENDING_STATUSES = (OrderStatus.NEW, OrderStatus.CONFIRMED)
 
@@ -146,6 +148,45 @@ class OrderRepository:
                 )
                 .order_by(OrderShipment.shipped_at.desc())
                 .limit(limit)
+            )
+        )
+
+    def add_billing_entries(self, entries: list[BillingEntryCreate]) -> int:
+        """Store the entries not stored yet; returns how many were new.
+
+        An entry never changes once the marketplace has issued it, so one
+        already stored is left alone, and reading an overlapping window twice
+        adds nothing.
+        """
+        added = 0
+        for start in range(0, len(entries), 500):
+            chunk = entries[start : start + 500]
+            known = set(
+                self.db.scalars(
+                    select(BillingEntry.external_id).where(
+                        BillingEntry.source.in_({e.source for e in chunk}),
+                        BillingEntry.external_id.in_([e.external_id for e in chunk]),
+                    )
+                )
+            )
+            for entry in chunk:
+                if entry.external_id in known:
+                    continue
+                known.add(entry.external_id)
+                self.db.add(BillingEntry(**entry.model_dump()))
+                added += 1
+        self.db.commit()
+        return added
+
+    def list_billing_entries(self, order: Order) -> list[BillingEntry]:
+        return list(
+            self.db.scalars(
+                select(BillingEntry)
+                .where(
+                    BillingEntry.source == order.source,
+                    BillingEntry.order_external_id == order.external_id,
+                )
+                .order_by(BillingEntry.occurred_at, BillingEntry.external_id)
             )
         )
 

@@ -342,6 +342,34 @@ that order its parcels, not the import. Parcels an import could not read are
 left as they were. The response shapes come from Allegro's documentation, not
 from a real response: a carrier Allegro cannot track just gets no status.
 
+### Fees (billing entries)
+
+After the orders, every import reads the seller's billing entries from
+`GET /billing/billing-entries` (newest first, 100 a page, all pages; the
+parameters used are `occurredAt.gte`, `limit` and `offset`): each has an `id`,
+`occurredAt`, a `type` (`id` such as `SUC` for the sales commission, and
+`name`), a signed `value` (`amount`, `currency`), sometimes an `offer` and,
+for the types that show one, `order.id`, which is the checkout-form id and so
+what ties the entry to an order. They are stored by that id in
+`billing_entries` and shown on the order as "Marketplace fees", with their sum
+and the order's total less them.
+
+- **Its own sync point**, `last_billing_synced_at`: the first read reaches back
+  `ALLEGRO_INITIAL_IMPORT_DAYS`, later ones resume from the point less one
+  day. The overlap costs nothing, since an entry already stored is skipped, and
+  catches one posted late. The point moves only after every page was read and
+  stored, and is reset when an account is connected.
+- **Best effort.** A refusal (the application needs the
+  `allegro:api:billing:read` scope, and the connection may need to be made
+  again to grant it) or any failure is logged and the point stays; the import
+  itself is unaffected. Until it works the fees card says nothing is recorded.
+- **Not verified:** the shape comes from Allegro's documentation, not a real
+  response. It is not known whether the history holds only fees and their
+  refunds or also other movements of money, so the card calls the sum "fees,
+  net" and it is worth checking against one real order before trusting it.
+  Fees that name no order (subscriptions, advertising) are stored but not
+  shown anywhere yet. No cost of goods is known, so this is not a margin.
+
 ### Known limits
 
 - **An unused token chain lapses after three months.** Each rotation grants

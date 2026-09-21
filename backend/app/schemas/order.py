@@ -97,6 +97,40 @@ class ShipmentRead(ShipmentCreate):
     model_config = ConfigDict(from_attributes=True)
 
 
+class BillingEntryCreate(BaseModel):
+    source: OrderSource
+    external_id: str = Field(min_length=1, max_length=255)
+    occurred_at: UtcDateTime
+    type_id: str = Field(min_length=1, max_length=32)
+    type_name: str | None = _text(255)
+    # signed: a charge is negative, a refund or credit positive
+    amount: Decimal = Field(max_digits=12, decimal_places=2)
+    currency: str = Field(min_length=3, max_length=3)
+    order_external_id: str | None = _text(255)
+    offer_id: str | None = _text(255)
+    offer_name: str | None = _text(500)
+
+
+class BillingEntryRead(BaseModel):
+    id: uuid.UUID
+    occurred_at: UtcDateTime
+    type_id: str
+    type_name: str | None
+    amount: Decimal
+    currency: str
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class OrderBillingRead(BaseModel):
+    """What the marketplace has charged, and credited back, for one order."""
+
+    entries: list[BillingEntryRead]
+    # the entries added up, in the order's currency: negative is a net charge
+    total: Decimal
+    currency: str
+
+
 class PickupPoint(BaseModel):
     id: str | None = _text(255)
     name: str | None = _text(255)

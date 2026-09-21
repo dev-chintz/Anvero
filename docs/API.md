@@ -135,6 +135,27 @@ Error responses:
 Every error detail is a plain description; none of them include a token,
 credential or raw Allegro response.
 
+## `GET /api/v1/orders/{id}/billing`
+
+What the marketplace has charged, and credited back, for one order:
+
+```json
+{
+  "entries": [
+    {"id": "...", "occurred_at": "...Z", "type_id": "SUC", "type_name": "Prowizja od sprzedaży", "amount": "-8.50", "currency": "PLN"}
+  ],
+  "total": "-8.50",
+  "currency": "PLN"
+}
+```
+
+`amount` is signed: a charge is negative, a refund of a fee positive. `total`
+is the entries added up, in the order's currency (an entry in another one is
+listed but not added); `"0.00"` and an empty list when nothing is recorded,
+which is also what an order looks like before Allegro has posted its fees, or
+while the application cannot read the marketplace's billing (see
+`INTEGRATIONS.md`, "Fees"). `404` for an unknown order.
+
 ## `GET /api/v1/orders`
 
 All query parameters are optional and combine. Filtering is applied by the
