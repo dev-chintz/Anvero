@@ -1,5 +1,38 @@
 # Decision Log
 
+## 2026-09-21 — Orders Get Anvero's Own Continuous Number
+
+**Decision:** Every order has `order_number`, an integer taken from a counter
+when the row is created, unique across all sources, never changed or reused,
+shown as `AN-000123` (`order_label`, computed where the API serialises it).
+Numbering happens in a SQLAlchemy `before_insert` listener on `Order`, so the
+API, an import and the sample-data script all get it without each remembering
+to. The counter is a row in a new `counters` table, incremented in the same
+transaction as the insert. Migration `f7a2c4e8b613` numbered existing orders by
+purchase date, oldest first. The number is the first thing in the list's Order
+cell (the marketplace's id sits beneath it), a field in the order page, and
+searchable in any form a person types it (`AN-000123`, `an-123`, `123`). A
+first import stores its orders oldest purchase first, so numbers follow when
+orders were placed rather than the order Allegro's pages arrive in (newest
+first); that means a run now fetches every page before storing any.
+
+**Rationale:** The owner wanted numbering for internal needs, and Allegro's and
+ERLI's order ids are neither ours nor comparable. The choices, all the owner's
+to reverse: one continuous sequence rather than per source or per year, so a
+number identifies an order on its own and needs no reset; prefix and padding
+kept out of the database so the look can change without a migration; existing
+orders numbered rather than left blank, so no order lacks one. A plain
+autoincrement column was not an option: it is only allowed on the primary key,
+which is a UUID, and the tests also run on SQLite. Incrementing the counter
+row before reading it holds its row lock on PostgreSQL until commit, so two
+orders created at once cannot get the same number; the cost is that they
+serialise, and that a rolled-back insert can leave a gap, which an internal
+number tolerates. It is deliberately not an accounting document number:
+invoices need their own gapless numbering, usually yearly, which belongs with
+the invoicing work (`ROADMAP.md`, item 4) and should not be conflated with this.
+The migration was run with data on both PostgreSQL and SQLite, up, down and up
+again, with `alembic check` clean.
+
 ## 2026-09-21 — Allegro Is Connected From Settings, by the Device Flow
 
 **Decision:** Settings has an Allegro section: environment (sandbox or

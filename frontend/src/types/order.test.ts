@@ -11,6 +11,8 @@ import {
 function makeOrder(overrides: Partial<Order> = {}): Order {
   return {
     id: "1",
+    order_number: 1,
+    order_label: "AN-000001",
     external_id: "ext-1",
     source: OrderSource.ALLEGRO,
     status: OrderStatus.NEW,

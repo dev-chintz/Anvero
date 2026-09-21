@@ -7,6 +7,7 @@ from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Query, Session
 
 from app.core.config import settings
+from app.core.order_number import parse_order_number
 from app.models.order import Order, OrderSource, OrderStatus, OrderStatusHistory
 
 PENDING_STATUSES = (OrderStatus.NEW, OrderStatus.CONFIRMED)
@@ -182,12 +183,15 @@ class OrderRepository:
             # silently match every row
             escaped = search.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
             pattern = f"%{escaped}%"
-            query = query.filter(
-                or_(
-                    Order.external_id.ilike(pattern, escape="\\"),
-                    Order.customer_email.ilike(pattern, escape="\\"),
-                )
-            )
+            matches = [
+                Order.external_id.ilike(pattern, escape="\\"),
+                Order.customer_email.ilike(pattern, escape="\\"),
+            ]
+            # "AN-000123", "000123" and "123" all name order 123
+            number = parse_order_number(search)
+            if number is not None:
+                matches.append(Order.order_number == number)
+            query = query.filter(or_(*matches))
         return query
 
     def list(

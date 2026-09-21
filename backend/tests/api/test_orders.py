@@ -746,3 +746,40 @@ def test_invalid_details_are_rejected():
     for payload in bad_payloads:
         response = client.post("/api/v1/orders", json=payload)
         assert response.status_code == 422, payload["external_id"]
+
+
+# --- Anvero's own order number ---------------------------------------------
+
+
+def test_an_order_carries_its_number_and_the_label_it_is_shown_with():
+    created = client.post("/api/v1/orders", json=_order_payload(external_id="NUM-1")).json()
+
+    detail = client.get(f"/api/v1/orders/{created['id']}").json()
+
+    assert isinstance(created["order_number"], int)
+    assert detail["order_number"] == created["order_number"]
+    assert detail["order_label"] == f"AN-{created['order_number']:06d}"
+
+
+def test_orders_are_numbered_in_the_order_they_are_created():
+    first = client.post("/api/v1/orders", json=_order_payload(external_id="NUM-A")).json()
+    second = client.post("/api/v1/orders", json=_order_payload(external_id="NUM-B")).json()
+
+    assert second["order_number"] == first["order_number"] + 1
+
+
+def test_a_client_cannot_choose_the_number():
+    created = client.post(
+        "/api/v1/orders", json=_order_payload(external_id="NUM-C", order_number=1)
+    ).json()
+
+    assert created["order_number"] != 1
+
+
+def test_the_number_is_searchable_in_every_form_a_person_types_it():
+    created = client.post("/api/v1/orders", json=_order_payload(external_id="NUM-D")).json()
+    number = created["order_number"]
+
+    for term in (f"AN-{number:06d}", f"an-{number}", f"{number:06d}", str(number)):
+        found = client.get("/api/v1/orders", params={"search": term}).json()["items"]
+        assert created["id"] in [order["id"] for order in found], term

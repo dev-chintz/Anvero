@@ -462,7 +462,7 @@ def test_the_recorded_point_is_the_start_of_the_run_less_a_small_overlap(session
     assert before - SYNC_OVERLAP <= recorded <= datetime.now(UTC) - SYNC_OVERLAP
 
 
-def test_a_failed_sync_keeps_the_recorded_point_and_the_pages_already_stored(session):
+def test_a_sync_that_fails_while_fetching_stores_nothing_and_keeps_the_point(session):
     credentials = _credentials(session)
     adapter = PagedFakeAdapter([[_order("ALG-1")], [_order("ALG-2")]], fail_on_page=1)
 
@@ -472,7 +472,22 @@ def test_a_failed_sync_keeps_the_recorded_point_and_the_pages_already_stored(ses
         pass
 
     assert credentials.last_synced_at("ALLEGRO") is None
-    assert session.query(Order).count() == 1
+    assert session.query(Order).count() == 0
+
+
+def test_a_first_import_numbers_orders_by_purchase_date_not_page_order(session):
+    """Allegro serves the newest orders first; the numbers must still read in
+    the order the orders were placed."""
+    day = lambda d: datetime(2026, 9, d, tzinfo=UTC)
+    newest_page = [_placed(_order("NEW-9"), day(9)), _placed(_order("MID-5"), day(5))]
+    oldest_page = [_placed(_order("OLD-1"), day(1))]
+
+    _sync_service(
+        session, PagedFakeAdapter([newest_page, oldest_page]), _credentials(session)
+    ).sync_orders()
+
+    numbered = {o.external_id: o.order_number for o in session.query(Order).all()}
+    assert numbered == {"OLD-1": 1, "MID-5": 2, "NEW-9": 3}
 
 
 def test_days_forces_a_purchase_window_even_when_a_point_is_recorded(session):
@@ -497,3 +512,25 @@ def test_reauthorizing_forgets_the_recorded_point(session):
     credentials.save("ALLEGRO", "new-token", "another-seed")
 
     assert credentials.last_synced_at("ALLEGRO") is None
+
+
+# --- Anvero's own order numbers -------------------------------------------
+
+
+def test_every_new_order_gets_the_next_number(session):
+    _service(session, [_order("A"), _order("B"), _order("C")]).import_orders()
+
+    numbers = sorted(o.order_number for o in session.query(Order).all())
+    assert numbers == [numbers[0], numbers[0] + 1, numbers[0] + 2]
+
+
+def test_a_re_import_does_not_renumber_or_use_up_numbers(session):
+    _service(session, [_order("A")]).import_orders()
+    first = session.query(Order).one().order_number
+
+    _service(session, [_order("A")]).import_orders()
+    _service(session, [_order("B")]).import_orders()
+
+    numbers = {o.external_id: o.order_number for o in session.query(Order).all()}
+    assert numbers["A"] == first
+    assert numbers["B"] == first + 1

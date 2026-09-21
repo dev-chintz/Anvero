@@ -68,9 +68,8 @@ class OrderImportService:
         The point moves forward only when every page was fetched and stored,
         and it moves to when this run *started*, less SYNC_OVERLAP, so an
         order changed while the run was in progress is caught by the next.
-        A run that fails part way leaves it where it was: the pages already
-        stored stay stored, and the next run repeats them harmlessly, since
-        matching is by (source, external_id).
+        A run that fails leaves it where it was, and the next one repeats the
+        same ground harmlessly, since matching is by (source, external_id).
         """
         if self.credentials is None:
             raise RuntimeError("sync_orders needs the credential repository")
@@ -87,9 +86,15 @@ class OrderImportService:
             filters = {"updated_since": recorded}
             logger.info("Importing %s orders changed since %s", provider, recorded)
 
-        result = ImportResult(created=0, updated=0)
-        for orders in self.adapter.iter_order_pages(**filters):
-            result += self._store(orders)
+        # Every page is fetched before any is stored, oldest purchase first:
+        # Allegro serves the newest orders first, and orders take their Anvero
+        # numbers in the order they are stored, so storing page by page would
+        # number a first import backwards. A run that fails while fetching
+        # therefore stores nothing, which costs nothing, since the sync point
+        # would not have moved either.
+        fetched = [order for page in self.adapter.iter_order_pages(**filters) for order in page]
+        fetched.sort(key=lambda order: order.ordered_at or started_at)
+        result = self._store(fetched)
 
         if not self.credentials.set_last_synced_at(provider, started_at - SYNC_OVERLAP):
             logger.warning(

@@ -156,6 +156,10 @@ export function OrderDetail() {
         {!loading && !error && !notFound && order && (
           <dl className="order-fields">
             <div>
+              <dt>Order number</dt>
+              <dd>{order.order_label}</dd>
+            </div>
+            <div>
               <dt>Order ID</dt>
               <dd>{order.id}</dd>
             </div>

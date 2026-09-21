@@ -12,6 +12,8 @@ The model will be deployed via migrations after framework selection, but a commo
 | `shipment` | shipment | `order_id`, `carrier`, `tracking_number`, `status` |
 | `order_status_history` | status audit | `order_id`, `from_status`, `to_status`, `changed_at` |
 
+`orders.order_number` is Anvero's own number for an order: an integer, unique across every source, continuous, given once when the row is created (by the ORM, from a row in the `counters` table, inside the same transaction) and never changed or reused, so it can have gaps but no repeats. Only the integer is stored: the `AN-` prefix and the zero padding are applied where it is shown (`app/core/order_number.py`), so changing how it reads needs no migration. It is an internal identifier, not an accounting document number; invoices will need their own gapless numbering. The migration numbered the orders that existed by purchase date, oldest first.
+
 `external_id` is unique only within an integration. Amounts are stored as decimal values, never as `float`. Integration access credentials do not go to repositories or logs.
 
 ## Implemented so far

@@ -56,8 +56,11 @@ export function OrderRow({ order, onStatusChange, updating }: OrderRowProps) {
       <td>
         <div className="order-cell">
           <Link to={`/orders/${order.id}`} className="order-link">
-            {order.external_id}
+            {order.order_label}
           </Link>
+          <span className="order-cell-external" title={order.external_id}>
+            {order.external_id}
+          </span>
           <span className="order-cell-buyer" title={buyerDisplayName(order)}>
             {buyerDisplayName(order)}
           </span>
@@ -75,7 +78,7 @@ export function OrderRow({ order, onStatusChange, updating }: OrderRowProps) {
             className={`status-select ${STATUS_CLASS[order.status]}`}
             value={order.status}
             disabled={updating}
-            aria-label={`Status for order ${order.external_id}`}
+            aria-label={`Status for order ${order.order_label}`}
             onChange={(e) => onStatusChange(order.id, e.target.value as OrderStatus)}
           >
             {ALL_STATUSES.map((s) => (

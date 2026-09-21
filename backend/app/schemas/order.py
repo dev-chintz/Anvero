@@ -1,8 +1,9 @@
 import uuid
 from decimal import Decimal
 
-from pydantic import BaseModel, ConfigDict, EmailStr, Field
+from pydantic import BaseModel, ConfigDict, EmailStr, Field, computed_field
 
+from app.core.order_number import format_order_number
 from app.models.order import (
     AddressType,
     Order,
@@ -138,6 +139,8 @@ class OrderUpdate(BaseModel):
 
 class OrderRead(OrderBase):
     id: uuid.UUID
+    # Anvero's own number, continuous across sources and never reused
+    order_number: int
     status: OrderStatus
     ordered_at: UtcDateTime
     created_at: UtcDateTime
@@ -158,6 +161,12 @@ class OrderRead(OrderBase):
     payment_provider: str | None = None
 
     model_config = ConfigDict(from_attributes=True)
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def order_label(self) -> str:
+        """The number as it is shown and searched, e.g. AN-000123."""
+        return format_order_number(self.order_number)
 
 
 class OrderDetailRead(OrderRead, OrderDetails):

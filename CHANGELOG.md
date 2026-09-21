@@ -19,6 +19,15 @@ All significant changes to the Anvero project.
   `scripts/import_allegro.py --days N` replaces `--limit`/`--offset` for a
   backfill. See `DECISIONS.md`.
 
+### 🔢 Orders get Anvero's own number
+
+- Every order now has an internal, continuous number (`AN-000123`), given once
+  and never reused, shown first in the list's Order cell and in the order page,
+  and searchable. Existing orders were numbered by purchase date; a first import
+  numbers by purchase date too, not by the order Allegro's pages arrive in.
+  Migration `f7a2c4e8b613` (new `counters` table, `orders.order_number`). See
+  `DECISIONS.md`.
+
 ### 🔌 Allegro is connected from Settings
 
 - Settings gets an Allegro section: environment, client id, client secret and

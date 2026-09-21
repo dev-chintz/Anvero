@@ -13,6 +13,11 @@ export enum OrderStatus {
 
 export interface Order {
   id: string;
+  /** Anvero's own number for the order: continuous, never reused. */
+  order_number: number;
+  /** The number as it is shown and searched, e.g. AN-000123. */
+  order_label: string;
+  /** The marketplace's own order id. */
   external_id: string;
   source: OrderSource;
   status: OrderStatus;

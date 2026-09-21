@@ -135,7 +135,7 @@ database, so `total` counts every match rather than the returned page.
 | `skip`, `limit` | pagination; `limit` defaults to 100, maximum 500 |
 | `source` | `ALLEGRO` or `ERLI` |
 | `status` | `NEW`, `CONFIRMED`, `SHIPPED`, `DELIVERED`, `CANCELLED` |
-| `search` | substring of `external_id` or `customer_email`, case-insensitive |
+| `search` | substring of `external_id` or `customer_email`, case-insensitive; also an Anvero order number in any form a person types it (`AN-000123`, `an-123`, `000123`, `123`) |
 | `date_from`, `date_to` | `YYYY-MM-DD`, both inclusive, calendar days in the business timezone, matched on `ordered_at` |
 | `cancellation_warning` | `true` returns only orders cancelled on their marketplace whose Anvero status is not `CANCELLED` |
 
@@ -146,6 +146,12 @@ Response: `{"items": [...], "total": N, "skip": N, "limit": N}`, newest
 extra query cost, unlike `items`, `delivery` and the rest of
 `GET /api/v1/orders/{id}`'s nested detail, which needs a join the list
 does not do.
+
+Each order carries Anvero's own number: `order_number`, an integer that is
+continuous across every source, given once when the order is created and never
+changed or reused, and `order_label`, the same number as it is shown and
+searched (`AN-000123`). Clients cannot choose it. The marketplace's own id is
+still `external_id`.
 
 Each order has two dates: `ordered_at`, when the buyer placed it, and
 `created_at`, when the row was created in Anvero. For an imported order they

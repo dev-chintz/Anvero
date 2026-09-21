@@ -1,6 +1,7 @@
 from app.models.integration import IntegrationCredential, IntegrationSettings
 from app.models.order import (
     AddressType,
+    Counter,
     Order,
     OrderAddress,
     OrderItem,
@@ -13,6 +14,7 @@ from app.models.user import User
 
 __all__ = [
     "AddressType",
+    "Counter",
     "IntegrationCredential",
     "IntegrationSettings",
     "Order",

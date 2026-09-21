@@ -34,6 +34,8 @@ const { ordersApi, integrationsApi } = await import("../api/client");
 function makeOrder(overrides: Partial<Order> = {}): Order {
   return {
     id: "order-1",
+    order_number: 7,
+    order_label: "AN-000007",
     external_id: "EXT-1",
     source: OrderSource.ALLEGRO,
     status: OrderStatus.NEW,
@@ -105,7 +107,7 @@ describe("the order detail drawer, nested under /orders", () => {
     renderOrdersAt("/orders/order-1");
 
     // the list is still there...
-    expect(await screen.findByRole("link", { name: "EXT-1" })).toBeInTheDocument();
+    expect(await screen.findByRole("link", { name: "AN-000007" })).toBeInTheDocument();
     // ...alongside the drawer
     expect(screen.getByRole("region", { name: "Order details" })).toBeInTheDocument();
     expect(screen.getByText("order-1")).toBeInTheDocument();
@@ -120,7 +122,7 @@ describe("the order detail drawer, nested under /orders", () => {
     await waitFor(() =>
       expect(screen.queryByRole("region", { name: "Order details" })).not.toBeInTheDocument(),
     );
-    expect(screen.getByRole("link", { name: "EXT-1" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "AN-000007" })).toBeInTheDocument();
   });
 
   it("closes on Escape", async () => {

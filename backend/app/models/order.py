@@ -13,8 +13,12 @@ from sqlalchemy import (
     String,
     Text,
     UniqueConstraint,
+    event,
     false,
     func,
+    insert,
+    select,
+    update,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.types import Uuid
@@ -75,6 +79,7 @@ class Order(Base):
     # and re-importing must not duplicate an order already stored
     __table_args__ = (
         UniqueConstraint("source", "external_id", name="uq_orders_source_external_id"),
+        UniqueConstraint("order_number", name="uq_orders_order_number"),
     )
 
     id: Mapped[uuid.UUID] = mapped_column(
@@ -82,6 +87,12 @@ class Order(Base):
         primary_key=True,
         default=uuid.uuid4,
     )
+
+    # Anvero's own number for the order, continuous across every source and
+    # given once, when the row is created (see next_order_number): it is never
+    # changed and never reused. The prefix and padding it is shown with live in
+    # app/core/order_number.py.
+    order_number: Mapped[int] = mapped_column(Integer, nullable=False)
 
     external_id: Mapped[str] = mapped_column(
         String(255),
@@ -338,3 +349,42 @@ class OrderStatusHistory(Base):
     @property
     def changed_by_email(self) -> str | None:
         return self.changed_by.email if self.changed_by is not None else None
+
+
+class Counter(Base):
+    """A named counter that hands out numbers in sequence."""
+
+    __tablename__ = "counters"
+
+    name: Mapped[str] = mapped_column(String(50), primary_key=True)
+    value: Mapped[int] = mapped_column(Integer, nullable=False)
+
+
+ORDER_NUMBER_COUNTER = "order_number"
+
+
+def next_order_number(connection) -> int:
+    """Take the next order number, inside the caller's transaction.
+
+    The counter row is updated before it is read, so on PostgreSQL the update
+    holds the row lock until the transaction ends: two orders created at once
+    cannot read the same value, and a rolled-back insert gives its number back
+    only if nothing else took one meanwhile (so gaps are possible, repeats are
+    not). A plain autoincrement column cannot do this, since it is only
+    allowed on the primary key, which here is a UUID. The row is normally made
+    by the migration; a database built straight from the models starts it here.
+    """
+    where = Counter.name == ORDER_NUMBER_COUNTER
+    result = connection.execute(update(Counter).where(where).values(value=Counter.value + 1))
+    if result.rowcount == 0:
+        connection.execute(insert(Counter).values(name=ORDER_NUMBER_COUNTER, value=1))
+        return 1
+    return connection.execute(select(Counter.value).where(where)).scalar_one()
+
+
+@event.listens_for(Order, "before_insert")
+def _number_a_new_order(mapper, connection, order: Order) -> None:
+    # every path that creates an order - the API, an import, a script - goes
+    # through the ORM, so numbering it here covers them all
+    if order.order_number is None:
+        order.order_number = next_order_number(connection)

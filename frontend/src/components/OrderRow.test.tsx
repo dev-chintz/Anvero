@@ -7,6 +7,8 @@ import { OrderSource, OrderStatus, PaymentType, type Order } from "../types/orde
 function makeOrder(overrides: Partial<Order> = {}): Order {
   return {
     id: "1",
+    order_number: 42,
+    order_label: "AN-000042",
     external_id: "ext-1",
     source: OrderSource.ALLEGRO,
     status: OrderStatus.NEW,
@@ -52,7 +54,9 @@ describe("OrderRow", () => {
   it("shows the order's own fields and links to its detail page", () => {
     renderRow(makeOrder());
 
-    expect(screen.getByRole("link", { name: "ext-1" })).toHaveAttribute("href", "/orders/1");
+    expect(screen.getByRole("link", { name: "AN-000042" })).toHaveAttribute("href", "/orders/1");
+    // the marketplace's own id stays visible, beneath Anvero's number
+    expect(screen.getByText("ext-1")).toBeInTheDocument();
     expect(screen.getByText("45.49 PLN")).toBeInTheDocument();
   });
 
@@ -149,7 +153,7 @@ describe("OrderRow", () => {
     const order = makeOrder({ status: OrderStatus.NEW });
     const { onStatusChange } = renderRow(order);
 
-    const select = screen.getByRole("combobox", { name: "Status for order ext-1" });
+    const select = screen.getByRole("combobox", { name: "Status for order AN-000042" });
     expect(select).toHaveValue(OrderStatus.NEW);
 
     fireEvent.change(select, { target: { value: OrderStatus.SHIPPED } });

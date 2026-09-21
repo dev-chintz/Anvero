@@ -133,7 +133,7 @@ export const Dashboard: React.FC = () => {
                   {order.source}
                 </span>
                 <div className="order-details">
-                  <p className="order-id">{order.external_id}</p>
+                  <p className="order-id">{order.order_label}</p>
                   <p className="order-customer">{order.customer_email}</p>
                 </div>
               </div>

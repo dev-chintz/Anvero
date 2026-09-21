@@ -99,7 +99,7 @@ export const AdvancedFilters: React.FC<AdvancedFiltersProps> = ({
         <div className="search-bar">
           <input
             type="text"
-            placeholder="🔍 Search by ID or email..."
+            placeholder="🔍 Search by order number, ID or email..."
             value={filters.search}
             onChange={handleSearchChange}
             className="search-input"
