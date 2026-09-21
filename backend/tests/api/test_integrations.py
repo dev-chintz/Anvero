@@ -166,6 +166,11 @@ def test_status_never_leaks_a_credential_or_token(monkeypatch):
         "environment",
         "source",
         "account_login",
+        "last_import_at",
+        "last_import_created",
+        "last_import_updated",
+        "last_import_error",
+        "auto_import_interval_minutes",
     }
 
 

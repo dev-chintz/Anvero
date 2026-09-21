@@ -103,6 +103,11 @@ class Settings(BaseSettings):
     # how far back the very first import reaches; after that only what changed
     # since the last successful one is fetched
     allegro_initial_import_days: int = Field(default=7, ge=1, le=365)
+    # minutes between imports the backend starts by itself; 0 switches that
+    # off. Off by default because Allegro rotates the refresh token on every
+    # use and the lock that prevents two imports at once lives in one process:
+    # switch it on for exactly one running backend per database.
+    allegro_import_interval_minutes: int = Field(default=0, ge=0, le=1440)
 
     @field_validator("database_url")
     @classmethod

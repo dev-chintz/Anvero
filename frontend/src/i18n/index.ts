@@ -85,6 +85,21 @@ export function formatDateTime(value: string | number | Date): string {
   return toDate(value).toLocaleString(locales[current]);
 }
 
+/** "3 minutes ago", "yesterday", "just now": how long ago something happened. */
+export function formatRelative(value: string | number | Date): string {
+  const seconds = Math.round((toDate(value).getTime() - Date.now()) / 1000);
+  const rtf = new Intl.RelativeTimeFormat(locales[current], { numeric: "auto" });
+  const steps: [Intl.RelativeTimeFormatUnit, number][] = [
+    ["day", 86400],
+    ["hour", 3600],
+    ["minute", 60],
+  ];
+  for (const [unit, size] of steps) {
+    if (Math.abs(seconds) >= size) return rtf.format(Math.round(seconds / size), unit);
+  }
+  return rtf.format(0, "second");
+}
+
 export function formatNumber(value: number, options?: Intl.NumberFormatOptions): string {
   return value.toLocaleString(locales[current], options);
 }
@@ -108,6 +123,7 @@ export function useTranslation() {
     tc: translateCount,
     formatDate,
     formatDateTime,
+    formatRelative,
     formatNumber,
     formatMoney,
   };

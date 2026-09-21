@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -19,6 +20,15 @@ class AllegroStatus(BaseModel):
     source: Literal["settings", "environment"]
     # the connected seller's login; null when unknown or not connected
     account_login: str | None
+    # how the last import ended, whether started by the button or the schedule;
+    # all null before the first one
+    last_import_at: datetime | None = None
+    last_import_created: int | None = None
+    last_import_updated: int | None = None
+    # set when the last import failed
+    last_import_error: str | None = None
+    # minutes between imports the backend runs by itself; 0 means it does not
+    auto_import_interval_minutes: int = 0
 
 
 class AllegroSettingsRequest(BaseModel):

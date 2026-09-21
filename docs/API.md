@@ -48,8 +48,17 @@ What Settings shows about the connection:
 ```json
 {"configured": true, "connected": true, "application_complete": true,
  "client_id": "...", "user_agent": "...", "environment": "sandbox",
- "source": "settings", "account_login": "seller_login"}
+ "source": "settings", "account_login": "seller_login",
+ "last_import_at": "2026-09-21T10:00:00Z", "last_import_created": 3,
+ "last_import_updated": 5, "last_import_error": null,
+ "auto_import_interval_minutes": 15}
 ```
+
+The `last_import_*` fields say how the last import ended, whether the button or
+the schedule ran it: when, what it stored, or the error if it failed (then
+created and updated are null). All are null before the first import and after
+the account is connected again. `auto_import_interval_minutes` is how often
+the backend imports by itself; 0 means it does not.
 
 `configured` means ready to import (credentials and a token); `connected` that
 a seller account has been connected; `application_complete` that client id,
@@ -113,7 +122,8 @@ Allegro, so allowing unlimited retries would let a client hammer a third
 party through this API. Only one import may run at a time, since Allegro
 rotates the refresh token on every use and two imports refreshing it at once
 would race; a second request while one is in flight gets `409` immediately
-rather than queueing.
+rather than queueing. Scheduled imports (`ALLEGRO_IMPORT_INTERVAL_MINUTES`) go
+through the same lock and leave the same note of how they ended.
 
 Error responses:
 

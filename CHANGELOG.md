@@ -6,6 +6,18 @@ All significant changes to the Anvero project.
 
 ## 2026-09-21
 
+### ⏱️ Scheduled imports and the last import on the orders page
+
+- `ALLEGRO_IMPORT_INTERVAL_MINUTES` (default 0, off) makes the backend import
+  from Allegro by itself; enable it on exactly one backend per database
+  (`INTEGRATIONS.md`, `DECISIONS.md`).
+- Every import, by button or schedule, records when it finished, what it stored
+  or its error (migration `a1c5e9d3b742`). The orders page shows it ("Last
+  import: 5 minutes ago (3 new, 1 updated)", or the failure) and reloads the
+  list when a newer import appears. `GET /integrations/allegro` carries the new
+  fields.
+- Not yet tried against a connected Allegro account from this machine.
+
 ### 🌐 Polish interface, English selectable
 
 - The whole interface is available in Polish and English. Polish is the default;

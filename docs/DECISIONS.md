@@ -898,3 +898,11 @@ branch is unverified: only the SQLite path has been run.
 **Decision:** UI text lives in typed dictionaries (`frontend/src/i18n/messages.ts`, English and Polish) behind a dependency-free store; the language is chosen per browser (localStorage) and defaults to Polish. Counted messages use `Intl.PluralRules` (Polish needs four forms). Tests start in English.
 
 **Rationale:** Two languages and one team do not justify a library; the compiler and a parity test guarantee Polish covers every English key. Error messages that come from the backend are not translated (they stay English) — translating them needs error codes in the API, a separate change.
+
+## 2026-09-21 — Scheduled imports: an opt-in loop in the backend, off by default
+
+**Decision:** The backend can start an Allegro import itself every `ALLEGRO_IMPORT_INTERVAL_MINUTES` (an asyncio task in the FastAPI lifespan running the same `run_import` as the button, in a worker thread). It is 0 (off) unless set. How each import ended (time, counts, error) is stored on `integration_credentials` and shown on the orders page, which reloads its list when a newer import appears.
+
+**Rationale:** A scheduler inside the process needs no extra service, and sharing `run_import` keeps one lock and one record for both triggers. It is off by default because the lock is per process while the database is shared by several machines, and Allegro rotates the refresh token on every use: two backends importing on their own would invalidate each other's token. Enabling it in the environment, not in the database, ties it to the one machine meant to run it.
+
+**Consequences:** Imports happen only while that backend runs, so it must be hosted somewhere that stays up (`ROADMAP.md` item 3). There is no leader election; turning the setting on for two backends against one database is a misconfiguration. Not exercised against Allegro here: this machine has no connected account, so the scheduled path was checked up to "skips when not configured", and `run_import` itself by tests.

@@ -164,6 +164,18 @@ and pages through all of it, 100 orders at a time:
 - Stopping after 500 pages (50,000 orders) is an error, not a quiet end, so a
   sync is never recorded as complete when it was not.
 
+### Imports that run by themselves
+
+With `ALLEGRO_IMPORT_INTERVAL_MINUTES` set above 0 the backend runs the same
+sync (as the button does) every that many minutes, starting one interval after
+it starts. It is off by default, and should be on for **exactly one** backend
+per database: the lock that keeps two imports from running at once lives in
+one process, and Allegro rotates the refresh token on every use, so two
+backends importing on their own would race for it. A run skips quietly when
+no account is connected. Every import, by button or schedule, records when it
+finished, what it stored or the error, and the orders page shows it and
+reloads its list when a new one appears.
+
 ### Refresh token rotation
 
 Allegro rotates the refresh token on **every** use: each refresh returns a

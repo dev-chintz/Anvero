@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link, Outlet, useSearchParams } from 'react-router-dom';
-import { ApiError, integrationsApi, ordersApi } from '../api/client';
+import { ApiError, integrationsApi, ordersApi, type AllegroStatus } from '../api/client';
 import { OrderList } from '../components/OrderList';
 import { AdvancedFilters, type Filters } from '../components/AdvancedFilters';
 import { useOrders } from '../hooks/useOrders';
@@ -9,6 +9,9 @@ import { useTranslation } from '../i18n';
 import '../styles/OrdersPage.css';
 
 const DEFAULT_LIMIT = 20;
+
+// how often the page asks whether an import has run by itself
+const STATUS_POLL_MS = 60_000;
 
 interface OrdersPageProps {
   addToast?: (message: string, type?: 'success' | 'error' | 'info' | 'warning') => void;
@@ -27,7 +30,7 @@ export interface OrdersOutletContext {
  */
 export function OrdersPage({ addToast }: OrdersPageProps) {
   const [searchParams, setSearchParams] = useSearchParams();
-  const { t } = useTranslation();
+  const { t, formatRelative } = useTranslation();
 
   const skip = Number(searchParams.get('skip') ?? 0);
   const limit = Number(searchParams.get('limit') ?? DEFAULT_LIMIT);
@@ -51,26 +54,45 @@ export function OrdersPage({ addToast }: OrdersPageProps) {
     cancellationWarning,
   });
 
-  const [allegroConfigured, setAllegroConfigured] = useState<boolean | null>(null);
+  const [allegro, setAllegro] = useState<AllegroStatus | null>(null);
   const [allegroStatusFailed, setAllegroStatusFailed] = useState(false);
+  const allegroConfigured = allegro ? allegro.configured : null;
+  // the import time last seen, so a later one (a scheduled import, or one
+  // started elsewhere) reloads the list; undefined until the first answer
+  const seenImportAt = useRef<string | null | undefined>(undefined);
   const [importing, setImporting] = useState(false);
   const [updatingOrderId, setUpdatingOrderId] = useState<string | null>(null);
 
+  const refetchRef = useRef(refetch);
+  refetchRef.current = refetch;
+
   useEffect(() => {
     let cancelled = false;
-    integrationsApi
-      .allegroStatus()
-      .then((allegroStatus) => {
-        if (!cancelled) setAllegroConfigured(allegroStatus.configured);
-      })
-      .catch(() => {
-        // the button stays disabled rather than offering an import that will
-        // just fail, but the hint must not claim Allegro is unconfigured when
-        // the truth is that the server could not be asked
-        if (!cancelled) setAllegroStatusFailed(true);
-      });
+    const load = (first: boolean) =>
+      integrationsApi
+        .allegroStatus()
+        .then((next) => {
+          if (cancelled) return;
+          const importAt = next.last_import_at ?? null;
+          if (seenImportAt.current !== undefined && seenImportAt.current !== importAt) {
+            refetchRef.current();
+          }
+          seenImportAt.current = importAt;
+          setAllegro(next);
+          setAllegroStatusFailed(false);
+        })
+        .catch(() => {
+          // the button stays disabled rather than offering an import that will
+          // just fail, but the hint must not claim Allegro is unconfigured when
+          // the truth is that the server could not be asked. A later poll that
+          // fails just keeps what is already shown.
+          if (!cancelled && first) setAllegroStatusFailed(true);
+        });
+    load(true);
+    const timer = setInterval(() => load(false), STATUS_POLL_MS);
     return () => {
       cancelled = true;
+      clearInterval(timer);
     };
   }, []);
 
@@ -95,7 +117,18 @@ export function OrdersPage({ addToast }: OrdersPageProps) {
         const message = err instanceof ApiError ? err.message : t('orders.importFailed');
         addToast?.(message, 'error');
       })
-      .finally(() => setImporting(false));
+      .finally(() => {
+        setImporting(false);
+        // the run's outcome is recorded by the server; its own reload of the
+        // list is already under way, so the time seen is updated first
+        integrationsApi
+          .allegroStatus()
+          .then((next) => {
+            seenImportAt.current = next.last_import_at ?? null;
+            setAllegro(next);
+          })
+          .catch(() => {});
+      });
   };
 
   const handleStatusChange = (orderId: string, status: OrderStatus) => {
@@ -160,6 +193,29 @@ export function OrdersPage({ addToast }: OrdersPageProps) {
           {allegroConfigured === false && (
             <p className="allegro-import-hint">
               {t('orders.notConnectedBefore')}<Link to="/settings">{t('orders.notConnectedLink')}</Link>{t('orders.notConnectedAfter')}
+            </p>
+          )}
+          {allegro?.last_import_error ? (
+            <p className="allegro-import-hint import-failed" role="alert">
+              {t('orders.lastImportFailed', {
+                when: allegro.last_import_at ? formatRelative(allegro.last_import_at) : '',
+                error: allegro.last_import_error,
+              })}
+            </p>
+          ) : (
+            allegro?.last_import_at && (
+              <p className="allegro-import-hint">
+                {t('orders.lastImport', {
+                  when: formatRelative(allegro.last_import_at),
+                  created: allegro.last_import_created ?? 0,
+                  updated: allegro.last_import_updated ?? 0,
+                })}
+              </p>
+            )
+          )}
+          {!!allegro?.auto_import_interval_minutes && allegro.configured && (
+            <p className="allegro-import-hint">
+              {t('orders.autoImport', { minutes: allegro.auto_import_interval_minutes })}
             </p>
           )}
           {allegroStatusFailed && (

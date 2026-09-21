@@ -146,6 +146,17 @@ export interface AllegroStatus {
   source: "settings" | "environment";
   /** The connected seller's login, when known. */
   account_login: string | null;
+  /**
+   * How the last import ended, whether the button or the schedule ran it.
+   * Optional because a backend older than the field omits them.
+   */
+  last_import_at?: string | null;
+  last_import_created?: number | null;
+  last_import_updated?: number | null;
+  /** Set when the last import failed. */
+  last_import_error?: string | null;
+  /** Minutes between imports the backend runs by itself; 0 means none. */
+  auto_import_interval_minutes?: number;
 }
 
 export interface AllegroSettingsInput {

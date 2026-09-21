@@ -30,6 +30,25 @@ class IntegrationCredentialRepository:
         self.db.commit()
         return True
 
+    def record_import(
+        self,
+        provider: str,
+        finished_at: datetime,
+        created: int = 0,
+        updated: int = 0,
+        error: str | None = None,
+    ) -> bool:
+        """Note how an import ended; False if there is no row to note it on."""
+        credential = self.get(provider)
+        if credential is None:
+            return False
+        credential.last_import_at = finished_at
+        credential.last_import_created = None if error else created
+        credential.last_import_updated = None if error else updated
+        credential.last_import_error = error
+        self.db.commit()
+        return True
+
     def connect(
         self,
         provider: str,
@@ -52,6 +71,10 @@ class IntegrationCredentialRepository:
         credential.seed_fingerprint = seed_fingerprint
         credential.account_login = account_login
         credential.last_synced_at = None
+        credential.last_import_at = None
+        credential.last_import_created = None
+        credential.last_import_updated = None
+        credential.last_import_error = None
         self.db.commit()
 
     def set_account_login(self, provider: str, login: str | None) -> None:

@@ -1,8 +1,7 @@
-import threading
-
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy.orm import Session
 
+from app.core.config import settings
 from app.core.rate_limit import limiter
 from app.core.security import get_current_user
 from app.db.session import get_db
@@ -30,6 +29,7 @@ from app.services.allegro_import import (
     build_allegro_client,
     build_allegro_import_service,
 )
+from app.services.allegro_sync import ImportAlreadyRunning, import_lock, run_import
 
 # Every endpoint here requires a logged-in user, same as the orders router.
 router = APIRouter(
@@ -38,11 +38,8 @@ router = APIRouter(
     dependencies=[Depends(get_current_user)],
 )
 
-# Allegro rotates the refresh token on every use, so two imports running at
-# once would both refresh it and the second refresh invalidates the token the
-# first request is still using. Non-blocking: a second click fails fast with
-# 409 instead of queueing behind the first import.
-_import_lock = threading.Lock()
+# one import at a time, shared with the scheduled ones (see allegro_sync)
+_import_lock = import_lock
 
 
 def _status(db: Session) -> AllegroStatus:
@@ -57,6 +54,11 @@ def _status(db: Session) -> AllegroStatus:
         environment=application.environment,
         source=application.source,
         account_login=credential.account_login if credential else None,
+        last_import_at=credential.last_import_at if credential else None,
+        last_import_created=credential.last_import_created if credential else None,
+        last_import_updated=credential.last_import_updated if credential else None,
+        last_import_error=credential.last_import_error if credential else None,
+        auto_import_interval_minutes=settings.allegro_import_interval_minutes,
     )
 
 
@@ -156,14 +158,13 @@ def import_from_allegro(
     request: Request,
     db: Session = Depends(get_db),
 ):
-    if not _import_lock.acquire(blocking=False):
+    try:
+        result = run_import(db, lambda: build_allegro_import_service(db))
+    except ImportAlreadyRunning as exc:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail="An Allegro import is already running",
-        )
-    try:
-        service = build_allegro_import_service(db)
-        result = service.sync_orders()
+        ) from exc
     except IntegrationNotConfigured as exc:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
@@ -173,8 +174,6 @@ def import_from_allegro(
         raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=str(exc)) from exc
     except IntegrationError as exc:
         raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=str(exc)) from exc
-    finally:
-        _import_lock.release()
 
     return AllegroImportResult(
         created=result.created,

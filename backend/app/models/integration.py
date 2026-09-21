@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlalchemy import DateTime, String, Text, func
+from sqlalchemy import DateTime, Integer, String, Text, func
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base
@@ -33,6 +33,16 @@ class IntegrationCredential(Base):
     last_synced_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
     )
+
+    # how the last import ended, whoever started it (the button or the
+    # schedule): when, what it stored, and the error if it failed. Kept beside
+    # the token because an import is per marketplace account.
+    last_import_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    last_import_created: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    last_import_updated: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    last_import_error: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     # who the token belongs to, as the marketplace names them; read once when
     # the account is connected, purely so Settings can say which account it is

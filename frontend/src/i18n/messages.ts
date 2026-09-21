@@ -100,6 +100,9 @@ export const en = {
   "orders.importedCancelled":
     "{count} order(s) were cancelled on Allegro and must be checked before shipping.",
   "orders.importFailed": "Allegro import failed",
+  "orders.lastImport": "Last import: {when} ({created} new, {updated} updated)",
+  "orders.lastImportFailed": "The last import failed ({when}): {error}",
+  "orders.autoImport": "Imports run automatically every {minutes} min.",
   "orders.statusSet": "Status set to {status}",
   "orders.filtersCleared": "Filters cleared",
   "orders.cancelledOnlyBanner":
@@ -353,6 +356,9 @@ export const pl: Record<MessageKey, string> & Record<string, string> = {
   "orders.importedCancelled":
     "Zamówienia anulowane na Allegro: {count}. Sprawdź je przed wysyłką.",
   "orders.importFailed": "Import z Allegro nie powiódł się",
+  "orders.lastImport": "Ostatni import: {when} ({created} nowych, {updated} zaktualizowanych)",
+  "orders.lastImportFailed": "Ostatni import nie powiódł się ({when}): {error}",
+  "orders.autoImport": "Import uruchamia się automatycznie co {minutes} min.",
   "orders.statusSet": "Ustawiono status: {status}",
   "orders.filtersCleared": "Wyczyszczono filtry",
   "orders.cancelledOnlyBanner":
