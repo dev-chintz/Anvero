@@ -75,6 +75,15 @@ scripts/    PowerShell helpers for the local environment
 
 # Current Priorities
 
+**PICK UP HERE (2026-09-21): first deployment to the NAS.** Everything is
+written and pushed but has never run: `docs/DEPLOYMENT.md` is the step-by-step,
+to be done with the owner at the NAS. Start by checking that the *Publish
+images* workflow (GitHub, Actions) went green and the two images exist under
+the account's Packages; if it failed, fix the Dockerfiles/workflow first. Then
+the owner needs, at the NAS: access for it to pull the images (public packages
+or a `read:packages` token), the LAN address and password for `DATABASE_URL`,
+and a new `SECRET_KEY`. Only that one backend may run the scheduled import.
+
 1. See "Next Milestone" in PROJECT_STATUS.md for the agreed order: the SQL
    logging fix is done; next is the Allegro Sandbox, then production.
    `scripts/authorize_allegro.py` for the one-time authorization exists; the
