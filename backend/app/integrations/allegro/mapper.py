@@ -25,6 +25,7 @@ from app.schemas.order import (
     OrderItemCreate,
     Payment,
     PickupPoint,
+    ShipmentCreate,
 )
 
 _Part = TypeVar("_Part", bound=BaseModel)
@@ -209,6 +210,53 @@ def _tax_id(company: dict[str, Any]) -> str | None:
         if value:
             return value
     return _text(company.get("taxId"))
+
+
+def map_shipment(order_id: Any, raw: dict[str, Any]) -> ShipmentCreate | None:
+    """One entry of GET /order/checkout-forms/{id}/shipments, or None without a waybill."""
+    return _build(
+        ShipmentCreate,
+        order_id,
+        "shipment",
+        {
+            "external_id": _text(raw.get("id")),
+            "carrier_id": _text(raw.get("carrierId")),
+            "carrier_name": _text(raw.get("carrierName")),
+            "waybill": _text(raw.get("waybill")),
+            "shipped_at": _text(raw.get("createdAt")),
+        },
+    )
+
+
+def _moment(raw: Any) -> datetime | None:
+    """An Allegro timestamp as an aware UTC datetime, or None if unreadable."""
+    text = _text(raw)
+    if text is None:
+        return None
+    try:
+        moment = datetime.fromisoformat(text)
+    except ValueError:
+        return None
+    return (moment if moment.tzinfo else moment.replace(tzinfo=UTC)).astimezone(UTC)
+
+
+def map_tracking(raw: dict[str, Any]) -> tuple[str, datetime | None] | None:
+    """The latest tracking status code, and when it was reported, of one waybill.
+
+    `raw` is an item of the tracking response's `waybills`. None when the
+    carrier has reported nothing, which is the case for carriers Allegro
+    cannot follow.
+    """
+    details = _obj(raw.get("trackingDetails"))
+    statuses = [_obj(s) for s in details.get("statuses") or [] if isinstance(s, dict)]
+    statuses = [s for s in statuses if _text(s.get("code"))]
+    if not statuses:
+        return None
+    # ISO timestamps in one format sort as text; an entry without a time sorts first
+    latest = max(statuses, key=lambda s: _text(s.get("occurredAt")) or "")
+    code = _text(latest.get("code"))
+    assert code is not None
+    return code[:32], _moment(latest.get("occurredAt")) or _moment(details.get("updatedAt"))
 
 
 def map_details(checkout_form: dict[str, Any]) -> OrderDetails:

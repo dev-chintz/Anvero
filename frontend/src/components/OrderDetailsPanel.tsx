@@ -1,5 +1,6 @@
 import { PaymentType } from "../types/order";
 import { formatNumber, useTranslation } from "../i18n";
+import { carrierLabel } from "../types/order";
 import type { Address, OrderWithDetails } from "../types/order";
 import "../styles/OrderDetailsPanel.css";
 
@@ -98,7 +99,8 @@ function PaymentState({ order }: { order: OrderWithDetails }) {
  */
 export function OrderDetailsPanel({ order }: { order: OrderWithDetails }) {
   const { customer, delivery, invoice, currency } = order;
-  const { t } = useTranslation();
+  const { t, formatDateTime, trackingLabel } = useTranslation();
+  const shipments = order.shipments ?? [];
 
   const itemsCents = order.items.reduce(
     (sum, item) => sum + toCents(item.unit_price) * item.quantity,
@@ -200,6 +202,30 @@ export function OrderDetailsPanel({ order }: { order: OrderWithDetails }) {
           </div>
         )}
       </section>
+
+      {shipments.length > 0 && (
+        <section className="order-card order-shipments" aria-label={t("details.shipments")}>
+          <h2>{t("details.shipments")}</h2>
+          <ul>
+            {shipments.map((shipment) => (
+              <li key={shipment.id}>
+                <strong>{carrierLabel(shipment)}</strong>{" "}
+                {t("details.waybill", { waybill: shipment.waybill })}
+                {shipment.tracking_status && (
+                  <p className="order-muted">
+                    {shipment.tracking_updated_at
+                      ? t("details.trackingAsOf", {
+                          status: trackingLabel(shipment.tracking_status),
+                          when: formatDateTime(shipment.tracking_updated_at),
+                        })
+                      : trackingLabel(shipment.tracking_status)}
+                  </p>
+                )}
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       <div className="order-cards">
         <section className="order-card" aria-label={t("details.buyer")}>

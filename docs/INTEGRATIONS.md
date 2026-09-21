@@ -314,14 +314,43 @@ places), cannot be expressed as an Anvero order. Those are skipped and logged
 by field name — never by value, since the values include buyer emails — so
 one malformed order does not cost the rest of the page.
 
+### Shipments and tracking
+
+The checkout form carries no tracking numbers, so an import asks for them
+separately, for orders whose status maps to shipped or delivered only (one
+call each; an order still being packed has none):
+
+- `GET /order/checkout-forms/{id}/shipments`: `shipments[]` with `id`,
+  `waybill`, `carrierId`, `carrierName`, `createdAt`, `lineItems`.
+- `GET /order/carriers/{carrierId}/tracking?waybill=..`, up to 20 waybills per
+  request, grouped by carrier: `waybills[].trackingDetails.statuses[]` with
+  `code` and `occurredAt`. The latest status is kept. Allegro keeps tracking
+  history for 60 days.
+
+Tracking is asked for parcels of orders that are shipped and not yet
+delivered. Because a carrier moving a parcel does not change the order (so an
+import that fetches only changed orders never sees it), every import also
+re-reads the tracking of parcels still on their way, newest 200 first, and
+stops asking about a parcel once it is `DELIVERED` or `RETURNED`, or older than
+60 days. A parcel's tracking status never changes the order's own status: the
+marketplace's fulfillment status does that.
+
+All of it is best effort. A request Allegro refuses (the application lacking a
+scope; the documentation does not name one for these endpoints) ends the
+attempt for the rest of that import and is logged once; a failed request costs
+that order its parcels, not the import. Parcels an import could not read are
+left as they were. The response shapes come from Allegro's documentation, not
+from a real response: a carrier Allegro cannot track just gets no status.
+
 ### Known limits
 
 - **An unused token chain lapses after three months.** Each rotation grants
   three more, so importing at least that often keeps it alive; otherwise
   authorize again. The stored token sits in plain text in the local database
   file, the same exposure as `.env`.
-- Shipments (carrier, tracking number) are not imported; Allegro serves
-  them from a different endpoint.
+- Shipments and tracking are read only for orders Allegro reports as sent or
+  delivered, and are untested against the real API (see "Shipments and
+  tracking"). Nothing is written back to Allegro.
 - An import runs only when someone starts it (the button or the script);
   nothing schedules it yet.
 - An order bought more than the first window ago, and changed since, arrives as

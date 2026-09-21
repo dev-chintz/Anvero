@@ -94,6 +94,10 @@ From Allegro's developer documentation (the overview and the orders tutorial),
 read but never run. Endpoints marked *from memory* were not in what was read
 and must be confirmed before building on them.
 
+**Started 2026-09-21:** reading shipments and carrier tracking (the first two
+"Read" items below), shown in the list's Shipping column and on the order.
+Everything else here is still to do.
+
 **Two-way today: none.** Anvero only reads. A status changed here never
 reaches Allegro; it goes one way, Allegro to Anvero.
 

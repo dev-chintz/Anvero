@@ -6,6 +6,17 @@ All significant changes to the Anvero project.
 
 ## 2026-09-21
 
+### 📦 Shipments and tracking, read from Allegro
+
+- An import now reads the parcels (carrier, waybill) of orders Allegro reports
+  as sent or delivered, and where the carrier says each is (`IN_TRANSIT`,
+  `DELIVERED`, ...). Every import also refreshes the tracking of parcels still
+  on their way. New table `order_shipments` (migration `b3d7f1a5c928`).
+- The orders list's Shipping column shows carrier, waybill and status; the
+  order has a Shipments card. Both in Polish and English.
+- Read only, and best effort: a refused request never fails an import. Not yet
+  tried against the real API; the response shapes are from its documentation.
+
 ### 🐳 Running on the NAS (prepared, not yet run)
 
 - Dockerfiles for the backend and the frontend (nginx, forwarding `/api`),

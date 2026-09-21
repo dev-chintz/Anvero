@@ -8,9 +8,19 @@ from sqlalchemy.orm import Query, Session
 
 from app.core.config import settings
 from app.core.order_number import parse_order_number
-from app.models.order import Order, OrderSource, OrderStatus, OrderStatusHistory
+from app.models.order import (
+    Order,
+    OrderShipment,
+    OrderSource,
+    OrderStatus,
+    OrderStatusHistory,
+)
 
 PENDING_STATUSES = (OrderStatus.NEW, OrderStatus.CONFIRMED)
+
+# tracking codes after which a parcel needs no more asking about
+FINAL_TRACKING_STATUSES = ("DELIVERED", "RETURNED")
+TRACKING_HISTORY_DAYS = 60
 
 
 class OrderRepository:
@@ -107,6 +117,44 @@ class OrderRepository:
         self.db.commit()
         self.db.refresh(order)
         return order
+
+    def shipments_awaiting_tracking(
+        self, source: OrderSource, limit: int = 200
+    ) -> list[OrderShipment]:
+        """Parcels of orders still marked shipped whose carrier has not said "delivered".
+
+        Newest first, and only those the carrier can still report on (Allegro
+        keeps tracking history for 60 days), so a parcel no carrier answers
+        for does not use up the batch forever.
+        """
+        cutoff = datetime.now(UTC) - timedelta(days=TRACKING_HISTORY_DAYS)
+        return list(
+            self.db.scalars(
+                select(OrderShipment)
+                .join(Order, Order.id == OrderShipment.order_id)
+                .where(
+                    Order.source == source,
+                    Order.status == OrderStatus.SHIPPED,
+                    or_(
+                        OrderShipment.tracking_status.is_(None),
+                        OrderShipment.tracking_status.notin_(FINAL_TRACKING_STATUSES),
+                    ),
+                    or_(
+                        OrderShipment.shipped_at.is_(None),
+                        OrderShipment.shipped_at >= self._to_db_datetime(cutoff),
+                    ),
+                )
+                .order_by(OrderShipment.shipped_at.desc())
+                .limit(limit)
+            )
+        )
+
+    def update_tracking(
+        self, shipment: OrderShipment, status: str, reported_at: datetime | None
+    ) -> None:
+        shipment.tracking_status = status
+        shipment.tracking_updated_at = reported_at
+        self.db.commit()
 
     def list_status_history(self, order_id: uuid.UUID) -> list[OrderStatusHistory]:
         return (

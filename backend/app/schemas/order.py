@@ -79,6 +79,24 @@ class OrderItemRead(OrderItemCreate):
     model_config = ConfigDict(from_attributes=True)
 
 
+class ShipmentCreate(BaseModel):
+    external_id: str | None = _text(255)
+    carrier_id: str | None = _text(64)
+    carrier_name: str | None = _text(255)
+    waybill: str = Field(min_length=1, max_length=255)
+    shipped_at: UtcDateTime | None = None
+    # the carrier's latest tracking status code and when it reported it; null
+    # when nothing has been read
+    tracking_status: str | None = _text(32)
+    tracking_updated_at: UtcDateTime | None = None
+
+
+class ShipmentRead(ShipmentCreate):
+    id: uuid.UUID
+
+    model_config = ConfigDict(from_attributes=True)
+
+
 class PickupPoint(BaseModel):
     id: str | None = _text(255)
     name: str | None = _text(255)
@@ -122,6 +140,9 @@ class OrderDetails(BaseModel):
     # checkout form; written by the seller, not the buyer, and read-only
     # here - a re-import refreshes it like every other detail
     seller_note: str | None = _text(SELLER_NOTE_MAX_LENGTH)
+    # the parcels sent; None means "not known", which an import leaves the
+    # stored ones alone for, unlike an empty list, which says there are none
+    shipments: list[ShipmentCreate] | None = None
 
 
 class OrderCreate(OrderBase, OrderDetails):
@@ -159,6 +180,8 @@ class OrderRead(OrderBase):
     customer_last_name: str | None = None
     payment_type: PaymentType | None = None
     payment_provider: str | None = None
+    # small, and the list shows them in its Shipping column
+    shipments: list[ShipmentRead] = Field(default_factory=list)
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -173,6 +196,7 @@ class OrderDetailRead(OrderRead, OrderDetails):
     """A single order with its details; the list returns OrderRead only."""
 
     items: list[OrderItemRead] = Field(default_factory=list)
+    shipments: list[ShipmentRead] = Field(default_factory=list)
 
     @classmethod
     def from_order(cls, order: Order) -> "OrderDetailRead":

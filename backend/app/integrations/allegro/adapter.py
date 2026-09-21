@@ -2,10 +2,23 @@ import logging
 from collections.abc import Iterator
 from datetime import datetime
 
-from app.integrations.allegro.client import MAX_PAGE_SIZE, AllegroClient
-from app.integrations.allegro.mapper import OrderMappingError, map_checkout_form
-from app.integrations.base import IntegrationUnavailable
-from app.models.order import OrderSource
+from app.integrations.allegro.client import (
+    MAX_PAGE_SIZE,
+    MAX_TRACKING_WAYBILLS,
+    AllegroClient,
+)
+from app.integrations.allegro.mapper import (
+    OrderMappingError,
+    map_checkout_form,
+    map_shipment,
+    map_tracking,
+)
+from app.integrations.base import (
+    IntegrationAuthError,
+    IntegrationError,
+    IntegrationUnavailable,
+)
+from app.models.order import OrderSource, OrderStatus
 from app.schemas.order import OrderCreate
 
 logger = logging.getLogger(__name__)
@@ -87,7 +100,83 @@ class AllegroAdapter:
                 logger.warning("Skipping Allegro order that could not be mapped: %s", exc)
 
         self._attach_item_images(orders)
+        self._attach_shipments(orders)
         return orders, len(checkout_forms)
+
+    def _attach_shipments(self, orders: list[OrderCreate]) -> None:
+        """Read the parcels of orders that have left, and where each is now.
+
+        Only orders Allegro reports as sent or delivered are asked about: one
+        call each, and an order still being packed has nothing to show. Best
+        effort like the pictures: an order whose shipments could not be read
+        keeps `shipments = None`, which leaves the stored ones alone, and a
+        refused request (the application lacking the scope) ends the attempt
+        for the rest of the run instead of failing every order the same way.
+        """
+        for order in orders:
+            if order.status not in (OrderStatus.SHIPPED, OrderStatus.DELIVERED):
+                continue
+            try:
+                raw = self._client.fetch_shipments(order.external_id)
+            except IntegrationAuthError as exc:
+                logger.warning("Shipments not read, so none will be this run: %s", exc)
+                return
+            except IntegrationError as exc:
+                logger.warning("Shipments of an order could not be read: %s", exc)
+                continue
+            order.shipments = [
+                shipment
+                for item in raw
+                if (shipment := map_shipment(order.external_id, item)) is not None
+            ]
+
+        self._attach_tracking(orders)
+
+    def _attach_tracking(self, orders: list[OrderCreate]) -> None:
+        """Fill in the tracking status of parcels still on their way."""
+        waiting = [
+            shipment
+            for order in orders
+            if order.status is OrderStatus.SHIPPED
+            for shipment in order.shipments or []
+        ]
+        by_key = {(s.carrier_id, s.waybill): s for s in waiting if s.carrier_id}
+        for shipment_key, (code, at) in self.fetch_tracking(list(by_key)).items():
+            shipment = by_key[shipment_key]
+            shipment.tracking_status = code
+            shipment.tracking_updated_at = at
+
+    def fetch_tracking(
+        self, keys: list[tuple[str | None, str]]
+    ) -> dict[tuple[str | None, str], tuple[str, datetime | None]]:
+        """Where each parcel is, by (carrier, waybill); parcels nothing is known about are left out.
+
+        Grouped by carrier and asked in batches of Allegro's limit. Best
+        effort: a batch that fails costs those parcels a status, not the run.
+        """
+        result: dict[tuple[str | None, str], tuple[str, datetime | None]] = {}
+        by_carrier: dict[str, list[str]] = {}
+        for carrier_id, waybill in keys:
+            if carrier_id:
+                by_carrier.setdefault(carrier_id, []).append(waybill)
+
+        for carrier_id, waybills in by_carrier.items():
+            for start in range(0, len(waybills), MAX_TRACKING_WAYBILLS):
+                batch = waybills[start : start + MAX_TRACKING_WAYBILLS]
+                try:
+                    found = self._client.fetch_tracking(carrier_id, batch)
+                except IntegrationAuthError as exc:
+                    logger.warning("Tracking not read, so none will be this run: %s", exc)
+                    return result
+                except IntegrationError as exc:
+                    logger.warning("Tracking of %s could not be read: %s", carrier_id, exc)
+                    continue
+                for item in found:
+                    tracking = map_tracking(item)
+                    waybill = item.get("waybill")
+                    if tracking is not None and isinstance(waybill, str):
+                        result[(carrier_id, waybill)] = tracking
+        return result
 
     def _attach_item_images(self, orders: list[OrderCreate]) -> None:
         """Fetch each item's picture, one call per distinct offer in the page.

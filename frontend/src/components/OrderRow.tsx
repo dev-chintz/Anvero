@@ -8,6 +8,7 @@ import {
   marketplaceStatusText,
 } from "../types/order";
 import { translate, useTranslation } from "../i18n";
+import { carrierLabel } from "../types/order";
 
 // name, then login (an Allegro account may have no name on file), then
 // email as the last resort so the cell is never blank
@@ -49,7 +50,8 @@ interface OrderRowProps {
 }
 
 export function OrderRow({ order, onStatusChange, updating }: OrderRowProps) {
-  const { t, formatDateTime, formatMoney } = useTranslation();
+  const { t, formatDateTime, formatMoney, trackingLabel } = useTranslation();
+  const shipments = order.shipments ?? [];
   const formattedDate = formatDateTime(order.ordered_at);
 
   return (
@@ -103,9 +105,32 @@ export function OrderRow({ order, onStatusChange, updating }: OrderRowProps) {
           )}
         </div>
       </td>
-      <td className="cell-placeholder" aria-label={t("orders.shippingNotTracked")}>
-        —
-      </td>
+      {shipments.length === 0 ? (
+        <td className="cell-placeholder" aria-label={t("orders.shippingNotTracked")}>
+          —
+        </td>
+      ) : (
+        <td className="shipping-cell">
+          {shipments.map((shipment) => (
+            <div
+              key={shipment.id}
+              title={t("orders.shipmentTitle", {
+                carrier: carrierLabel(shipment),
+                waybill: shipment.waybill,
+                status: shipment.tracking_status ? trackingLabel(shipment.tracking_status) : "—",
+              })}
+            >
+              <span className="shipping-carrier">{carrierLabel(shipment)}</span>{" "}
+              <span className="shipping-waybill">{shipment.waybill}</span>
+              {shipment.tracking_status && (
+                <span className={`shipping-status shipping-${shipment.tracking_status.toLowerCase()}`}>
+                  {trackingLabel(shipment.tracking_status)}
+                </span>
+              )}
+            </div>
+          ))}
+        </td>
+      )}
       <td>
         {formatMoney(order.total_amount, order.currency)}
       </td>

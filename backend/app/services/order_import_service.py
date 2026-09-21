@@ -102,7 +102,34 @@ class OrderImportService:
                 "the next import starts from the beginning again",
                 provider,
             )
+        self._refresh_tracking()
         return result
+
+    def _refresh_tracking(self) -> None:
+        """Bring the tracking status of parcels on their way up to date.
+
+        Orders are only fetched when the marketplace changes them, and a
+        carrier moving a parcel along does not, so without this a shipped
+        order would keep showing its first status. Best effort: it never
+        fails an import that has already stored its orders.
+        """
+        fetch = getattr(self.adapter, "fetch_tracking", None)
+        if fetch is None:
+            return
+        try:
+            shipments = self.repository.shipments_awaiting_tracking(self.adapter.source)
+            if not shipments:
+                return
+            found = fetch([(s.carrier_id, s.waybill) for s in shipments])
+            changed = 0
+            for shipment in shipments:
+                tracking = found.get((shipment.carrier_id, shipment.waybill))
+                if tracking is not None and tracking[0] != shipment.tracking_status:
+                    self.repository.update_tracking(shipment, *tracking)
+                    changed += 1
+            logger.info("Tracking refreshed: %d of %d parcels moved", changed, len(shipments))
+        except Exception:
+            logger.exception("Refreshing tracking failed; the import itself is unaffected")
 
     def import_orders(self, limit: int = 100, offset: int = 0) -> ImportResult:
         """Fetch one page of orders and store them, whatever their age.

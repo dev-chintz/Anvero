@@ -54,6 +54,8 @@ export interface Order {
   customer_last_name?: string | null;
   payment_type?: PaymentType | null;
   payment_provider?: string | null;
+  /** Optional because a backend older than the field omits it. */
+  shipments?: Shipment[];
 }
 
 export enum PaymentType {
@@ -62,6 +64,25 @@ export enum PaymentType {
   CASH_ON_DELIVERY = "CASH_ON_DELIVERY",
   DEFERRED = "DEFERRED",
   OTHER = "OTHER",
+}
+
+/** A parcel sent for an order. Owned by the marketplace, like the items. */
+export interface Shipment {
+  id: string;
+  external_id: string | null;
+  /** The carrier as the marketplace names it, e.g. DHL. */
+  carrier_id: string | null;
+  carrier_name: string | null;
+  waybill: string;
+  shipped_at: string | null;
+  /** The carrier's latest tracking code (IN_TRANSIT, DELIVERED, ...); null when none was read. */
+  tracking_status: string | null;
+  tracking_updated_at: string | null;
+}
+
+/** What to call the carrier: its own name when it gave one, else the marketplace's id for it. */
+export function carrierLabel(shipment: Shipment): string {
+  return shipment.carrier_name ?? shipment.carrier_id ?? "";
 }
 
 export interface Address {

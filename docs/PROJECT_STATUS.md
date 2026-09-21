@@ -43,7 +43,7 @@ folder, and one was restored from that copy into a scratch database as a test.
   remains the no-setup default for a fresh clone)
 - Health endpoint and first order model — done
 - Minimal order list interface — done
-- Automated tests for core flows — done (284 backend, 55 frontend passing
+- Automated tests for core flows — done (305 backend, 62 frontend passing
   across the suite as of 2026-09-21)
 
 ---
@@ -114,6 +114,8 @@ stored refresh token was replaced again, and no duplicate appeared. So both
 ways of importing have now run against the real API.
 
 The NAS deployment (`DEPLOYMENT.md`) and the scheduled import (`ALLEGRO_IMPORT_INTERVAL_MINUTES`) have not run: the Dockerfiles, the compose file and the publish workflow were written without Docker or GitHub Actions to try them on, and the scheduled path was only checked up to "skips when no account is connected" on a machine without one.
+
+Shipments and carrier tracking (`INTEGRATIONS.md`) were built from Allegro's documentation and tested against fakes only: no real response has been seen, and whether the application's scopes allow the two endpoints is unknown.
 
 What the sandbox did **not** cover: a cancelled order and the flag it sets,
 an order with several line items or without a pickup point, more than one

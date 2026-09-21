@@ -1,6 +1,6 @@
 from sqlalchemy.orm import object_session
 
-from app.models.order import AddressType, Order, OrderAddress, OrderItem
+from app.models.order import AddressType, Order, OrderAddress, OrderItem, OrderShipment
 from app.schemas.order import Address, OrderDetails
 
 
@@ -51,6 +51,9 @@ def apply_details(order: Order, details: OrderDetails) -> None:
         for position, item in enumerate(details.items)
     ]
 
+    if details.shipments is not None:
+        _replace_shipments(order, details)
+
     addresses = {
         AddressType.DELIVERY: delivery.address,
         AddressType.PICKUP_POINT: pickup_point.address if pickup_point else None,
@@ -61,6 +64,20 @@ def apply_details(order: Order, details: OrderDetails) -> None:
         for address_type, address in addresses.items()
         if address is not None
     ]
+
+
+def _replace_shipments(order: Order, details: OrderDetails) -> None:
+    # tracking read earlier survives a run that could not read it again
+    known = {(s.carrier_id, s.waybill): s for s in order.shipments}
+    rows = []
+    for position, shipment in enumerate(details.shipments or []):
+        data = shipment.model_dump()
+        previous = known.get((shipment.carrier_id, shipment.waybill))
+        if previous is not None and data["tracking_status"] is None:
+            data["tracking_status"] = previous.tracking_status
+            data["tracking_updated_at"] = previous.tracking_updated_at
+        rows.append(OrderShipment(position=position, **data))
+    order.shipments = rows
 
 
 def _address_row(address_type: AddressType, address: Address) -> OrderAddress:

@@ -104,6 +104,12 @@ export function formatNumber(value: number, options?: Intl.NumberFormatOptions):
   return value.toLocaleString(locales[current], options);
 }
 
+/** The tracking code as words in the current language; a code nobody translated is shown as it is. */
+export function trackingLabel(code: string): string {
+  const key = `tracking.${code}`;
+  return key in en ? translate(key as MessageKey) : code;
+}
+
 /** An amount with its currency, e.g. "45,49 PLN" or "45.49 PLN". */
 export function formatMoney(amount: string | number, currency: string): string {
   const number = Number(amount);
@@ -126,6 +132,7 @@ export function useTranslation() {
     formatRelative,
     formatNumber,
     formatMoney,
+    trackingLabel,
   };
 }
 

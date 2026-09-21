@@ -230,6 +230,15 @@ class Order(Base):
         cascade="all, delete-orphan",
     )
 
+    # loaded together with the order (one extra query per page, not one per
+    # row), since the list shows the carrier and waybill in its own column
+    shipments: Mapped[list["OrderShipment"]] = relationship(
+        back_populates="order",
+        cascade="all, delete-orphan",
+        order_by="OrderShipment.position",
+        lazy="selectin",
+    )
+
     def address(self, address_type: AddressType) -> "OrderAddress | None":
         return next((a for a in self.addresses if a.type is address_type), None)
 
@@ -271,6 +280,46 @@ class OrderItem(Base):
     unit_price: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False)
 
     order: Mapped["Order"] = relationship(back_populates="items")
+
+
+class OrderShipment(Base):
+    """A parcel sent for an order: which carrier, under which waybill.
+
+    Owned by the marketplace like the items are: an import replaces them.
+    """
+
+    __tablename__ = "order_shipments"
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        Uuid(as_uuid=True),
+        primary_key=True,
+        default=uuid.uuid4,
+    )
+
+    order_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("orders.id", ondelete="CASCADE"),
+        index=True,
+        nullable=False,
+    )
+
+    position: Mapped[int] = mapped_column(Integer, nullable=False)
+
+    # the marketplace's id for the shipment
+    external_id: Mapped[str | None] = mapped_column(String(255))
+    # the carrier as the marketplace names it, e.g. DHL, or OTHER with a name
+    carrier_id: Mapped[str | None] = mapped_column(String(64))
+    carrier_name: Mapped[str | None] = mapped_column(String(255))
+    waybill: Mapped[str] = mapped_column(String(255), nullable=False)
+    # when the seller added the tracking number, by the marketplace's clock
+    shipped_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+    # where the carrier says the parcel is: the code of its latest tracking
+    # status (IN_TRANSIT, DELIVERED, ...) and when the carrier last reported.
+    # Null when nothing has been read, e.g. a carrier Allegro cannot track.
+    tracking_status: Mapped[str | None] = mapped_column(String(32))
+    tracking_updated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+    order: Mapped["Order"] = relationship(back_populates="shipments")
 
 
 class OrderAddress(Base):

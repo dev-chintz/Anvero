@@ -35,6 +35,9 @@ REQUEST_TIMEOUT_SECONDS = 30.0
 
 MAX_PAGE_SIZE = 100
 
+# Allegro's limit for one tracking request
+MAX_TRACKING_WAYBILLS = 20
+
 
 def _timestamp(value: datetime) -> str:
     """Allegro's date-time format: UTC, millisecond precision, a trailing Z."""
@@ -224,6 +227,70 @@ class AllegroClient:
         if not isinstance(forms, list):
             raise IntegrationUnavailable("Allegro checkout-forms is not a list")
         return forms
+
+    def _get_object(
+        self, path: str, what: str, params: list[tuple[str, str]] | None = None
+    ) -> dict[str, Any]:
+        """GET one Allegro resource and return its JSON object.
+
+        Raises the IntegrationError subclass that says what went wrong, so a
+        caller can tell "not allowed" (the application lacks a scope: no point
+        asking again) from "unavailable" (this one failed).
+        """
+        token = self._access_token_value()
+        try:
+            response = self._http.get(
+                f"{self._api_url}{path}",
+                headers={
+                    "Authorization": f"Bearer {token}",
+                    "Accept": ACCEPT_HEADER,
+                    "User-Agent": self._user_agent,
+                },
+                params=params,
+            )
+        except httpx2.RequestError as exc:
+            raise IntegrationUnavailable(f"Allegro API unreachable: {exc}") from exc
+
+        if response.status_code == 401:
+            self._access_token = None
+            raise IntegrationAuthError("Allegro rejected the access token")
+        if response.status_code == 403:
+            raise IntegrationAuthError(f"Allegro denied access to {what}")
+        if response.status_code >= 400:
+            raise IntegrationUnavailable(f"Allegro API returned {response.status_code} for {what}")
+        return _json_object(response, f"Allegro {what}")
+
+    def fetch_shipments(self, checkout_form_id: str) -> list[dict[str, Any]]:
+        """Return the parcels registered for an order (carrier and waybill).
+
+        `GET /order/checkout-forms/{id}/shipments`. The checkout-form itself
+        carries no tracking numbers, hence this second call per order.
+        """
+        payload = self._get_object(
+            f"/order/checkout-forms/{checkout_form_id}/shipments", "shipments"
+        )
+        shipments = payload.get("shipments", [])
+        if not isinstance(shipments, list):
+            raise IntegrationUnavailable("Allegro shipments is not a list")
+        return [s for s in shipments if isinstance(s, dict)]
+
+    def fetch_tracking(self, carrier_id: str, waybills: list[str]) -> list[dict[str, Any]]:
+        """Return the carrier's tracking for up to MAX_TRACKING_WAYBILLS waybills.
+
+        `GET /order/carriers/{carrierId}/tracking?waybill=...`; each item is
+        `{"waybill": ..., "trackingDetails": {"statuses": [...], ...}}`.
+        """
+        if not 1 <= len(waybills) <= MAX_TRACKING_WAYBILLS:
+            raise ValueError(f"between 1 and {MAX_TRACKING_WAYBILLS} waybills per request")
+        payload = self._get_object(
+            f"/order/carriers/{carrier_id}/tracking",
+            "tracking",
+            params=[("waybill", waybill) for waybill in waybills],
+        )
+        found = payload.get("waybills", [])
+        if not isinstance(found, list):
+            raise IntegrationUnavailable("Allegro tracking is not a list")
+        return [w for w in found if isinstance(w, dict)]
 
     def fetch_account_login(self) -> str | None:
         """Return the login of the seller the token belongs to, or None.

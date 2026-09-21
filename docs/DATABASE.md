@@ -19,8 +19,8 @@ The model will be deployed via migrations after framework selection, but a commo
 ## Implemented so far
 
 Migrations currently create `users`, `orders`, `order_items`,
-`order_addresses`, `order_status_history` and `integration_credentials`.
-`integration`, `customer` and `shipment` are still targets.
+`order_addresses`, `order_shipments`, `order_status_history` and
+`integration_credentials`. `integration` and `customer` are still targets.
 
 `orders` deviates from the target shape while there are no integrations to
 point at:
@@ -84,7 +84,16 @@ best-effort, so a deleted offer or a missing scope leaves it null).
 enforced by a unique constraint), `first_name`, `last_name`, `company_name`,
 `street`, `postal_code`, `city`, `country_code`, `phone`, `tax_id`.
 
-Both child tables are deleted with their order.
+`order_shipments` (the target `shipment`): `order_id`, `position`,
+`external_id` (the marketplace's id), `carrier_id` (e.g. `DHL`, or `OTHER`),
+`carrier_name`, `waybill`, `shipped_at` (when the number was added, by the
+marketplace's clock), `tracking_status` (the carrier's latest code:
+`PENDING`, `IN_TRANSIT`, `RELEASED_FOR_DELIVERY`, `AVAILABLE_FOR_PICKUP`,
+`NOTICE_LEFT`, `ISSUE`, `DELIVERED`, `RETURNED`; null when none was read) and
+`tracking_updated_at`. Replaced by an import like the items, except that
+parcels an import could not read are left as they were.
+
+All three child tables are deleted with their order.
 
 These columns hold buyers' personal data: names, addresses, phone numbers.
 It is never written to logs; mapping problems are logged by field name only.

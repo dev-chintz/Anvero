@@ -251,6 +251,20 @@ export const en = {
   "allegro.connectedNote": "Connected as {login}.",
   "allegro.connectedNoteAnonymous": "Connected.",
 
+  // shipments
+  "details.shipments": "Shipments",
+  "details.waybill": "Waybill {waybill}",
+  "details.trackingAsOf": "{status} ({when})",
+  "orders.shipmentTitle": "{carrier} {waybill}: {status}",
+  "tracking.PENDING": "Registered",
+  "tracking.IN_TRANSIT": "In transit",
+  "tracking.RELEASED_FOR_DELIVERY": "Out for delivery",
+  "tracking.AVAILABLE_FOR_PICKUP": "Ready for pickup",
+  "tracking.NOTICE_LEFT": "Delivery notice left",
+  "tracking.ISSUE": "Delivery problem",
+  "tracking.DELIVERED": "Delivered",
+  "tracking.RETURNED": "Returned",
+
   // toasts
   "toast.close": "Close notification",
 } as const;
@@ -502,6 +516,19 @@ export const pl: Record<MessageKey, string> & Record<string, string> = {
   "allegro.enterCredentials": "Najpierw wpisz i zapisz dane aplikacji.",
   "allegro.connectedNote": "Połączono jako {login}.",
   "allegro.connectedNoteAnonymous": "Połączono.",
+
+  "details.shipments": "Przesyłki",
+  "details.waybill": "List przewozowy {waybill}",
+  "details.trackingAsOf": "{status} ({when})",
+  "orders.shipmentTitle": "{carrier} {waybill}: {status}",
+  "tracking.PENDING": "Zarejestrowana",
+  "tracking.IN_TRANSIT": "W drodze",
+  "tracking.RELEASED_FOR_DELIVERY": "Wydana do doręczenia",
+  "tracking.AVAILABLE_FOR_PICKUP": "Do odbioru",
+  "tracking.NOTICE_LEFT": "Awizo",
+  "tracking.ISSUE": "Problem z doręczeniem",
+  "tracking.DELIVERED": "Doręczona",
+  "tracking.RETURNED": "Zwrócona",
 
   "toast.close": "Zamknij powiadomienie",
 };

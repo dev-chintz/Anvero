@@ -212,9 +212,17 @@ Returns the order with the fields the list has, plus its details:
   "payment": {"type": "ONLINE", "provider": "P24", "paid_amount": "149.99", "paid_at": "...Z"},
   "invoice": {"required": false, "address": null},
   "buyer_message": null,
-  "seller_note": null
+  "seller_note": null,
+  "shipments": [
+    {"id": "...", "external_id": "...", "carrier_id": "DHL", "carrier_name": null, "waybill": "12345678910PL", "shipped_at": "...Z", "tracking_status": "IN_TRANSIT", "tracking_updated_at": "...Z"}
+  ]
 }
 ```
+
+`shipments` are the parcels sent for the order; empty until one is. Unlike the
+rest of the details, they are also in each item of `GET /api/v1/orders`, since
+the list shows them. `tracking_status` is the carrier's latest code, or null
+when none was read (see `INTEGRATIONS.md`, "Shipments and tracking").
 
 Every detail may be null, and `items` may be empty: orders entered by hand and
 orders stored before details existed have none. The four objects `customer`,
