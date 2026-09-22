@@ -1,0 +1,3 @@
+# pinned to the 1.x line: 2.0 renamed FastMCP to MCPServer with a different
+# API, and 1.x's decorator-based FastMCP is the widely-documented pattern
+mcp==1.30.0

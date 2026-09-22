@@ -112,4 +112,20 @@ backend/    FastAPI application, Alembic migrations, tests and scripts
 frontend/   React + TypeScript interface (Vite)
 docs/       project documentation
 scripts/    PowerShell helpers for the local environment
+tools/      dev-mcp: an MCP server exposing scripts/ as callable tools
 ```
+
+## Dev-loop MCP server
+
+`tools/dev-mcp/` wraps a couple of the `scripts/` helpers (restarting the
+backend cleanly, syncing the test counts in the docs) as MCP tools, so an
+MCP-aware assistant can call them directly instead of running PowerShell.
+One-time setup, in PowerShell:
+
+```powershell
+.\tools\dev-mcp\setup.ps1
+```
+
+Then restart the MCP client (e.g. Claude Code) so it picks up `.mcp.json` at
+the project root. See `tools/dev-mcp/server.py`'s docstring for what each
+tool does and its limits.

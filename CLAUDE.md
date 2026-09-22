@@ -82,6 +82,16 @@ whichever side a commit touches.
   test-count numbers in `PROJECT_STATUS.md`, `AI_START_HERE.md` and
   `AI_HANDOFF.md` (see "Before ending a session"); review the diff before
   committing.
+- Both of the above are also callable as MCP tools (`restart_backend`,
+  `sync_test_counts`) via `tools/dev-mcp/` — see its README note above and
+  `server.py`'s docstring. One caveat found while building it: a server
+  `restart_backend` starts is only reliably still running *after this tool
+  call returns* when nothing above it kills its whole process tree on exit.
+  A plain interactive terminal does not; some sandboxed tool-call
+  environments do. If a server you started this way is gone a moment later,
+  that is the caller's process-group cleanup, not the script — run
+  `.\scripts\anvero.ps1 restart` directly in your own terminal instead for a
+  server meant to keep running.
 
 ## Before ending a session
 

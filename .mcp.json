@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "anvero-dev-tools": {
+      "command": "tools/dev-mcp/.venv/Scripts/python.exe",
+      "args": ["tools/dev-mcp/server.py"]
+    }
+  }
+}

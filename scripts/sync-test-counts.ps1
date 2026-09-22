@@ -22,6 +22,20 @@
 $ErrorActionPreference = "Stop"
 $root = Join-Path $PSScriptRoot ".."
 
+# Both tools colour their output when they think they're on a terminal, and
+# get it wrong when this script itself is run non-interactively (an MCP tool
+# call, CI, another script's captured output rather than a real console):
+# the count is then surrounded by ANSI escape codes instead of plain spaces,
+# and a regex expecting whitespace stops matching. NO_COLOR/FORCE_COLOR are
+# the standard opt-out most CLI tools (npm, vitest's chalk) respect; the
+# strip below is the fallback for whichever one does not.
+$env:NO_COLOR = "1"
+$env:FORCE_COLOR = "0"
+$ansiPattern = "$([char]27)\[[0-9;]*[a-zA-Z]"
+function ConvertTo-PlainText([string]$text) {
+    return $text -replace $ansiPattern, ""
+}
+
 Write-Host "Running backend tests ..." -ForegroundColor Cyan
 Push-Location (Join-Path $root "backend")
 try {
@@ -29,7 +43,7 @@ try {
     # NativeCommandError and, with $ErrorActionPreference = Stop, that aborts
     # this script even on a passing run (e.g. npm's own update notice) -
     # stdout/stderr are both already visible without redirecting either
-    $backendOutput = & ".\.venv\Scripts\python.exe" -m pytest -q | Out-String
+    $backendOutput = ConvertTo-PlainText (& ".\.venv\Scripts\python.exe" -m pytest -q | Out-String)
 }
 finally {
     Pop-Location
@@ -44,7 +58,7 @@ $backendCount = $Matches[1]
 Write-Host "Running frontend tests ..." -ForegroundColor Cyan
 Push-Location (Join-Path $root "frontend")
 try {
-    $frontendOutput = & npm.cmd run test | Out-String
+    $frontendOutput = ConvertTo-PlainText (& npm.cmd run test | Out-String)
 }
 finally {
     Pop-Location
