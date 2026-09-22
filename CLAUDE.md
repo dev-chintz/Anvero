@@ -75,6 +75,13 @@ whichever side a commit touches.
   `python.exe` whose command line contains `multiprocessing.spawn`), and check
   with `netstat -ano | grep ':8000 '` that one process listens. When a served
   response looks stale, `GET /openapi.json` says which code is really running.
+  `.\scripts\anvero.ps1 restart` does all of this: kills whatever holds the
+  port (listener and orphan alike), starts a fresh server, and waits for
+  `/api/v1/health` before returning.
+- `.\scripts\anvero.ps1 sync-tests` runs both test suites and updates just the
+  test-count numbers in `PROJECT_STATUS.md`, `AI_START_HERE.md` and
+  `AI_HANDOFF.md` (see "Before ending a session"); review the diff before
+  committing.
 
 ## Before ending a session
 

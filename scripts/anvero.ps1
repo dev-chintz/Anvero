@@ -1,9 +1,9 @@
 #Requires -Version 5.1
 
 param(
-    
+
     [Parameter(Position = 0)]
-   [ValidateSet("doctor", "bootstrap", "start", "finish", "update", "tests")]
+   [ValidateSet("doctor", "bootstrap", "start", "restart", "sync-tests", "finish", "update", "tests")]
     [string]$Command
 )
 
@@ -15,12 +15,16 @@ if (-not $Command) {
     Write-Host "==========================================" -ForegroundColor Cyan
     Write-Host ""
 
-    Write-Host "bootstrap  - Setup development environment"
-    Write-Host "doctor     - Check development environment"
-    Write-Host "start      - Start FastAPI backend"
-    Write-Host "tests      - Create test structure"
-    Write-Host "update     - Update project"
-    Write-Host "finish     - Finish development session"
+    Write-Host "bootstrap   - Setup development environment"
+    Write-Host "doctor      - Check development environment"
+    Write-Host "start       - Start FastAPI backend (foreground, --reload)"
+    Write-Host "restart     - Cleanly restart the backend (kills any orphaned"
+    Write-Host "              worker first; see CLAUDE.md's uvicorn gotcha)"
+    Write-Host "sync-tests  - Run both test suites and update the counts"
+    Write-Host "              recorded in PROJECT_STATUS/AI_START_HERE/AI_HANDOFF"
+    Write-Host "tests       - Create test structure"
+    Write-Host "update      - Update project"
+    Write-Host "finish      - Finish development session"
 
     Write-Host ""
     Write-Host "Example:"
@@ -44,6 +48,14 @@ switch ($Command) {
 
     "start" {
         & "$scriptRoot\start.ps1"
+    }
+
+    "restart" {
+        & "$scriptRoot\restart-backend.ps1"
+    }
+
+    "sync-tests" {
+        & "$scriptRoot\sync-test-counts.ps1"
     }
 
     "finish" {
