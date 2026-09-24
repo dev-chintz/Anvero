@@ -144,6 +144,11 @@ the owner needs, at the NAS: access for it to pull the images (public packages
 or a `read:packages` token), the LAN address and password for `DATABASE_URL`,
 and a new `SECRET_KEY`. Only that one backend may run the scheduled import.
 
+**Feature work after that (agreed 2026-09-24):** the feature plan at the end
+of `ROADMAP.md`, modelled on AlleIntegrator. Its first stage (work queues,
+the "to make today" list, search) touches only Anvero's own data and can
+start before the NAS or production Allegro are done.
+
 Run the Allegro import against a real account, starting in the Allegro
 Sandbox. Agreed plan, in order:
 

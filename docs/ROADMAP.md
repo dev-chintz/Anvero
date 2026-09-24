@@ -82,9 +82,10 @@ actually run.
 
 ### 4. Shipments, so Anvero replaces the panel rather than mirroring it
 
-**Before building labels, invoices or stock here, read `ALTERNATIVES.md`:**
-two existing products (AlleIntegrator, self-hosted and free; Ritevo, SaaS)
-already do them, and whether to build, adopt or borrow ideas is undecided.
+**The order of work from here is set by "Feature plan, modelled on
+AlleIntegrator" at the end of this file** (agreed 2026-09-24: build in Anvero,
+borrowing AlleIntegrator's ideas; `DECISIONS.md`). The Allegro API survey
+below remains the reference for what each of its stages calls.
 
 Carrier and tracking number are not imported at all — Allegro serves them
 from another endpoint — and there are no labels or invoices. Without them an
@@ -235,5 +236,73 @@ buyers' data in it. Revisit alongside step 3.
 ### 9. ERLI
 
 The second marketplace exists in the model and in the source enum, and
-nowhere else. Worth doing when Allegro has proved the shape of the work, and
-only if selling there.
+nowhere else. As of 2026-09-24 the owner sells there, so it is no longer
+conditional: it is stage A4 of the feature plan below.
+
+## Feature plan, modelled on AlleIntegrator (agreed 2026-09-24)
+
+Built from a walk through a running AlleIntegrator v1.3.36 (its screen map is
+the owner's Claude Docs page "AlleIntegrator — mapa aplikacji") and the
+owner's answers on how the business works: two channels (Allegro and Erli),
+10–50 orders a day, most goods **made to order** (so no stock keeping),
+shipping mainly through "Wysyłam z Allegro" with the owner's own courier
+contract for exceptions and Erli, and invoices issued by an external
+invoicing program, not by Anvero. Items 1–3 above (production Allegro, the
+unattended import, the NAS) still stand; stage A1–A3 touch only Anvero's own
+data and can proceed alongside them.
+
+### A — Handle the day's orders without the marketplace panels
+
+In this order (the owner chose queues before any write to Allegro):
+
+1. **Work queues and dashboard tiles.** Ready-made views: to make/pack,
+   unpaid, to ship; sort by oldest, newest and **at risk** (closest dispatch
+   deadline). Dashboard tiles lead into them. Needs the dispatch deadline
+   imported from the checkout form, which Anvero does not read yet.
+2. **"To make today" list.** Everything the waiting orders need, grouped by
+   product (SKU / offer) with quantities, the orders each serves, and the
+   earliest dispatch deadline. AlleIntegrator's picking list, turned into a
+   production list; it has no such screen itself.
+3. **Search and the buyer's other orders.** Search by SKU, city, pickup
+   point and tracking number besides buyer and number; on an order, the same
+   buyer's other orders.
+4. **Erli order import**, so the queues and the list above cover both
+   channels.
+5. **Safe mode (dry run).** A switch, on by default, under which every write
+   to a marketplace is logged and shown as "would send" instead of sent. In
+   place before the first write.
+6. **Writing to Allegro:** fulfillment status and tracking number (writes 1
+   and 2 in item 4's survey), with the conflict rule for two changes at once
+   decided first.
+7. **Application status page.** Allegro/Erli connection and token validity,
+   last import and its outcome, whether the schedule is running.
+
+### B — Next, in the owner's order of urgency
+
+1. **Labels through "Wysyłam z Allegro"**: buy the shipment, print A6.
+2. **Buyer messages**: one inbox across channels, reply from Anvero, put a
+   thread aside until later.
+3. **Invoices and money.** Choose the invoicing program first (compare APIs,
+   KSeF support and cost; Fakturownia, wFirma, inFakt are candidates). Then a
+   queue of orders waiting for an invoice, issuing through that program, and
+   uploading the PDF to Allegro. Money: a period summary of Allegro's fees
+   and what is left per order after them.
+4. **Returns and claims**: a queue with Allegro's deadlines (14 days to
+   decide, 45 to recover the commission) and an alert on the order.
+5. **Own courier contract** (InPost ShipX first) for exceptions and Erli.
+
+### C — Later, when daily use asks for it
+
+Merging several orders of one buyer into one parcel; EAN scanning while
+packing; rules "condition → action" with a dry run before enabling;
+autoresponder and AI-drafted replies; ratings; regular customers; people,
+roles and an audit log; notifications (bell, e-mail).
+
+### D — Optional add-ons, not planned
+
+Kept as ideas, not rejected: offer management (bulk edit, description
+templates, bundles, copying between accounts, import from file, AI offer
+generator, price rules), a product catalogue and stock by SKU with stock
+sync, stocktaking, PZ/WZ documents, suppliers and reordering, advertising and
+ROAS, other channels (PrestaShop, EmpikPlace, WooCommerce, OLX), Anvero's own
+KSeF invoice issuer, and onboarding/help screens.

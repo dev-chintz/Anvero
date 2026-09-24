@@ -66,7 +66,16 @@ of questions, not findings.
   rules and the packing check (what saves most time at volume); AlleIntegrator
   for the self-hosted, one-file-configuration model.
 
-## To decide, and how
+## Decided 2026-09-24: build, borrowing AlleIntegrator's ideas
+
+The owner ran AlleIntegrator (v1.3.36, Allegro Sandbox account) and mapped its
+screens in the Claude Docs page "AlleIntegrator — mapa aplikacji". The outcome
+is to keep building Anvero and take AlleIntegrator's solutions as the model;
+which ones, and in what order, is the feature plan at the end of `ROADMAP.md`
+(`DECISIONS.md`, 2026-09-24). Ritevo was not tried. The section below is the
+question as it stood before.
+
+## To decide, and how (2026-09-21)
 
 The question is whether to keep building Anvero's own labels, invoices and
 stock, adopt one of these for that part, or take ideas only. Suggested way to
