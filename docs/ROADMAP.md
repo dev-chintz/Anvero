@@ -342,3 +342,83 @@ generator, price rules), a product catalogue and stock by SKU with stock
 sync, stocktaking, PZ/WZ documents, suppliers and reordering, advertising and
 ROAS, other channels (PrestaShop, EmpikPlace, WooCommerce, OLX), Anvero's own
 KSeF invoice issuer, and onboarding/help screens.
+
+## Where Anvero stands against AlleIntegrator, and what to build next (2026-09-24)
+
+A comparison made after stages A1–A7, B1 and the starts of B2 and B4, against
+the owner's map of AlleIntegrator v1.3.36 (the Claude Docs page "AlleIntegrator —
+mapa aplikacji") and Allegro's published OpenAPI specification, which says
+what its API can give. Nothing here is decided beyond the order suggested; each
+item is scoped when it is taken up.
+
+### Coverage by area
+
+| Area in AlleIntegrator | Anvero |
+| --- | --- |
+| Dashboard: queue tiles, sales 7/30/90 days against the period before, a chart by channel | Queue tiles and recent orders. **Missing:** periods with comparison, the chart |
+| Order queues: to pack, unpaid, to ship, "at risk" sort, search | Done, with the dispatch deadline and wide search, over Allegro and Erli |
+| Order card: items, buyer, delivery, tracking number, fees, the buyer's other orders | Done. **Missing:** cancelling an order, editing the recipient, a link to SalesCenter |
+| Merging orders, "packed" mark, EAN scanning | **Missing** (C). The data for merging exists |
+| Picking list | "To make" (by product) is the counterpart, better for made-to-order goods |
+| Labels through Wysyłam z Allegro, pickups, printing | Done (B1, never run for real). **Missing:** own courier contracts, printing to a label printer (ZPL, network), buying a label automatically after payment |
+| Invoices, KSeF, purchase invoices, upload to Allegro | **Missing** (B3; the program is not chosen). Its own KSeF issuer is not recommended |
+| Messages: inbox, tabs, filters, tags, templates, escalation at 4/24/72 h | Inbox, reply, put aside, schedule (B2). **Missing:** filters, tags, templates, waiting-time alerts, a new thread, attachments |
+| Autoresponder | **Missing** (C) |
+| Account health, ratings | **Missing.** The API gives both (`/sale/quality`, `/sale/user-ratings`, with an answer to a rating) |
+| Finance: period summary of fees, profitability by offer, what is left, ROAS | Fees per order only. **Missing:** period summary, purchase price, margin. ROAS is impossible (no Allegro Ads API; the same for AlleIntegrator) |
+| Returns, claims, disputes: queue with deadlines and actions | Queue, order alert and dashboard reminder (B4, read only). **Missing:** every action, and the automatic commission claim |
+| Regular customers, sales statistics | **Missing.** All the data is Anvero's own |
+| Offers (catalogue, templates, bundles, copying, import, AI generator, price rules) | Not built, by choice (D) |
+| Products and warehouse (stock by SKU, PZ/WZ, stocktaking, suppliers, reordering) | Not built, by choice: the goods are made to order |
+| Rules "condition → action" | **Missing** (C) |
+| Safe mode | Done, with a log of what was held back and a banner |
+| Application status, integrations | The Status page. **Missing:** a card per channel, several Allegro accounts |
+| Settings | Sender, parcel, Allegro, Erli, safe mode, language. **Missing:** notifications (e-mail, webhook), shop details, SMTP, printer, sync intervals in the interface (today `.env`), a data package |
+| People, roles, change log | **Missing:** one login. The status history and the write log partly stand in |
+| Other channels (Empik, OLX, PrestaShop, WooCommerce) | Not built. Erli is built and waits for a key |
+
+### Suggested order
+
+1. **Actions on returns, claims and disputes**, each through safe mode and built
+   one at a time: reply in a dispute, accept or reject a claim, reject a return,
+   apply for the sales commission (`POST /order/refund-claims`; AlleIntegrator
+   does it by itself after 24 hours). The most valuable: a claim not answered
+   in time is accepted by Allegro. Needs the owner's rules for when to accept.
+2. **Money without the invoicing program**: a purchase price on a product, a
+   period summary of Allegro's fees, and "what is left" (revenue less fees less
+   cost). The fees are already read. The money half of B3.
+3. **Statistics and dashboard**: sales for 7/30/90 days against the period
+   before, a chart by channel, best and worst sellers, regular customers with a
+   CSV export. Own data only, nothing that can go wrong on Allegro's side.
+4. **Messages, further**: canned replies, tabs (waiting / all), an alert for a
+   thread waiting longer than a chosen time, a new thread. The autoresponder
+   after that.
+5. **Ratings and account health**, first read only, then answering a rating.
+6. **Notifications**: a bell in the interface from what is already counted (a
+   claim past its deadline, a failed import, a token about to run out), then
+   e-mail or a webhook (needs SMTP or a webhook address in Settings).
+7. **Invoices (B3)**: choose the program, a queue of orders waiting for an
+   invoice, upload the PDF to Allegro (`POST /order/checkout-forms/{id}/invoices`).
+8. **Packing and shipping**: merge orders of one buyer, a "packed" mark, then
+   own courier (InPost) and printing to a label printer.
+
+Not worth building unless the business changes: stock and warehouse documents,
+suppliers and reordering, offer management, PrestaShop, WooCommerce, Empik and
+OLX, an own KSeF issuer.
+
+### Before adding more
+
+Labels, messages, returns and claims, the Erli import and the NAS deployment
+have never met the real Allegro, Erli or the NAS. The first real read of returns,
+claims and messages should come from the machine that has the Allegro
+application's credentials: it shows whether the application carries the
+`allegro:api:disputes` and messaging scopes, and whether the fields match the
+specification. Each of these is listed under "Not yet verified" in
+`PROJECT_STATUS.md`.
+
+### Open questions that change the plan
+
+- More than one Allegro account? AlleIntegrator handles several; Anvero, one.
+- Will anyone besides the owner log in? Roles and a change log depend on it.
+- Which label printer: an ordinary A4/A6 one, or a thermal one (ZPL)?
+- Which invoicing program is used or preferred?

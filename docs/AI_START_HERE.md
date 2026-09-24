@@ -29,7 +29,8 @@ Read the following files in order:
 
 **Feature work:** decided 2026-09-24 to keep building, modelled on
 AlleIntegrator; the order of work is the feature plan at the end of
-`ROADMAP.md` (stages A1–A3 are done: work queues, the "to make" list,
+`ROADMAP.md`, followed there by a comparison with AlleIntegrator and the
+suggested next steps (stages A1–A3 are done: work queues, the "to make" list,
 wider search and the buyer's other orders; A4, the Erli import, has its
 adapter built from Erli's docs and waits for the owner's API key; A5, safe
 mode, is done, so every marketplace write must go through `MarketplaceWriter`;
