@@ -61,6 +61,7 @@ export function OrderRow({ order, onStatusChange, updating, linkState }: OrderRo
   const { t, tc, formatDateTime, formatMoney, trackingLabel } = useTranslation();
   const shipments = order.shipments ?? [];
   const items = order.items ?? [];
+  const hasPicture = items.some((item) => item.image_url);
   const formattedDate = formatDateTime(order.ordered_at);
   const urgency = dispatchUrgency(order);
 
@@ -92,7 +93,9 @@ export function OrderRow({ order, onStatusChange, updating, linkState }: OrderRo
                 {item.image_url ? (
                   <img src={item.image_url} alt="" loading="lazy" className="order-item-thumb" />
                 ) : (
-                  <span className="item-thumb-placeholder" aria-hidden="true" />
+                  // a plain box keeps the names aligned beside a picture, but is
+                  // only worth its room when some item of the order has one
+                  hasPicture && <span className="item-thumb-placeholder" aria-hidden="true" />
                 )}
                 <span className="order-item-quantity">{item.quantity}×</span>
                 <span className="order-item-name">{item.name}</span>

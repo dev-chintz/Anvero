@@ -136,6 +136,13 @@ describe("OrderRow", () => {
       );
     });
 
+    it("leaves out the empty picture box when no item of the order has a picture", () => {
+      const { container } = renderRow(makeOrder({ items: [item("A"), item("B")] }));
+
+      expect(container.querySelectorAll("img, .item-thumb-placeholder")).toHaveLength(0);
+      expect(screen.getByText("A")).toBeInTheDocument();
+    });
+
     it("lists three items and counts the rest", () => {
       renderRow(
         makeOrder({ items: ["A", "B", "C", "D", "E"].map((name) => item(`Item ${name}`)) }),
