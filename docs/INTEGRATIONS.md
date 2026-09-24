@@ -133,6 +133,9 @@ unique, so running it twice does not duplicate anything.
 
 Exit codes: `2` not configured, `3` credentials refused, `1` other failure.
 
+The script notes how the import ended exactly as the button does, so Settings
+and the status page show it too.
+
 **Only one import may run at a time**, from either the script or the
 endpoint calling it concurrently against the same database — enforced by a
 lock in the endpoint, not by anything the script itself checks. Allegro
@@ -453,7 +456,9 @@ the documentation until a real import confirms it.
    a document). `ERLI_API_URL` defaults to production; Erli's documentation
    says its test environment is on another domain without naming it.
 3. From `backend/`: `.\.venv\Scripts\python.exe scripts\import_erli.py`
-   (`--days N` for a backfill). There is no button or schedule for Erli yet.
+   (`--days N` for a backfill). There is no button or schedule for Erli yet;
+   the status page (Status in the sidebar) shows how the script's last run
+   ended.
 
 The key is a plain bearer token and does not rotate. Anvero stores only its
 SHA-256 fingerprint, on an `ERLI` row of `integration_credentials` that holds

@@ -286,6 +286,63 @@ export interface SafeMode {
   changed_by: string | null;
 }
 
+/** "off": not set up; "warning": works but needs attention; "error": does not work. */
+export type HealthState = "off" | "ok" | "warning" | "error";
+
+/** This backend's own import schedule. */
+export interface ScheduleStatus {
+  interval_minutes: number;
+  running: boolean;
+  started_at: string | null;
+  next_run_at: string | null;
+  last_run_at: string | null;
+}
+
+/** How the last import ended, whoever ran it; all null before the first. */
+export interface LastImport {
+  at: string | null;
+  created: number | null;
+  updated: number | null;
+  error: string | null;
+}
+
+export interface AllegroHealth {
+  state: HealthState;
+  /** Codes for what makes the state less than "ok"; worded by the page. */
+  problems: string[];
+  application_complete: boolean;
+  connected: boolean;
+  environment: AllegroEnvironment;
+  account_login: string | null;
+  token_issued_at: string | null;
+  token_expires_at: string | null;
+  last_import: LastImport;
+  schedule: ScheduleStatus;
+}
+
+export interface ErliHealth {
+  state: HealthState;
+  problems: string[];
+  configured: boolean;
+  last_import: LastImport;
+  /** Null: Erli has no schedule yet, only the import script. */
+  schedule: ScheduleStatus | null;
+}
+
+export interface AppStatus {
+  checked_at: string;
+  version: string;
+  safe_mode: boolean;
+  allegro: AllegroHealth;
+  erli: ErliHealth;
+}
+
+export const statusApi = {
+  get(): Promise<AppStatus> {
+    return request<AppStatus>("/status");
+  },
+};
+
 export const safeModeApi = {
   get(): Promise<SafeMode> {
     return request<SafeMode>("/settings/safe-mode");

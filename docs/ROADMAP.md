@@ -280,8 +280,12 @@ In this order (the owner chose queues before any write to Allegro):
    fulfillment status and tracking number; the last change made in Anvero
    wins (`DECISIONS.md`). Not yet sent for real: try it on the Sandbox with
    safe mode off (`INTEGRATIONS.md`, "Writing to Allegro").
-7. **Application status page.** Allegro/Erli connection and token validity,
-   last import and its outcome, whether the schedule is running.
+7. ~~**Application status page.**~~ Done 2026-09-24: the Status page and
+   `GET /status`: per marketplace, the connection, until when Allegro's token
+   is valid, the last import and its outcome (by any route, the scripts
+   included), and whether this backend's schedule is running, each with a
+   verdict and what to do. Read from what Anvero holds, never a live call
+   (`DECISIONS.md`).
 
 ### B — Next, in the owner's order of urgency
 

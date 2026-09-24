@@ -6,6 +6,17 @@ All significant changes to the Anvero project.
 
 ## 2026-09-24
 
+### 🩺 Application status page
+
+- A Status page (sidebar) and `GET /status`: for Allegro and Erli, whether
+  they are set up and connected, until when Allegro's access is valid, how the
+  last import ended, and whether this backend's automatic import is running,
+  each with a verdict (working, needs attention, not working) and what to do.
+  Nothing is asked of the marketplaces.
+- `integration_credentials.token_issued_at` (migration `a3e7c5b9d142`), and
+  the import scripts now note their outcome like the button does.
+- Stage A7 of the feature plan.
+
 ### 📤 Status and tracking numbers sent to Allegro (through safe mode)
 
 - A status set in Anvero is sent to Allegro's fulfillment status, and a

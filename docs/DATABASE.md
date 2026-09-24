@@ -145,6 +145,7 @@ the latest token has to be kept between runs:
 | --- | --- |
 | `provider` | primary key, e.g. `ALLEGRO`; an `ERLI` row holds Erli's sync point, with an empty `refresh_token` and the API key's fingerprint (Erli's key does not rotate and is never stored) |
 | `refresh_token` | the most recently issued refresh token |
+| `token_issued_at` | when that token was issued (a rotation or a connection), so the status page can say when it lapses; null for a row with no token, such as Erli's. The migration filled existing rows from `updated_at`, a slight overestimate |
 | `seed_fingerprint` | SHA-256 of the `.env` token the chain started from; a different `.env` token means a fresh authorization |
 | `last_import_at`, `last_import_created`, `last_import_updated`, `last_import_error` | how the last import ended, whoever ran it: when it finished, how many orders it created and updated, or the error if it failed (then the counts are null). Cleared when an account is connected |
 | `last_synced_at` | where the next import resumes: when the last one that fetched everything started, less five minutes; null until one has, and reset by a re-authorization, since another seller account has another order history |

@@ -85,3 +85,35 @@ def test_a_status_erli_moves_is_followed(session):
 def test_without_a_key_there_is_no_import(session):
     with pytest.raises(IntegrationNotConfigured):
         build_erli_import_service(session, client=_erli([], api_key=""))
+
+
+def test_an_import_run_as_the_script_does_notes_how_it_ended(session):
+    from app.services.import_outcome import run_and_record
+
+    run_and_record(
+        session,
+        PROVIDER,
+        lambda: build_erli_import_service(session, client=_erli([_raw()])).sync_orders(),
+    )
+
+    credential = IntegrationCredentialRepository(session).get(PROVIDER)
+    assert credential.last_import_at is not None
+    assert (credential.last_import_created, credential.last_import_updated) == (1, 0)
+    # Erli's key does not expire, so there is no token age to show
+    assert credential.token_issued_at is None
+
+
+def test_a_failed_import_run_as_the_script_does_notes_the_error(session):
+    from app.integrations.base import IntegrationError
+    from app.services.import_outcome import run_and_record
+
+    build_erli_import_service(session, client=_erli([])).sync_orders()
+
+    def failing():
+        raise IntegrationError("Erli is unreachable")
+
+    with pytest.raises(IntegrationError):
+        run_and_record(session, PROVIDER, failing)
+
+    credential = IntegrationCredentialRepository(session).get(PROVIDER)
+    assert credential.last_import_error == "Erli is unreachable"

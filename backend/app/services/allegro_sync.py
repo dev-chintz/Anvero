@@ -9,21 +9,20 @@ import asyncio
 import logging
 import threading
 from collections.abc import Callable
-from datetime import UTC, datetime
+from dataclasses import dataclass
+from datetime import UTC, datetime, timedelta
 
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
 from app.db.session import SessionLocal
-from app.integrations.base import IntegrationError, IntegrationNotConfigured
-from app.repositories.integration_credential_repository import (
-    IntegrationCredentialRepository,
-)
+from app.integrations.base import IntegrationError
 from app.services import allegro_settings
 from app.services.allegro_import import (
     build_allegro_client,
     build_allegro_import_service,
 )
+from app.services.import_outcome import run_and_record
 from app.services.order_import_service import ImportResult, OrderImportService
 
 logger = logging.getLogger(__name__)
@@ -34,12 +33,31 @@ logger = logging.getLogger(__name__)
 # 409 instead of queueing behind the first import.
 import_lock = threading.Lock()
 
-# a failure note is shown to the operator, so it stays short
-_MAX_ERROR_LENGTH = 500
-
 
 class ImportAlreadyRunning(Exception):
     """Another import holds the lock."""
+
+
+@dataclass
+class ScheduleState:
+    """What this process's import schedule is doing, for the status page.
+
+    Kept in memory: the schedule lives in one process, so only that process
+    can say whether it is running. After a restart it starts empty again.
+    """
+
+    interval_minutes: int = 0
+    # the scheduler loop is alive in this process
+    running: bool = False
+    started_at: datetime | None = None
+    # when the next scheduled import is due
+    next_run_at: datetime | None = None
+    # when the last scheduled run finished, whatever it did (it may have
+    # skipped: no account connected, or another import was running)
+    last_run_at: datetime | None = None
+
+
+schedule_state = ScheduleState()
 
 
 def run_import(
@@ -54,28 +72,9 @@ def run_import(
     """
     if not import_lock.acquire(blocking=False):
         raise ImportAlreadyRunning
+    factory = service_factory or (lambda: build_allegro_import_service(db))
     try:
-        try:
-            service = (service_factory or (lambda: build_allegro_import_service(db)))()
-            result = service.sync_orders()
-        except IntegrationNotConfigured:
-            raise
-        except Exception as exc:
-            # a failed statement leaves the session unusable until rolled back
-            db.rollback()
-            IntegrationCredentialRepository(db).record_import(
-                allegro_settings.PROVIDER,
-                datetime.now(UTC),
-                error=(str(exc) or type(exc).__name__)[:_MAX_ERROR_LENGTH],
-            )
-            raise
-        IntegrationCredentialRepository(db).record_import(
-            allegro_settings.PROVIDER,
-            datetime.now(UTC),
-            created=result.created,
-            updated=result.updated,
-        )
-        return result
+        return run_and_record(db, allegro_settings.PROVIDER, lambda: factory().sync_orders())
     finally:
         import_lock.release()
 
@@ -111,6 +110,17 @@ async def scheduler(interval_minutes: int | None = None) -> None:
     if minutes <= 0:
         return
     logger.info("Allegro imports scheduled every %d minutes", minutes)
-    while True:
-        await asyncio.sleep(minutes * 60)
-        await asyncio.to_thread(_scheduled_run)
+    state = schedule_state
+    state.interval_minutes = minutes
+    state.running = True
+    state.started_at = datetime.now(UTC)
+    try:
+        while True:
+            state.next_run_at = datetime.now(UTC) + timedelta(minutes=minutes)
+            await asyncio.sleep(minutes * 60)
+            state.next_run_at = None
+            await asyncio.to_thread(_scheduled_run)
+            state.last_run_at = datetime.now(UTC)
+    finally:
+        state.running = False
+        state.next_run_at = None

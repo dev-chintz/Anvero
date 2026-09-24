@@ -26,6 +26,7 @@ are days in the business timezone, `BUSINESS_TIMEZONE`, default
 | `GET` | `/api/v1/settings/safe-mode` | whether safe mode is on, and who last switched it |
 | `PUT` | `/api/v1/settings/safe-mode` | switch safe mode on or off |
 | `GET` | `/api/v1/marketplace-writes` | what Anvero sent to a marketplace, or held back in safe mode |
+| `GET` | `/api/v1/status` | the application status page: connections, last imports, the schedule |
 | `GET` | `/api/v1/integrations/allegro` | the Allegro connection's state, never a secret |
 | `PUT` | `/api/v1/integrations/allegro/settings` | store the Allegro application's credentials |
 | `POST` | `/api/v1/integrations/allegro/connect` | start connecting a seller account; rate limited to 10 per minute per IP |
@@ -295,6 +296,49 @@ Every write to a marketplace, sent or held back, newest first: `order_id`
 is `DRY_RUN` (safe mode held it back), `SENT` or `FAILED`; `detail` is the
 marketplace's answer or the error. Nothing writes to it yet: the first writes
 come with feature plan stage A6.
+
+## `GET /api/v1/status`
+
+What the application status page shows. Read entirely from what Anvero holds:
+nothing is asked of Allegro or Erli, so it can be called as often as wanted
+and never rotates a token (`DECISIONS.md`).
+
+```json
+{"checked_at": "...Z", "version": "0.1.0", "safe_mode": true,
+ "allegro": {"state": "warning", "problems": ["token_expiring"],
+   "application_complete": true, "connected": true, "environment": "sandbox",
+   "account_login": "seller_login",
+   "token_issued_at": "...Z", "token_expires_at": "...Z",
+   "last_import": {"at": "...Z", "created": 2, "updated": 7, "error": null},
+   "schedule": {"interval_minutes": 15, "running": true, "started_at": "...Z",
+                "next_run_at": "...Z", "last_run_at": null}},
+ "erli": {"state": "off", "problems": [], "configured": false,
+   "last_import": {"at": null, "created": null, "updated": null, "error": null},
+   "schedule": null}}
+```
+
+`state` is `off` (not set up at all), `ok`, `warning` (works, but needs
+attention) or `error` (does not work until someone acts); `problems` says why,
+as codes the interface words:
+
+| Code | Level | Meaning |
+| --- | --- | --- |
+| `application_incomplete` | warning | client id, secret or User-Agent missing (Allegro) |
+| `not_connected` | warning | no seller account connected (Allegro) |
+| `never_imported` | warning | connected, but no import has run, so the connection is unproven |
+| `token_expiring` | warning | the refresh token lapses within 14 days (Allegro) |
+| `token_expired` | error | the refresh token has lapsed: connect the account again |
+| `last_import_failed` | error | the last import ended in an error, in `last_import.error` |
+| `import_overdue` | warning | the schedule runs, but no import finished for three intervals |
+| `schedule_stopped` | warning | `ALLEGRO_IMPORT_INTERVAL_MINUTES` is set, but the schedule is not running in this backend |
+
+`token_expires_at` is `token_issued_at` plus Allegro's three months (taken as
+90 days); every import issues a new token, so it only nears when nothing
+imports. `last_import` is the last import by any route: the button, the
+schedule or either script. `schedule` is this backend's own: another backend
+importing on the same database is not seen here, though its imports show in
+`last_import`. It lives in memory, so `last_run_at` is null until the first
+scheduled run after a start. Erli has no schedule yet: `schedule` is null.
 
 ## Changes that reach the marketplace
 

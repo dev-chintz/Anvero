@@ -116,3 +116,31 @@ def test_the_scheduler_runs_an_import_each_interval(monkeypatch):
         asyncio.run(scheduler(5))
 
     assert len(calls) == 2
+
+
+def test_the_scheduler_reports_itself_running_and_then_stopped(monkeypatch):
+    state = allegro_sync.ScheduleState()
+    monkeypatch.setattr(allegro_sync, "schedule_state", state)
+    seen = []
+    real_sleep = asyncio.sleep
+
+    async def fast_sleep(_seconds):
+        if seen:
+            raise asyncio.CancelledError
+        await real_sleep(0)
+
+    def run():
+        seen.append((state.running, state.interval_minutes, state.next_run_at))
+
+    monkeypatch.setattr(allegro_sync.asyncio, "sleep", fast_sleep)
+    monkeypatch.setattr(allegro_sync, "_scheduled_run", run)
+
+    with pytest.raises(asyncio.CancelledError):
+        asyncio.run(scheduler(5))
+
+    # while it ran: alive, and not "due" during the run itself
+    assert seen == [(True, 5, None)]
+    assert state.started_at is not None
+    assert state.last_run_at is not None
+    assert state.running is False
+    assert state.next_run_at is None
