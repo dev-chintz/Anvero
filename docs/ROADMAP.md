@@ -260,10 +260,10 @@ In this order (the owner chose queues before any write to Allegro):
    dispatch deadline), with dashboard tiles leading into them; a new "ready
    to ship" status, and the dispatch deadline imported (`DECISIONS.md`).
    Whether Allegro actually fills the deadline is unverified.
-2. **"To make today" list.** Everything the waiting orders need, grouped by
-   product (SKU / offer) with quantities, the orders each serves, and the
-   earliest dispatch deadline. AlleIntegrator's picking list, turned into a
-   production list; it has no such screen itself.
+2. ~~**"To make today" list.**~~ Done 2026-09-24: the "To make" page and
+   `GET /orders/production`, the to-make queue grouped by product (SKU, else
+   listing, else name) with quantities, the orders each serves and the
+   earliest dispatch deadline, most urgent first, printable.
 3. **Search and the buyer's other orders.** Search by SKU, city, pickup
    point and tracking number besides buyer and number; on an order, the same
    buyer's other orders.

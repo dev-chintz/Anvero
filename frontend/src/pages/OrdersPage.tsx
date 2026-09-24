@@ -276,6 +276,11 @@ export function OrdersPage({ addToast }: OrdersPageProps) {
             </button>
           ))}
         </nav>
+        {queue === OrderQueue.TO_MAKE && (
+          <Link to="/production" className="queue-production-link">
+            {t('production.openList')}
+          </Link>
+        )}
         <label className="queue-sort">
           {t('sort.label')}
           <select

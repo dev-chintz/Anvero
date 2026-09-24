@@ -5,6 +5,7 @@ import type {
   OrderStats,
   OrderStatusChange,
   OrderWithDetails,
+  ProductionList,
 } from "../types/order";
 import type { OrderQueue, OrderSort, OrderSource, OrderStatus } from "../types/order";
 import type { Token, User } from "../types/user";
@@ -251,6 +252,10 @@ export const ordersApi = {
       method: "PATCH",
       body: JSON.stringify({ status }),
     });
+  },
+
+  production(): Promise<ProductionList> {
+    return request<ProductionList>("/orders/production");
   },
 
   stats(): Promise<OrderStats> {

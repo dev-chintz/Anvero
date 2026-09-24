@@ -6,6 +6,14 @@ All significant changes to the Anvero project.
 
 ## 2026-09-24
 
+### 🛠️ "To make": what to make and how many
+
+- `GET /orders/production` and a "To make" page (sidebar, and a link from the
+  to-make queue): every paid order still to make, grouped by product (SKU,
+  else listing, else name), with the quantity to make, the earliest dispatch
+  deadline and the orders each piece goes to, most urgent first. Printable.
+- Stage A2 of the feature plan.
+
 ### 🗂️ Work queues, a "ready to ship" status and the dispatch deadline
 
 - New status **Ready to ship** (`READY_FOR_SHIPMENT`) between In progress

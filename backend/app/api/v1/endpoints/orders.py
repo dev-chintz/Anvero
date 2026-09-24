@@ -18,8 +18,10 @@ from app.schemas.order import (
     OrderStats,
     OrderStatusHistoryRead,
     OrderUpdate,
+    ProductionList,
 )
 from app.services.order_service import OrderService
+from app.services.production import build_production_list
 
 # Every order endpoint requires a logged-in user. Set on the router rather
 # than per endpoint, so an endpoint added later cannot be left open by
@@ -66,6 +68,12 @@ def list_orders(
 def get_order_stats(db: Session = Depends(get_db)):
     service = OrderService(OrderRepository(db))
     return service.get_stats()
+
+
+# like /stats, must stay above /{order_id}
+@router.get("/production", response_model=ProductionList)
+def get_production_list(db: Session = Depends(get_db)):
+    return build_production_list(OrderRepository(db).list_in_queue_with_items(OrderQueue.TO_MAKE))
 
 
 @router.get("/{order_id}", response_model=OrderDetailRead)

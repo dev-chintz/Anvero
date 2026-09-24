@@ -946,3 +946,11 @@ branch is unverified: only the SQLite path has been run.
 **Rationale:** The owner makes most goods to order, so "still to make" and "made, waiting for the courier" are different work, and one `CONFIRMED` could not tell them apart; Allegro already does, and writing statuses back (feature plan A6) needs the same distinction. The owner chose the new status over reading the difference out of the marketplace label (`API.md` says not to branch on it). Payment decides the queues because an unpaid order should not be made yet: cash on delivery and deferred payment never count as unpaid, and an order with no payment information at all (entered by hand) is not parked as unpaid where nobody would look.
 
 **Consequences:** PostgreSQL's `order_status` type gained a value (downgrade rebuilds the type). Orders Allegro already called `READY_FOR_SHIPMENT` were moved to it by the migration where the operator's status still matched Allegro's, with no history entry. `dispatch_by` comes from Allegro's documented `delivery.time.dispatch.to`, not yet seen in a real payload; without it an order is simply never late and sorts last among the at-risk.
+
+## 2026-09-24 — The "to make" list groups by the seller's code, computed on request
+
+**Decision:** `GET /orders/production` builds the list from the to-make queue on every request, in Python, grouping order items by `sku`, else `offer_id`, else `name`. Nothing is stored and nothing is ticked off: an order leaves the list when its status moves to Ready to ship.
+
+**Rationale:** The seller's code is the one identity shared by Allegro and Erli listings of one product, so both channels' orders land on one line; the listing and then the name keep items without a code from vanishing or merging with others. At 10–50 orders a day the queue is small enough that a query plus grouping in code is simpler than SQL aggregation, and works the same on SQLite and PostgreSQL. Using the status as the "done" marker avoids a second, parallel state to keep in step.
+
+**Consequences:** Items without a SKU are only grouped per listing, so the same product in two listings shows twice until the listings carry a code. Partial progress (3 of 5 made) is not recorded anywhere.

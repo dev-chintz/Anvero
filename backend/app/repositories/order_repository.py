@@ -5,7 +5,7 @@ from decimal import Decimal
 from zoneinfo import ZoneInfo
 
 from sqlalchemy import and_, func, not_, or_, select
-from sqlalchemy.orm import Query, Session
+from sqlalchemy.orm import Query, Session, selectinload
 
 from app.core.config import settings
 from app.core.order_number import parse_order_number
@@ -416,6 +416,20 @@ class OrderRepository:
                 Order.id,
             )
         return (Order.ordered_at.desc(), Order.created_at.desc(), Order.id)
+
+    def list_in_queue_with_items(self, queue: OrderQueue) -> list[Order]:
+        """Every order in a queue, with its items, most urgent first.
+
+        Unpaged: a queue is the day's work, tens of orders, not the history.
+        """
+        return list(
+            self.db.scalars(
+                select(Order)
+                .where(self._in_queue(queue))
+                .options(selectinload(Order.items))
+                .order_by(*self._ordering(OrderSort.AT_RISK))
+            )
+        )
 
     def _week_cutoff(self) -> datetime:
         return self._to_db_datetime(datetime.now(UTC) - timedelta(days=7))

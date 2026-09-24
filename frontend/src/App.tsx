@@ -10,6 +10,7 @@ import { Home } from './pages/Home';
 import { Dashboard } from './pages/Dashboard';
 import { LoginPage } from './pages/LoginPage';
 import { OrdersPage } from './pages/OrdersPage';
+import { ProductionPage } from './pages/ProductionPage';
 import { Settings } from './pages/Settings';
 import { useTranslation } from './i18n';
 import './App.css';
@@ -111,6 +112,7 @@ export default function App() {
                       above the still-mounted list, not a full-page navigation */}
                   <Route path=":id" element={<OrderDetail />} />
                 </Route>
+                <Route path="/production" element={<ProductionPage />} />
                 <Route path="/settings" element={<Settings />} />
                 <Route
                   path="*"

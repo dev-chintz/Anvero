@@ -1,0 +1,140 @@
+.production-page .page-header {
+  background: var(--color-surface-alt);
+  padding: 2rem;
+  border-bottom: 1px solid var(--color-divider);
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.production-page .page-header h1 {
+  margin: 0 0 0.5rem 0;
+  font-size: 2rem;
+  color: var(--color-heading);
+  font-weight: 600;
+}
+
+.production-page .page-header .subtitle {
+  margin: 0;
+  color: var(--color-muted);
+  font-size: 0.95rem;
+}
+
+.production-page .print-button {
+  padding: 0.6rem 1.2rem;
+  border: 1px solid var(--color-accent);
+  border-radius: var(--radius-md);
+  background: var(--color-bg);
+  color: var(--color-accent);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.production-body {
+  padding: 1.5rem 2rem 2rem;
+}
+
+.production-summary {
+  margin: 0 0 1rem;
+  color: var(--color-muted-strong);
+}
+
+.production-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.production-table th,
+.production-table td {
+  padding: 0.75rem;
+  border-bottom: 1px solid var(--color-divider);
+  text-align: left;
+  vertical-align: top;
+}
+
+.production-table th {
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  color: var(--color-muted);
+}
+
+.production-table .col-quantity {
+  text-align: right;
+  width: 5rem;
+}
+
+.production-quantity {
+  font-size: 1.4rem;
+  font-weight: 700;
+}
+
+.production-product {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.production-thumb {
+  width: 48px;
+  height: 48px;
+  flex-shrink: 0;
+  border-radius: var(--radius-md);
+  background: var(--color-divider);
+  object-fit: cover;
+}
+
+.production-name {
+  font-weight: 600;
+}
+
+.production-sku {
+  font-size: 0.8rem;
+  color: var(--color-muted);
+  font-family: monospace;
+}
+
+.production-orders {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 0.75rem;
+}
+
+.production-order-quantity {
+  color: var(--color-muted);
+}
+
+@media (max-width: 768px) {
+  .production-page .page-header {
+    padding: 1.5rem 1rem;
+  }
+
+  .production-body {
+    padding: 1rem;
+  }
+}
+
+/* on paper: just the list, with nothing to click */
+@media print {
+  .sidebar,
+  .production-page .print-button {
+    display: none !important;
+  }
+
+  .production-page .page-header {
+    background: none;
+    padding: 0 0 1rem;
+  }
+
+  .production-body {
+    padding: 0;
+  }
+
+  .production-table tr {
+    break-inside: avoid;
+  }
+}

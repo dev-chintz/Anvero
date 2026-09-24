@@ -313,6 +313,39 @@ class OrderStatusHistoryRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
+class ProductionOrder(BaseModel):
+    """One order that needs some of a production line's product."""
+
+    id: uuid.UUID
+    order_label: str
+    source: OrderSource
+    status: OrderStatus
+    # how many of the line's product this order takes
+    quantity: int
+    dispatch_by: UtcDateTime | None
+
+
+class ProductionLine(BaseModel):
+    """One product to make, with everything the waiting orders need of it."""
+
+    # what the line is grouped by: "sku:...", "offer:..." or "name:..."
+    key: str
+    sku: str | None
+    offer_id: str | None
+    name: str
+    image_url: str | None
+    quantity: int
+    # the earliest dispatch deadline among its orders
+    dispatch_by: UtcDateTime | None
+    orders: list[ProductionOrder]
+
+
+class ProductionList(BaseModel):
+    lines: list[ProductionLine]
+    # orders in the to-make queue, including any without items
+    order_count: int
+
+
 class OrderQueueCounts(BaseModel):
     """How many orders wait in each work queue; see OrderQueue."""
 

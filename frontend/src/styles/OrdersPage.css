@@ -188,6 +188,12 @@
   color: #fff;
 }
 
+.orders-page .queue-production-link {
+  margin-left: auto;
+  font-size: 0.9rem;
+  color: var(--color-accent);
+}
+
 .orders-page .queue-sort {
   display: inline-flex;
   align-items: center;

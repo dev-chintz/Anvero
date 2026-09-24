@@ -98,10 +98,51 @@ export function dispatchUrgency(
   order: Order,
   now: Date = new Date(),
 ): "late" | "soon" | "later" | null {
-  if (!order.dispatch_by || !PENDING_STATUSES.includes(order.status)) return null;
-  const left = new Date(order.dispatch_by).getTime() - now.getTime();
+  if (!PENDING_STATUSES.includes(order.status)) return null;
+  return deadlineUrgency(order.dispatch_by, now);
+}
+
+/** How near a dispatch deadline is: past, within a day, or further; null without one. */
+export function deadlineUrgency(
+  dispatchBy: string | null | undefined,
+  now: Date = new Date(),
+): "late" | "soon" | "later" | null {
+  if (!dispatchBy) return null;
+  const left = new Date(dispatchBy).getTime() - now.getTime();
   if (left < 0) return "late";
   return left < 24 * 60 * 60 * 1000 ? "soon" : "later";
+}
+
+/** One order needing some of a production line's product. */
+export interface ProductionOrder {
+  id: string;
+  order_label: string;
+  source: OrderSource;
+  status: OrderStatus;
+  /** How many of the line's product this order takes. */
+  quantity: number;
+  dispatch_by: string | null;
+}
+
+/** One product to make: everything the waiting orders need of it. */
+export interface ProductionLine {
+  /** What the line groups by: "sku:…", "offer:…" or "name:…". */
+  key: string;
+  sku: string | null;
+  offer_id: string | null;
+  name: string;
+  image_url: string | null;
+  quantity: number;
+  /** The earliest dispatch deadline among its orders. */
+  dispatch_by: string | null;
+  /** Most urgent first. */
+  orders: ProductionOrder[];
+}
+
+/** `GET /orders/production`: the to-make queue, by product, most urgent first. */
+export interface ProductionList {
+  lines: ProductionLine[];
+  order_count: number;
 }
 
 export enum PaymentType {

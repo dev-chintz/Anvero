@@ -14,6 +14,7 @@ are days in the business timezone, `BUSINESS_TIMEZONE`, default
 | `GET` | `/api/v1/health` | service status |
 | `GET` | `/api/v1/orders` | order list with filters |
 | `GET` | `/api/v1/orders/stats` | aggregate figures for the dashboard |
+| `GET` | `/api/v1/orders/production` | the to-make queue by product: what to make and how many |
 | `GET` | `/api/v1/orders/{id}` | one order with its details: items, buyer, delivery, payment, invoice |
 | `PATCH` | `/api/v1/orders/{id}/status` | internal status change |
 | `GET` | `/api/v1/orders/{id}/history` | status change history |
@@ -231,6 +232,36 @@ definitions. No queue holds an order cancelled on its marketplace.
 - **to_ship**: `READY_FOR_SHIPMENT`, and not unpaid.
 - **late**: in `to_make` or `to_ship` with `dispatch_by` in the past; it
   overlaps both.
+
+## `GET /api/v1/orders/production`
+
+The `to_make` queue (see "Work queues" above) turned around by product, for
+the "to make" page. Unpaged: it is the day's work, not the history.
+
+```json
+{
+  "order_count": 2,
+  "lines": [
+    {
+      "key": "sku:MUG-350", "sku": "MUG-350", "offer_id": "123", "name": "Mug",
+      "image_url": null, "quantity": 3, "dispatch_by": "...Z",
+      "orders": [
+        {"id": "...", "order_label": "AN-000012", "source": "ALLEGRO", "status": "NEW", "quantity": 1, "dispatch_by": "...Z"},
+        {"id": "...", "order_label": "AN-000015", "source": "ERLI", "status": "CONFIRMED", "quantity": 2, "dispatch_by": null}
+      ]
+    }
+  ]
+}
+```
+
+Items are the same product when they share the seller's `sku`; without one,
+the listing (`offer_id`); without either, the `name`. The line's `name` and
+`offer_id` are those of the first item met. `quantity` is the sum over its
+orders, and an order with the product on two lines is listed once with both
+counted. Lines come in the order their product is first needed: `dispatch_by`
+is the earliest among the line's orders, lines without any deadline come last,
+oldest order first; each line's `orders` are in the same order. `order_count`
+counts the queue's orders, including any without items.
 
 ## `GET /api/v1/orders/{id}`
 

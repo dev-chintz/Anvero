@@ -879,3 +879,103 @@ def test_the_dashboard_counts_each_queue_and_the_late_ones():
     for name in after:
         total = client.get("/api/v1/orders", params={"queue": name, "limit": 1}).json()["total"]
         assert after[name] == total, name
+
+
+# --- the "to make today" list ------------------------------------------------
+
+
+def _production_lines(prefix):
+    body = client.get("/api/v1/orders/production").json()
+    return [line for line in body["lines"] if line["name"].startswith(prefix)]
+
+
+def _to_make(external_id, items, status="NEW", payment=None, **overrides):
+    payment = payment or {"type": "ONLINE", "paid_amount": "129.99"}
+    return _queued(external_id, status, payment, items=items, **overrides)
+
+
+def test_the_production_list_adds_up_each_product_across_orders():
+    now = datetime.now(UTC)
+    later = _to_make(
+        "prod-later",
+        [{"name": "PROD Mug", "sku": "PROD-MUG", "quantity": 2, "unit_price": "10.00"}],
+        dispatch_by=(now + timedelta(days=2)).isoformat(),
+    )
+    sooner = _to_make(
+        "prod-sooner",
+        [
+            {"name": "PROD Mug (red)", "sku": "PROD-MUG", "quantity": 1, "unit_price": "10.00"},
+            {"name": "PROD Plate", "sku": "PROD-PLATE", "quantity": 3, "unit_price": "5.00"},
+        ],
+        status="CONFIRMED",
+        source="ERLI",
+        dispatch_by=(now + timedelta(hours=5)).isoformat(),
+    )
+
+    lines = _production_lines("PROD ")
+
+    # the product first needed soonest leads; both come from the sooner order
+    assert [line["key"] for line in lines] == ["sku:PROD-MUG", "sku:PROD-PLATE"]
+    mug = lines[0]
+    assert mug["quantity"] == 3
+    assert [o["order_label"] for o in mug["orders"]] == [
+        sooner["order_label"],
+        later["order_label"],
+    ]
+    assert [o["quantity"] for o in mug["orders"]] == [1, 2]
+    assert mug["dispatch_by"] == mug["orders"][0]["dispatch_by"]
+    assert mug["orders"][0]["source"] == "ERLI"
+    assert mug["orders"][0]["status"] == "CONFIRMED"
+
+
+def test_without_a_code_items_group_by_listing_then_by_name():
+    _to_make(
+        "prod-nocode-1",
+        [
+            {"name": "NOCODE Bowl", "offer_id": "offer-77", "quantity": 1, "unit_price": "1.00"},
+            {"name": "NOCODE Spoon", "quantity": 2, "unit_price": "1.00"},
+        ],
+    )
+    _to_make(
+        "prod-nocode-2",
+        [
+            {"name": "NOCODE Bowl, renamed", "offer_id": "offer-77", "quantity": 1, "unit_price": "1.00"},
+            {"name": "NOCODE Spoon", "quantity": 1, "unit_price": "1.00"},
+        ],
+    )
+
+    by_key = {line["key"]: line["quantity"] for line in _production_lines("NOCODE ")}
+
+    assert by_key == {"offer:offer-77": 2, "name:NOCODE Spoon": 3}
+
+
+def test_one_order_with_the_same_product_twice_is_listed_once():
+    _to_make(
+        "prod-twice",
+        [
+            {"name": "TWICE Cup", "sku": "TWICE-CUP", "quantity": 1, "unit_price": "1.00"},
+            {"name": "TWICE Cup", "sku": "TWICE-CUP", "quantity": 2, "unit_price": "1.00"},
+        ],
+    )
+
+    (line,) = _production_lines("TWICE ")
+
+    assert line["quantity"] == 3
+    assert [o["quantity"] for o in line["orders"]] == [3]
+
+
+def test_only_orders_still_to_make_count():
+    item = [{"name": "ONLY Vase", "sku": "ONLY-VASE", "quantity": 1, "unit_price": "1.00"}]
+    _to_make("only-new", item)
+    _to_make("only-unpaid", item, payment={"type": "ONLINE"})
+    _to_make("only-ready", item, status="READY_FOR_SHIPMENT")
+    _to_make("only-shipped", item, status="SHIPPED")
+
+    (line,) = _production_lines("ONLY ")
+
+    assert line["quantity"] == 1
+    assert [o["order_label"] for o in line["orders"]] == [
+        client.get("/api/v1/orders", params={"search": "QUEUE-only-new"}).json()["items"][0][
+            "order_label"
+        ]
+    ]
