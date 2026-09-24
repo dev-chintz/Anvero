@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime
 
-from sqlalchemy import select
+from sqlalchemy import exists, or_, select
 from sqlalchemy.orm import Session
 
 from app.models.message import Message, MessageDirection, MessageThread
@@ -91,8 +91,13 @@ class MessageRepository:
         aside: bool | None = None,
         unread_only: bool = False,
         limit: int = 200,
+        search: str | None = None,
     ) -> list[MessageThread]:
-        """Newest activity first; threads with no message yet sort last."""
+        """Newest activity first; threads with no message yet sort last.
+
+        `search` keeps the threads whose buyer's login, order id or any message
+        contains it, whatever the case: a nick is found however it was typed.
+        """
         query = select(MessageThread)
         if source is not None:
             query = query.where(MessageThread.source == source)
@@ -100,6 +105,21 @@ class MessageRepository:
             query = query.where(MessageThread.aside == aside)
         if unread_only:
             query = query.where(MessageThread.read.is_(False))
+        if search and search.strip():
+            # escape LIKE wildcards so a literal % or _ typed by a person matches itself
+            escaped = search.strip().replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+            pattern = f"%{escaped}%"
+            query = query.where(
+                or_(
+                    MessageThread.interlocutor_login.ilike(pattern, escape="\\"),
+                    MessageThread.order_external_id.ilike(pattern, escape="\\"),
+                    MessageThread.last_message_text.ilike(pattern, escape="\\"),
+                    exists().where(
+                        Message.thread_id == MessageThread.id,
+                        Message.text.ilike(pattern, escape="\\"),
+                    ),
+                )
+            )
         query = query.order_by(
             MessageThread.last_message_at.desc().nullslast(), MessageThread.id
         ).limit(limit)

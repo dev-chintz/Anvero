@@ -260,3 +260,52 @@
     border-bottom: 1px solid var(--color-divider);
   }
 }
+
+/* Searching the inbox (InboxPage.tsx): a box above the tabs, which a search replaces. */
+.inbox-search {
+  position: relative;
+  margin-bottom: 0.75rem;
+}
+
+.inbox-search input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0.5rem 2rem 0.5rem 0.75rem;
+  border: 1px solid var(--color-divider);
+  border-radius: var(--radius-md);
+  background: var(--color-bg);
+  color: var(--color-text);
+  font: inherit;
+}
+
+.inbox-search input:focus {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 0;
+}
+
+.inbox-search-clear {
+  position: absolute;
+  top: 50%;
+  right: 0.4rem;
+  transform: translateY(-50%);
+  border: none;
+  background: none;
+  color: var(--color-muted);
+  cursor: pointer;
+  padding: 0.25rem 0.4rem;
+}
+
+.inbox-search-summary {
+  margin: 0 0 0.75rem;
+  color: var(--color-muted);
+  font-size: 0.85rem;
+}
+
+.inbox-aside-tag {
+  margin-left: auto;
+  padding: 0 0.4rem;
+  border: 1px solid var(--color-divider);
+  border-radius: 999px;
+  color: var(--color-muted);
+  font-size: 0.7rem;
+}

@@ -33,17 +33,24 @@ def list_threads(
     source: OrderSource | None = Query(default=None),
     aside: bool | None = Query(default=None),
     unread_only: bool = Query(default=False),
+    search: str | None = Query(default=None, max_length=100),
+    limit: int = Query(default=200, ge=1, le=1000),
     db: Session = Depends(get_db),
 ):
     """The unified inbox: every thread, newest activity first.
 
     Threads set aside are excluded unless `aside=true` is asked for
-    explicitly, so the default view is what still needs attention.
+    explicitly, so the default view is what still needs attention. A `search`
+    looks through every thread, set aside or not, unless `aside` is given: a
+    buyer is looked up by nick without remembering where the conversation went.
     """
+    searching = bool(search and search.strip())
     return MessageRepository(db).list_threads(
         source=source,
-        aside=aside if aside is not None else False,
+        aside=aside if aside is not None else (None if searching else False),
         unread_only=unread_only,
+        limit=limit,
+        search=search,
     )
 
 

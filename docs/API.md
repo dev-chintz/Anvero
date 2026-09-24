@@ -261,7 +261,15 @@ carry and what is unconfirmed about it.
 
 The unified inbox, newest activity first. Query parameters: `source`
 (`ALLEGRO` or `ERLI`), `aside` (default `false`: threads set aside are
-excluded unless this is `true`), `unread_only` (default `false`).
+excluded unless this is `true`), `unread_only` (default `false`), `search`
+and `limit` (default 200, at most 1000).
+
+`search` (at most 100 characters) keeps the threads whose buyer's login, order id,
+last message or any message contains the text, whatever its case. It looks through
+every thread, set aside or not, unless `aside` is given: a buyer is looked up by nick
+without remembering where the conversation went. `%` and `_` are searched for as
+themselves. Only the newest `limit` threads are listed without a search's help, so a
+conversation older than that is reached by searching.
 
 ```json
 [

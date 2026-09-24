@@ -127,3 +127,81 @@ def test_messages_need_a_login(api):
         anonymous.post(f"/api/v1/messages/threads/{thread.id}/reply", json={"text": "hi"}).status_code
         == 401
     )
+
+
+# --- searching the inbox ------------------------------------------------------------
+
+
+def _message(db, thread, text, external_id):
+    MessageRepository(db).add_messages(
+        thread,
+        [
+            SyncedMessage(
+                external_id=external_id,
+                direction="IN",
+                author_login=thread.interlocutor_login,
+                text=text,
+                sent_at=datetime(2026, 9, 20, 12, tzinfo=UTC),
+            )
+        ],
+    )
+
+
+def _found(query: str, **params) -> list[str]:
+    body = client.get("/api/v1/messages/threads", params={"search": query, **params}).json()
+    return [t["interlocutor_login"] for t in body]
+
+
+def test_a_buyer_is_found_by_nick_however_it_was_typed(api):
+    _thread(api, "T1", interlocutor_login="Welka2marki")
+    _thread(api, "T2", interlocutor_login="martita1031")
+
+    assert _found("welka2") == ["Welka2marki"]
+    assert _found("MARTITA") == ["martita1031"]
+    assert _found("1031") == ["martita1031"]
+    assert _found("nobody") == []
+
+
+def test_a_search_looks_through_the_messages_and_the_order_too(api):
+    thread = _thread(api, "T1", interlocutor_login="buyer1", order_external_id="ORDER-42-XYZ")
+    _message(api, thread, "Prosz\u0119 o zmian\u0119 adresu na Warszawa", "M1")
+    _thread(api, "T2", interlocutor_login="buyer2")
+
+    assert _found("adresu") == ["buyer1"]
+    assert _found("order-42") == ["buyer1"]
+
+
+def test_a_search_covers_the_threads_set_aside_and_the_tab_can_narrow_it(api):
+    kept = _thread(api, "T1", interlocutor_login="same-nick-a")
+    put_aside = _thread(api, "T2", interlocutor_login="same-nick-b")
+    MessageRepository(api).set_aside(put_aside, True)
+
+    assert sorted(_found("same-nick")) == ["same-nick-a", "same-nick-b"]
+    assert _found("same-nick", aside="true") == ["same-nick-b"]
+    assert _found("same-nick", aside="false") == ["same-nick-a"]
+    # and without a search, the default view is still what needs attention
+    assert [t["id"] for t in client.get("/api/v1/messages/threads").json()] == [str(kept.id)]
+
+
+def test_a_search_treats_wildcards_as_the_characters_they_are(api):
+    _thread(api, "T1", interlocutor_login="a_b")
+    _thread(api, "T2", interlocutor_login="axb")
+    _thread(api, "T3", interlocutor_login="100%_sure")
+
+    assert _found("a_b") == ["a_b"]
+    assert _found("%") == ["100%_sure"]
+
+
+def test_a_blank_search_is_no_search(api):
+    _thread(api, "T1", interlocutor_login="buyer1")
+
+    assert _found("   ") == ["buyer1"]
+
+
+def test_the_search_is_not_limited_to_the_newest_threads(api):
+    for i in range(3):
+        _thread(api, f"T{i}", interlocutor_login=f"nick{i}", last_message_at=datetime(2026, 9, 20 + i, tzinfo=UTC))
+
+    # only the newest one is listed with a limit of 1, but a search still reaches the oldest
+    assert len(client.get("/api/v1/messages/threads", params={"limit": 1}).json()) == 1
+    assert _found("nick0", limit=1) == ["nick0"]

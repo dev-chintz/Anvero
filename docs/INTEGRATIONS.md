@@ -526,6 +526,14 @@ call, to production, was answered `422 Incorrect limit or offset`. It settles:
 - **`author.isInterlocutor`** says which side wrote a message, so the direction
   no longer depends on the seller's login (below).
 
+**Text.** Allegro's Message Center hands a message over as HTML text: `zam&oacute;wienie`,
+`&quot;`, `&amp;`, `&nbsp;`, and a `&zwnj;` between paragraphs (1309 of the first 4137
+messages read had them). `map_message` decodes them once and drops the invisible
+characters (`app/core/text.py`), so the inbox and its search read what a person wrote;
+migration `c5f1a8d3e7b9` cleaned what the first syncs had stored, and rebuilt every
+thread's excerpt from its newest message. A sender who typed without diacritics
+(`dziekuje`) stays as typed.
+
 **Not settled:** the thread's link to an order. `map_thread` reads a thread's
 `order`, which the public schema does not have, so `order_external_id` stays
 empty; the order a conversation is about is in each message's

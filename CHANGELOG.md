@@ -6,6 +6,19 @@ All significant changes to the Anvero project.
 
 ## 2026-09-24
 
+### ✉️ Inbox: Polish letters fixed, and a search by nick
+
+- Buyer messages were shown with HTML entities (`zam&oacute;wienie`,
+  `&quot;`). They are now decoded when read, the ones already stored were fixed
+  (1309 messages; migration `c5f1a8d3e7b9`, run `alembic upgrade head`), and
+  invisible characters are dropped.
+- A **search box** above the inbox's tabs finds a conversation by the buyer's nick
+  (any case), the order id or a word of a message, in every conversation, set aside
+  or not (marked "Odłożone"); clearing it returns to the tab. The list used to
+  reach only the newest 200 of 595 conversations, and now any can be found.
+- `GET /messages/threads` takes `search` and `limit`.
+- 677 backend and 204 frontend tests passing.
+
 ### 🗑️ Delete an order from the list
 
 - A **trash button** on each row of the orders list and a **Delete order** button

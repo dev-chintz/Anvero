@@ -151,3 +151,83 @@ describe("the inbox", () => {
     expect(screen.queryByRole("textbox")).not.toBeInTheDocument();
   });
 });
+
+describe("searching the inbox", () => {
+  const OTHER: MessageThread = {
+    ...THREAD,
+    id: "thread-2",
+    interlocutor_login: "martita1031",
+    last_message_text: "Dobrze dziękuje",
+    aside: true,
+  };
+
+  it("looks a buyer up by nick, through every thread, after a pause in typing", async () => {
+    vi.mocked(messagesApi.threads).mockResolvedValue([THREAD]);
+    renderPage();
+    await screen.findByText("buyer1");
+    vi.mocked(messagesApi.threads).mockClear();
+    vi.mocked(messagesApi.threads).mockResolvedValue([OTHER]);
+
+    fireEvent.change(screen.getByRole("searchbox", { name: "Search by nick, order or words" }), {
+      target: { value: "  martita " },
+    });
+
+    // one search for the trimmed text, not one per keystroke, and not on aside alone
+    await waitFor(() =>
+      expect(messagesApi.threads).toHaveBeenLastCalledWith({ search: "martita" }),
+    );
+    expect(await screen.findByText("martita1031")).toBeInTheDocument();
+    expect(screen.queryByText("buyer1")).not.toBeInTheDocument();
+    expect(screen.getByText("Found in every conversation: 1")).toBeInTheDocument();
+    // a thread set aside is marked, since the tabs do not apply to a search
+    expect(screen.getByText("Set aside")).toBeInTheDocument();
+    expect(screen.queryByRole("tab")).not.toBeInTheDocument();
+  });
+
+  it("says when nothing matches", async () => {
+    vi.mocked(messagesApi.threads).mockResolvedValue([THREAD]);
+    renderPage();
+    await screen.findByText("buyer1");
+    vi.mocked(messagesApi.threads).mockResolvedValue([]);
+
+    fireEvent.change(screen.getByRole("searchbox"), { target: { value: "nobody" } });
+
+    expect(await screen.findByText("No conversation matches “nobody”.")).toBeInTheDocument();
+  });
+
+  it("clears the search and goes back to the tab it left", async () => {
+    vi.mocked(messagesApi.threads).mockResolvedValue([THREAD]);
+    renderPage();
+    await screen.findByText("buyer1");
+    vi.mocked(messagesApi.threads).mockResolvedValue([OTHER]);
+    fireEvent.change(screen.getByRole("searchbox"), { target: { value: "martita" } });
+    await screen.findByText("martita1031");
+    vi.mocked(messagesApi.threads).mockResolvedValue([THREAD]);
+
+    fireEvent.click(screen.getByRole("button", { name: "Clear the search" }));
+
+    await waitFor(() =>
+      expect(messagesApi.threads).toHaveBeenLastCalledWith({ aside: false }),
+    );
+    expect(await screen.findByText("buyer1")).toBeInTheDocument();
+    expect(screen.getByRole("searchbox")).toHaveValue("");
+    expect(screen.getAllByRole("tab")).toHaveLength(2);
+  });
+
+  it("keeps a found thread in the list when it is put aside from there", async () => {
+    vi.mocked(messagesApi.threads).mockResolvedValue([THREAD]);
+    vi.mocked(messagesApi.thread).mockResolvedValue(DETAIL);
+    vi.mocked(messagesApi.setAside).mockResolvedValue({ ...THREAD, aside: true });
+    renderPage();
+    await screen.findByText("buyer1");
+    fireEvent.change(screen.getByRole("searchbox"), { target: { value: "buyer" } });
+    fireEvent.click(await screen.findByText("Kiedy wyślecie paczkę?"));
+    await screen.findByRole("button", { name: "Put aside" });
+
+    fireEvent.click(screen.getByRole("button", { name: "Put aside" }));
+
+    // still there, now marked, rather than vanishing as it does from a tab
+    await waitFor(() => expect(screen.getByText("Set aside")).toBeInTheDocument());
+    expect(screen.getAllByText("buyer1").length).toBeGreaterThan(0);
+  });
+});

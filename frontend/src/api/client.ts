@@ -649,10 +649,17 @@ export interface MessageSyncResult {
 }
 
 export const messagesApi = {
-  threads(params: { aside?: boolean; unreadOnly?: boolean } = {}): Promise<MessageThread[]> {
+  /**
+   * Threads, newest activity first. A `search` looks through every thread (set
+   * aside or not) for a buyer's nick, an order id or a word of a message.
+   */
+  threads(
+    params: { aside?: boolean; unreadOnly?: boolean; search?: string } = {},
+  ): Promise<MessageThread[]> {
     const query = new URLSearchParams();
     if (params.aside !== undefined) query.set("aside", String(params.aside));
     if (params.unreadOnly) query.set("unread_only", "true");
+    if (params.search) query.set("search", params.search);
     const queryString = query.toString();
     return request<MessageThread[]>(`/messages/threads${queryString ? `?${queryString}` : ""}`);
   },

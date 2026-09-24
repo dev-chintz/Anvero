@@ -255,3 +255,16 @@ def test_fetch_thread_messages_reads_every_page():
 
     assert len(messages) == MESSAGING_PAGE_SIZE + 1
     assert [c[0] for c in client.message_calls] == ["T1", "T1"]
+
+
+def test_a_message_is_read_as_the_text_a_person_wrote_not_as_html():
+    raw = _raw_message(text="Dzi\u0119kujemy za zam&oacute;wienie &quot;AN-1&quot;&zwnj;")
+
+    message = map_message(raw, seller_login="seller1")
+
+    assert message is not None
+    assert message.text == 'Dzi\u0119kujemy za zam\u00f3wienie "AN-1"'
+
+
+def test_a_message_with_nothing_but_invisible_text_is_dropped():
+    assert map_message(_raw_message(text="&zwnj;&nbsp;"), seller_login=None) is None

@@ -11,6 +11,7 @@ from typing import Any
 
 from pydantic import ValidationError
 
+from app.core.text import clean_marketplace_text
 from app.integrations.base import IntegrationError
 from app.integrations.mapping import build as _build
 from app.integrations.mapping import obj as _obj
@@ -533,8 +534,10 @@ def map_message(raw: dict[str, Any], seller_login: str | None) -> SyncedMessage 
     `account_login`, and passed in here); without either, a message maps as
     IN.
     """
-    text_value = _text(raw.get("text"))
-    if text_value is None:
+    raw_text = _text(raw.get("text"))
+    # the Message Center's text is HTML-escaped (`zam&oacute;wienie`)
+    text_value = clean_marketplace_text(raw_text) if raw_text is not None else None
+    if not text_value:
         return None
     message_id = _text(raw.get("id"))
     author = _obj(raw.get("author"))
