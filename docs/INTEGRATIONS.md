@@ -435,8 +435,21 @@ order's Shipments and label cards, the Labels page) is a link to the carrier's
 own tracking page, opened in a new tab, when Anvero knows that carrier
 (`frontend/src/types/tracking.ts`): InPost, DPD, DHL, Poczta Polska, UPS, GLS
 and FedEx. The carrier is read from its id (Allegro's `INPOST`, Erli's `inpost`)
-and then its name (`InPost Kurier`), as words; Allegro's own carrier, `OTHER` and
-anything unknown get the number as plain text. The addresses are the carriers'
+and then its name (`InPost Kurier`), as words; `OTHER` and anything unknown get
+the number as plain text.
+
+**Allegro's own delivery services** (Kurier DPD, ORLEN Paczka, DHL BOX, DPD
+Pickup, One Box, One Kurier) come with the carrier id `ALLEGRO` and a number of
+Allegro's own making: `AD...` for Allegro Delivery, `A...O...I...` for One. The
+carrier's page does not know such a number (ORLEN Paczka and DPD say so; they are
+followed in Allegro only), so it links to Allegro's own public tracking page,
+`allegro.pl/allegrodelivery/sledzenie-paczki` for `AD...` and
+`allegro.pl/kampania/one/kurier/sledzenie-paczki` for the others, both given the
+number as `numer` (one source names the parameter for One's page; neither page
+could be opened from here, since allegro.pl refuses automated requests). A number
+of only digits is not Allegro's, so an InPost parcel bought through Allegro still
+goes to InPost. Of the 45 parcels in the database on 2026-09-25: 30 InPost, 10
+Allegro Delivery, 5 One. The addresses are the carriers'
 public tracking pages as they were known when this was written, and none was
 opened with a real number: a page that has moved is one line in `tracking.ts`.
 

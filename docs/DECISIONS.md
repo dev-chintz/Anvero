@@ -1127,3 +1127,11 @@ branch is unverified: only the SQLite path has been run.
 **Rationale:** "In progress" is the status asked for most on Allegro, and reaching it through the filter panel took three actions. The login is what an operator knows a buyer by, and a marketplace's order id is what they look at least. The to-make list is made from the paid orders that wait, so being able to cut it to the orders being packed now (or to one status) turns it from the whole workshop's list into today's batch. Reusing the order list's own search keeps one meaning of "find this order" across the application.
 
 **Consequences:** "In progress" covers Allegro's `PROCESSING` and `SUSPENDED`, which Anvero does not tell apart. A search on the to-make page finds orders by any of the list search's fields, so a product's name brings in the whole order that has it, including its other items. The status buttons of the to-make page carry no counts. Nothing about the order list's paging, sorting or the deleted view changed.
+
+## 2026-09-25 — Parcels of Allegro's own delivery are followed on Allegro's tracking pages
+
+**Decision:** A tracking number whose carrier is `ALLEGRO` is a link to Allegro's public tracking page (`allegro.pl/allegrodelivery/sledzenie-paczki` for an `AD...` number, One's `allegro.pl/kampania/one/kurier/sledzenie-paczki` for the others), given the number as `numer`. The rule comes first in `types/tracking.ts`, and applies to numbers that start with a letter: a name such as "Allegro Kurier DPD (AD)" holds the word DPD, and a purely numeric number is a real carrier's (InPost through Allegro).
+
+**Rationale:** After the tracking links (2026-09-24) only InPost's worked: the other 15 of the owner's 45 parcels are Allegro's own services, whose numbers are Allegro's and unknown to DPD or ORLEN Paczka, which say those parcels are followed in Allegro only. Allegro's tracking pages are the one place they can be looked up without an account.
+
+**Consequences:** Whether Allegro's pages read the number from the address is not confirmed (allegro.pl answers no automated request, so it could not be tried, and only one search result named the parameter, for One's page); if they do not, the link still lands on the page that asks for the number. Anvero's own status for these parcels comes from Allegro's tracking API and is unaffected.

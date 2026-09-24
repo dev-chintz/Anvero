@@ -97,10 +97,19 @@ describe("the Shipping column", () => {
   });
 
   it("leaves the waybill as text for a carrier with no tracking page", () => {
-    renderRow([shipment({ carrier_id: "ALLEGRO", waybill: "AL123" })]);
+    renderRow([shipment({ carrier_id: "OTHER", carrier_name: "Local Courier", waybill: "AL123" })]);
 
     expect(screen.getByText("AL123")).toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "AL123" })).not.toBeInTheDocument();
+  });
+
+  it("sends a parcel of Allegro's own delivery to Allegro's tracking page", () => {
+    renderRow([shipment({ carrier_id: "ALLEGRO", waybill: "AD0J91JL35SGP2DWJ" })]);
+
+    expect(screen.getByRole("link", { name: "AD0J91JL35SGP2DWJ" })).toHaveAttribute(
+      "href",
+      "https://allegro.pl/allegrodelivery/sledzenie-paczki?numer=AD0J91JL35SGP2DWJ",
+    );
   });
 
   it("stays a plain dash for an order with no parcels", () => {

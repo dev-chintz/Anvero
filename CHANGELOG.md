@@ -6,6 +6,14 @@ All significant changes to the Anvero project.
 
 ## 2026-09-25
 
+### 🔗 Tracking links for Allegro's own delivery
+
+- A number of Allegro Delivery (`AD...`: Kurier DPD, ORLEN Paczka, DHL BOX, DPD Pickup)
+  or One (One Box, One Kurier) now links to Allegro's own tracking page, since the
+  carrier's own page does not know these numbers. Until now only InPost's links
+  worked: 15 of the 45 parcels had none. Whether Allegro's pages read the number
+  from the address could not be tried (allegro.pl refuses automated requests).
+
 ### ⚡ Quick "In progress" button, buyer login in the list, narrowing the to-make list
 
 - A **"W realizacji" quick button** (with the number of such orders) right after

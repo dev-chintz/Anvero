@@ -35,9 +35,58 @@ describe("trackingUrl", () => {
   });
 
   it("offers nothing for a carrier it has no page for", () => {
-    expect(trackingUrl({ carrier_id: "ALLEGRO" }, "1")).toBeNull();
     expect(trackingUrl({ carrier_id: "OTHER", carrier_name: "Kurier lokalny" }, "1")).toBeNull();
+    expect(trackingUrl({ carrier_id: "OTHER" }, "AD123")).toBeNull();
     expect(trackingUrl({}, "1")).toBeNull();
+  });
+
+  describe("parcels of Allegro's own delivery services", () => {
+    it("follow an AD number on Allegro Delivery's tracking page", () => {
+      expect(trackingUrl({ carrier_id: "ALLEGRO" }, "AD0J91JL35SGP2DWJ")).toBe(
+        "https://allegro.pl/allegrodelivery/sledzenie-paczki?numer=AD0J91JL35SGP2DWJ",
+      );
+      expect(trackingUrl({ carrier_id: "ALLEGRO" }, "ad0j91")).toContain("/allegrodelivery/");
+    });
+
+    it("follow the other Allegro numbers (One) on One's tracking page", () => {
+      expect(trackingUrl({ carrier_id: "ALLEGRO" }, "A123O45I67")).toBe(
+        "https://allegro.pl/kampania/one/kurier/sledzenie-paczki?numer=A123O45I67",
+      );
+    });
+
+    it("do not go to the carrier's own page, which does not know Allegro's number", () => {
+      // "DPD" is in the name, but a DPD page would not find an AD number
+      const url = trackingUrl(
+        { carrier_id: "ALLEGRO", carrier_name: "Allegro Kurier DPD (AD)" },
+        "AD9M99LM9X999D9XK",
+      );
+
+      expect(url).toContain("allegro.pl");
+      expect(url).not.toContain("dpd.com.pl");
+      expect(
+        trackingUrl({ carrier_id: null, carrier_name: "Allegro Automat ORLEN Paczka" }, "AD99999F9RD99GFWX"),
+      ).toContain("allegro.pl");
+    });
+
+    it("leave an all-digit number, an InPost parcel bought through Allegro, to InPost", () => {
+      expect(
+        trackingUrl(
+          { carrier_id: null, carrier_name: "Allegro Paczkomaty InPost" },
+          "620000000000000000000001",
+        ),
+      ).toContain("inpost.pl");
+      expect(trackingUrl({ carrier_id: "INPOST" }, "620000000000000000000001")).toContain("inpost.pl");
+    });
+
+    it("are offered nothing for an Allegro number that is only digits", () => {
+      expect(trackingUrl({ carrier_id: "ALLEGRO" }, "123456")).toBeNull();
+    });
+
+    it("keep the number from breaking out of the address", () => {
+      const url = trackingUrl({ carrier_id: "ALLEGRO" }, "AD1 2&x=1");
+
+      expect(url).toBe("https://allegro.pl/allegrodelivery/sledzenie-paczki?numer=AD1%202%26x%3D1");
+    });
   });
 
   it("offers nothing without a number", () => {
