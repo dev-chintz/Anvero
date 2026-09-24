@@ -16,6 +16,8 @@ are days in the business timezone, `BUSINESS_TIMEZONE`, default
 | `GET` | `/api/v1/orders/stats` | aggregate figures for the dashboard |
 | `GET` | `/api/v1/orders/production` | the to-make queue by product: what to make and how many |
 | `GET` | `/api/v1/orders/{id}` | one order with its details: items, buyer, delivery, payment, invoice |
+| `DELETE` | `/api/v1/orders/{id}` | take the order out of every list; it is kept, and an import leaves it alone |
+| `POST` | `/api/v1/orders/{id}/restore` | put a deleted order back |
 | `PATCH` | `/api/v1/orders/{id}/status` | status change, also sent to Allegro (safe mode permitting) |
 | `POST` | `/api/v1/orders/{id}/shipments` | add a tracking number, also sent to Allegro (safe mode permitting) |
 | `GET` | `/api/v1/orders/{id}/history` | status change history |
@@ -353,6 +355,7 @@ database, so `total` counts every match rather than the returned page.
 | `search` | case-insensitive substring of: `external_id`, `customer_email`, the buyer's login, full name, last name, company or phone, the pickup point's id or name, any item's `sku` or name, any address's city, any shipment's waybill; also an Anvero order number in any form a person types it (`AN-000123`, `an-123`, `000123`, `123`). An order matching on several items or addresses is still one result |
 | `date_from`, `date_to` | `YYYY-MM-DD`, both inclusive, calendar days in the business timezone, matched on `ordered_at` |
 | `cancellation_warning` | `true` returns only orders cancelled on their marketplace whose Anvero status is not `CANCELLED` |
+| `deleted` | `true` lists the deleted orders instead of the ones in use (default `false`); see "Deleting an order" |
 
 Response: `{"items": [...], "total": N, "skip": N, "limit": N}`, newest
 `ordered_at` first. Each item also carries `customer_login`,
@@ -363,6 +366,31 @@ extra query cost. It also carries `items`, in short: for each item its `name`,
 order's item order, loaded for the whole page in one extra query. Prices,
 ids, `delivery` and the rest of `GET /api/v1/orders/{id}`'s nested detail are
 not in the list.
+
+### Deleting an order
+
+`DELETE /api/v1/orders/{id}` takes an order out of the application without
+erasing it: it sets `deleted_at` (and `deleted_by`, the operator's email) and
+returns the order with its details. The row stays, because the marketplace's
+next import would otherwise bring the order back, and because Anvero's own
+number is never reused. A deleted order:
+
+- is in no list, no total, no queue and no figure of `GET /orders/stats`
+  (the dashboard, the queue counts, the to-make list, the buyer's other orders),
+  and is listed only by `GET /orders?deleted=true`;
+- is still returned by `GET /orders/{id}`, with `deleted_at` set, so its page can
+  say so and offer to restore it;
+- is skipped by an import (`created` and `updated` do not count it, and nothing
+  about it is overwritten) and is not polled for tracking;
+- refuses a change: a status change, a tracking number and a label are answered
+  `409 Order is deleted; restore it first`.
+
+`DELETE` answers `409` for an order with a label being bought or bought (cancel
+the label first), `404` for an unknown id, and `200` for an order already deleted,
+changing nothing (the first `deleted_at` and `deleted_by` stay).
+`POST /api/v1/orders/{id}/restore` clears both; an order in use is answered `200`
+unchanged. `OrderRead` carries `deleted_at` and `deleted_by`, null for an order
+in use.
 
 Each order carries Anvero's own number: `order_number`, an integer that is
 continuous across every source, given once when the order is created and never

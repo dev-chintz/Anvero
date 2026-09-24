@@ -188,6 +188,25 @@ class Order(Base):
         nullable=True,
     )
 
+    # Set when an operator deletes the order from the list. The row stays: the
+    # marketplace's next import would bring a really deleted order back, and its
+    # Anvero number is never reused. Every list, count and queue leaves a deleted
+    # order out and an import no longer touches it; restoring clears this.
+    deleted_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True),
+        nullable=True,
+    )
+    deleted_by_user_id: Mapped[int | None] = mapped_column(
+        ForeignKey("users.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+    deleted_by_user: Mapped["User | None"] = relationship(foreign_keys=[deleted_by_user_id])
+
+    @property
+    def deleted_by(self) -> str | None:
+        """Who deleted it, by email; null while it is not deleted."""
+        return self.deleted_by_user.email if self.deleted_by_user is not None else None
+
     # Order details. Every one is optional: an order entered by hand may have
     # none, and a marketplace may leave any of them out. For an imported order
     # the marketplace owns all of them, and a re-import replaces them.

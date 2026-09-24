@@ -7,7 +7,7 @@ import { AdvancedFilters, type Filters } from '../components/AdvancedFilters';
 import { useOrders } from '../hooks/useOrders';
 import { useOrderStats } from '../hooks/useOrderStats';
 import { OrderQueue, OrderSort } from '../types/order';
-import type { OrderSource, OrderStatus } from '../types/order';
+import type { Order, OrderSource, OrderStatus } from '../types/order';
 import { useTranslation } from '../i18n';
 import { describeWrite } from '../components/marketplaceWrite';
 import '../styles/OrdersPage.css';
@@ -40,6 +40,8 @@ export function OrdersPage({ addToast }: OrdersPageProps) {
   const dateTo = searchParams.get('dateTo') || undefined;
   const cancellationWarning = searchParams.get('cancellationWarning') === 'true';
   const queue = (searchParams.get('queue') as OrderQueue) || undefined;
+  // the deleted orders, to look at or restore, instead of the ones in use
+  const deleted = searchParams.get('deleted') === 'true';
   // a queue is a to-do list, so it opens with what is most at risk; the
   // whole list keeps opening with what is newest
   const sort =
@@ -58,6 +60,7 @@ export function OrdersPage({ addToast }: OrdersPageProps) {
     cancellationWarning,
     queue,
     sort,
+    deleted,
   });
 
   // what an order opened from this list is told: where "back" goes (this very
@@ -174,6 +177,32 @@ export function OrdersPage({ addToast }: OrdersPageProps) {
       .finally(() => setUpdatingOrderId(null));
   };
 
+  // the page asks first: deleting takes an order out of every list and figure
+  const handleDelete = (order: Order) => {
+    if (!window.confirm(t('orders.deleteConfirm', { order: order.order_label }))) return;
+    ordersApi
+      .delete(order.id)
+      .then(() => {
+        addToast?.(t('orders.deleted', { order: order.order_label }), 'success');
+        refetch();
+      })
+      .catch((err: unknown) => {
+        addToast?.(err instanceof ApiError ? err.message : t('orders.deleteFailed'), 'error');
+      });
+  };
+
+  const handleRestore = (order: Order) => {
+    ordersApi
+      .restore(order.id)
+      .then(() => {
+        addToast?.(t('orders.restored', { order: order.order_label }), 'success');
+        refetch();
+      })
+      .catch((err: unknown) => {
+        addToast?.(err instanceof ApiError ? err.message : t('orders.restoreFailed'), 'error');
+      });
+  };
+
   const updateParams = (updates: Record<string, string | undefined>) => {
     const next = new URLSearchParams(searchParams);
     for (const [key, value] of Object.entries(updates)) {
@@ -273,8 +302,10 @@ export function OrdersPage({ addToast }: OrdersPageProps) {
               key={q ?? 'all'}
               type="button"
               className={`queue-tab${q === OrderQueue.LATE ? ' queue-tab-late' : ''}`}
-              aria-pressed={queue === q}
-              onClick={() => updateParams({ queue: q, sort: undefined, skip: '0' })}
+              aria-pressed={!deleted && queue === q}
+              onClick={() =>
+                updateParams({ queue: q, deleted: undefined, sort: undefined, skip: '0' })
+              }
             >
               {t(q ? `queue.${q}` : 'queue.all')}
               {q && stats?.queues && (
@@ -285,6 +316,21 @@ export function OrdersPage({ addToast }: OrdersPageProps) {
               )}
             </button>
           ))}
+          <button
+            type="button"
+            className="queue-tab queue-tab-deleted"
+            aria-pressed={deleted}
+            onClick={() =>
+              updateParams({
+                deleted: deleted ? undefined : 'true',
+                queue: undefined,
+                sort: undefined,
+                skip: '0',
+              })
+            }
+          >
+            {t('orders.deletedView')}
+          </button>
         </nav>
         {queue === OrderQueue.TO_MAKE && (
           <Link to="/production" className="queue-production-link">
@@ -336,6 +382,8 @@ export function OrdersPage({ addToast }: OrdersPageProps) {
         onStatusChange={handleStatusChange}
         updatingOrderId={updatingOrderId}
         linkState={linkState}
+        onDelete={handleDelete}
+        onRestore={handleRestore}
       />
     </div>
   );

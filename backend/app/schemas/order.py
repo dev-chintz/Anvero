@@ -231,6 +231,10 @@ class OrderRead(OrderBase):
     dispatch_by: UtcDateTime | None = None
     # small, and the list shows them in its Shipping column
     shipments: list[ShipmentRead] = Field(default_factory=list)
+    # set while an operator has deleted the order; such an order is in no list
+    # unless it was asked for, and is kept to be restored
+    deleted_at: UtcDateTime | None = None
+    deleted_by: str | None = None
 
     model_config = ConfigDict(from_attributes=True)
 

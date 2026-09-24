@@ -205,6 +205,10 @@ class OrderImportService:
                 self.repository.create(self._to_order(data))
                 created += 1
                 continue
+            if existing.deleted_at is not None:
+                # deleted in Anvero: it stays out of the lists, and the
+                # marketplace still having it must not bring it back
+                continue
 
             # compared before the import overwrites what it is compared with
             status_moved = data.status != existing.marketplace_status

@@ -231,3 +231,32 @@
 :root.dark .dispatch-soon {
   color: var(--color-warning);
 }
+
+/* Deleting an order (OrdersPage.tsx, OrderRow.tsx): a small trash button beside
+   the date in a row, and the same "Deleted" chip as a queue's. */
+.orders-page .queue-tab-deleted {
+  margin-left: auto;
+}
+
+.orders-table .row-action {
+  display: block;
+  margin-top: 0.35rem;
+  padding: 0.15rem 0.5rem;
+  background: none;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  color: var(--color-muted);
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+
+.orders-table .row-action:hover {
+  color: var(--color-heading);
+  background: var(--color-divider);
+}
+
+.orders-table .row-delete:hover {
+  color: #b91c1c;
+  border-color: #fecaca;
+  background: #fef2f2;
+}

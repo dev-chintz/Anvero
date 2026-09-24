@@ -48,6 +48,8 @@ export function OrderDetail() {
   const [buyerOrders, setBuyerOrders] = useState<Order[] | null>(null);
   const [writes, setWrites] = useState<MarketplaceWrite[]>([]);
   const [writeNote, setWriteNote] = useState<{ text: string; tone: string } | null>(null);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   const loadWrites = (orderId: string) =>
     Promise.resolve()
@@ -64,6 +66,7 @@ export function OrderDetail() {
     setNotFound(false);
     // a note about the previous order's change does not belong to this one
     setWriteNote(null);
+    setDeleteError(null);
 
     ordersApi
       .get(id)
@@ -117,6 +120,35 @@ export function OrderDetail() {
   const nextId = position >= 0 ? orderIds[position + 1] : undefined;
   const goTo = (orderId: string) =>
     navigate(`/orders/${orderId}`, { replace: true, state: linkState });
+
+  // Deleting keeps the order (an operator can restore it) and takes it out of
+  // every list; the page stays open on it, with what was done and how to undo it.
+  const changeDeleted = async (action: "delete" | "restore") => {
+    if (!order) return;
+    if (
+      action === "delete" &&
+      !window.confirm(t("order.deleteConfirm", { order: order.order_label }))
+    ) {
+      return;
+    }
+    setDeleting(true);
+    setDeleteError(null);
+    try {
+      const result =
+        action === "delete" ? await ordersApi.delete(order.id) : await ordersApi.restore(order.id);
+      setOrder({ ...order, deleted_at: result.deleted_at, deleted_by: result.deleted_by });
+    } catch (err: unknown) {
+      setDeleteError(
+        err instanceof ApiError
+          ? err.message
+          : translate(action === "delete" ? "order.deleteFailed" : "order.restoreFailed"),
+      );
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  const isDeleted = !!order?.deleted_at;
 
   const handleStatusChange = async (nextStatus: OrderStatus) => {
     if (!order || nextStatus === order.status) return;
@@ -172,7 +204,47 @@ export function OrderDetail() {
           )}
         </nav>
 
-        {order && !loading && !notFound && <h1 className="order-page-title">{order.order_label}</h1>}
+        {order && !loading && !notFound && (
+          <div className="order-page-heading">
+            <h1 className="order-page-title">{order.order_label}</h1>
+            {isDeleted ? (
+              <button
+                type="button"
+                className="order-restore"
+                onClick={() => changeDeleted("restore")}
+                disabled={deleting}
+              >
+                {t("order.restore")}
+              </button>
+            ) : (
+              <button
+                type="button"
+                className="order-delete"
+                onClick={() => changeDeleted("delete")}
+                disabled={deleting}
+              >
+                {deleting ? t("order.deleting") : t("order.delete")}
+              </button>
+            )}
+          </div>
+        )}
+
+        {deleteError && (
+          <p role="alert" className="error-message">
+            {deleteError}
+          </p>
+        )}
+
+        {!loading && !error && !notFound && order && order.deleted_at && (
+          <div role="status" className="warning-banner">
+            {order.deleted_by
+              ? t("order.deletedBanner", {
+                  when: formatDateTime(order.deleted_at),
+                  user: order.deleted_by,
+                })
+              : t("order.deletedBannerNoUser", { when: formatDateTime(order.deleted_at) })}
+          </div>
+        )}
 
         {loading && <p role="status">{t("order.loading")}</p>}
 
@@ -224,7 +296,7 @@ export function OrderDetail() {
                 <select
                   id="order-status"
                   value={order.status}
-                  disabled={saving}
+                  disabled={saving || isDeleted}
                   onChange={(e) =>
                     handleStatusChange(e.target.value as OrderStatus)
                   }
@@ -289,7 +361,7 @@ export function OrderDetail() {
 
         {!loading && !error && !notFound && order && <OrderDetailsPanel order={order} />}
 
-        {!loading && !error && !notFound && order && (
+        {!loading && !error && !notFound && order && !isDeleted && (
           <ShippingLabelCard
             order={order}
             onChanged={() => {
@@ -299,7 +371,7 @@ export function OrderDetail() {
           />
         )}
 
-        {!loading && !error && !notFound && order && (
+        {!loading && !error && !notFound && order && !isDeleted && (
           <AddShipmentForm
             orderId={order.id}
             onAdded={(result: OrderChangeResult) => {

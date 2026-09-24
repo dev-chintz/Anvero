@@ -56,9 +56,20 @@ interface OrderRowProps {
   updating: boolean;
   /** handed to the link to the order, see OrderLinkState */
   linkState?: OrderLinkState;
+  /** Delete this order from the list; the page asks first. Without it the row has no button. */
+  onDelete?: (order: Order) => void;
+  /** Bring a deleted order back; shown on a deleted order instead of the delete button. */
+  onRestore?: (order: Order) => void;
 }
 
-export function OrderRow({ order, onStatusChange, updating, linkState }: OrderRowProps) {
+export function OrderRow({
+  order,
+  onStatusChange,
+  updating,
+  linkState,
+  onDelete,
+  onRestore,
+}: OrderRowProps) {
   const { t, tc, formatDateTime, formatMoney, trackingLabel } = useTranslation();
   const shipments = order.shipments ?? [];
   const items = order.items ?? [];
@@ -114,7 +125,8 @@ export function OrderRow({ order, onStatusChange, updating, linkState }: OrderRo
           <select
             className={`status-select ${STATUS_CLASS[order.status]}`}
             value={order.status}
-            disabled={updating}
+            // a deleted order cannot be changed until it is restored
+            disabled={updating || !!order.deleted_at}
             aria-label={t("orders.statusFor", { order: order.order_label })}
             onChange={(e) => onStatusChange(order.id, e.target.value as OrderStatus)}
           >
@@ -182,6 +194,28 @@ export function OrderRow({ order, onStatusChange, updating, linkState }: OrderRo
             })}
           </div>
         )}
+        {order.deleted_at
+          ? onRestore && (
+              <button
+                type="button"
+                className="row-action"
+                onClick={() => onRestore(order)}
+                aria-label={t("orders.restoreFor", { order: order.order_label })}
+              >
+                {t("orders.restore")}
+              </button>
+            )
+          : onDelete && (
+              <button
+                type="button"
+                className="row-action row-delete"
+                onClick={() => onDelete(order)}
+                aria-label={t("orders.deleteFor", { order: order.order_label })}
+                title={t("orders.deleteFor", { order: order.order_label })}
+              >
+                🗑
+              </button>
+            )}
       </td>
     </tr>
   );

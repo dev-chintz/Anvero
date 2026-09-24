@@ -158,6 +158,10 @@ class ShippingLabels:
             )
         )
 
+    def has_active(self, order: Order) -> bool:
+        """A label being bought or bought: money spent on a parcel that is on its way."""
+        return any(label.status in _ACTIVE for label in self.for_order(order))
+
     def get(self, order: Order, label_id: uuid.UUID) -> ShippingLabel | None:
         label = self.db.get(ShippingLabel, label_id)
         return label if label is not None and label.order_id == order.id else None

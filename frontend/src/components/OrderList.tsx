@@ -16,6 +16,8 @@ interface OrderListProps {
   updatingOrderId: string | null;
   /** handed to every order's link, see OrderLinkState */
   linkState?: OrderLinkState;
+  onDelete?: (order: Order) => void;
+  onRestore?: (order: Order) => void;
 }
 
 export function OrderList({
@@ -29,6 +31,8 @@ export function OrderList({
   onStatusChange,
   updatingOrderId,
   linkState,
+  onDelete,
+  onRestore,
 }: OrderListProps) {
   const { t } = useTranslation();
   const currentPage = Math.floor(skip / limit) + 1;
@@ -73,6 +77,8 @@ export function OrderList({
                   onStatusChange={onStatusChange}
                   updating={updatingOrderId === order.id}
                   linkState={linkState}
+                  onDelete={onDelete}
+                  onRestore={onRestore}
                 />
               ))}
             </tbody>

@@ -65,6 +65,14 @@ export interface Order {
   /** Optional because a backend older than the field omits it. */
   shipments?: Shipment[];
   /**
+   * Set while an operator has deleted the order: it is in no list unless the
+   * deleted ones were asked for, and is kept to be restored. Optional because a
+   * backend older than the field omits it.
+   */
+  deleted_at?: string | null;
+  /** The email of whoever deleted it. */
+  deleted_by?: string | null;
+  /**
    * What was bought, in short: the list shows it in its Items column. Only
    * these four fields are on the list; `OrderWithDetails` has the whole item.
    * Optional because a backend older than the field omits it.

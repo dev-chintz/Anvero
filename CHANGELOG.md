@@ -6,6 +6,22 @@ All significant changes to the Anvero project.
 
 ## 2026-09-24
 
+### 🗑️ Delete an order from the list
+
+- A **trash button** on each row of the orders list and a **Delete order** button
+  on the order's page, each asking first. The order is not erased: it leaves
+  every list, count, queue and dashboard figure, an import no longer changes or
+  brings it back, and it can be restored.
+- A **Deleted** chip beside the work queues lists the deleted orders, with a
+  Restore button on each row; the order's page says when and by whom it was
+  deleted and offers to restore it. A deleted order cannot be given a status, a
+  tracking number or a label until it is restored.
+- An order with a bought label (or one being bought) cannot be deleted.
+- `DELETE /orders/{id}`, `POST /orders/{id}/restore`, `GET /orders?deleted=true`;
+  `orders.deleted_at` and `deleted_by_user_id` (migration `b8e3d5a7c246`, run
+  `alembic upgrade head`).
+- 663 backend and 200 frontend tests passing.
+
 ### 🐛 Buyer messages: the first real call was refused, and is fixed
 
 - Reading the Message Center on production Allegro answered

@@ -537,3 +537,45 @@ td {
 .tracking-link:hover {
   text-decoration-thickness: 2px;
 }
+
+/* The order page's own actions, beside its title (OrderDetail.tsx). */
+.order-page-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 0.5rem;
+}
+
+.order-page-heading .order-page-title {
+  margin: 0;
+}
+
+.order-delete,
+.order-restore {
+  padding: 0.4rem 0.9rem;
+  background: none;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  color: var(--color-muted-strong, var(--color-muted));
+  font: inherit;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.order-delete:hover:not(:disabled) {
+  color: #b91c1c;
+  border-color: #fecaca;
+  background: #fef2f2;
+}
+
+.order-restore {
+  border-color: var(--color-accent, #0d7377);
+  color: var(--color-accent, #0d7377);
+}
+
+.order-delete:disabled,
+.order-restore:disabled {
+  cursor: default;
+  opacity: 0.6;
+}

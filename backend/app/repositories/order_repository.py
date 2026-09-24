@@ -68,7 +68,23 @@ class OrderRepository:
         return order
 
     def get(self, order_id: uuid.UUID) -> Order | None:
+        """An order by its id, a deleted one included: its page and its restoring
+        need it, while every list and count leaves it out (`deleted_at`)."""
         return self.db.query(Order).filter(Order.id == order_id).first()
+
+    def mark_deleted(self, order: Order, user_id: int | None) -> Order:
+        order.deleted_at = self._to_db_datetime(datetime.now(UTC))
+        order.deleted_by_user_id = user_id
+        self.db.commit()
+        self.db.refresh(order)
+        return order
+
+    def restore(self, order: Order) -> Order:
+        order.deleted_at = None
+        order.deleted_by_user_id = None
+        self.db.commit()
+        self.db.refresh(order)
+        return order
 
     def get_by_external_id(
         self, source: OrderSource, external_id: str
@@ -208,6 +224,7 @@ class OrderRepository:
                 .join(Order, Order.id == OrderShipment.order_id)
                 .where(
                     Order.source == source,
+                    Order.deleted_at.is_(None),
                     Order.status == OrderStatus.SHIPPED,
                     or_(
                         OrderShipment.tracking_status.is_(None),
@@ -295,7 +312,7 @@ class OrderRepository:
         return list(
             self.db.scalars(
                 select(Order)
-                .where(Order.id != order.id, or_(*same_buyer))
+                .where(Order.id != order.id, Order.deleted_at.is_(None), or_(*same_buyer))
                 .order_by(*self._ordering(OrderSort.NEWEST))
                 .limit(limit)
             )
@@ -309,7 +326,7 @@ class OrderRepository:
         return list(
             self.db.scalars(
                 select(Order)
-                .where(self._in_queue(queue))
+                .where(self._in_queue(queue), Order.deleted_at.is_(None))
                 .options(selectinload(Order.items))
                 .order_by(*self._ordering(OrderSort.AT_RISK))
             )
@@ -391,13 +408,18 @@ class OrderRepository:
         date_to: date | None = None,
         cancellation_warning: bool = False,
         queue: OrderQueue | None = None,
+        deleted: bool = False,
     ) -> Query:
         """Single source of truth for filtering.
 
         list() and count() must apply identical predicates, otherwise a page
-        of results and its reported total disagree.
+        of results and its reported total disagree. A deleted order is in no
+        list unless the list asked for the deleted ones.
         """
         query = self.db.query(Order)
+        query = query.filter(
+            Order.deleted_at.is_not(None) if deleted else Order.deleted_at.is_(None)
+        )
         if queue is not None:
             query = query.filter(self._in_queue(queue))
         if cancellation_warning:
@@ -463,6 +485,7 @@ class OrderRepository:
         cancellation_warning: bool = False,
         queue: OrderQueue | None = None,
         sort: OrderSort = OrderSort.NEWEST,
+        deleted: bool = False,
     ) -> list[Order]:
         return (
             self._filtered(
@@ -473,6 +496,7 @@ class OrderRepository:
                 date_to=date_to,
                 cancellation_warning=cancellation_warning,
                 queue=queue,
+                deleted=deleted,
             )
             # the list shows each order's items in short: one extra query for
             # the page, not one per order
@@ -492,6 +516,7 @@ class OrderRepository:
         date_to: date | None = None,
         cancellation_warning: bool = False,
         queue: OrderQueue | None = None,
+        deleted: bool = False,
     ) -> int:
         return self._filtered(
             source=source,
@@ -501,6 +526,7 @@ class OrderRepository:
             date_to=date_to,
             cancellation_warning=cancellation_warning,
             queue=queue,
+            deleted=deleted,
         ).count()
 
     @staticmethod
@@ -530,35 +556,38 @@ class OrderRepository:
         Computed in SQL rather than by summing a fetched page, so the numbers
         stay correct once the table outgrows one page.
         """
+        # a deleted order is in none of these figures
+        alive = Order.deleted_at.is_(None)
+
         total, revenue = self.db.execute(
-            select(func.count(Order.id), func.coalesce(func.sum(Order.total_amount), 0))
+            select(func.count(Order.id), func.coalesce(func.sum(Order.total_amount), 0)).where(alive)
         ).one()
 
         this_week = self.db.execute(
-            select(func.count(Order.id)).where(Order.ordered_at >= self._week_cutoff())
+            select(func.count(Order.id)).where(alive, Order.ordered_at >= self._week_cutoff())
         ).scalar_one()
 
         pending = self.db.execute(
-            select(func.count(Order.id)).where(Order.status.in_(PENDING_STATUSES))
+            select(func.count(Order.id)).where(alive, Order.status.in_(PENDING_STATUSES))
         ).scalar_one()
 
         cancellation_warnings = self.db.execute(
-            select(func.count(Order.id)).where(self._has_cancellation_warning())
+            select(func.count(Order.id)).where(alive, self._has_cancellation_warning())
         ).scalar_one()
 
         queues = {
             queue.value: self.db.execute(
-                select(func.count(Order.id)).where(self._in_queue(queue))
+                select(func.count(Order.id)).where(alive, self._in_queue(queue))
             ).scalar_one()
             for queue in OrderQueue
         }
 
         by_status = self.db.execute(
-            select(Order.status, func.count(Order.id)).group_by(Order.status)
+            select(Order.status, func.count(Order.id)).where(alive).group_by(Order.status)
         ).all()
 
         by_source = self.db.execute(
-            select(Order.source, func.count(Order.id)).group_by(Order.source)
+            select(Order.source, func.count(Order.id)).where(alive).group_by(Order.source)
         ).all()
 
         return {

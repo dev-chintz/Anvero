@@ -83,6 +83,7 @@ Columns on `orders`, one per order:
 | `payment_provider` | the payment operator as the marketplace names it, e.g. `P24` |
 | `paid_amount`, `paid_at` | null means unknown; `0.00` means known to be unpaid |
 | `invoice_required` | the buyer asked for an invoice |
+| `deleted_at`, `deleted_by_user_id` | set when an operator deletes the order from the list (`DELETE /orders/{id}`); the row is kept, every list, figure and queue leaves it out, and an import does not touch it. Null while the order is in use. `deleted_by_user_id` is `SET NULL` when the account goes. Added by `b8e3d5a7c246` |
 
 `payment_type` is a plain string column validated by the application, not a
 database enum type: the list grows with each marketplace, and a new value in a

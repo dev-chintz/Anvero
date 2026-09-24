@@ -102,9 +102,40 @@ class OrderService:
             The updated Order, with updated_at refreshed.
         """
         order = self.get_order(order_id)
+        self.ensure_not_deleted(order)
         return self.repository.update_status(
             order, new_status, changed_by_user_id=changed_by_user_id
         )
+
+    @staticmethod
+    def ensure_not_deleted(order: Order) -> None:
+        """Refuse a change to a deleted order: it is out of the lists, so a change
+        made to it would go unseen (and to the marketplace unexplained)."""
+        if order.deleted_at is not None:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Order is deleted; restore it first",
+            )
+
+    def delete_order(self, order_id: uuid.UUID, user_id: int | None) -> Order:
+        """Delete an order from the lists, keeping the row (see `Order.deleted_at`).
+
+        Deleting one already deleted changes nothing, including who did it.
+
+        Raises:
+            HTTPException: 404 if no order exists with that id.
+        """
+        order = self.get_order(order_id)
+        if order.deleted_at is not None:
+            return order
+        return self.repository.mark_deleted(order, user_id)
+
+    def restore_order(self, order_id: uuid.UUID) -> Order:
+        """Put a deleted order back in the lists. One in use is left as it is."""
+        order = self.get_order(order_id)
+        if order.deleted_at is None:
+            return order
+        return self.repository.restore(order)
 
     def get_status_history(self, order_id: uuid.UUID) -> list[OrderStatusHistory]:
         """List an order's status transitions, most recent first.
@@ -135,6 +166,7 @@ class OrderService:
         cancellation_warning: bool = False,
         queue: OrderQueue | None = None,
         sort: OrderSort = OrderSort.NEWEST,
+        deleted: bool = False,
     ) -> tuple[list[Order], int]:
         """List orders with optional filtering and pagination.
 
@@ -157,6 +189,7 @@ class OrderService:
             queue: Optional work queue (see OrderQueue).
             sort: Newest first by default; also oldest first, or closest
                 dispatch deadline first.
+            deleted: List the deleted orders instead of the ones in use.
 
         Returns:
             A tuple of (matching orders for the current page, total count
@@ -170,6 +203,7 @@ class OrderService:
             "date_to": date_to,
             "cancellation_warning": cancellation_warning,
             "queue": queue,
+            "deleted": deleted,
         }
         orders = self.repository.list(skip=skip, limit=limit, sort=sort, **filters)
         total = self.repository.count(**filters)

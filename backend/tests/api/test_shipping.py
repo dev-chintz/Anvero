@@ -203,3 +203,46 @@ def test_the_test_label_is_a_pdf_and_touches_no_marketplace(monkeypatch):
     # the sender saved in Settings is on it, without its Polish letters
     assert b"(Dluga 1)" in response.content
     assert b"(Jan Kowalski)" in response.content
+
+
+def test_an_order_with_a_bought_label_cannot_be_deleted():
+    from datetime import UTC, datetime
+
+    from app.models.shipping_label import LabelStatus, ShippingLabel
+
+    order_id = _order()
+    db = TestingSessionLocal()
+    try:
+        db.add(
+            ShippingLabel(
+                order_id=uuid.UUID(order_id),
+                created_at=datetime.now(UTC),
+                command_id=f"cmd-{uuid.uuid4()}",
+                shipment_id="ship-1",
+                status=LabelStatus.CREATED,
+                delivery_method_id="method-1",
+                length_cm=Decimal(30),
+                width_cm=Decimal(20),
+                height_cm=Decimal(10),
+                weight_kg=Decimal("1.5"),
+            )
+        )
+        db.commit()
+    finally:
+        db.close()
+
+    response = client.delete(f"/api/v1/orders/{order_id}")
+
+    assert response.status_code == 409
+    assert "label" in response.json()["detail"]
+    assert client.get(f"/api/v1/orders/{order_id}").json()["deleted_at"] is None
+
+
+def test_an_order_cannot_be_given_a_label_once_deleted():
+    order_id = _order()
+    assert client.delete(f"/api/v1/orders/{order_id}").status_code == 200
+
+    response = client.post(f"/api/v1/orders/{order_id}/labels", json=PACKAGE)
+
+    assert response.status_code == 409
+    assert "restore" in response.json()["detail"]

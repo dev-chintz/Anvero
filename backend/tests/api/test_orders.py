@@ -1,4 +1,5 @@
-﻿from datetime import UTC, datetime, timedelta
+﻿import uuid
+from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 from zoneinfo import ZoneInfo
 
@@ -1196,3 +1197,126 @@ def test_a_tracking_number_needs_a_known_carrier_and_other_needs_a_name():
     assert client.post(url, json={"carrier_id": "INPOST", "waybill": ""}).status_code == 422
     ok = client.post(url, json={"carrier_id": "OTHER", "carrier_name": "Kurier Janek", "waybill": "1"})
     assert ok.status_code == 200
+
+
+# --- deleting an order from the list ---------------------------------------------
+
+
+def _create(**overrides) -> dict:
+    response = client.post("/api/v1/orders", json=_order_payload(**overrides))
+    assert response.status_code == 200, response.text
+    return response.json()
+
+
+def _listed(**params) -> dict:
+    return client.get("/api/v1/orders", params=params).json()
+
+
+def test_deleting_an_order_needs_a_login():
+    some_id = "00000000-0000-0000-0000-000000000000"
+
+    assert anonymous.delete(f"/api/v1/orders/{some_id}").status_code == 401
+    assert anonymous.post(f"/api/v1/orders/{some_id}/restore").status_code == 401
+
+
+def test_a_deleted_order_leaves_the_list_but_is_kept():
+    order = _create(external_id="DEL-KEEP")
+
+    response = client.delete(f"/api/v1/orders/{order['id']}")
+
+    assert response.status_code == 200
+    deleted = response.json()
+    assert deleted["deleted_at"] is not None
+    assert deleted["deleted_by"] == OPERATOR_EMAIL
+    # out of the list and its total...
+    assert _listed(search="DEL-KEEP")["total"] == 0
+    # ...but kept, to be opened, and to be listed among the deleted
+    assert client.get(f"/api/v1/orders/{order['id']}").json()["deleted_at"] is not None
+    among_deleted = _listed(search="DEL-KEEP", deleted="true")
+    assert [o["external_id"] for o in among_deleted["items"]] == ["DEL-KEEP"]
+    assert among_deleted["total"] == 1
+
+
+def test_an_order_in_use_is_not_among_the_deleted():
+    _create(external_id="DEL-INUSE")
+
+    assert _listed(search="DEL-INUSE", deleted="true")["total"] == 0
+    assert _listed(search="DEL-INUSE")["total"] == 1
+
+
+def test_a_deleted_order_is_in_no_figure():
+    before = client.get("/api/v1/orders/stats").json()
+    order = _create(external_id="DEL-STATS", total_amount="10.00")
+    assert client.get("/api/v1/orders/stats").json()["total_orders"] == before["total_orders"] + 1
+
+    client.delete(f"/api/v1/orders/{order['id']}")
+
+    after = client.get("/api/v1/orders/stats").json()
+    assert after["total_orders"] == before["total_orders"]
+    assert Decimal(after["total_revenue"]) == Decimal(before["total_revenue"])
+    assert after["by_status"] == before["by_status"]
+    assert after["queues"] == before["queues"]
+
+
+def test_deleting_twice_changes_nothing_the_second_time():
+    order = _create(external_id="DEL-TWICE")
+    first = client.delete(f"/api/v1/orders/{order['id']}").json()
+
+    second = client.delete(f"/api/v1/orders/{order['id']}")
+
+    assert second.status_code == 200
+    assert second.json()["deleted_at"] == first["deleted_at"]
+
+
+def test_deleting_an_unknown_order_is_not_found():
+    assert client.delete(f"/api/v1/orders/{uuid.uuid4()}").status_code == 404
+    assert client.post(f"/api/v1/orders/{uuid.uuid4()}/restore").status_code == 404
+
+
+def test_a_restored_order_is_back_in_the_list():
+    order = _create(external_id="DEL-RESTORE")
+    client.delete(f"/api/v1/orders/{order['id']}")
+
+    response = client.post(f"/api/v1/orders/{order['id']}/restore")
+
+    assert response.status_code == 200
+    assert response.json()["deleted_at"] is None
+    assert response.json()["deleted_by"] is None
+    assert _listed(search="DEL-RESTORE")["total"] == 1
+    assert _listed(search="DEL-RESTORE", deleted="true")["total"] == 0
+
+
+def test_restoring_an_order_in_use_changes_nothing():
+    order = _create(external_id="DEL-INUSE-RESTORE")
+
+    response = client.post(f"/api/v1/orders/{order['id']}/restore")
+
+    assert response.status_code == 200
+    assert response.json()["deleted_at"] is None
+
+
+def test_a_deleted_order_cannot_be_changed():
+    order = _create(external_id="DEL-FROZEN")
+    client.delete(f"/api/v1/orders/{order['id']}")
+
+    status_change = client.patch(f"/api/v1/orders/{order['id']}/status", json={"status": "SHIPPED"})
+    shipment = client.post(
+        f"/api/v1/orders/{order['id']}/shipments",
+        json={"carrier_id": "DPD", "waybill": "W1"},
+    )
+
+    assert status_change.status_code == 409
+    assert "restore" in status_change.json()["detail"]
+    assert shipment.status_code == 409
+    # and nothing moved
+    assert client.get(f"/api/v1/orders/{order['id']}").json()["status"] == "NEW"
+
+
+def test_a_deleted_order_is_not_among_the_buyers_other_orders():
+    kept = _create(external_id="DEL-BUYER-1", customer_email="same-buyer@example.com")
+    gone = _create(external_id="DEL-BUYER-2", customer_email="same-buyer@example.com")
+    client.delete(f"/api/v1/orders/{gone['id']}")
+
+    others = client.get(f"/api/v1/orders/{kept['id']}/buyer-orders").json()
+
+    assert [o["external_id"] for o in others] == []

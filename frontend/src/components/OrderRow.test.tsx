@@ -32,7 +32,12 @@ function makeOrder(overrides: Partial<Order> = {}): Order {
 
 function renderRow(
   order: Order,
-  overrides: { onStatusChange?: (orderId: string, status: OrderStatus) => void; updating?: boolean } = {},
+  overrides: {
+    onStatusChange?: (orderId: string, status: OrderStatus) => void;
+    updating?: boolean;
+    onDelete?: (order: Order) => void;
+    onRestore?: (order: Order) => void;
+  } = {},
 ) {
   const onStatusChange = overrides.onStatusChange ?? vi.fn();
   const updating = overrides.updating ?? false;
@@ -42,7 +47,13 @@ function renderRow(
       <MemoryRouter>
         <table>
           <tbody>
-            <OrderRow order={order} onStatusChange={onStatusChange} updating={updating} />
+            <OrderRow
+              order={order}
+              onStatusChange={onStatusChange}
+              updating={updating}
+              onDelete={overrides.onDelete}
+              onRestore={overrides.onRestore}
+            />
           </tbody>
         </table>
       </MemoryRouter>,
@@ -261,5 +272,36 @@ describe("OrderRow dispatch deadline", () => {
     renderRow(makeOrder({ status: OrderStatus.SHIPPED, dispatch_by: "2020-01-01T10:00:00Z" }));
 
     expect(screen.queryByText(/Ship by|Overdue/)).not.toBeInTheDocument();
+  });
+});
+
+describe("deleting from the row", () => {
+  it("offers a delete button that hands over the order", () => {
+    const onDelete = vi.fn();
+    const order = makeOrder();
+    renderRow(order, { onDelete });
+
+    fireEvent.click(screen.getByRole("button", { name: "Delete order AN-000042" }));
+
+    expect(onDelete).toHaveBeenCalledWith(order);
+  });
+
+  it("has no delete button when the page gave it nothing to call", () => {
+    renderRow(makeOrder());
+
+    expect(screen.queryByRole("button", { name: /Delete order/ })).not.toBeInTheDocument();
+  });
+
+  it("offers to restore a deleted order instead, and stops its status being changed", () => {
+    const onRestore = vi.fn();
+    const onDelete = vi.fn();
+    const order = makeOrder({ deleted_at: "2026-09-24T18:00:00Z", deleted_by: "a@example.com" });
+    renderRow(order, { onRestore, onDelete });
+
+    expect(screen.queryByRole("button", { name: /Delete order/ })).not.toBeInTheDocument();
+    expect(screen.getByRole("combobox", { name: "Status for order AN-000042" })).toBeDisabled();
+    fireEvent.click(screen.getByRole("button", { name: "Restore order AN-000042" }));
+
+    expect(onRestore).toHaveBeenCalledWith(order);
   });
 });

@@ -43,7 +43,7 @@ folder, and one was restored from that copy into a scratch database as a test.
   remains the no-setup default for a fresh clone)
 - Health endpoint and first order model — done
 - Minimal order list interface — done
-- Automated tests for core flows — done (645 backend, 188 frontend passing
+- Automated tests for core flows — done (663 backend, 200 frontend passing
   across the suite as of 2026-09-24)
 
 ---
@@ -154,6 +154,10 @@ The 2026-09-24 interface work (`DECISIONS.md`, "Design agreements") was checked 
 ---
 
 The test label (`GET /labels/test-pdf`) was opened in the browser pane's PDF viewer and looks as designed; it has not been printed on the thermal A6 printer, which is what it is for. The tracking links were checked in the browser for the two Erli orders (InPost, the address they point at is right by construction) and not opened on the carriers' sites; the addresses for DPD, DHL, Poczta Polska, UPS, GLS and FedEx are unchecked against real numbers.
+
+---
+
+Deleting an order (`DECISIONS.md`, 2026-09-24, "soft") is covered by tests and its list view was opened in the browser (the "Deleted" chip, empty), but the trash button was not pressed on the real orders in the shared database, so the confirmation, the toast and a restore have not been seen end to end. Its migration `b8e3d5a7c246` was applied to the shared PostgreSQL on 2026-09-24: the other machines need `alembic upgrade head`.
 
 ---
 

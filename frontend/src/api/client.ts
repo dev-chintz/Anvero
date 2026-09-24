@@ -108,6 +108,8 @@ export interface ListOrdersParams {
   cancellationWarning?: boolean;
   queue?: OrderQueue;
   sort?: OrderSort;
+  /** List the deleted orders instead of the ones in use. */
+  deleted?: boolean;
 }
 
 function buildQuery(params: ListOrdersParams): string {
@@ -122,6 +124,7 @@ function buildQuery(params: ListOrdersParams): string {
   if (params.cancellationWarning) query.set("cancellation_warning", "true");
   if (params.queue) query.set("queue", params.queue);
   if (params.sort) query.set("sort", params.sort);
+  if (params.deleted) query.set("deleted", "true");
   const queryString = query.toString();
   return queryString ? `?${queryString}` : "";
 }
@@ -304,6 +307,18 @@ export const ordersApi = {
       method: "POST",
       body: JSON.stringify(shipment),
     });
+  },
+
+  /**
+   * Take an order out of every list. The row is kept, so it can be restored and
+   * an import does not bring it back; an order with a bought label is refused.
+   */
+  delete(orderId: string): Promise<OrderWithDetails> {
+    return request<OrderWithDetails>(`/orders/${orderId}`, { method: "DELETE" });
+  },
+
+  restore(orderId: string): Promise<OrderWithDetails> {
+    return request<OrderWithDetails>(`/orders/${orderId}/restore`, { method: "POST" });
   },
 
   production(): Promise<ProductionList> {

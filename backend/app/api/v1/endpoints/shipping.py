@@ -81,6 +81,7 @@ def buy_label(
     current_user: User = Depends(get_current_user),
 ):
     order = _order(db, order_id)
+    OrderService.ensure_not_deleted(order)
     try:
         label, write = ShippingLabels(db).buy(order, package, current_user.id)
     except (LabelRefused, IntegrationError) as exc:

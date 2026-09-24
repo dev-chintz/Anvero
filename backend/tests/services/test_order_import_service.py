@@ -533,3 +533,31 @@ def test_a_re_import_does_not_renumber_or_use_up_numbers(session):
     numbers = {o.external_id: o.order_number for o in session.query(Order).all()}
     assert numbers["A"] == first
     assert numbers["B"] == first + 1
+
+
+def test_an_order_deleted_in_anvero_is_not_brought_back_by_an_import(session):
+    _service(session, [_order("ALG-DEL", amount="100.00")]).import_orders()
+    order = session.query(Order).one()
+    OrderRepository(session).mark_deleted(order, None)
+
+    # the marketplace still has it, and now says something else about it
+    result = _service(session, [_order("ALG-DEL", amount="250.00")]).import_orders()
+
+    assert (result.created, result.updated) == (0, 0)
+    assert session.query(Order).count() == 1
+    kept = session.query(Order).one()
+    assert kept.deleted_at is not None
+    assert kept.total_amount == Decimal("100.00")
+
+
+def test_a_restored_order_is_updated_by_the_next_import_again(session):
+    _service(session, [_order("ALG-BACK", amount="100.00")]).import_orders()
+    repository = OrderRepository(session)
+    order = session.query(Order).one()
+    repository.mark_deleted(order, None)
+    repository.restore(order)
+
+    result = _service(session, [_order("ALG-BACK", amount="250.00")]).import_orders()
+
+    assert (result.created, result.updated) == (0, 1)
+    assert session.query(Order).one().total_amount == Decimal("250.00")

@@ -14,6 +14,7 @@ export interface UseOrdersParams {
   cancellationWarning?: boolean;
   queue?: OrderQueue;
   sort?: OrderSort;
+  deleted?: boolean;
 }
 
 export interface UseOrdersResult {
@@ -45,6 +46,7 @@ export function useOrders(params: UseOrdersParams): UseOrdersResult {
     cancellationWarning,
     queue,
     sort,
+    deleted,
   } = params;
 
   const [orders, setOrders] = useState<Order[]>([]);
@@ -73,6 +75,7 @@ export function useOrders(params: UseOrdersParams): UseOrdersResult {
         cancellationWarning,
         queue,
         sort,
+        deleted,
       })
       .then((response) => {
         if (cancelled) return;
@@ -105,6 +108,7 @@ export function useOrders(params: UseOrdersParams): UseOrdersResult {
     cancellationWarning,
     queue,
     sort,
+    deleted,
     version,
   ]);
 

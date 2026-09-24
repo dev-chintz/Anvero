@@ -2,7 +2,7 @@ import uuid
 from datetime import date
 from decimal import Decimal
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
 from app.core.security import get_current_user
@@ -27,6 +27,7 @@ from app.schemas.order import (
 from app.services.order_service import OrderService
 from app.services.order_writes import ALLEGRO_CARRIERS, OrderWrites
 from app.services.production import build_production_list
+from app.services.shipping_labels import ShippingLabels
 
 # Every order endpoint requires a logged-in user. Set on the router rather
 # than per endpoint, so an endpoint added later cannot be left open by
@@ -50,6 +51,7 @@ def list_orders(
     cancellation_warning: bool = Query(default=False),
     queue: OrderQueue | None = Query(default=None),
     sort: OrderSort = Query(default=OrderSort.NEWEST),
+    deleted: bool = Query(default=False),
     db: Session = Depends(get_db),
 ):
     service = OrderService(OrderRepository(db))
@@ -64,6 +66,7 @@ def list_orders(
         cancellation_warning=cancellation_warning,
         queue=queue,
         sort=sort,
+        deleted=deleted,
     )
     return OrderListResponse(items=orders, total=total, skip=skip, limit=limit)
 
@@ -136,6 +139,29 @@ def update_order_status(
     return _change_result(order, write)
 
 
+@router.delete("/{order_id}", response_model=OrderDetailRead)
+def delete_order(
+    order_id: uuid.UUID,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Take the order out of every list. The row is kept, so it can be restored
+    and an import does not bring it back; a bought label stops it."""
+    service = OrderService(OrderRepository(db))
+    order = service.get_order(order_id)
+    if order.deleted_at is None and ShippingLabels(db).has_active(order):
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="The order has a shipping label: cancel the label first",
+        )
+    return OrderDetailRead.from_order(service.delete_order(order_id, current_user.id))
+
+
+@router.post("/{order_id}/restore", response_model=OrderDetailRead)
+def restore_order(order_id: uuid.UUID, db: Session = Depends(get_db)):
+    return OrderDetailRead.from_order(OrderService(OrderRepository(db)).restore_order(order_id))
+
+
 @router.post("/{order_id}/shipments", response_model=OrderChangeResult)
 def add_order_shipment(
     order_id: uuid.UUID,
@@ -148,7 +174,9 @@ def add_order_shipment(
             status_code=422,
             detail=f"carrier_id must be one of {', '.join(ALLEGRO_CARRIERS)}",
         )
-    order = OrderService(OrderRepository(db)).get_order(order_id)
+    service = OrderService(OrderRepository(db))
+    order = service.get_order(order_id)
+    service.ensure_not_deleted(order)
     _, write = OrderWrites(db).add_shipment(
         order, payload.carrier_id, payload.carrier_name, payload.waybill, current_user.id
     )

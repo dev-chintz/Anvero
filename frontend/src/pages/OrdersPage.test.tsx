@@ -20,6 +20,8 @@ vi.mock("../api/client", async () => {
       get: vi.fn(),
       history: vi.fn(),
       updateStatus: vi.fn(),
+      delete: vi.fn(),
+      restore: vi.fn(),
       stats: vi.fn(),
     },
     integrationsApi: {
@@ -70,13 +72,15 @@ function Where() {
   return <p data-testid="where">{`${location.pathname}${location.search}`}</p>;
 }
 
+const addToast = vi.fn();
+
 /** The two routes as the app has them: the list, and an order's own page. */
 function renderAt(entry: string | { pathname: string; state?: unknown }) {
   return render(
     <MemoryRouter initialEntries={[entry]}>
       <Where />
       <Routes>
-        <Route path="/orders" element={<OrdersPage />} />
+        <Route path="/orders" element={<OrdersPage addToast={addToast} />} />
         <Route path="/orders/:id" element={<OrderDetail />} />
         <Route path="/dashboard" element={<p>the dashboard</p>} />
       </Routes>
@@ -282,5 +286,153 @@ describe("the work queues above the list", () => {
     fireEvent.change(select, { target: { value: OrderStatus.READY_FOR_SHIPMENT } });
 
     await waitFor(() => expect(vi.mocked(ordersApi.stats).mock.calls.length).toBe(before + 1));
+  });
+});
+
+describe("deleting an order", () => {
+  afterEach(() => vi.restoreAllMocks());
+
+  it("asks first, deletes, and shows the list again without it", async () => {
+    vi.spyOn(window, "confirm").mockReturnValue(true);
+    vi.mocked(ordersApi.delete).mockResolvedValue(
+      makeOrderDetails({ deleted_at: "2026-09-24T18:00:00Z", deleted_by: "op@example.com" }),
+    );
+    renderAt("/orders");
+
+    fireEvent.click(await screen.findByRole("button", { name: "Delete order AN-000007" }));
+
+    expect(window.confirm).toHaveBeenCalledWith(expect.stringContaining("AN-000007"));
+    await waitFor(() => expect(ordersApi.delete).toHaveBeenCalledWith("order-1"));
+    // the list and the queue counts are read again
+    await waitFor(() => expect(ordersApi.list).toHaveBeenCalledTimes(2));
+    expect(addToast).toHaveBeenCalledWith(expect.stringContaining("AN-000007"), "success");
+  });
+
+  it("does nothing when the operator says no", async () => {
+    vi.spyOn(window, "confirm").mockReturnValue(false);
+    renderAt("/orders");
+
+    fireEvent.click(await screen.findByRole("button", { name: "Delete order AN-000007" }));
+
+    expect(ordersApi.delete).not.toHaveBeenCalled();
+    expect(ordersApi.list).toHaveBeenCalledTimes(1);
+  });
+
+  it("says why when the backend refuses", async () => {
+    vi.spyOn(window, "confirm").mockReturnValue(true);
+    const { ApiError } = await import("../api/client");
+    vi.mocked(ordersApi.delete).mockRejectedValue(
+      new ApiError(409, "The order has a shipping label: cancel the label first"),
+    );
+    renderAt("/orders");
+
+    fireEvent.click(await screen.findByRole("button", { name: "Delete order AN-000007" }));
+
+    await waitFor(() =>
+      expect(addToast).toHaveBeenCalledWith(
+        "The order has a shipping label: cancel the label first",
+        "error",
+      ),
+    );
+    expect(ordersApi.list).toHaveBeenCalledTimes(1);
+  });
+
+  it("lists the deleted orders on their own, and restores one from there", async () => {
+    vi.mocked(ordersApi.restore).mockResolvedValue(makeOrderDetails());
+    renderAt("/orders");
+    await screen.findByRole("link", { name: "AN-000007" });
+    vi.mocked(ordersApi.list).mockResolvedValue({
+      items: [makeOrder({ deleted_at: "2026-09-24T18:00:00Z", deleted_by: "op@example.com" })],
+      total: 1,
+      skip: 0,
+      limit: 20,
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Deleted" }));
+
+    await waitFor(() =>
+      expect(ordersApi.list).toHaveBeenLastCalledWith(expect.objectContaining({ deleted: true })),
+    );
+    expect(screen.getByRole("button", { name: "Deleted" })).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByRole("button", { name: "All" })).toHaveAttribute("aria-pressed", "false");
+
+    fireEvent.click(await screen.findByRole("button", { name: "Restore order AN-000007" }));
+
+    await waitFor(() => expect(ordersApi.restore).toHaveBeenCalledWith("order-1"));
+    expect(addToast).toHaveBeenCalledWith(expect.stringContaining("AN-000007"), "success");
+  });
+
+  it("goes back to the orders in use from a work queue tab", async () => {
+    renderAt("/orders?deleted=true");
+    await screen.findByRole("link", { name: "AN-000007" });
+
+    fireEvent.click(screen.getByRole("button", { name: "To ship 2" }));
+
+    await waitFor(() =>
+      expect(ordersApi.list).toHaveBeenLastCalledWith(
+        expect.objectContaining({ queue: "to_ship", deleted: false }),
+      ),
+    );
+  });
+});
+
+describe("deleting from the order's page", () => {
+  afterEach(() => vi.restoreAllMocks());
+
+  it("deletes, says so on the page and offers to restore", async () => {
+    vi.spyOn(window, "confirm").mockReturnValue(true);
+    vi.mocked(ordersApi.delete).mockResolvedValue(
+      makeOrderDetails({ deleted_at: "2026-09-24T18:00:00Z", deleted_by: "op@example.com" }),
+    );
+    renderAt("/orders/order-1");
+    // an order in use takes a tracking number
+    expect(await screen.findByLabelText("Tracking number")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Delete order" }));
+
+    expect(await screen.findByText(/Deleted .* by op@example.com/)).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Delete order" })).not.toBeInTheDocument();
+    // what would change it is out of reach until it is restored
+    expect(screen.getByLabelText("Status")).toBeDisabled();
+    expect(screen.queryByLabelText("Tracking number")).not.toBeInTheDocument();
+  });
+
+  it("restores a deleted order", async () => {
+    vi.mocked(ordersApi.get).mockResolvedValue(
+      makeOrderDetails({ deleted_at: "2026-09-24T18:00:00Z", deleted_by: null }),
+    );
+    vi.mocked(ordersApi.restore).mockResolvedValue(makeOrderDetails());
+    renderAt("/orders/order-1");
+    expect(await screen.findByText(/^Deleted .* It is in no list/)).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Restore order" }));
+
+    await waitFor(() => expect(ordersApi.restore).toHaveBeenCalledWith("order-1"));
+    expect(await screen.findByRole("button", { name: "Delete order" })).toBeInTheDocument();
+    expect(screen.queryByText(/It is in no list/)).not.toBeInTheDocument();
+    expect(screen.getByLabelText("Status")).toBeEnabled();
+  });
+
+  it("does not delete when the operator says no", async () => {
+    vi.spyOn(window, "confirm").mockReturnValue(false);
+    renderAt("/orders/order-1");
+
+    fireEvent.click(await screen.findByRole("button", { name: "Delete order" }));
+
+    expect(ordersApi.delete).not.toHaveBeenCalled();
+  });
+
+  it("shows what the backend said when it refuses", async () => {
+    vi.spyOn(window, "confirm").mockReturnValue(true);
+    const { ApiError } = await import("../api/client");
+    vi.mocked(ordersApi.delete).mockRejectedValue(
+      new ApiError(409, "The order has a shipping label: cancel the label first"),
+    );
+    renderAt("/orders/order-1");
+
+    fireEvent.click(await screen.findByRole("button", { name: "Delete order" }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("cancel the label first");
+    expect(screen.getByRole("button", { name: "Delete order" })).toBeEnabled();
   });
 });
