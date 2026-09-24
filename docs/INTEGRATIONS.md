@@ -436,6 +436,8 @@ order ("Label" card), after the sender is entered in Settings, "Shipping":
    waybill, which is then added to the order as a tracking number would be
    (`POST /order/checkout-forms/{id}/shipments`).
 5. `POST /shipment-management/label` with `pageSize: A6` returns the PDF.
+   The Labels page sends several `shipmentIds` at once (at most 50, Anvero's
+   own cap: the documentation names none) for one PDF of many labels.
 6. Cancelling: `POST /shipment-management/shipments/cancel-commands`, then
    its status the same way.
 
@@ -446,7 +448,8 @@ are read); whether Allegro already links the shipment to the order by itself,
 in which case step 4's tracking number may be refused as a duplicate, harmless
 but noted as a failed write; and the label's `Accept` header. Not built yet:
 cash on delivery (it needs the seller's bank account), insurance, ordering a
-courier pickup, several parcels per order, and printing many labels at once.
+courier pickup and several parcels per order. Unverified too: that one label
+request takes many shipments and how Allegro lays several A6 labels out.
 
 ### Writing to Allegro
 

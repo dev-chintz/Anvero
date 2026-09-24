@@ -293,8 +293,9 @@ In this order (the owner chose queues before any write to Allegro):
    Started 2026-09-24: buying one parcel per order from the order, the A6
    PDF, cancelling, the sender and the usual parcel in Settings, all through
    safe mode, built from Allegro's documentation and tested on fakes
-   (`INTEGRATIONS.md`). Left: a first real purchase on the Sandbox, then
-   printing many labels at once, courier pickup and cash on delivery.
+   (`INTEGRATIONS.md`). Printing many at once: the Labels page, done the
+   same day. Left: a first real purchase on the Sandbox, then courier pickup
+   and cash on delivery.
 2. **Buyer messages**: one inbox across channels, reply from Anvero, put a
    thread aside until later.
 3. **Invoices and money.** Choose the invoicing program first (compare APIs,

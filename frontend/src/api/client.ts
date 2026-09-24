@@ -380,6 +380,16 @@ export interface ShippingLabel extends PackageSize {
   carrier_id: string | null;
   waybill: string | null;
   error: string | null;
+  /** When its label was last fetched for printing; null until then. */
+  printed_at?: string | null;
+}
+
+/** A bought label on the Labels page, with what identifies its order. */
+export interface PrintableLabel extends ShippingLabel {
+  order_id: string;
+  order_label: string;
+  buyer: string | null;
+  delivery_method: string | null;
 }
 
 export interface LabelChangeResult {
@@ -420,6 +430,20 @@ export const shippingApi = {
   cancel(orderId: string, labelId: string): Promise<LabelChangeResult> {
     return request<LabelChangeResult>(`/orders/${orderId}/labels/${labelId}/cancel`, {
       method: "POST",
+    });
+  },
+
+  /** Bought labels across every order, oldest first; unprinted only unless asked. */
+  printable(includePrinted = false): Promise<PrintableLabel[]> {
+    return request<PrintableLabel[]>(`/labels${includePrinted ? "?printed=true" : ""}`);
+  },
+
+  /** Several labels as one A6 PDF, in the order given; notes them printed. */
+  pdfMany(labelIds: string[]): Promise<Blob> {
+    return request<Blob>("/labels/pdf", {
+      method: "POST",
+      body: JSON.stringify({ label_ids: labelIds }),
+      blob: true,
     });
   },
 

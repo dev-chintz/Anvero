@@ -11,6 +11,7 @@ import { translate, useTranslation } from "../i18n";
 import type { MessageKey } from "../i18n/messages";
 import { OrderSource, PaymentType, type OrderWithDetails } from "../types/order";
 import { describeWrite, type WriteTone } from "./marketplaceWrite";
+import { openPdf } from "./openPdf";
 import "../styles/Shipping.css";
 
 const EMPTY_PACKAGE: PackageSize = { length_cm: "", width_cm: "", height_cm: "", weight_kg: "" };
@@ -113,16 +114,10 @@ export function ShippingLabelCard({ order, onChanged }: ShippingLabelCardProps) 
 
   const print = async (label: ShippingLabel) => {
     setNote(null);
-    // opened before the request, so the browser treats it as the click's own
-    // window and does not block it as a pop-up
-    const tab = window.open("", "_blank");
     try {
-      const pdf = await shippingApi.pdf(order.id, label.id);
-      const url = URL.createObjectURL(pdf);
-      if (tab) tab.location.href = url;
-      else window.location.assign(url);
+      await openPdf(() => shippingApi.pdf(order.id, label.id));
+      replace({ ...label, printed_at: new Date().toISOString() });
     } catch (err) {
-      tab?.close();
       fail(err, "label.printFailed");
     }
   };
@@ -161,6 +156,7 @@ export function ShippingLabelCard({ order, onChanged }: ShippingLabelCardProps) 
                     height: Number(label.height_cm),
                     weight: Number(label.weight_kg),
                   })}
+                  {label.printed_at && ` · ${t("label.printedAt", { when: formatDateTime(label.printed_at) })}`}
                 </span>
               </div>
               {label.error && <p className="write-note write-error">{label.error}</p>}

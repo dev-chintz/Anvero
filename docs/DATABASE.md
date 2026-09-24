@@ -173,7 +173,8 @@ shipment-management ids are needed to print the label again or cancel it.
 Anvero gave the create command), `shipment_id` (Allegro's, once it exists),
 `status` (`PENDING`, `CREATED`, `FAILED`, `CANCELLED`, stored as text),
 `delivery_method_id`, `carrier_id`, `waybill`, `length_cm`, `width_cm`,
-`height_cm` (numeric 8,1), `weight_kg` (numeric 8,3), `error`. The waybill
+`height_cm` (numeric 8,1), `weight_kg` (numeric 8,3), `error`, `printed_at`
+(when its PDF was last fetched; null puts it on the "to print" list). The waybill
 also goes onto the order as an `order_shipments` row added in Anvero.
 
 `app_settings` also holds `shipping_sender` and `shipping_default_package`,

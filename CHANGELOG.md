@@ -6,6 +6,15 @@ All significant changes to the Anvero project.
 
 ## 2026-09-24
 
+### 🖨️ Printing many labels at once
+
+- A Labels page (sidebar): every bought label not yet printed, oldest first,
+  all selected; one click fetches them from Allegro as one A6 PDF and marks
+  them printed. Already printed ones can be shown and printed again.
+- `GET /labels`, `POST /labels/pdf`; `shipping_labels.printed_at` (migration
+  `c9e4a2d7f581`), also set when a single label is printed from the order.
+- Stage B1 of the feature plan, second part.
+
 ### 🏷️ Labels through Wysyłam z Allegro
 
 - On an Allegro order, a "Label" card: enter or accept the parcel's size,

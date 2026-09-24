@@ -358,3 +358,83 @@ def test_a_403_names_the_shipments_scope():
 
     with pytest.raises(Exception, match="allegro:api:shipments:write"):
         _client(_token_or(handler)).create_shipment("c-1", {})
+
+
+# --- printing many at once ---------------------------------------------------------
+
+
+def _bought(session, allegro, external_id):
+    order = _order(session)
+    order.external_id = external_id
+    session.commit()
+    label, _ = _labels(session, allegro).buy(order, PACKAGE, None)
+    return label
+
+
+class NumberedAllegro(FakeAllegro):
+    """Gives each shipment its own id, as Allegro would."""
+
+    def __init__(self):
+        super().__init__(outcomes=["SUCCESS"] * 10)
+        self.count = 0
+        self.label_requests = []
+
+    def shipment_command(self, command_id):
+        answer = super().shipment_command(command_id)
+        if answer.get("status") == "SUCCESS":
+            self.count += 1
+            answer["shipmentId"] = f"ship-{self.count}"
+        return answer
+
+    def fetch_label(self, shipment_ids, page_size="A6"):
+        self.label_requests.append((list(shipment_ids), page_size))
+        return super().fetch_label(shipment_ids, page_size)
+
+
+def test_many_labels_come_as_one_pdf_in_the_order_asked(session, ready):
+    allegro = NumberedAllegro()
+    first = _bought(session, allegro, "form-a")
+    second = _bought(session, allegro, "form-b")
+    labels = _labels(session, allegro)
+
+    content = labels.pdf_many([second.id, first.id])
+
+    assert content.startswith(b"%PDF")
+    assert allegro.label_requests == [(["ship-2", "ship-1"], "A6")]
+    assert first.printed_at is not None and second.printed_at is not None
+
+
+def test_the_print_list_holds_bought_labels_not_yet_printed(session, ready):
+    allegro = NumberedAllegro()
+    first = _bought(session, allegro, "form-a")
+    second = _bought(session, allegro, "form-b")
+    labels = _labels(session, allegro)
+    assert [label.id for label in labels.printable()] == [first.id, second.id]
+
+    labels.pdf(first)
+
+    assert [label.id for label in labels.printable()] == [second.id]
+    assert {label.id for label in labels.printable(unprinted_only=False)} == {first.id, second.id}
+
+
+def test_a_label_not_bought_cannot_be_printed_with_the_rest(session, ready):
+    allegro = NumberedAllegro()
+    good = _bought(session, allegro, "form-a")
+    cancelled = _bought(session, allegro, "form-b")
+    labels = _labels(session, allegro)
+    labels.cancel(cancelled.order, cancelled, None)
+
+    with pytest.raises(LabelRefused, match="Only bought labels"):
+        labels.pdf_many([good.id, cancelled.id])
+    assert good.printed_at is None
+    assert allegro.label_requests == []
+
+
+def test_an_unknown_label_or_too_many_are_refused(session, ready):
+    import uuid
+
+    labels = _labels(session, NumberedAllegro())
+    with pytest.raises(LookupError):
+        labels.pdf_many([uuid.uuid4()])
+    with pytest.raises(LabelRefused, match="At most"):
+        labels.pdf_many([uuid.uuid4() for _ in range(51)])

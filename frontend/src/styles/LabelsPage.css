@@ -1,0 +1,92 @@
+.labels-page .page-header {
+  background: var(--color-surface-alt);
+  padding: 2rem;
+  border-bottom: 1px solid var(--color-divider);
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.labels-page .page-header h1 {
+  margin: 0 0 0.5rem 0;
+  font-size: 2rem;
+  color: var(--color-heading);
+  font-weight: 600;
+}
+
+.labels-page .page-header .subtitle {
+  margin: 0;
+  color: var(--color-muted);
+  font-size: 0.95rem;
+}
+
+.labels-page .print-button {
+  padding: 0.6rem 1.2rem;
+  border: 1px solid var(--color-accent);
+  border-radius: var(--radius-md);
+  background: var(--color-accent);
+  color: #fff;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.labels-page .print-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.labels-body {
+  padding: 1.5rem 2rem 2rem;
+}
+
+.labels-filter {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+  color: var(--color-muted-strong);
+}
+
+.labels-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.labels-table th,
+.labels-table td {
+  padding: 0.65rem 0.75rem;
+  border-bottom: 1px solid var(--color-divider);
+  text-align: left;
+  vertical-align: top;
+}
+
+.labels-table th {
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  color: var(--color-muted);
+}
+
+.labels-table .col-check {
+  width: 2.5rem;
+}
+
+.labels-table tr.selected td {
+  background: var(--color-surface-alt);
+}
+
+.labels-muted {
+  font-size: 0.85rem;
+  color: var(--color-muted);
+}
+
+@media (max-width: 768px) {
+  .labels-page .page-header {
+    padding: 1.5rem 1rem;
+  }
+
+  .labels-body {
+    padding: 1rem;
+  }
+}

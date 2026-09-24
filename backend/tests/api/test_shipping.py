@@ -141,3 +141,17 @@ def test_without_a_sender_buying_is_a_conflict():
 def test_an_unknown_label_is_not_found():
     response = client.get(f"/api/v1/orders/{_order()}/labels/{uuid.uuid4()}/pdf")
     assert response.status_code == 404
+
+
+def test_the_print_list_needs_a_login_and_starts_empty():
+    assert anonymous.get("/api/v1/labels").status_code == 401
+    assert client.get("/api/v1/labels").json() == []
+
+
+def test_printing_an_unknown_label_is_not_found():
+    response = client.post("/api/v1/labels/pdf", json={"label_ids": [str(uuid.uuid4())]})
+    assert response.status_code == 404
+
+
+def test_printing_nothing_is_refused():
+    assert client.post("/api/v1/labels/pdf", json={"label_ids": []}).status_code == 422

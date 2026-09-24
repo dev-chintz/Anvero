@@ -2,9 +2,10 @@
 
 import uuid
 
-from fastapi import APIRouter, Depends, HTTPException, Response, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from sqlalchemy.orm import Session
 
+from app.core.order_number import format_order_number
 from app.core.security import get_current_user
 from app.db.session import get_db
 from app.integrations.base import IntegrationError, IntegrationNotConfigured
@@ -13,7 +14,9 @@ from app.repositories.order_repository import OrderRepository
 from app.schemas.marketplace_write import MarketplaceWriteRead
 from app.schemas.shipping import (
     LabelChangeResult,
+    LabelPrintRequest,
     PackageSize,
+    PrintableLabel,
     ShippingLabelRead,
     ShippingSettings,
 )
@@ -126,3 +129,41 @@ def label_pdf(order_id: uuid.UUID, label_id: uuid.UUID, db: Session = Depends(ge
         media_type="application/pdf",
         headers={"Content-Disposition": f'inline; filename="label-{label.waybill or label.id}.pdf"'},
     )
+
+
+def _printable(label) -> PrintableLabel:
+    order = label.order
+    buyer = " ".join(p for p in (order.customer_first_name, order.customer_last_name) if p)
+    return PrintableLabel(
+        **ShippingLabelRead.model_validate(label).model_dump(),
+        order_id=order.id,
+        order_label=format_order_number(order.order_number),
+        buyer=buyer or order.customer_login or order.customer_email,
+        delivery_method=order.delivery_method,
+    )
+
+
+@router.get("/labels", response_model=list[PrintableLabel])
+def printable_labels(
+    printed: bool = Query(False, description="also list labels already printed"),
+    db: Session = Depends(get_db),
+):
+    """Bought labels across every order, oldest first; unprinted only by default."""
+    return [_printable(label) for label in ShippingLabels(db).printable(unprinted_only=not printed)]
+
+
+@router.post("/labels/pdf")
+def labels_pdf(payload: LabelPrintRequest, db: Session = Depends(get_db)):
+    """Several labels as one A6 PDF, in the order asked; notes them printed."""
+    try:
+        content = ShippingLabels(db).pdf_many(payload.label_ids)
+    except LookupError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except (LabelRefused, IntegrationError) as exc:
+        raise _refused(exc) from exc
+    return Response(
+        content=content,
+        media_type="application/pdf",
+        headers={"Content-Disposition": 'inline; filename="labels.pdf"'},
+    )
+

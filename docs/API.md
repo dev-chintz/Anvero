@@ -34,6 +34,8 @@ are days in the business timezone, `BUSINESS_TIMEZONE`, default
 | `POST` | `/api/v1/orders/{id}/labels/{label_id}/refresh` | ask Allegro again about a label still being created |
 | `POST` | `/api/v1/orders/{id}/labels/{label_id}/cancel` | cancel a bought shipment (safe mode permitting) |
 | `GET` | `/api/v1/orders/{id}/labels/{label_id}/pdf` | the label, A6, as a PDF |
+| `GET` | `/api/v1/labels` | bought labels across every order, for printing many at once |
+| `POST` | `/api/v1/labels/pdf` | several labels as one A6 PDF |
 | `GET` | `/api/v1/integrations/allegro` | the Allegro connection's state, never a secret |
 | `PUT` | `/api/v1/integrations/allegro/settings` | store the Allegro application's credentials |
 | `POST` | `/api/v1/integrations/allegro/connect` | start connecting a seller account; rate limited to 10 per minute per IP |
@@ -380,6 +382,19 @@ reached.
 the label turns `CANCELLED` once Allegro confirms, or keeps `CREATED` with the
 reason in `error`. `GET .../pdf` returns `application/pdf`; `409` unless the
 label is `CREATED`. Printing is a read: it does not go through safe mode.
+Every label has `printed_at`: when its PDF was last fetched, by either route;
+null until then.
+
+`GET /api/v1/labels` lists `CREATED` labels across every order, oldest first
+(the order they were bought), at most 200: only those never printed, or all
+with `?printed=true`. Each is a label plus `order_id`, `order_label` (the
+`AN-` number), `buyer` (the name, else login, else email) and
+`delivery_method`.
+
+`POST /api/v1/labels/pdf` takes `{"label_ids": [...]}` (1 to 50) and returns
+one A6 PDF with those labels in that order, from one request to Allegro, and
+notes them printed. `404` if an id is unknown, `409` if any is not `CREATED`
+or there are more than 50, `422` for an empty list, `502` when Allegro fails.
 
 ## Changes that reach the marketplace
 

@@ -50,8 +50,22 @@ class ShippingLabelRead(BaseModel):
     height_cm: Decimal
     weight_kg: Decimal
     error: str | None
+    printed_at: UtcDateTime | None = None
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class PrintableLabel(ShippingLabelRead):
+    """A bought label on the Labels page, with what identifies its order."""
+
+    order_id: uuid.UUID
+    order_label: str
+    buyer: str | None
+    delivery_method: str | None
+
+
+class LabelPrintRequest(BaseModel):
+    label_ids: list[uuid.UUID] = Field(min_length=1)
 
 
 class LabelChangeResult(BaseModel):

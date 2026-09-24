@@ -18,7 +18,7 @@ from datetime import UTC, datetime
 from typing import Any
 
 from sqlalchemy import select
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 
 from app.core.order_number import format_order_number
 from app.integrations.allegro.client import AllegroClient
@@ -40,6 +40,10 @@ SETTLE_ATTEMPTS = 8
 SETTLE_INTERVAL_SECONDS = 1.0
 
 _ACTIVE = (LabelStatus.PENDING, LabelStatus.CREATED)
+
+# labels fetched from Allegro in one PDF. Allegro's documentation names no
+# limit for one request; this keeps a request, and a print run, sensible
+MAX_LABELS_PER_PDF = 50
 
 ClientFactory = Callable[[], AllegroClient]
 
@@ -323,8 +327,48 @@ class ShippingLabels:
         return result
 
     def pdf(self, label: ShippingLabel) -> bytes:
-        if label.status is not LabelStatus.CREATED or not label.shipment_id:
-            raise LabelRefused("There is no label to print yet")
+        return self._print([label])
+
+    def printable(self, unprinted_only: bool = True, limit: int = 200) -> list[ShippingLabel]:
+        """Bought labels across every order, oldest first, so the day's print
+        run comes out in the order the parcels were bought."""
+        query = (
+            select(ShippingLabel)
+            .options(joinedload(ShippingLabel.order))
+            .where(ShippingLabel.status == LabelStatus.CREATED)
+            .order_by(ShippingLabel.created_at)
+            .limit(limit)
+        )
+        if unprinted_only:
+            query = query.where(ShippingLabel.printed_at.is_(None))
+        return list(self.db.scalars(query))
+
+    def pdf_many(self, label_ids: list[uuid.UUID]) -> bytes:
+        """The labels asked for, in that order, as one A6 PDF."""
+        if not label_ids:
+            raise LabelRefused("Choose at least one label")
+        if len(label_ids) > MAX_LABELS_PER_PDF:
+            raise LabelRefused(f"At most {MAX_LABELS_PER_PDF} labels can be printed at once")
+        found = {
+            label.id: label
+            for label in self.db.scalars(select(ShippingLabel).where(ShippingLabel.id.in_(label_ids)))
+        }
+        missing = [str(i) for i in label_ids if i not in found]
+        if missing:
+            raise LookupError(f"Unknown label: {', '.join(missing)}")
+        return self._print([found[i] for i in dict.fromkeys(label_ids)])
+
+    def _print(self, labels: list[ShippingLabel]) -> bytes:
+        """Fetch the labels from Allegro and note them as printed."""
+        if any(label.status is not LabelStatus.CREATED or not label.shipment_id for label in labels):
+            raise LabelRefused("Only bought labels can be printed")
         client = self._client_factory()
-        shipment_id = label.shipment_id
-        return _with_import_lock(lambda: client.fetch_label([shipment_id], "A6"))
+        shipment_ids = [label.shipment_id for label in labels]
+        content = _with_import_lock(lambda: client.fetch_label(shipment_ids, "A6"))
+        # noted once the PDF is in hand: whether it then reached a printer is
+        # the operator's to know, and printing again is always possible
+        now = datetime.now(UTC)
+        for label in labels:
+            label.printed_at = now
+        self.db.commit()
+        return content

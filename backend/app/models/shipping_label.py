@@ -8,6 +8,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.types import Uuid
 
 from app.db.base import Base
+from app.models.order import Order
 from app.models.user import User
 
 
@@ -62,4 +63,9 @@ class ShippingLabel(Base):
     # Allegro's reason for refusing it, or for a failed cancellation
     error: Mapped[str | None] = mapped_column(Text)
 
+    # when its label was last fetched for printing; null until it has been,
+    # which is what puts it on the Labels page's "to print" list
+    printed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
     created_by: Mapped["User | None"] = relationship()
+    order: Mapped["Order"] = relationship()
