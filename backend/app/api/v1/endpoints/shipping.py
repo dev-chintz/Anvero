@@ -28,6 +28,7 @@ from app.schemas.shipping import (
 )
 from app.services.courier_pickups import CourierPickups
 from app.services.order_service import OrderService
+from app.services.sample_label import build_sample_label
 from app.services.shipping_labels import LabelRefused, ShippingLabels
 from app.services.shipping_settings import get_shipping_settings, save_shipping_settings
 
@@ -158,6 +159,17 @@ def printable_labels(
 ):
     """Bought labels across every order, oldest first; not yet printed by default."""
     return [_printable(label) for label in ShippingLabels(db).printable(view)]
+
+
+@router.get("/labels/test-pdf")
+def test_label_pdf(db: Session = Depends(get_db)):
+    """A sample A6 label drawn by Anvero, for checking that a label can be shown
+    and printed: nothing is bought, nothing is sent, safe mode does not matter."""
+    return Response(
+        content=build_sample_label(get_shipping_settings(db)),
+        media_type="application/pdf",
+        headers={"Content-Disposition": 'inline; filename="test-label.pdf"'},
+    )
 
 
 @router.post("/labels/pdf")

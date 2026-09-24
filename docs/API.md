@@ -36,6 +36,7 @@ are days in the business timezone, `BUSINESS_TIMEZONE`, default
 | `GET` | `/api/v1/orders/{id}/labels/{label_id}/pdf` | the label, A6, as a PDF |
 | `GET` | `/api/v1/labels` | bought labels across every order, for printing many at once |
 | `POST` | `/api/v1/labels/pdf` | several labels as one A6 PDF |
+| `GET` | `/api/v1/labels/test-pdf` | a sample A6 label drawn by Anvero, to check that a label shows and prints |
 | `POST` | `/api/v1/pickups/proposals` | when a courier could come for chosen parcels on a day |
 | `POST` | `/api/v1/pickups` | order the courier for a proposed slot (safe mode permitting) |
 | `POST` | `/api/v1/pickups/{id}/refresh` | ask Allegro again about a pickup still being confirmed |
@@ -569,6 +570,14 @@ null (`{"id", "created_at", "status", "pickup_id", "carrier_id",
 one A6 PDF with those labels in that order, from one request to Allegro, and
 notes them printed. `404` if an id is unknown, `409` if any is not `CREATED`
 or there are more than 50, `422` for an empty list, `502` when Allegro fails.
+
+`GET /api/v1/labels/test-pdf` returns a sample A6 label as a PDF, drawn by
+Anvero itself: a frame and corner squares (to see clipping), a 100 mm ruler (to
+see scaling), lines one to four printer dots wide (203 dpi) and a solid block
+(to see how fine print and black come out), text from 6 to 12 pt, and the sender
+and default parcel saved in Settings, printed without Polish letters. It buys
+nothing, calls no marketplace and does not go through safe mode; it needs only
+the login.
 
 ### Courier pickup
 

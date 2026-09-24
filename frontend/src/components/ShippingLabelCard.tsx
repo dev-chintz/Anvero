@@ -12,6 +12,7 @@ import type { MessageKey } from "../i18n/messages";
 import { OrderSource, PaymentType, type OrderWithDetails } from "../types/order";
 import { describeWrite, type WriteTone } from "./marketplaceWrite";
 import { openPdf } from "./openPdf";
+import { TrackingLink } from "./TrackingLink";
 import "../styles/Shipping.css";
 
 const EMPTY_PACKAGE: PackageSize = { length_cm: "", width_cm: "", height_cm: "", weight_kg: "" };
@@ -144,7 +145,8 @@ export function ShippingLabelCard({ order, onChanged }: ShippingLabelCardProps) 
                 {label.waybill && (
                   <span>
                     {" "}
-                    · {label.carrier_id ?? ""} {label.waybill}
+                    · {label.carrier_id ?? ""}{" "}
+                    <TrackingLink carrierId={label.carrier_id} waybill={label.waybill} />
                   </span>
                 )}
                 <span className="label-meta">

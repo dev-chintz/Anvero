@@ -43,7 +43,7 @@ folder, and one was restored from that copy into a scratch database as a test.
   remains the no-setup default for a fresh clone)
 - Health endpoint and first order model — done
 - Minimal order list interface — done
-- Automated tests for core flows — done (636 backend, 168 frontend passing
+- Automated tests for core flows — done (645 backend, 188 frontend passing
   across the suite as of 2026-09-24)
 
 ---
@@ -150,6 +150,10 @@ details and changing its status. Only PostgreSQL 17 has been tried.
 ---
 
 The 2026-09-24 interface work (`DECISIONS.md`, "Design agreements") was checked in the browser only for the order page, its arrows and back, and the list's Items column, on three real orders (two from Erli); the menu's counts were read from the DOM on real data, with no overdue or unread thing among them, so the red state and the messages figure have not been seen for real. Item pictures do not appear on any of the three (none carries one: the Allegro one predates the picture import, and Erli's import does not read pictures). The list's table is wider than its container at 1280 px because of the Shipping column, and scrolls sideways. The design document's open areas (place of work, a typical day, dashboard, packing, alert thresholds) are still unanswered.
+
+---
+
+The test label (`GET /labels/test-pdf`) was opened in the browser pane's PDF viewer and looks as designed; it has not been printed on the thermal A6 printer, which is what it is for. The tracking links were checked in the browser for the two Erli orders (InPost, the address they point at is right by construction) and not opened on the carriers' sites; the addresses for DPD, DHL, Poczta Polska, UPS, GLS and FedEx are unchecked against real numbers.
 
 ---
 

@@ -524,3 +524,16 @@ td {
     grid-template-columns: repeat(3, 1fr);
   }
 }
+
+/* A tracking number that opens the carrier's page (TrackingLink.tsx): reads as
+   a link, but keeps the size and weight of the text around it. */
+.tracking-link {
+  color: var(--color-accent, #0d7377);
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 2px;
+}
+
+.tracking-link:hover {
+  text-decoration-thickness: 2px;
+}

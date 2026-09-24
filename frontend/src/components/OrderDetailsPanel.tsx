@@ -2,6 +2,7 @@ import { PaymentType } from "../types/order";
 import { formatNumber, useTranslation } from "../i18n";
 import { carrierLabel } from "../types/order";
 import type { Address, OrderWithDetails } from "../types/order";
+import { TrackingLink } from "./TrackingLink";
 import "../styles/OrderDetailsPanel.css";
 
 // amounts arrive as decimal strings; summing in whole cents keeps
@@ -210,7 +211,12 @@ export function OrderDetailsPanel({ order }: { order: OrderWithDetails }) {
             {shipments.map((shipment) => (
               <li key={shipment.id}>
                 <strong>{carrierLabel(shipment)}</strong>{" "}
-                {t("details.waybill", { waybill: shipment.waybill })}
+                {t("details.waybill")}{" "}
+                <TrackingLink
+                  carrierId={shipment.carrier_id}
+                  carrierName={shipment.carrier_name}
+                  waybill={shipment.waybill}
+                />
                 {shipment.tracking_status && (
                   <p className="order-muted">
                     {shipment.tracking_updated_at

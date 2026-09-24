@@ -181,3 +181,25 @@ def test_the_label_list_takes_known_views_only():
 
 def test_refreshing_an_unknown_pickup_is_not_found():
     assert client.post(f"/api/v1/pickups/{uuid.uuid4()}/refresh").status_code == 404
+
+
+def test_the_test_label_needs_a_login():
+    assert anonymous.get("/api/v1/labels/test-pdf").status_code == 401
+
+
+def test_the_test_label_is_a_pdf_and_touches_no_marketplace(monkeypatch):
+    def refuse(*args, **kwargs):
+        raise AssertionError("the test label must not reach Allegro")
+
+    monkeypatch.setattr(shipping_labels, "build_allegro_client", refuse)
+    client.put("/api/v1/settings/shipping", json={"sender": SENDER, "default_package": PACKAGE})
+
+    response = client.get("/api/v1/labels/test-pdf")
+
+    assert response.status_code == 200
+    assert response.headers["content-type"] == "application/pdf"
+    assert response.headers["content-disposition"] == 'inline; filename="test-label.pdf"'
+    assert response.content.startswith(b"%PDF-1.4")
+    # the sender saved in Settings is on it, without its Polish letters
+    assert b"(Dluga 1)" in response.content
+    assert b"(Jan Kowalski)" in response.content

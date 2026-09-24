@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { ApiError, shippingApi, type CourierPickup, type LabelView, type PrintableLabel } from '../api/client';
 import { openPdf } from '../components/openPdf';
 import { PickupPanel } from '../components/PickupPanel';
+import { TrackingLink } from '../components/TrackingLink';
 import { useTranslation } from '../i18n';
 import '../styles/LabelsPage.css';
 
@@ -21,6 +22,7 @@ export function LabelsPage() {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [error, setError] = useState<string | null>(null);
   const [printing, setPrinting] = useState(false);
+  const [openingTest, setOpeningTest] = useState(false);
 
   const load = useCallback(() => {
     setError(null);
@@ -69,6 +71,20 @@ export function LabelsPage() {
     }
   };
 
+  // a label made here, to see that a PDF opens and prints at the right size
+  // before there is a real one to print
+  const openTestLabel = async () => {
+    setOpeningTest(true);
+    setError(null);
+    try {
+      await openPdf(() => shippingApi.testLabel());
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : t('labels.testFailed'));
+    } finally {
+      setOpeningTest(false);
+    }
+  };
+
   const tooMany = selected.size > MAX_AT_ONCE;
   const selectedIds = (labels ?? []).filter((l) => selected.has(l.id)).map((l) => l.id);
 
@@ -90,6 +106,15 @@ export function LabelsPage() {
           <p className="subtitle">{t('labels.subtitle')}</p>
         </div>
         <div className="labels-actions">
+          <button
+            type="button"
+            className="print-button secondary"
+            onClick={openTestLabel}
+            disabled={openingTest}
+            title={t('labels.testHelp')}
+          >
+            {openingTest ? t('labels.printing') : t('labels.testButton')}
+          </button>
           <button
             type="button"
             className="print-button secondary"
@@ -182,7 +207,10 @@ export function LabelsPage() {
                     <td>{label.buyer ?? '—'}</td>
                     <td>
                       <div>
-                        {label.carrier_id ?? ''} {label.waybill ?? ''}
+                        {label.carrier_id ?? ''}{' '}
+                        {label.waybill && (
+                          <TrackingLink carrierId={label.carrier_id} waybill={label.waybill} />
+                        )}
                       </div>
                       {label.delivery_method && <div className="labels-muted">{label.delivery_method}</div>}
                     </td>

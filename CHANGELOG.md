@@ -6,6 +6,19 @@ All significant changes to the Anvero project.
 
 ## 2026-09-24
 
+### 🏷️ Test label, and tracking numbers that link to the carrier
+
+- A **Test label** button on the Labels page opens a sample A6 PDF drawn by
+  Anvero: frame, corner squares, a 100 mm ruler, fine lines of 1 to 4 printer
+  dots, a black block, text sizes, and the sender and default parcel from
+  Settings. It buys nothing and works with safe mode on, to check that a PDF
+  opens and a printer prints A6 at its true size before a real label exists.
+  `GET /labels/test-pdf`.
+- A **tracking number is a link** to the carrier's own tracking page (InPost,
+  DPD, DHL, Poczta Polska, UPS, GLS, FedEx) in the order list, the order's
+  shipments and label cards, and the Labels page; other carriers stay text.
+- 645 backend and 188 frontend tests passing.
+
 ### 🧭 Design agreements: the order as a page, items in the list, counts in the menu
 
 - The **order opens as a full page** beside the menu instead of a panel over the

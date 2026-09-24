@@ -414,6 +414,18 @@ and the order's total less them.
   It refuses to run unless the connection is the Sandbox one, and, like the
   script it reuses, has never been run against the real page.
 
+### Tracking links
+
+A tracking number in the interface (the order list's Shipping column, the
+order's Shipments and label cards, the Labels page) is a link to the carrier's
+own tracking page, opened in a new tab, when Anvero knows that carrier
+(`frontend/src/types/tracking.ts`): InPost, DPD, DHL, Poczta Polska, UPS, GLS
+and FedEx. The carrier is read from its id (Allegro's `INPOST`, Erli's `inpost`)
+and then its name (`InPost Kurier`), as words; Allegro's own carrier, `OTHER` and
+anything unknown get the number as plain text. The addresses are the carriers'
+public tracking pages as they were known when this was written, and none was
+opened with a real number: a page that has moved is one line in `tracking.ts`.
+
 ### Labels through Wysyłam z Allegro
 
 Built 2026-09-24 from Allegro's documentation of the shipment-management API

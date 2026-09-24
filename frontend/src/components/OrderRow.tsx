@@ -11,6 +11,7 @@ import {
 import { translate, useTranslation } from "../i18n";
 import { carrierLabel } from "../types/order";
 import type { OrderLinkState } from "./orderLinkState";
+import { TrackingLink } from "./TrackingLink";
 
 // name, then login (an Allegro account may have no name on file), then
 // email as the last resort so the cell is never blank
@@ -154,7 +155,12 @@ export function OrderRow({ order, onStatusChange, updating, linkState }: OrderRo
               })}
             >
               <span className="shipping-carrier">{carrierLabel(shipment)}</span>{" "}
-              <span className="shipping-waybill">{shipment.waybill}</span>
+              <TrackingLink
+                carrierId={shipment.carrier_id}
+                carrierName={shipment.carrier_name}
+                waybill={shipment.waybill}
+                className="shipping-waybill"
+              />
               {shipment.tracking_status && (
                 <span className={`shipping-status shipping-${shipment.tracking_status.toLowerCase()}`}>
                   {trackingLabel(shipment.tracking_status)}

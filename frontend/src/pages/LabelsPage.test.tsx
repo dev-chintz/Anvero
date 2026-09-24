@@ -10,6 +10,7 @@ vi.mock("../api/client", async () => {
     shippingApi: {
       printable: vi.fn(),
       pdfMany: vi.fn(),
+      testLabel: vi.fn(),
       pickupProposals: vi.fn(),
       orderPickup: vi.fn(),
       refreshPickup: vi.fn(),
@@ -58,6 +59,43 @@ beforeEach(() => {
 });
 
 afterEach(() => vi.clearAllMocks());
+
+describe("the test label", () => {
+  it("opens a sample label even when there is nothing to print", async () => {
+    vi.mocked(shippingApi.printable).mockResolvedValue([]);
+    vi.mocked(shippingApi.testLabel).mockResolvedValue(new Blob(["%PDF"]));
+    renderPage();
+
+    fireEvent.click(await screen.findByRole("button", { name: "Test label" }));
+
+    await waitFor(() => expect(shippingApi.testLabel).toHaveBeenCalledTimes(1));
+    expect(tab.location.href).toBe("blob:labels");
+    // it is not a print run: nothing is fetched by ids or reloaded
+    expect(shippingApi.pdfMany).not.toHaveBeenCalled();
+    expect(shippingApi.printable).toHaveBeenCalledTimes(1);
+  });
+
+  it("says what it is for", async () => {
+    vi.mocked(shippingApi.printable).mockResolvedValue([]);
+    renderPage();
+
+    const button = await screen.findByRole("button", { name: "Test label" });
+
+    expect(button).toHaveAttribute("title", expect.stringContaining("nothing is bought from Allegro"));
+  });
+
+  it("shows the error when the sample cannot be made", async () => {
+    vi.mocked(shippingApi.printable).mockResolvedValue([]);
+    vi.mocked(shippingApi.testLabel).mockRejectedValue(new ApiError(500, "Server error"));
+    renderPage();
+
+    fireEvent.click(await screen.findByRole("button", { name: "Test label" }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("Server error");
+    // the tab opened for the PDF is closed again
+    expect(tab.close).toHaveBeenCalled();
+  });
+});
 
 describe("the labels page", () => {
   it("selects every unprinted label and prints them as one PDF, in list order", async () => {

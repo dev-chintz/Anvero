@@ -538,6 +538,14 @@ export const shippingApi = {
     });
   },
 
+  /**
+   * A sample A6 label drawn by Anvero: nothing is bought and nothing is sent,
+   * so it works with safe mode on and without an Allegro account.
+   */
+  testLabel(): Promise<Blob> {
+    return request<Blob>("/labels/test-pdf", { blob: true });
+  },
+
   /** The A6 label as a PDF; it needs the login token, so it cannot be a plain link. */
   pdf(orderId: string, labelId: string): Promise<Blob> {
     return request<Blob>(`/orders/${orderId}/labels/${labelId}/pdf`, { blob: true });

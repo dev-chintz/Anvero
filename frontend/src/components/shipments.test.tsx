@@ -83,6 +83,26 @@ describe("the Shipping column", () => {
     expect(screen.getByText("SOMETHING_NEW")).toBeInTheDocument();
   });
 
+  it("makes the waybill a link to the carrier's tracking page", () => {
+    renderRow([shipment({ carrier_id: "INPOST", waybill: "521000011237523084437001" })]);
+
+    const link = screen.getByRole("link", { name: "521000011237523084437001" });
+    expect(link).toHaveAttribute(
+      "href",
+      "https://inpost.pl/sledzenie-przesylek?number=521000011237523084437001",
+    );
+    // in a new tab, without telling the carrier's page where it came from
+    expect(link).toHaveAttribute("target", "_blank");
+    expect(link).toHaveAttribute("rel", "noopener noreferrer");
+  });
+
+  it("leaves the waybill as text for a carrier with no tracking page", () => {
+    renderRow([shipment({ carrier_id: "ALLEGRO", waybill: "AL123" })]);
+
+    expect(screen.getByText("AL123")).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "AL123" })).not.toBeInTheDocument();
+  });
+
   it("stays a plain dash for an order with no parcels", () => {
     renderRow([]);
 
@@ -104,6 +124,23 @@ describe("the shipments card", () => {
     expect(card).toHaveTextContent("Waybill 12345678910PL");
     expect(card).toHaveTextContent("Waybill W2");
     expect(card).toHaveTextContent("Delivered");
+  });
+
+  it("links each waybill to its carrier's tracking page", () => {
+    render(
+      <OrderDetailsPanel
+        order={order([
+          shipment({ carrier_id: "DPD", waybill: "D1" }),
+          shipment({ id: "ship-2", carrier_id: "OTHER", carrier_name: "Local Courier", waybill: "L1" }),
+        ])}
+      />,
+    );
+
+    expect(screen.getByRole("link", { name: "D1" })).toHaveAttribute(
+      "href",
+      "https://tracktrace.dpd.com.pl/parcelDetails?p1=D1",
+    );
+    expect(screen.queryByRole("link", { name: "L1" })).not.toBeInTheDocument();
   });
 
   it("is left out when nothing has been sent", () => {
