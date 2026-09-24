@@ -154,7 +154,15 @@ and pages through all of it, 100 orders at a time:
   bought in the last `ALLEGRO_INITIAL_IMPORT_DAYS` days (default 7,
   `lineItems.boughtAt.gte`).
 - **Every later import**: orders changed since the recorded point
-  (`updatedAt.gte`), which covers new orders and updates to old ones alike.
+  (`updatedAt.gte`), which covers new orders and updates to old ones alike;
+  **and every order that is not done**, whatever the point says: one request per
+  seller status `NEW`, `PROCESSING`, `READY_FOR_SHIPMENT`, `READY_FOR_PICKUP` and
+  `SUSPENDED` (`fulfillment.status`, one value per request). What happens to an
+  open order (a parcel created, it being marked ready or sent) is not reliably
+  counted by Allegro as a change since the last import, so the window alone left
+  such orders as they were first read. An order read again this way counts as
+  updated only when its status moved, and a failure of these reads is logged and
+  leaves the import with what the window gave it.
 - The point is the moment the last *complete* import started, less five
   minutes, kept in `integration_credentials.last_synced_at`. It moves only
   after every page was fetched and stored; an import that fails part way
@@ -328,8 +336,14 @@ one malformed order does not cost the rest of the page.
 ### Shipments and tracking
 
 The checkout form carries no tracking numbers, so an import asks for them
-separately, for orders whose status maps to shipped or delivered only (one
-call each; an order still being packed has none):
+separately, for every order that is neither new nor cancelled (one call each).
+A parcel exists from the moment a label is bought in "Wysyłam z Allegro" or a
+number is entered, while the order is still `PROCESSING`: Allegro keeps its
+seller status there (with `fulfillment.shipmentSummary.lineItemsSent` at `ALL`)
+until the order is marked sent, so asking only about sent orders showed the
+parcel days late. The carrier of a parcel bought through Allegro is
+`ALLEGRO`, and `carrierName` may be absent (checked on a real order on
+2026-09-24: `waybill`, `carrierId: "ALLEGRO"`, `createdAt`, `lineItems`):
 
 - `GET /order/checkout-forms/{id}/shipments`: `shipments[]` with `id`,
   `waybill`, `carrierId`, `carrierName`, `createdAt`, `lineItems`.
@@ -387,11 +401,11 @@ and the order's total less them.
   three more, so importing at least that often keeps it alive; otherwise
   authorize again. The stored token sits in plain text in the local database
   file, the same exposure as `.env`.
-- Shipments and tracking are read only for orders Allegro reports as sent or
-  delivered, and are untested against the real API (see "Shipments and
-  tracking"). Nothing is written back to Allegro.
-- An import runs only when someone starts it (the button or the script);
-  nothing schedules it yet.
+- Shipments are read for every order that is neither new nor cancelled, tracking
+  only for orders sent (see "Shipments and tracking"). Nothing is written back to
+  Allegro through the import.
+- An import runs when someone starts it (the button or the script), or by itself
+  every `ALLEGRO_IMPORT_INTERVAL_MINUTES` on the one backend that has it set.
 - An order bought more than the first window ago, and changed since, arrives as
   a new order the first time it is seen, because `updatedAt` cannot tell "new
   to Anvero" from "new to Allegro".

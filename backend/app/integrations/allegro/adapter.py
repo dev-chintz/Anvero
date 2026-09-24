@@ -28,6 +28,19 @@ logger = logging.getLogger(__name__)
 MAX_PAGES = 500
 
 
+# The seller statuses of an order that is not done. Such an order can still change
+# (a shipment is created for it, it is marked ready or sent) without Allegro
+# counting that as a change of the order since the last import, so an import reads
+# all of them again whatever its window.
+OPEN_FULFILLMENT_STATUSES = (
+    "NEW",
+    "PROCESSING",
+    "READY_FOR_SHIPMENT",
+    "READY_FOR_PICKUP",
+    "SUSPENDED",
+)
+
+
 class AllegroAdapter:
     """Allegro's side of the MarketplaceAdapter protocol."""
 
@@ -77,6 +90,31 @@ class AllegroAdapter:
             "import; narrow the window and run it again"
         )
 
+    def iter_open_order_pages(self) -> Iterator[list[OrderCreate]]:
+        """Yield every page of the orders that are not done, one status at a time.
+
+        Allegro's list takes one `fulfillment.status` per request. Like every
+        pager here, running out of pages is an error, so a caller never takes a
+        partial read for a complete one.
+        """
+        for status in OPEN_FULFILLMENT_STATUSES:
+            for page_number in range(MAX_PAGES):
+                orders, raw_count = self._fetch_page(
+                    MAX_PAGE_SIZE,
+                    page_number * MAX_PAGE_SIZE,
+                    None,
+                    None,
+                    fulfillment_status=status,
+                )
+                yield orders
+                if raw_count < MAX_PAGE_SIZE:
+                    break
+            else:
+                raise IntegrationUnavailable(
+                    f"Allegro returned more than {MAX_PAGES * MAX_PAGE_SIZE} orders in status "
+                    f"{status}; narrow the window and run it again"
+                )
+
     def fetch_billing_entries(self, since: datetime) -> list[BillingEntryCreate]:
         """Every billing entry that occurred at or after `since`, all pages.
 
@@ -113,12 +151,15 @@ class AllegroAdapter:
         offset: int,
         bought_since: datetime | None,
         updated_since: datetime | None,
+        fulfillment_status: str | None = None,
     ) -> tuple[list[OrderCreate], int]:
+        extra = {"fulfillment_status": fulfillment_status} if fulfillment_status else {}
         checkout_forms = self._client.fetch_checkout_forms(
             limit=limit,
             offset=offset,
             bought_since=bought_since,
             updated_since=updated_since,
+            **extra,
         )
 
         orders: list[OrderCreate] = []
@@ -135,17 +176,19 @@ class AllegroAdapter:
         return orders, len(checkout_forms)
 
     def _attach_shipments(self, orders: list[OrderCreate]) -> None:
-        """Read the parcels of orders that have left, and where each is now.
+        """Read the parcels of orders, and where each is now.
 
-        Only orders Allegro reports as sent or delivered are asked about: one
-        call each, and an order still being packed has nothing to show. Best
-        effort like the pictures: an order whose shipments could not be read
+        Every order that is neither new nor cancelled is asked about, one call
+        each: a parcel is created (a label bought in "Wysyłam z Allegro", a
+        tracking number entered) while the order is still being processed, and
+        Allegro keeps the order in that status until it is marked sent, so waiting
+        for "sent" would show the parcel days late. Best effort like the pictures: an order whose shipments could not be read
         keeps `shipments = None`, which leaves the stored ones alone, and a
         refused request (the application lacking the scope) ends the attempt
         for the rest of the run instead of failing every order the same way.
         """
         for order in orders:
-            if order.status not in (OrderStatus.SHIPPED, OrderStatus.DELIVERED):
+            if order.status in (OrderStatus.NEW, OrderStatus.CANCELLED):
                 continue
             try:
                 raw = self._client.fetch_shipments(order.external_id)

@@ -191,12 +191,14 @@ class AllegroClient:
         offset: int = 0,
         bought_since: datetime | None = None,
         updated_since: datetime | None = None,
+        fulfillment_status: str | None = None,
     ) -> list[dict[str, Any]]:
         """Return one page of raw checkout forms.
 
         `bought_since` keeps orders with a line item bought at or after that
         time; `updated_since` keeps orders changed at or after it, which also
-        covers new ones. No sort is requested, so Allegro's default applies
+        covers new ones; `fulfillment_status` keeps the orders the seller has
+        in that status (`PROCESSING`, `SENT`, ...), one value at a time. No sort is requested, so Allegro's default applies
         (newest purchase first): a purchase time never changes, so paging by
         offset stays stable while orders are updated mid-run, and a new order
         can only push others onto the next page, repeating one, never
@@ -213,6 +215,8 @@ class AllegroClient:
             params["lineItems.boughtAt.gte"] = _timestamp(bought_since)
         if updated_since is not None:
             params["updatedAt.gte"] = _timestamp(updated_since)
+        if fulfillment_status is not None:
+            params["fulfillment.status"] = fulfillment_status
 
         token = self._access_token_value()
         try:

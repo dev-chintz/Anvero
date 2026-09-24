@@ -173,3 +173,51 @@ def test_running_out_of_pages_is_an_error_not_a_quiet_stop(monkeypatch):
         assert "more than 200 orders" in str(exc)
     else:
         raise AssertionError("expected IntegrationUnavailable")
+
+
+class StatusFakeClient(FakeClient):
+    """Serves a different set of orders for each seller status asked for."""
+
+    def __init__(self, by_status):
+        super().__init__([])
+        self.by_status = by_status
+        self.statuses = []
+
+    def fetch_checkout_forms(
+        self, limit=100, offset=0, bought_since=None, updated_since=None, fulfillment_status=None
+    ):
+        self.statuses.append((fulfillment_status, offset))
+        forms = self.by_status.get(fulfillment_status, [])
+        return forms[offset : offset + limit]
+
+    def fetch_shipments(self, order_id):
+        return []
+
+
+def test_open_orders_are_read_one_seller_status_at_a_time():
+    from app.integrations.allegro.adapter import OPEN_FULFILLMENT_STATUSES
+
+    client = StatusFakeClient(
+        {
+            "PROCESSING": [_form("ALG-1", fulfillment={"status": "PROCESSING"})],
+            "READY_FOR_SHIPMENT": [_form("ALG-2", fulfillment={"status": "READY_FOR_SHIPMENT"})],
+        }
+    )
+
+    pages = list(AllegroAdapter(client=client).iter_open_order_pages())
+
+    assert [o.external_id for page in pages for o in page] == ["ALG-1", "ALG-2"]
+    # every open status is asked for, and a finished one never is
+    assert [status for status, _ in client.statuses] == list(OPEN_FULFILLMENT_STATUSES)
+    assert "SENT" not in OPEN_FULFILLMENT_STATUSES
+    assert "CANCELLED" not in OPEN_FULFILLMENT_STATUSES
+
+
+def test_open_orders_are_paged_within_a_status():
+    forms = [_form(f"ALG-{i}", fulfillment={"status": "PROCESSING"}) for i in range(101)]
+    client = StatusFakeClient({"PROCESSING": forms})
+
+    orders = [o for page in AllegroAdapter(client=client).iter_open_order_pages() for o in page]
+
+    assert len(orders) == 101
+    assert [offset for status, offset in client.statuses if status == "PROCESSING"] == [0, 100]

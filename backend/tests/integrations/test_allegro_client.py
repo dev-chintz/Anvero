@@ -406,3 +406,32 @@ def test_sends_no_time_filter_unless_asked():
     _client(handler).fetch_checkout_forms()
 
     assert set(seen["params"]) == {"limit", "offset"}
+
+
+def test_asks_for_one_seller_status_when_told_to():
+    seen = {}
+
+    def handler(request: httpx2.Request) -> httpx2.Response:
+        if request.url.path == "/token":
+            return _token_response()
+        seen["params"] = dict(request.url.params)
+        return httpx2.Response(200, json={"checkoutForms": []})
+
+    _client(handler).fetch_checkout_forms(fulfillment_status="PROCESSING")
+
+    assert seen["params"]["fulfillment.status"] == "PROCESSING"
+    assert "updatedAt.gte" not in seen["params"]
+
+
+def test_sends_no_seller_status_unless_asked():
+    seen = {}
+
+    def handler(request: httpx2.Request) -> httpx2.Response:
+        if request.url.path == "/token":
+            return _token_response()
+        seen["params"] = dict(request.url.params)
+        return httpx2.Response(200, json={"checkoutForms": []})
+
+    _client(handler).fetch_checkout_forms()
+
+    assert "fulfillment.status" not in seen["params"]

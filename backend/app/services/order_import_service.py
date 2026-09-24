@@ -2,7 +2,7 @@ import logging
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 
-from app.integrations.base import MarketplaceAdapter
+from app.integrations.base import IntegrationError, MarketplaceAdapter
 from app.models.order import Order, OrderStatus
 from app.repositories.integration_credential_repository import (
     IntegrationCredentialRepository,
@@ -97,8 +97,13 @@ class OrderImportService:
         # therefore stores nothing, which costs nothing, since the sync point
         # would not have moved either.
         fetched = [order for page in self.adapter.iter_order_pages(**filters) for order in page]
+        # an order that is not done is read again whatever the window, since
+        # what happens to it (a shipment created, it being sent) may not be
+        # counted by the marketplace as a change since the last import
+        rechecked = self._read_open_orders({order.external_id for order in fetched})
+        fetched.extend(rechecked)
         fetched.sort(key=lambda order: order.ordered_at or started_at)
-        result = self._store(fetched)
+        result = self._store(fetched, rechecked={order.external_id for order in rechecked})
 
         if not self.credentials.set_last_synced_at(provider, started_at - SYNC_OVERLAP):
             logger.warning(
@@ -109,6 +114,29 @@ class OrderImportService:
         self._refresh_tracking()
         self._sync_billing(started_at)
         return result
+
+    def _read_open_orders(self, already_read: set[str]) -> list[OrderCreate]:
+        """The marketplace's orders that are not done and were not read already.
+
+        Best effort, like the tracking: an adapter without the call, or a refusal
+        or failure of it, leaves the import with what the window gave it, and the
+        next import tries again.
+        """
+        read = getattr(self.adapter, "iter_open_order_pages", None)
+        if read is None:
+            return []
+        try:
+            orders = [
+                order
+                for page in read()
+                for order in page
+                if order.external_id not in already_read
+            ]
+        except IntegrationError as exc:
+            logger.warning("Reading the open orders failed, so the import goes on without them: %s", exc)
+            return []
+        logger.info("Open orders read again: %d not in the window", len(orders))
+        return orders
 
     def _sync_billing(self, started_at: datetime) -> None:
         """Read the marketplace's billing entries (its fees) that are new.
@@ -173,8 +201,15 @@ class OrderImportService:
         """
         return self._store(self.adapter.fetch_orders(limit=limit, offset=offset))
 
-    def _store(self, orders: list[OrderCreate]) -> ImportResult:
+    def _store(
+        self, orders: list[OrderCreate], rechecked: frozenset[str] | set[str] = frozenset()
+    ) -> ImportResult:
         """Store orders that have already been fetched.
+
+        `rechecked` names the ones read again only because they were still open,
+        not because the marketplace said they changed: they count as updated only
+        when their status moved, so an import does not report the same orders as
+        updated every time.
 
         Matching is on (source, external_id), so running this twice does not
         duplicate anything.
@@ -225,7 +260,8 @@ class OrderImportService:
                 marketplace_status=data.status,
                 marketplace_status_label=data.marketplace_status_label,
             )
-            updated += 1
+            if status_moved or data.external_id not in rechecked:
+                updated += 1
 
             if not status_moved or data.status == existing.status:
                 continue

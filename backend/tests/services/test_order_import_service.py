@@ -561,3 +561,102 @@ def test_a_restored_order_is_updated_by_the_next_import_again(session):
 
     assert (result.created, result.updated) == (0, 1)
     assert session.query(Order).one().total_amount == Decimal("250.00")
+
+
+# --- orders that are still open are read again ----------------------------------------
+
+
+class OpenAwareAdapter(PagedFakeAdapter):
+    """Serves what changed in the window, and separately the orders still open."""
+
+    def __init__(self, window, open_orders=None, open_error=None):
+        super().__init__([window])
+        self.open_orders = open_orders or []
+        self.open_error = open_error
+        self.open_reads = 0
+
+    def iter_open_order_pages(self):
+        self.open_reads += 1
+        if self.open_error:
+            raise self.open_error
+        yield self.open_orders
+
+
+def _moved(order, to=OrderStatus.SHIPPED):
+    return order.model_copy(update={"status": to})
+
+
+def test_an_open_order_the_window_missed_still_follows_the_marketplace(session):
+    """The marketplace does not count everything that happens to an order (a
+    shipment created, it being sent) as a change since the last import."""
+    _service(session, [_order("ALG-1")]).import_orders()
+    adapter = OpenAwareAdapter(window=[], open_orders=[_moved(_order("ALG-1"))])
+
+    result = _sync_service(session, adapter, _credentials(session)).sync_orders()
+
+    assert session.query(Order).one().status is OrderStatus.SHIPPED
+    assert (result.created, result.updated) == (0, 1)
+
+
+def test_an_open_order_that_did_not_move_is_not_reported_as_updated(session):
+    _service(session, [_order("ALG-1")]).import_orders()
+    adapter = OpenAwareAdapter(window=[], open_orders=[_order("ALG-1")])
+
+    result = _sync_service(session, adapter, _credentials(session)).sync_orders()
+
+    assert (result.created, result.updated) == (0, 0)
+    assert session.query(Order).count() == 1
+
+
+def test_an_order_in_both_the_window_and_the_open_list_is_stored_once(session):
+    _service(session, [_order("ALG-1")]).import_orders()
+    changed = _moved(_order("ALG-1"), OrderStatus.CONFIRMED)
+    adapter = OpenAwareAdapter(window=[changed], open_orders=[changed])
+
+    result = _sync_service(session, adapter, _credentials(session)).sync_orders()
+
+    assert (result.created, result.updated) == (0, 1)
+    assert session.query(Order).count() == 1
+
+
+def test_a_failure_reading_the_open_orders_does_not_fail_the_import(session):
+    from app.integrations.base import IntegrationUnavailable
+
+    adapter = OpenAwareAdapter(
+        window=[_order("ALG-NEW")], open_error=IntegrationUnavailable("Allegro is slow")
+    )
+    credentials = _credentials(session)
+
+    result = _sync_service(session, adapter, credentials).sync_orders()
+
+    assert (result.created, result.updated) == (1, 0)
+    # and the sync point moved, since the window itself was read
+    assert credentials.last_synced_at("ALLEGRO") is not None
+
+
+def test_an_adapter_without_the_open_call_is_unaffected(session):
+    adapter = PagedFakeAdapter([[_order("ALG-1")]])
+
+    result = _sync_service(session, adapter, _credentials(session)).sync_orders()
+
+    assert (result.created, result.updated) == (1, 0)
+
+
+def test_an_open_order_deleted_in_anvero_stays_deleted(session):
+    _service(session, [_order("ALG-1")]).import_orders()
+    OrderRepository(session).mark_deleted(session.query(Order).one(), None)
+    adapter = OpenAwareAdapter(window=[], open_orders=[_moved(_order("ALG-1"))])
+
+    _sync_service(session, adapter, _credentials(session)).sync_orders()
+
+    kept = session.query(Order).one()
+    assert kept.deleted_at is not None
+    assert kept.status is OrderStatus.NEW
+
+
+def test_an_open_order_that_was_never_imported_is_created(session):
+    adapter = OpenAwareAdapter(window=[], open_orders=[_order("ALG-MISSED")])
+
+    result = _sync_service(session, adapter, _credentials(session)).sync_orders()
+
+    assert (result.created, result.updated) == (1, 0)

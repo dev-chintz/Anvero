@@ -13,6 +13,15 @@ from app.services.allegro_sync import ScheduleState
 NOW = datetime(2026, 9, 24, 12, 0, tzinfo=UTC)
 
 
+@pytest.fixture(autouse=True)
+def _no_schedules_configured(monkeypatch):
+    """The verdicts depend on whether a schedule is switched on, and that comes
+    from the machine's own `.env`: these tests start from none, and the ones about
+    a schedule set it themselves."""
+    monkeypatch.setattr(settings, "allegro_import_interval_minutes", 0)
+    monkeypatch.setattr(settings, "allegro_message_sync_interval_minutes", 0)
+
+
 def _application(session):
     session.add(
         IntegrationSettings(
