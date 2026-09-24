@@ -357,9 +357,11 @@ Response: `{"items": [...], "total": N, "skip": N, "limit": N}`, newest
 `ordered_at` first. Each item also carries `customer_login`,
 `customer_first_name`, `customer_last_name`, `payment_type` and
 `payment_provider` — flat columns on `orders`, so the list gets them at no
-extra query cost, unlike `items`, `delivery` and the rest of
-`GET /api/v1/orders/{id}`'s nested detail, which needs a join the list
-does not do.
+extra query cost. It also carries `items`, in short: for each item its `name`,
+`sku`, `quantity` and `image_url` (null when there is no picture), in the
+order's item order, loaded for the whole page in one extra query. Prices,
+ids, `delivery` and the rest of `GET /api/v1/orders/{id}`'s nested detail are
+not in the list.
 
 Each order carries Anvero's own number: `order_number`, an integer that is
 continuous across every source, given once when the order is created and never

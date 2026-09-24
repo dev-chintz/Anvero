@@ -221,8 +221,7 @@ class OrderRead(OrderBase):
     # Anvero's five statuses do not, e.g. Allegro's READY_FOR_SHIPMENT
     marketplace_status_label: str | None = None
     marketplace_cancelled_at: UtcDateTime | None = None
-    # already flat columns on `orders`, so free to add to the list response:
-    # no join, unlike items, which is why those are not here too
+    # already flat columns on `orders`, so free to add to any response
     customer_login: str | None = None
     customer_first_name: str | None = None
     customer_last_name: str | None = None
@@ -331,8 +330,25 @@ def _address(order: Order, address_type: AddressType) -> Address | None:
 OrderResponse = OrderRead
 
 
+class OrderItemSummary(BaseModel):
+    """What the list shows of one item: enough to recognise the product."""
+
+    name: str
+    sku: str | None = None
+    quantity: int
+    image_url: str | None = None
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class OrderListItem(OrderRead):
+    """An order as `GET /orders` lists it: the list's fields and its items in short."""
+
+    items: list[OrderItemSummary] = Field(default_factory=list)
+
+
 class OrderListResponse(BaseModel):
-    items: list[OrderRead]
+    items: list[OrderListItem]
     total: int
     skip: int
     limit: int

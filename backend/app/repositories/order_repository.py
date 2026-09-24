@@ -474,6 +474,9 @@ class OrderRepository:
                 cancellation_warning=cancellation_warning,
                 queue=queue,
             )
+            # the list shows each order's items in short: one extra query for
+            # the page, not one per order
+            .options(selectinload(Order.items))
             .order_by(*self._ordering(sort))
             .offset(skip)
             .limit(limit)

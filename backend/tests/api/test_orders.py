@@ -723,15 +723,35 @@ def test_a_status_change_response_keeps_the_details():
     assert [item["name"] for item in response.json()["items"]] == ["Widget", "Gadget"]
 
 
-def test_the_order_list_stays_lean():
-    """Details are for one order at a time; a page of 500 does not carry them."""
+def test_the_order_list_carries_the_items_in_short_and_no_other_details():
+    """The list shows what was bought, so it carries each item's name, SKU,
+    quantity and picture; prices, ids and the rest of the details are for one
+    order at a time, and a page of 500 does not carry them."""
     client.post("/api/v1/orders", json=_details_payload(external_id="DETAILS-LIST"))
 
     listed = client.get("/api/v1/orders", params={"search": "DETAILS-LIST"}).json()
 
     assert listed["total"] == 1
-    assert "items" not in listed["items"][0]
-    assert "customer" not in listed["items"][0]
+    order = listed["items"][0]
+    assert order["items"] == [
+        {
+            "name": "Widget",
+            "sku": "SKU-W1",
+            "quantity": 2,
+            "image_url": "https://a.allegroimg.com/original/widget.jpg",
+        },
+        {"name": "Gadget", "sku": None, "quantity": 1, "image_url": None},
+    ]
+    assert "customer" not in order
+    assert "delivery" not in order
+
+
+def test_an_order_without_items_is_listed_with_an_empty_item_list():
+    client.post("/api/v1/orders", json=_order_payload(external_id="LIST-NO-ITEMS"))
+
+    listed = client.get("/api/v1/orders", params={"search": "LIST-NO-ITEMS"}).json()
+
+    assert listed["items"][0]["items"] == []
 
 
 def test_invalid_details_are_rejected():
