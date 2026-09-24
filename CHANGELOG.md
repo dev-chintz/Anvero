@@ -6,6 +6,18 @@ All significant changes to the Anvero project.
 
 ## 2026-09-24
 
+### 🚚 Ordering a courier for the parcels
+
+- On the Labels page: choose parcels of one carrier and the day they are
+  ready, see when Allegro proposes a courier could come, pick a slot and
+  order it (through safe mode). The courier ordered shows beside each
+  parcel; a pending one can be checked again.
+- The page shows parcels to print, parcels with no courier yet, or all.
+- `POST /pickups/proposals`, `POST /pickups`, `POST /pickups/{id}/refresh`,
+  `GET /labels?view=`; `courier_pickups` and `shipping_labels.pickup_id`
+  (migration `d2f7b3e9a614`).
+- Built from Allegro's documentation, tested on fakes. Stage B1, third part.
+
 ### 🖨️ Printing many labels at once
 
 - A Labels page (sidebar): every bought label not yet printed, oldest first,

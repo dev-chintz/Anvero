@@ -15,11 +15,18 @@ from app.schemas.marketplace_write import MarketplaceWriteRead
 from app.schemas.shipping import (
     LabelChangeResult,
     LabelPrintRequest,
+    LabelView,
     PackageSize,
+    PickupChangeResult,
+    PickupOption,
+    PickupOrderRequest,
+    PickupProposalRequest,
+    PickupRead,
     PrintableLabel,
     ShippingLabelRead,
     ShippingSettings,
 )
+from app.services.courier_pickups import CourierPickups
 from app.services.order_service import OrderService
 from app.services.shipping_labels import LabelRefused, ShippingLabels
 from app.services.shipping_settings import get_shipping_settings, save_shipping_settings
@@ -140,16 +147,17 @@ def _printable(label) -> PrintableLabel:
         order_label=format_order_number(order.order_number),
         buyer=buyer or order.customer_login or order.customer_email,
         delivery_method=order.delivery_method,
+        pickup=PickupRead.model_validate(label.pickup) if label.pickup else None,
     )
 
 
 @router.get("/labels", response_model=list[PrintableLabel])
 def printable_labels(
-    printed: bool = Query(False, description="also list labels already printed"),
+    view: LabelView = Query("to_print", description="to_print, no_pickup or all"),
     db: Session = Depends(get_db),
 ):
-    """Bought labels across every order, oldest first; unprinted only by default."""
-    return [_printable(label) for label in ShippingLabels(db).printable(unprinted_only=not printed)]
+    """Bought labels across every order, oldest first; not yet printed by default."""
+    return [_printable(label) for label in ShippingLabels(db).printable(view)]
 
 
 @router.post("/labels/pdf")
@@ -166,4 +174,50 @@ def labels_pdf(payload: LabelPrintRequest, db: Session = Depends(get_db)):
         media_type="application/pdf",
         headers={"Content-Disposition": 'inline; filename="labels.pdf"'},
     )
+
+
+@router.post("/pickups/proposals", response_model=list[PickupOption])
+def pickup_proposals(payload: PickupProposalRequest, db: Session = Depends(get_db)):
+    """When a courier could come for these parcels on that day; changes nothing."""
+    try:
+        options = CourierPickups(db).proposals(payload.label_ids, payload.ready_date)
+    except LookupError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except (LabelRefused, IntegrationError) as exc:
+        raise _refused(exc) from exc
+    return [PickupOption(id=o.id, label=o.label) for o in options]
+
+
+@router.post("/pickups", response_model=PickupChangeResult)
+def order_pickup(
+    payload: PickupOrderRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Order the courier for one of the proposed slots (safe mode permitting)."""
+    try:
+        pickup, write = CourierPickups(db).order(
+            payload.label_ids,
+            payload.ready_date,
+            payload.proposal_id,
+            payload.proposal_label,
+            current_user.id,
+        )
+    except LookupError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except (LabelRefused, IntegrationError) as exc:
+        raise _refused(exc) from exc
+    return PickupChangeResult(
+        pickup=PickupRead.model_validate(pickup) if pickup else None,
+        marketplace_write=MarketplaceWriteRead.model_validate(write.record),
+    )
+
+
+@router.post("/pickups/{pickup_id}/refresh", response_model=PickupRead)
+def refresh_pickup(pickup_id: uuid.UUID, db: Session = Depends(get_db)):
+    pickups = CourierPickups(db)
+    pickup = pickups.get(pickup_id)
+    if pickup is None:
+        raise HTTPException(status_code=404, detail="Pickup not found")
+    return pickups.refresh(pickup)
 

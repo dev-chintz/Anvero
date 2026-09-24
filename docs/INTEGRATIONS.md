@@ -441,14 +441,27 @@ order ("Label" card), after the sender is entered in Settings, "Shipping":
 6. Cancelling: `POST /shipment-management/shipments/cancel-commands`, then
    its status the same way.
 
+**Courier pickup**, from the Labels page, for parcels of one carrier:
+`POST /shipment-management/pickup-proposals` with `shipmentIds` and
+`readyDate` returns the slots (read without safe mode: it only asks), then
+`POST /shipment-management/pickups/create-commands` with `shipmentIds` and
+`pickupDateProposalId` (through safe mode), then
+`GET .../pickups/create-commands/{commandId}` until `SUCCESS` (`pickupId`) or
+`ERROR`, as for a shipment. The shape of the proposals is read defensively:
+groups under `proposals`, each proposal a slot itself (`proposalId` or `id`,
+`name` or `date`) or holding slots in `proposalItems` (`id`, `name`). Which
+shape Allegro really sends, whether one pickup may mix carriers, and which
+delivery methods get proposals at all are unverified. Cancelling a pickup is
+not built.
+
 Unverified until tried on the Sandbox with safe mode off: that the application
 carries the `allegro:api:shipments:write` (and read) scope; the exact shape
 of the shipment's carrier and waybill (both shapes the documentation suggests
 are read); whether Allegro already links the shipment to the order by itself,
 in which case step 4's tracking number may be refused as a duplicate, harmless
 but noted as a failed write; and the label's `Accept` header. Not built yet:
-cash on delivery (it needs the seller's bank account), insurance, ordering a
-courier pickup and several parcels per order. Unverified too: that one label
+cash on delivery (it needs the seller's bank account), insurance and several
+parcels per order. Unverified too: that one label
 request takes many shipments and how Allegro lays several A6 labels out.
 
 ### Writing to Allegro

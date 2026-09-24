@@ -396,6 +396,60 @@ class AllegroClient:
             "the shipment's cancellation",
         )
 
+    def pickup_proposals(self, shipment_ids: list[str], ready_date: str) -> dict[str, Any]:
+        """`POST /shipment-management/pickup-proposals`: when a courier could come.
+
+        A read, though a POST: it only asks for proposals, so it does not go
+        through safe mode. `ready_date` is `YYYY-MM-DD`.
+        """
+        token = self._access_token_value()
+        try:
+            response = self._http.post(
+                f"{self._api_url}/shipment-management/pickup-proposals",
+                headers={
+                    "Authorization": f"Bearer {token}",
+                    "Accept": ACCEPT_HEADER,
+                    "Content-Type": ACCEPT_HEADER,
+                    "User-Agent": self._user_agent,
+                },
+                json={"shipmentIds": shipment_ids, "readyDate": ready_date},
+            )
+        except httpx2.RequestError as exc:
+            raise IntegrationUnavailable(f"Allegro API unreachable: {exc}") from exc
+        if response.status_code == 401:
+            self._access_token = None
+            raise IntegrationAuthError("Allegro rejected the access token")
+        if response.status_code == 403:
+            raise IntegrationAuthError("Allegro denied access to the pickup proposals")
+        if response.status_code >= 400:
+            raise IntegrationUnavailable(
+                f"Allegro refused the pickup proposals ({response.status_code}): {response.text[:500]}"
+            )
+        return _json_object(response, "Allegro pickup proposals")
+
+    def create_pickup(
+        self, command_id: str, shipment_ids: list[str], proposal_id: str
+    ) -> dict[str, Any] | None:
+        """`POST /shipment-management/pickups/create-commands`: order the courier."""
+        return self._send(
+            "POST",
+            "/shipment-management/pickups/create-commands",
+            "the courier pickup",
+            {
+                "commandId": command_id,
+                "input": {"shipmentIds": shipment_ids, "pickupDateProposalId": proposal_id},
+            },
+            scope="allegro:api:shipments:write",
+        )
+
+    def pickup_command(self, command_id: str) -> dict[str, Any]:
+        """`GET /shipment-management/pickups/create-commands/{id}`: IN_PROGRESS,
+        SUCCESS (with `pickupId`) or ERROR (with `errors`)."""
+        return self._get_object(
+            f"/shipment-management/pickups/create-commands/{command_id}",
+            "the courier pickup's ordering",
+        )
+
     def fetch_label(self, shipment_ids: list[str], page_size: str = "A6") -> bytes:
         """`POST /shipment-management/label`: the labels as one PDF.
 

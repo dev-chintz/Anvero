@@ -329,18 +329,24 @@ class ShippingLabels:
     def pdf(self, label: ShippingLabel) -> bytes:
         return self._print([label])
 
-    def printable(self, unprinted_only: bool = True, limit: int = 200) -> list[ShippingLabel]:
+    def printable(self, view: str = "to_print", limit: int = 200) -> list[ShippingLabel]:
         """Bought labels across every order, oldest first, so the day's print
-        run comes out in the order the parcels were bought."""
+        run comes out in the order the parcels were bought.
+
+        `to_print`: never printed; `no_pickup`: no courier ordered for them
+        (none, or only a refused one); `all`: every bought label.
+        """
         query = (
             select(ShippingLabel)
-            .options(joinedload(ShippingLabel.order))
+            .options(joinedload(ShippingLabel.order), joinedload(ShippingLabel.pickup))
             .where(ShippingLabel.status == LabelStatus.CREATED)
             .order_by(ShippingLabel.created_at)
             .limit(limit)
         )
-        if unprinted_only:
+        if view == "to_print":
             query = query.where(ShippingLabel.printed_at.is_(None))
+        elif view == "no_pickup":
+            query = query.where(ShippingLabel.pickup_id.is_(None))
         return list(self.db.scalars(query))
 
     def pdf_many(self, label_ids: list[uuid.UUID]) -> bytes:

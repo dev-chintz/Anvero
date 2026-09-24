@@ -8,6 +8,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.types import Uuid
 
 from app.db.base import Base
+from app.models.courier_pickup import CourierPickup
 from app.models.order import Order
 from app.models.user import User
 
@@ -67,5 +68,12 @@ class ShippingLabel(Base):
     # which is what puts it on the Labels page's "to print" list
     printed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
+    # the courier ordered to collect it; null until one is (and again if
+    # that order was refused)
+    pickup_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("courier_pickups.id", ondelete="SET NULL"), index=True, nullable=True
+    )
+
     created_by: Mapped["User | None"] = relationship()
     order: Mapped["Order"] = relationship()
+    pickup: Mapped["CourierPickup | None"] = relationship()

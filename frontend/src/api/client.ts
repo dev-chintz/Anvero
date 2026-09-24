@@ -384,12 +384,43 @@ export interface ShippingLabel extends PackageSize {
   printed_at?: string | null;
 }
 
+export type PickupStatus = "PENDING" | "ORDERED" | "FAILED";
+
+/** A courier ordered through Wysyłam z Allegro to collect parcels. */
+export interface CourierPickup {
+  id: string;
+  created_at: string;
+  status: PickupStatus;
+  pickup_id: string | null;
+  carrier_id: string | null;
+  /** YYYY-MM-DD */
+  ready_date: string;
+  /** The slot chosen, as it was shown. */
+  proposal_label: string;
+  error: string | null;
+}
+
 /** A bought label on the Labels page, with what identifies its order. */
 export interface PrintableLabel extends ShippingLabel {
   order_id: string;
   order_label: string;
   buyer: string | null;
   delivery_method: string | null;
+  pickup?: CourierPickup | null;
+}
+
+/** Which bought labels the Labels page lists. */
+export type LabelView = "to_print" | "no_pickup" | "all";
+
+export interface PickupOption {
+  id: string;
+  label: string;
+}
+
+export interface PickupChangeResult {
+  /** Null when nothing was ordered: held back by safe mode, or refused. */
+  pickup: CourierPickup | null;
+  marketplace_write: MarketplaceWrite;
 }
 
 export interface LabelChangeResult {
@@ -433,9 +464,33 @@ export const shippingApi = {
     });
   },
 
-  /** Bought labels across every order, oldest first; unprinted only unless asked. */
-  printable(includePrinted = false): Promise<PrintableLabel[]> {
-    return request<PrintableLabel[]>(`/labels${includePrinted ? "?printed=true" : ""}`);
+  /** Bought labels across every order, oldest first. */
+  printable(view: LabelView = "to_print"): Promise<PrintableLabel[]> {
+    return request<PrintableLabel[]>(`/labels?view=${view}`);
+  },
+
+  /** When a courier could come for these parcels that day; changes nothing. */
+  pickupProposals(labelIds: string[], readyDate: string): Promise<PickupOption[]> {
+    return request<PickupOption[]>("/pickups/proposals", {
+      method: "POST",
+      body: JSON.stringify({ label_ids: labelIds, ready_date: readyDate }),
+    });
+  },
+
+  orderPickup(labelIds: string[], readyDate: string, option: PickupOption): Promise<PickupChangeResult> {
+    return request<PickupChangeResult>("/pickups", {
+      method: "POST",
+      body: JSON.stringify({
+        label_ids: labelIds,
+        ready_date: readyDate,
+        proposal_id: option.id,
+        proposal_label: option.label,
+      }),
+    });
+  },
+
+  refreshPickup(pickupId: string): Promise<CourierPickup> {
+    return request<CourierPickup>(`/pickups/${pickupId}/refresh`, { method: "POST" });
   },
 
   /** Several labels as one A6 PDF, in the order given; notes them printed. */

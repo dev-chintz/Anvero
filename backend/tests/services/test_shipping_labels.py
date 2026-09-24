@@ -414,7 +414,7 @@ def test_the_print_list_holds_bought_labels_not_yet_printed(session, ready):
     labels.pdf(first)
 
     assert [label.id for label in labels.printable()] == [second.id]
-    assert {label.id for label in labels.printable(unprinted_only=False)} == {first.id, second.id}
+    assert {label.id for label in labels.printable("all")} == {first.id, second.id}
 
 
 def test_a_label_not_bought_cannot_be_printed_with_the_rest(session, ready):

@@ -36,9 +36,9 @@ mode, is done, so every marketplace write must go through `MarketplaceWriter`;
 A6, status and tracking number to Allegro, is built but never sent for real;
 A7, the application status page, is done. Stage A is complete apart from
 A4's first real run and A6's first real send. B1, labels through "Wysyłam z
-Allegro", is built for one parcel per order, with printing many at once on
-the Labels page, and never bought for real; courier pickup and cash on
-delivery are left).
+Allegro", is built for one parcel per order, with printing many at once and
+ordering a courier on the Labels page, and never used for real; cash on
+delivery is left).
 
 **Open task:** the first deployment to the NAS is prepared but not yet run; see "PICK UP HERE" in `PROJECT_STATUS.md` and `DEPLOYMENT.md`.
 
@@ -54,7 +54,7 @@ breakdown; the short version:
   history.
 - Allegro adapter, import script, an import endpoint and a button, one
   import at a time.
-- 479 backend and 109 frontend tests passing.
+- 494 backend and 112 frontend tests passing.
 
 - One shared PostgreSQL 17 on the owner's NAS is the development database;
   each machine's `backend/.env` points at it (the password is not in Git, ask

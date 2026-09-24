@@ -1,8 +1,11 @@
 import uuid
+from datetime import date
 from decimal import Decimal
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from app.models.courier_pickup import PickupStatus
 from app.models.shipping_label import LabelStatus
 from app.schemas.marketplace_write import MarketplaceWriteRead
 from app.schemas.types import UtcDateTime
@@ -55,6 +58,19 @@ class ShippingLabelRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
+class PickupRead(BaseModel):
+    id: uuid.UUID
+    created_at: UtcDateTime
+    status: PickupStatus
+    pickup_id: str | None
+    carrier_id: str | None
+    ready_date: date
+    proposal_label: str
+    error: str | None
+
+    model_config = ConfigDict(from_attributes=True)
+
+
 class PrintableLabel(ShippingLabelRead):
     """A bought label on the Labels page, with what identifies its order."""
 
@@ -62,6 +78,34 @@ class PrintableLabel(ShippingLabelRead):
     order_label: str
     buyer: str | None
     delivery_method: str | None
+    # the courier ordered to collect it, if any
+    pickup: PickupRead | None = None
+
+
+# which bought labels the Labels page lists
+LabelView = Literal["to_print", "no_pickup", "all"]
+
+
+class PickupProposalRequest(BaseModel):
+    label_ids: list[uuid.UUID] = Field(min_length=1)
+    # the day the parcels will be ready, in the business's calendar
+    ready_date: date
+
+
+class PickupOption(BaseModel):
+    id: str
+    label: str
+
+
+class PickupOrderRequest(PickupProposalRequest):
+    proposal_id: str = Field(min_length=1, max_length=255)
+    # how the slot was shown, kept to show again
+    proposal_label: str = Field(min_length=1, max_length=255)
+
+
+class PickupChangeResult(BaseModel):
+    pickup: PickupRead | None
+    marketplace_write: MarketplaceWriteRead
 
 
 class LabelPrintRequest(BaseModel):

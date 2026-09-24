@@ -174,8 +174,17 @@ Anvero gave the create command), `shipment_id` (Allegro's, once it exists),
 `status` (`PENDING`, `CREATED`, `FAILED`, `CANCELLED`, stored as text),
 `delivery_method_id`, `carrier_id`, `waybill`, `length_cm`, `width_cm`,
 `height_cm` (numeric 8,1), `weight_kg` (numeric 8,3), `error`, `printed_at`
-(when its PDF was last fetched; null puts it on the "to print" list). The waybill
+(when its PDF was last fetched; null puts it on the "to print" list),
+`pickup_id` (indexed, the courier ordered for it, `SET NULL`). The waybill
 also goes onto the order as an `order_shipments` row added in Anvero.
+
+`courier_pickups`: couriers ordered through Wysyłam z Allegro. `id`,
+`created_at`, `created_by_user_id` (nullable, `SET NULL`), `command_id`
+(unique), `pickup_id` (Allegro's), `status` (`PENDING`, `ORDERED`, `FAILED`,
+as text), `carrier_id`, `ready_date` (a date), `proposal_id` and
+`proposal_label` (the slot chosen, as its id and as it was shown), `error`.
+Its parcels are the `shipping_labels` pointing at it; a refused pickup lets
+go of them.
 
 `app_settings` also holds `shipping_sender` and `shipping_default_package`,
 each a JSON object (`API.md`, "Labels through Wysyłam z Allegro").

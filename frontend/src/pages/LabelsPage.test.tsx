@@ -5,7 +5,16 @@ import type { PrintableLabel } from "../api/client";
 
 vi.mock("../api/client", async () => {
   const actual = await vi.importActual<typeof import("../api/client")>("../api/client");
-  return { ...actual, shippingApi: { printable: vi.fn(), pdfMany: vi.fn() } };
+  return {
+    ...actual,
+    shippingApi: {
+      printable: vi.fn(),
+      pdfMany: vi.fn(),
+      pickupProposals: vi.fn(),
+      orderPickup: vi.fn(),
+      refreshPickup: vi.fn(),
+    },
+  };
 });
 
 const { shippingApi, ApiError } = await import("../api/client");
@@ -85,16 +94,16 @@ describe("the labels page", () => {
     expect(within(row).getByText(/WB-1/)).toBeInTheDocument();
   });
 
-  it("can show labels already printed, without selecting them", async () => {
+  it("can show every bought label, choosing none of them", async () => {
     vi.mocked(shippingApi.printable)
       .mockResolvedValueOnce([])
       .mockResolvedValueOnce([label("1", { printed_at: "2026-09-24T11:00:00Z" })]);
     renderPage();
     expect(await screen.findByText("No labels to print.")).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole("checkbox", { name: "Also show labels already printed" }));
+    fireEvent.change(screen.getByRole("combobox", { name: "Show" }), { target: { value: "all" } });
 
-    await waitFor(() => expect(shippingApi.printable).toHaveBeenLastCalledWith(true));
+    await waitFor(() => expect(shippingApi.printable).toHaveBeenLastCalledWith("all"));
     expect(await screen.findByRole("checkbox", { name: "Select the label of AN-000001" })).not.toBeChecked();
     expect(screen.getByRole("button", { name: "Print 0 labels" })).toBeDisabled();
   });
@@ -108,5 +117,78 @@ describe("the labels page", () => {
 
     expect(await screen.findByRole("alert")).toHaveTextContent("Allegro refused the label (500)");
     expect(tab.close).toHaveBeenCalled();
+  });
+
+  it("orders a courier for the selected parcels in a slot Allegro proposes", async () => {
+    vi.mocked(shippingApi.printable).mockResolvedValue([label("1"), label("2")]);
+    vi.mocked(shippingApi.pickupProposals).mockResolvedValue([
+      { id: "slot-a", label: "2026-09-25 09:00-12:00" },
+      { id: "slot-b", label: "2026-09-25 12:00-15:00" },
+    ]);
+    vi.mocked(shippingApi.orderPickup).mockResolvedValue({
+      pickup: {
+        id: "p-1",
+        created_at: "2026-09-24T12:00:00Z",
+        status: "ORDERED",
+        pickup_id: "pickup-1",
+        carrier_id: "INPOST",
+        ready_date: "2026-09-25",
+        proposal_label: "2026-09-25 12:00-15:00",
+        error: null,
+      },
+      marketplace_write: {} as never,
+    });
+    renderPage();
+
+    fireEvent.click(await screen.findByRole("button", { name: "Order a courier for 2 parcels" }));
+    const panel = screen.getByRole("region", { name: "Order a courier" });
+    fireEvent.change(within(panel).getByLabelText("Parcels ready on"), { target: { value: "2026-09-25" } });
+    fireEvent.click(within(panel).getByRole("button", { name: "Show when a courier can come" }));
+    fireEvent.click(await within(panel).findByRole("radio", { name: "2026-09-25 12:00-15:00" }));
+    fireEvent.click(within(panel).getByRole("button", { name: "Order the courier" }));
+
+    expect(await within(panel).findByText("Courier ordered: 2026-09-25 12:00-15:00.")).toBeInTheDocument();
+    expect(shippingApi.pickupProposals).toHaveBeenCalledWith(["1", "2"], "2026-09-25");
+    expect(shippingApi.orderPickup).toHaveBeenCalledWith(["1", "2"], "2026-09-25", {
+      id: "slot-b",
+      label: "2026-09-25 12:00-15:00",
+    });
+  });
+
+  it("says when no courier is proposed", async () => {
+    vi.mocked(shippingApi.printable).mockResolvedValue([label("1")]);
+    vi.mocked(shippingApi.pickupProposals).mockResolvedValue([]);
+    renderPage();
+
+    fireEvent.click(await screen.findByRole("button", { name: "Order a courier for 1 parcel" }));
+    fireEvent.click(screen.getByRole("button", { name: "Show when a courier can come" }));
+
+    expect(await screen.findByText(/proposes no courier/)).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Order the courier" })).not.toBeInTheDocument();
+  });
+
+  it("shows the courier ordered for a parcel and checks a pending one again", async () => {
+    vi.mocked(shippingApi.printable).mockResolvedValue([
+      label("1", {
+        pickup: {
+          id: "p-1",
+          created_at: "2026-09-24T12:00:00Z",
+          status: "PENDING",
+          pickup_id: null,
+          carrier_id: "INPOST",
+          ready_date: "2026-09-25",
+          proposal_label: "2026-09-25 09:00-12:00",
+          error: null,
+        },
+      }),
+    ]);
+    vi.mocked(shippingApi.refreshPickup).mockResolvedValue({} as never);
+    renderPage();
+
+    expect(await screen.findByText("Being confirmed")).toBeInTheDocument();
+    expect(screen.getByText("2026-09-25 09:00-12:00")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Check again" }));
+
+    await waitFor(() => expect(shippingApi.refreshPickup).toHaveBeenCalledWith("p-1"));
   });
 });

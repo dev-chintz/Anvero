@@ -36,6 +36,9 @@ are days in the business timezone, `BUSINESS_TIMEZONE`, default
 | `GET` | `/api/v1/orders/{id}/labels/{label_id}/pdf` | the label, A6, as a PDF |
 | `GET` | `/api/v1/labels` | bought labels across every order, for printing many at once |
 | `POST` | `/api/v1/labels/pdf` | several labels as one A6 PDF |
+| `POST` | `/api/v1/pickups/proposals` | when a courier could come for chosen parcels on a day |
+| `POST` | `/api/v1/pickups` | order the courier for a proposed slot (safe mode permitting) |
+| `POST` | `/api/v1/pickups/{id}/refresh` | ask Allegro again about a pickup still being confirmed |
 | `GET` | `/api/v1/integrations/allegro` | the Allegro connection's state, never a secret |
 | `PUT` | `/api/v1/integrations/allegro/settings` | store the Allegro application's credentials |
 | `POST` | `/api/v1/integrations/allegro/connect` | start connecting a seller account; rate limited to 10 per minute per IP |
@@ -386,15 +389,36 @@ Every label has `printed_at`: when its PDF was last fetched, by either route;
 null until then.
 
 `GET /api/v1/labels` lists `CREATED` labels across every order, oldest first
-(the order they were bought), at most 200: only those never printed, or all
-with `?printed=true`. Each is a label plus `order_id`, `order_label` (the
-`AN-` number), `buyer` (the name, else login, else email) and
-`delivery_method`.
+(the order they were bought), at most 200. `view` chooses which: `to_print`
+(the default: never printed), `no_pickup` (no courier ordered, or only a
+refused one) or `all`; anything else is `422`. Each is a label plus
+`order_id`, `order_label` (the `AN-` number), `buyer` (the name, else login,
+else email), `delivery_method` and `pickup`: the courier ordered for it, or
+null (`{"id", "created_at", "status", "pickup_id", "carrier_id",
+"ready_date", "proposal_label", "error"}`, `status` being `PENDING`,
+`ORDERED` or `FAILED`).
 
 `POST /api/v1/labels/pdf` takes `{"label_ids": [...]}` (1 to 50) and returns
 one A6 PDF with those labels in that order, from one request to Allegro, and
 notes them printed. `404` if an id is unknown, `409` if any is not `CREATED`
 or there are more than 50, `422` for an empty list, `502` when Allegro fails.
+
+### Courier pickup
+
+`POST /api/v1/pickups/proposals` takes `{"label_ids": [...], "ready_date":
+"YYYY-MM-DD"}` and returns the slots Allegro proposes, `[{"id", "label"}]`;
+an empty list means no courier comes for those parcels that day (a parcel
+locker shipment is dropped off, not collected). It changes nothing and does
+not go through safe mode. `POST /api/v1/pickups` takes the same plus
+`proposal_id` and `proposal_label` (the slot as shown) and returns
+`{"pickup": ... | null, "marketplace_write": {...}}`: null with a `DRY_RUN`
+write in safe mode, or with a `FAILED` write when Allegro refused the
+command; otherwise the pickup, `ORDERED`, `PENDING` (for `refresh`) or
+`FAILED` with `error`, whose parcels are then free again. Both refuse with
+`409`: more than 50 parcels, a day already past (in the business timezone),
+a parcel not `CREATED`, a parcel already in a pending or ordered pickup, or
+parcels of more than one carrier (one pickup serves one carrier); `404` for
+an unknown label; `502` when Allegro cannot be reached.
 
 ## Changes that reach the marketplace
 

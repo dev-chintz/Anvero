@@ -56,7 +56,7 @@
 
 .labels-table th,
 .labels-table td {
-  padding: 0.65rem 0.75rem;
+  padding: 0.6rem 0.4rem;
   border-bottom: 1px solid var(--color-divider);
   text-align: left;
   vertical-align: top;
@@ -69,7 +69,7 @@
 }
 
 .labels-table .col-check {
-  width: 2.5rem;
+  width: 2rem;
 }
 
 .labels-table tr.selected td {
@@ -89,4 +89,122 @@
   .labels-body {
     padding: 1rem;
   }
+}
+
+.labels-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.labels-page .print-button.secondary {
+  background: var(--color-bg);
+  color: var(--color-accent);
+}
+
+.labels-filter select {
+  padding: 0.35rem 0.5rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg);
+  color: var(--color-text);
+}
+
+.pickup-panel {
+  margin-bottom: 1.25rem;
+  padding: 1rem 1.25rem;
+  border: 1px solid var(--color-accent);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface-alt);
+}
+
+.pickup-panel h2 {
+  margin: 0 0 0.75rem;
+  font-size: 1.1rem;
+  color: var(--color-heading);
+}
+
+.pickup-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 0.75rem;
+}
+
+.pickup-row label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.85rem;
+  color: var(--color-muted-strong);
+}
+
+.pickup-panel input[type="date"] {
+  padding: 0.45rem 0.6rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg);
+  color: var(--color-text);
+}
+
+.pickup-panel button {
+  padding: 0.5rem 1rem;
+  border: 1px solid var(--color-accent);
+  border-radius: var(--radius-md);
+  background: var(--color-accent);
+  color: #fff;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.pickup-panel button.secondary {
+  background: var(--color-bg);
+  color: var(--color-text);
+  border-color: var(--color-border);
+}
+
+.pickup-panel button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.pickup-options {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.4rem;
+  margin: 1rem 0 0;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--color-divider);
+  border-radius: var(--radius-md);
+}
+
+.pickup-options label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.pickup-ordered {
+  color: var(--color-success);
+  font-weight: 600;
+}
+
+.pickup-failed {
+  color: var(--color-error);
+  font-weight: 600;
+}
+
+.pickup-pending {
+  color: var(--color-warning);
+  font-weight: 600;
+}
+
+/* a long waybill wraps rather than pushing the courier column off screen */
+.labels-page .table-wrapper {
+  overflow-x: auto;
+}
+
+.labels-table td {
+  overflow-wrap: anywhere;
 }

@@ -1003,3 +1003,11 @@ branch is unverified: only the SQLite path has been run.
 
 **Consequences:** Buying needs Allegro reachable even in safe mode (the method is read first). If Allegro links the shipment to the order by itself, the tracking number Anvero adds may be refused as a duplicate: recorded as a failed write, harmless. Nothing has been bought for real; the Sandbox run is the next step (`INTEGRATIONS.md`).
 
+## 2026-09-24 — Courier pickup: one carrier per pickup, slots from Allegro's proposals
+
+**Decision:** A courier is ordered from the Labels page for chosen bought parcels: Anvero asks Allegro for pickup proposals for those parcels on the day they are ready, the operator picks one slot, and ordering it goes through `MarketplaceWriter` (safe mode). One pickup covers parcels of one carrier only; a parcel is in at most one pending or ordered pickup, and a refused pickup lets go of its parcels. Asking for proposals is treated as a read and does not go through safe mode. Cancelling a pickup is not built.
+
+**Rationale:** A courier comes from one carrier, and grouping by carrier keeps the proposals simple to show while their real shape is unknown; the rule can relax once a real answer shows whether Allegro mixes carriers. Refusing a second pickup for the same parcel avoids ordering two couriers for one parcel. Proposals change nothing on Allegro, so holding them back in safe mode would only make the flow impossible to try.
+
+**Consequences:** The operator orders one pickup per carrier. A pickup ordered by mistake has to be cancelled on Allegro for now. Everything is from the documentation and fakes until the Sandbox run (`INTEGRATIONS.md`).
+

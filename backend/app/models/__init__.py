@@ -1,3 +1,4 @@
+from app.models.courier_pickup import CourierPickup, PickupStatus
 from app.models.integration import IntegrationCredential, IntegrationSettings
 from app.models.marketplace_write import AppSetting, MarketplaceWrite, WriteOutcome
 from app.models.order import (
@@ -21,6 +22,7 @@ __all__ = [
     "AppSetting",
     "BillingEntry",
     "Counter",
+    "CourierPickup",
     "IntegrationCredential",
     "IntegrationSettings",
     "LabelStatus",
@@ -33,6 +35,7 @@ __all__ = [
     "OrderStatus",
     "OrderStatusHistory",
     "PaymentType",
+    "PickupStatus",
     "ShippingLabel",
     "User",
     "WriteOutcome",

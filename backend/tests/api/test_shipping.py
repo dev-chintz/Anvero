@@ -155,3 +155,29 @@ def test_printing_an_unknown_label_is_not_found():
 
 def test_printing_nothing_is_refused():
     assert client.post("/api/v1/labels/pdf", json={"label_ids": []}).status_code == 422
+
+
+def test_pickups_need_a_login():
+    body = {"label_ids": [str(uuid.uuid4())], "ready_date": "2099-01-01"}
+    assert anonymous.post("/api/v1/pickups/proposals", json=body).status_code == 401
+    assert anonymous.post(f"/api/v1/pickups/{uuid.uuid4()}/refresh").status_code == 401
+
+
+def test_proposals_for_an_unknown_parcel_are_not_found():
+    body = {"label_ids": [str(uuid.uuid4())], "ready_date": "2099-01-01"}
+    assert client.post("/api/v1/pickups/proposals", json=body).status_code == 404
+
+
+def test_a_pickup_needs_a_day():
+    body = {"label_ids": [str(uuid.uuid4())], "proposal_id": "p", "proposal_label": "p"}
+    assert client.post("/api/v1/pickups", json=body).status_code == 422
+
+
+def test_the_label_list_takes_known_views_only():
+    assert client.get("/api/v1/labels?view=no_pickup").status_code == 200
+    assert client.get("/api/v1/labels?view=all").status_code == 200
+    assert client.get("/api/v1/labels?view=whatever").status_code == 422
+
+
+def test_refreshing_an_unknown_pickup_is_not_found():
+    assert client.post(f"/api/v1/pickups/{uuid.uuid4()}/refresh").status_code == 404
