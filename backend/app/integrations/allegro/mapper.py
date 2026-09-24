@@ -7,11 +7,14 @@ allegro package: callers receive OrderCreate.
 import logging
 from datetime import UTC, datetime
 from decimal import Decimal, InvalidOperation
-from typing import Any, TypeVar
+from typing import Any
 
-from pydantic import BaseModel, ValidationError
+from pydantic import ValidationError
 
 from app.integrations.base import IntegrationError
+from app.integrations.mapping import build as _build
+from app.integrations.mapping import obj as _obj
+from app.integrations.mapping import text as _text
 from app.models.order import OrderSource, OrderStatus, PaymentType
 from app.schemas.order import (
     BUYER_MESSAGE_MAX_LENGTH,
@@ -28,8 +31,6 @@ from app.schemas.order import (
     PickupPoint,
     ShipmentCreate,
 )
-
-_Part = TypeVar("_Part", bound=BaseModel)
 
 # Allegro tracks two axes. `status` covers the buying process and
 # `fulfillment.status` covers physical handling, so the single Anvero status
@@ -142,22 +143,6 @@ _PAYMENT_TYPES = {
 }
 
 
-def _obj(value: Any) -> dict[str, Any]:
-    """The value if it is a JSON object, otherwise an empty one.
-
-    Details are read defensively: a malformed part costs that part, not the
-    order.
-    """
-    return value if isinstance(value, dict) else {}
-
-
-def _text(value: Any) -> str | None:
-    """A trimmed string, or None for anything absent, blank or not text."""
-    if isinstance(value, bool) or not isinstance(value, str | int):
-        return None
-    return str(value).strip() or None
-
-
 def _amount(price: Any) -> Decimal | None:
     raw = _obj(price).get("amount")
     if raw is None:
@@ -166,34 +151,6 @@ def _amount(price: Any) -> Decimal | None:
         return Decimal(str(raw))
     except (InvalidOperation, TypeError):
         return None
-
-
-def _build(model: type[_Part], external_id: Any, part: str, fields: dict) -> _Part | None:
-    """Build one part of the details, keeping as much of it as is valid.
-
-    An optional field that fails validation (a phone number longer than any
-    real one, an unreadable date) is dropped and the rest kept. If a required
-    field fails, such as a line item without a name, the part is dropped.
-    Either way it is logged by field name only: the values are buyers'
-    personal data, which do not belong in logs.
-    """
-    try:
-        return model(**fields)
-    except ValidationError as exc:
-        bad = sorted({str(err["loc"][0]) for err in exc.errors() if err["loc"]})
-        required = [name for name in bad if model.model_fields[name].is_required()]
-        if required:
-            logger.warning(
-                "Order %s: skipping %s, unreadable %s",
-                external_id,
-                part,
-                ", ".join(required),
-            )
-            return None
-        logger.warning(
-            "Order %s: ignoring unreadable %s in %s", external_id, ", ".join(bad), part
-        )
-        return model(**{k: v for k, v in fields.items() if k not in bad})
 
 
 def _address(external_id: Any, part: str, fields: dict[str, Any]) -> Address | None:

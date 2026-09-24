@@ -109,6 +109,15 @@ class Settings(BaseSettings):
     # switch it on for exactly one running backend per database.
     allegro_import_interval_minutes: int = Field(default=0, ge=0, le=1440)
 
+    # Erli integration: an API key generated in the seller panel (My ERLI >
+    # Store settings > Integration method > Own API integration). It does not
+    # rotate, so it lives here only. Empty leaves the integration off.
+    erli_api_key: str = Field(default="")
+    # Erli's test environment lives on another domain, which its documentation
+    # does not name; set it here when Erli gives it
+    erli_api_url: str = Field(default="https://erli.pl/svc/shop-api")
+    erli_initial_import_days: int = Field(default=7, ge=1, le=365)
+
     @field_validator("database_url")
     @classmethod
     def _anchor_sqlite_path(cls, value: str) -> str:

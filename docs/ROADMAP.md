@@ -269,7 +269,10 @@ In this order (the owner chose queues before any write to Allegro):
    point and tracking number; the order shows the same buyer's other orders
    (same email, or same login on the same marketplace).
 4. **Erli order import**, so the queues and the list above cover both
-   channels.
+   channels. Started 2026-09-24: the adapter and `scripts/import_erli.py`,
+   built from Erli's documentation and tested on fakes (`INTEGRATIONS.md`,
+   "Erli"). Left: a first run with the owner's API key, then an import button
+   and schedule like Allegro's.
 5. **Safe mode (dry run).** A switch, on by default, under which every write
    to a marketplace is logged and shown as "would send" instead of sent. In
    place before the first write.

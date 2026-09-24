@@ -6,6 +6,17 @@ All significant changes to the Anvero project.
 
 ## 2026-09-24
 
+### 🛍️ Erli adapter, built from Erli's documentation
+
+- `app/integrations/erli`: client, mapper and adapter for Erli's Shop API
+  (`POST /orders/_search`, paged by cursor), wired into the same import
+  service as Allegro, with `scripts/import_erli.py`. `ERLI_API_KEY`,
+  `ERLI_API_URL` and `ERLI_INITIAL_IMPORT_DAYS` in `.env`.
+- Tested against fakes only; no key has been used yet. No button or schedule
+  for it yet. The shared reading helpers of the mappers moved to
+  `app/integrations/mapping.py`.
+- Stage A4 of the feature plan, first half.
+
 ### 🔎 Search by what you remember, and the buyer's other orders
 
 - The order search also matches the buyer's login, name, company and phone,

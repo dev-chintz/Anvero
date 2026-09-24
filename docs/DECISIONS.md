@@ -962,3 +962,11 @@ branch is unverified: only the SQLite path has been run.
 **Rationale:** There is no customer table yet (`DATABASE.md`), and a marketplace may hand out a masked email that is not stable for one buyer, while its login is; a login is only unique within one marketplace, so it is compared per source. Matching the two channels' accounts of one person would need a customer record, which nothing needs yet. `EXISTS` keeps one row per order, so the count and the page agree however many items match.
 
 **Consequences:** A buyer using different emails and different marketplaces appears as two buyers. Search runs several `ILIKE`s with a leading wildcard, which no index serves; fine at this size, worth revisiting at tens of thousands of orders.
+
+## 2026-09-24 — Erli: the order search rather than the inbox, and a stand-in email
+
+**Decision:** The Erli adapter reads orders with `POST /orders/_search`, sorted by update time and paged by Erli's cursor, through the same `OrderImportService` and sync point as Allegro. The sync point lives on an `ERLI` row of `integration_credentials` that stores only the API key's fingerprint. An order Erli returns before it has assigned the buyer's proxy email is imported with the stand-in `order-<id>@no-email-yet.erli.pl`. Amounts are read as grosze.
+
+**Rationale:** Erli's inbox is an event stream that has to be acknowledged, a second mechanism beside the one Allegro already uses; the search by update time gives the same result with the existing service, and repeating a window is harmless. The email is required in Anvero, and skipping an order until it changes again could hide a paid order for days; a stand-in on a subdomain that receives no mail is visible and replaced by the next import that sees the real address. Keeping the key itself out of the database leaves `.env` the only place it is.
+
+**Consequences:** Built from the documentation only and not yet run. If Erli does not touch `updated` when it fills in the email, the stand-in stays until the order next changes. Grosze is inferred (Erli's documentation says it only for campaign costs); the first real order must confirm the totals. No button or schedule yet: `scripts/import_erli.py` runs it.

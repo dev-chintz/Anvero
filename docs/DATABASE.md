@@ -136,7 +136,7 @@ the latest token has to be kept between runs:
 
 | Column | Meaning |
 | --- | --- |
-| `provider` | primary key, e.g. `ALLEGRO` |
+| `provider` | primary key, e.g. `ALLEGRO`; an `ERLI` row holds Erli's sync point, with an empty `refresh_token` and the API key's fingerprint (Erli's key does not rotate and is never stored) |
 | `refresh_token` | the most recently issued refresh token |
 | `seed_fingerprint` | SHA-256 of the `.env` token the chain started from; a different `.env` token means a fresh authorization |
 | `last_import_at`, `last_import_created`, `last_import_updated`, `last_import_error` | how the last import ended, whoever ran it: when it finished, how many orders it created and updated, or the error if it failed (then the counts are null). Cleared when an account is connected |

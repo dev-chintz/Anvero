@@ -410,3 +410,75 @@ and the order's total less them.
   buys each as a separate buyer account. `--dry-run` only shows what it found.
   It refuses to run unless the connection is the Sandbox one, and, like the
   script it reuses, has never been run against the real page.
+
+## Erli
+
+**Built 2026-09-24 from Erli's published API description only**
+(`https://erli.pl/svc/shop-api/doc/`, its OpenAPI file `swagger.json`), and
+tested against fakes shaped like it. It has never talked to Erli: no key has
+been used and no real response seen. Treat every mapping below as a reading of
+the documentation until a real import confirms it.
+
+### Setting it up
+
+1. In the Erli seller panel: My ERLI > Sales on ERLI.pl > Store settings >
+   Integration method > Own API integration, generate the API key.
+2. Put it in `backend/.env` as `ERLI_API_KEY` (not in Git, never in chat or
+   a document). `ERLI_API_URL` defaults to production; Erli's documentation
+   says its test environment is on another domain without naming it.
+3. From `backend/`: `.\.venv\Scripts\python.exe scripts\import_erli.py`
+   (`--days N` for a backfill). There is no button or schedule for Erli yet.
+
+The key is a plain bearer token and does not rotate. Anvero stores only its
+SHA-256 fingerprint, on an `ERLI` row of `integration_credentials` that holds
+the sync point and the last import's outcome; a different key starts the sync
+over, as a re-authorization does for Allegro.
+
+### What an import fetches
+
+`POST /orders/_search`, sorted by `updated`, 200 a page, each page after the
+first starting at the previous page's last `cursor` (Erli makes it unique, so
+orders changed at the same moment are not skipped). The first import filters
+`created >=` the last `ERLI_INITIAL_IMPORT_DAYS` days; later ones start after
+the recorded sync point, like Allegro's. Erli's `/inbox` (an event stream of
+new and changed orders) was not used: the order search needs no
+acknowledgement step and matches how the Allegro import already works.
+
+### Status mapping
+
+Erli's `status` covers buying (`pending`, `purchased`, `cancelled`,
+`returned`); handling is in `deliveryTracking.status` (the parcel) and
+`sellerStatus` (set by the seller). In order: `cancelled` → `CANCELLED`;
+`returned` → `DELIVERED`; then the parcel: `preparing` → `CONFIRMED`,
+`readyToSend`/`waitingForCourier` → `READY_FOR_SHIPMENT`, `sent`,
+`readyToPickup`, `pickupTimeExpired`, `deliveryUnsuccessful`, `redirected` →
+`SHIPPED`, `delivered`/`returned` → `DELIVERED`; then `sellerStatus`:
+`created`/`readyToProcess` → `NEW`, `inProgress` → `CONFIRMED`, `sent`,
+`readyToPickup`, `returningToSender` → `SHIPPED`, `received`/`returned` →
+`DELIVERED`, `canceled` → `CANCELLED`; anything else → `NEW`. The value it was
+read from is kept as `marketplace_status_label`. Status follows Erli when it
+moves, exactly as for Allegro.
+
+### Field mapping
+
+- Amounts (`totalPrice`, `items[].unitPrice`, `delivery.price`) are integers
+  read as **grosze**. Erli's documentation states grosze for its campaign
+  costs and never for orders; the first real order must confirm it.
+- `user.email` is Erli's proxy address. Erli fills it in shortly after the
+  order is created; an order read before that gets the stand-in
+  `order-<id>@no-email-yet.erli.pl`, replaced by the next import that sees the
+  real one (`DECISIONS.md`).
+- Erli names no buyer apart from the delivery address, so the buyer's name,
+  company and phone come from it. There is no login.
+- Items: `externalId` (the seller's own product id) as the listing, `sku`,
+  `name`, `quantity`, `unitPrice` after any rebate.
+- Delivery: `delivery.name`, `delivery.price`; the address line is Erli's
+  `address` or else street, building and flat; `pickupPlace` becomes the
+  pickup point (its `externalId`, e.g. the parcel locker's code).
+- Payment: cash on delivery when `delivery.cod`; otherwise online through
+  Erli, paid in full when `payment.status` is `COMPLETED` or the order is
+  `purchased`, else known unpaid (zero), so it lands in the unpaid queue.
+- Invoice: required when `user.invoiceAddress` is present; `nip` is the tax id.
+- `comment` is the buyer's message. `deliveryTracking.trackingNumber` and
+  `vendor` become a shipment, its `status` the tracking code.
+- Erli's order has no dispatch deadline, so Erli orders are never "late".
