@@ -1035,3 +1035,11 @@ branch is unverified: only the SQLite path has been run.
 
 **Consequences:** The key is readable by anyone with database access, as Allegro's secret is. Forgetting it does not stop the environment's key from applying. Erli still has no schedule and no live connection test beyond saving. Nothing about the adapter's correctness changed: it has still never seen a real response.
 
+## 2026-09-24 — Message sync on its own schedule, sharing the import's lock
+
+**Decision:** Reading Allegro's Message Center can run by itself every `ALLEGRO_MESSAGE_SYNC_INTERVAL_MINUTES` (default 0, off; an asyncio task in the FastAPI lifespan running the same `run_message_sync` as the button, in a worker thread). It is a schedule of its own, apart from the order import's, with its own interval and its own in-memory state, and takes the same lock. The generic loop moved out of the order import's scheduler into `run_schedule`, which both use. `GET /status` reports it as `allegro.message_schedule`, with the warning `message_schedule_stopped` when it is set but not running in this backend.
+
+**Rationale:** Messages want a shorter interval than orders (a buyer waiting for a reply notices minutes, not a quarter of an hour), and they may not be wanted at all where orders are, so one shared interval would have forced both. The lock stays shared because both refresh the same rotating token, and the same rule follows: on for exactly one backend per database. A sync that finds nothing new costs one page of thread summaries, so a short interval is cheap on Allegro's side.
+
+**Consequences:** A failed sync is logged and the next one tries again; its outcome is not stored, so Status shows only when the schedule last ran, not whether that run worked. Storing it (as order imports do on `integration_credentials`) is left until the messaging calls have been seen to work against the real API, which they have not been: a schedule on an unverified endpoint would fail quietly every interval. Nothing enables it by default, in the compose file included.
+

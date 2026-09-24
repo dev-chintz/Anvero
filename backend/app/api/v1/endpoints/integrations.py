@@ -14,10 +14,10 @@ from app.integrations.base import (
     IntegrationError,
     IntegrationNotConfigured,
 )
+from app.models.user import User
 from app.repositories.integration_credential_repository import (
     IntegrationCredentialRepository,
 )
-from app.models.user import User
 from app.schemas.integration import (
     AllegroConnectPoll,
     AllegroConnectStart,

@@ -12,6 +12,7 @@ from app.core.config import ensure_secret_key, settings
 from app.core.logging import setup_logging
 from app.core.rate_limit import limiter
 from app.services.allegro_sync import scheduler
+from app.services.message_sync import message_scheduler
 
 setup_logging()
 
@@ -22,12 +23,14 @@ ensure_secret_key(settings.secret_key)
 
 @asynccontextmanager
 async def lifespan(_: FastAPI) -> AsyncIterator[None]:
-    # imports the backend starts by itself; a no-op unless the interval is set
-    task = asyncio.create_task(scheduler())
+    # imports and message syncs the backend starts by itself; each is a no-op
+    # unless its interval is set
+    tasks = [asyncio.create_task(scheduler()), asyncio.create_task(message_scheduler())]
     try:
         yield
     finally:
-        task.cancel()
+        for task in tasks:
+            task.cancel()
 
 
 app = FastAPI(

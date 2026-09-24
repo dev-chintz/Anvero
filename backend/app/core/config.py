@@ -108,6 +108,10 @@ class Settings(BaseSettings):
     # use and the lock that prevents two imports at once lives in one process:
     # switch it on for exactly one running backend per database.
     allegro_import_interval_minutes: int = Field(default=0, ge=0, le=1440)
+    # The same for reading the Message Center into the inbox; it shares the
+    # import's lock, so the same rule holds: on for exactly one backend per
+    # database. Off by default.
+    allegro_message_sync_interval_minutes: int = Field(default=0, ge=0, le=1440)
 
     # Erli integration: an API key generated in the seller panel (My ERLI >
     # Store settings > Integration method > Own API integration). It does not

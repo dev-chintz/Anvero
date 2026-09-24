@@ -6,6 +6,17 @@ All significant changes to the Anvero project.
 
 ## 2026-09-24
 
+### ⏱️ Buyer messages read on a schedule
+
+- `ALLEGRO_MESSAGE_SYNC_INTERVAL_MINUTES` (default 0, off) makes the backend
+  read Allegro's Message Center by itself, on a schedule of its own beside the
+  order import's, under the same lock. Enable it on exactly one backend per
+  database. The shared loop is now `run_schedule`.
+- The Status page shows it ("Message sync") and warns when it is set but not
+  running in this backend (`message_schedule_stopped`).
+- Its outcome is not stored yet, and the messaging calls have still never seen
+  the real Allegro: a failed run is logged and retried at the next interval.
+
 ### ⚙️ Erli in Settings, and Settings arranged by purpose
 
 - Settings now has a menu of sections beside cards laid out over the whole

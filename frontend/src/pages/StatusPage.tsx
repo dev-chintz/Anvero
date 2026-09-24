@@ -93,6 +93,10 @@ export function StatusPage() {
                 )}
                 <LastImportRow value={status.allegro.last_import} />
                 <ScheduleRow value={status.allegro.schedule} />
+                <ScheduleRow
+                  value={status.allegro.message_schedule}
+                  label={t('appStatus.messageSchedule')}
+                />
               </StatusCard>
 
               <StatusCard title="Erli" state={status.erli.state} problems={status.erli.problems}>
@@ -189,7 +193,13 @@ function LastImportRow({ value }: { value: LastImport }) {
   );
 }
 
-function ScheduleRow({ value }: { value: ScheduleStatus | null }) {
+function ScheduleRow({
+  value,
+  label,
+}: {
+  value: ScheduleStatus | null;
+  label?: string;
+}) {
   const { t, formatRelative } = useTranslation();
   let text: string;
   if (value === null) {
@@ -206,7 +216,7 @@ function ScheduleRow({ value }: { value: ScheduleStatus | null }) {
   } else {
     text = t('appStatus.scheduleOff');
   }
-  return <Row label={t('appStatus.schedule')}>{text}</Row>;
+  return <Row label={label ?? t('appStatus.schedule')}>{text}</Row>;
 }
 
 /** A problem code the backend sent, in words; a code newer than this page shows as is. */

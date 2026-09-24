@@ -1,14 +1,16 @@
 """Syncing Allegro's Message Center: what gets read again, and what does not."""
 
+import asyncio
 from datetime import UTC, datetime
 
 import pytest
 
+from app.integrations.base import IntegrationUnavailable
 from app.models.message import MessageThread
 from app.models.order import OrderSource
 from app.repositories.message_repository import MessageRepository
 from app.schemas.message import SyncedMessage, SyncedThread
-from app.services import allegro_sync
+from app.services import allegro_sync, message_sync
 from app.services.message_sync import (
     ImportAlreadyRunning,
     MessageSyncService,
@@ -129,3 +131,97 @@ def test_a_second_sync_is_refused_while_one_holds_the_lock(session):
             run_message_sync(session)
     finally:
         allegro_sync.import_lock.release()
+
+
+# --- the schedule -----------------------------------------------------------
+
+class _Client:
+    def __init__(self, configured):
+        self.is_configured = configured
+
+
+class _Session:
+    closed = False
+
+    def close(self):
+        self.closed = True
+
+
+def _patch_scheduled_run(monkeypatch, configured=True, sync=None):
+    session = _Session()
+    monkeypatch.setattr(message_sync, "SessionLocal", lambda: session)
+    monkeypatch.setattr(message_sync, "build_allegro_client", lambda db: _Client(configured))
+    calls = []
+
+    def fake_sync(db):
+        calls.append(db)
+        if sync is not None:
+            return sync()
+        return message_sync.MessageSyncResult(threads_synced=2, messages_added=5)
+
+    monkeypatch.setattr(message_sync, "run_message_sync", fake_sync)
+    return session, calls
+
+
+def test_a_scheduled_run_syncs_and_closes_its_session(monkeypatch):
+    session, calls = _patch_scheduled_run(monkeypatch)
+
+    message_sync._scheduled_message_run()
+
+    assert calls == [session]
+    assert session.closed
+
+
+def test_a_scheduled_run_with_no_account_connected_does_nothing(monkeypatch):
+    session, calls = _patch_scheduled_run(monkeypatch, configured=False)
+
+    message_sync._scheduled_message_run()
+
+    assert calls == []
+    assert session.closed
+
+
+@pytest.mark.parametrize(
+    "error", [ImportAlreadyRunning(), IntegrationUnavailable("Allegro 503"), RuntimeError("boom")]
+)
+def test_a_scheduled_run_never_raises(monkeypatch, error):
+    def fail():
+        raise error
+
+    session, _ = _patch_scheduled_run(monkeypatch, sync=fail)
+
+    message_sync._scheduled_message_run()
+
+    assert session.closed
+
+
+def test_the_message_scheduler_does_nothing_when_the_interval_is_zero():
+    # would hang the test if it looped
+    asyncio.run(asyncio.wait_for(message_sync.message_scheduler(0), timeout=1))
+
+
+def test_the_message_scheduler_syncs_each_interval_on_its_own_state(monkeypatch):
+    state = allegro_sync.ScheduleState()
+    order_state = allegro_sync.ScheduleState()
+    monkeypatch.setattr(message_sync, "message_schedule_state", state)
+    monkeypatch.setattr(allegro_sync, "schedule_state", order_state)
+    calls = []
+    real_sleep = asyncio.sleep
+
+    async def fast_sleep(_seconds):
+        if len(calls) >= 2:
+            raise asyncio.CancelledError
+        await real_sleep(0)
+
+    monkeypatch.setattr(allegro_sync.asyncio, "sleep", fast_sleep)
+    monkeypatch.setattr(message_sync, "_scheduled_message_run", lambda: calls.append(1))
+
+    with pytest.raises(asyncio.CancelledError):
+        asyncio.run(message_sync.message_scheduler(7))
+
+    assert len(calls) == 2
+    assert state.interval_minutes == 7
+    assert state.running is False
+    assert state.last_run_at is not None
+    # the order import's own schedule is untouched
+    assert order_state.interval_minutes == 0

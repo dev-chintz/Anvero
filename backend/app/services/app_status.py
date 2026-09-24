@@ -27,6 +27,7 @@ from app.schemas.app_status import (
 from app.services import allegro_settings, erli_import, erli_settings
 from app.services.allegro_sync import ScheduleState, schedule_state
 from app.services.marketplace_writes import safe_mode_on
+from app.services.message_sync import message_schedule_state
 
 # Allegro's refresh token lives three months from its issue; every import
 # issues a new one, so it runs out only when nothing imports for that long
@@ -68,9 +69,9 @@ def _last_import(credential: IntegrationCredential | None) -> LastImport:
     )
 
 
-def _schedule(state: ScheduleState) -> ScheduleStatus:
+def _schedule(state: ScheduleState, configured_minutes: int) -> ScheduleStatus:
     return ScheduleStatus(
-        interval_minutes=state.interval_minutes or settings.allegro_import_interval_minutes,
+        interval_minutes=state.interval_minutes or configured_minutes,
         running=state.running,
         started_at=state.started_at,
         next_run_at=state.next_run_at,
@@ -78,11 +79,20 @@ def _schedule(state: ScheduleState) -> ScheduleStatus:
     )
 
 
-def allegro_health(db: Session, now: datetime, state: ScheduleState) -> AllegroHealth:
+def allegro_health(
+    db: Session,
+    now: datetime,
+    state: ScheduleState,
+    message_state: ScheduleState | None = None,
+) -> AllegroHealth:
     application = allegro_settings.resolve_application(db)
     credential = IntegrationCredentialRepository(db).get(allegro_settings.PROVIDER)
     connected = credential is not None or bool(application.seed_refresh_token)
-    schedule = _schedule(state)
+    schedule = _schedule(state, settings.allegro_import_interval_minutes)
+    message_schedule = _schedule(
+        message_state if message_state is not None else message_schedule_state,
+        settings.allegro_message_sync_interval_minutes,
+    )
     last_import = _last_import(credential)
 
     issued = _utc(credential.token_issued_at) if credential else None
@@ -101,6 +111,7 @@ def allegro_health(db: Session, now: datetime, state: ScheduleState) -> AllegroH
             token_expires_at=None,
             last_import=last_import,
             schedule=schedule,
+            message_schedule=message_schedule,
         )
     if not application.is_complete:
         problems.append("application_incomplete")
@@ -118,6 +129,9 @@ def allegro_health(db: Session, now: datetime, state: ScheduleState) -> AllegroH
     if schedule.interval_minutes and not schedule.running:
         # configured to import by itself, but the loop is not alive here
         problems.append("schedule_stopped")
+    if message_schedule.interval_minutes and not message_schedule.running:
+        # the same for reading buyer messages: set, but the loop is not alive here
+        problems.append("message_schedule_stopped")
     if schedule.running and connected:
         # measured from the later of the last import and the schedule's start,
         # so a backend just restarted is not reported overdue
@@ -137,6 +151,7 @@ def allegro_health(db: Session, now: datetime, state: ScheduleState) -> AllegroH
         token_expires_at=expires,
         last_import=last_import,
         schedule=schedule,
+        message_schedule=message_schedule,
     )
 
 

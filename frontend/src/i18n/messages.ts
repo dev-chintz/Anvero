@@ -510,6 +510,7 @@ export const en = {
   "appStatus.importResult": "{when}: {created} new, {updated} updated",
   "appStatus.importFailed": "{when}: failed",
   "appStatus.schedule": "Automatic import",
+  "appStatus.messageSchedule": "Message sync",
   "appStatus.scheduleOff": "Off on this server",
   "appStatus.scheduleRunning": "Every {minutes} min, next {when}",
   "appStatus.scheduleRunningNow": "Every {minutes} min, importing now",
@@ -529,6 +530,8 @@ export const en = {
   "appStatus.problem.never_imported": "No import has run yet, so the connection is unproven.",
   "appStatus.problem.import_overdue": "The schedule is on, but no import has finished for a while.",
   "appStatus.problem.schedule_stopped": "Automatic import is configured but not running: restart the backend.",
+  "appStatus.problem.message_schedule_stopped":
+    "Automatic message sync is configured but not running: restart the backend.",
 
   // toasts
   "toast.close": "Close notification",
@@ -1077,6 +1080,7 @@ export const pl: Record<MessageKey, string> & Record<string, string> = {
   "appStatus.importResult": "{when}: {created} nowych, {updated} zaktualizowanych",
   "appStatus.importFailed": "{when}: nieudany",
   "appStatus.schedule": "Import automatyczny",
+  "appStatus.messageSchedule": "Synchronizacja wiadomości",
   "appStatus.scheduleOff": "Wyłączony na tym serwerze",
   "appStatus.scheduleRunning": "Co {minutes} min, następny {when}",
   "appStatus.scheduleRunningNow": "Co {minutes} min, właśnie importuje",
@@ -1096,6 +1100,8 @@ export const pl: Record<MessageKey, string> & Record<string, string> = {
   "appStatus.problem.never_imported": "Nie było jeszcze żadnego importu, więc połączenie nie jest sprawdzone.",
   "appStatus.problem.import_overdue": "Harmonogram jest włączony, ale od dłuższego czasu żaden import się nie zakończył.",
   "appStatus.problem.schedule_stopped": "Import automatyczny jest ustawiony, ale nie działa: uruchom backend ponownie.",
+  "appStatus.problem.message_schedule_stopped":
+    "Synchronizacja wiadomości jest ustawiona, ale nie działa: uruchom backend ponownie.",
 
   "toast.close": "Zamknij powiadomienie",
 

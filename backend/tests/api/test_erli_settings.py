@@ -11,7 +11,11 @@ from app.core.config import settings
 from app.core.security import create_access_token
 from app.db.base import Base
 from app.db.session import get_db
-from app.integrations.base import IntegrationAuthError, IntegrationError, IntegrationUnavailable
+from app.integrations.base import (
+    IntegrationAuthError,
+    IntegrationError,
+    IntegrationUnavailable,
+)
 from app.main import app
 from app.models.marketplace_write import AppSetting
 from app.repositories.user_repository import UserRepository

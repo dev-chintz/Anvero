@@ -33,6 +33,13 @@ function status(overrides: Partial<AppStatus> = {}): AppStatus {
         next_run_at: "2099-01-01T00:00:00Z",
         last_run_at: "2026-09-24T11:55:00Z",
       },
+      message_schedule: {
+        interval_minutes: 5,
+        running: true,
+        started_at: "2026-09-24T08:00:00Z",
+        next_run_at: "2099-01-01T00:00:00Z",
+        last_run_at: "2026-09-24T11:58:00Z",
+      },
     },
     erli: {
       state: "off",
@@ -101,6 +108,28 @@ describe("the application status page", () => {
     expect(within(allegro).getByText("token rejected")).toBeInTheDocument();
     expect(within(allegro).getByText("Set to every 15 min, but not running")).toBeInTheDocument();
     expect(within(allegro).getByRole("link", { name: /Settings/ })).toHaveAttribute("href", "/settings");
+  });
+
+  it("shows the message sync schedule apart from the import schedule", async () => {
+    const base = status().allegro;
+    vi.mocked(statusApi.get).mockResolvedValue(
+      status({
+        allegro: {
+          ...base,
+          state: "warning",
+          problems: ["message_schedule_stopped"],
+          message_schedule: { ...base.message_schedule, running: false, next_run_at: null },
+        },
+      }),
+    );
+    renderPage();
+
+    const allegro = await screen.findByRole("region", { name: "Allegro" });
+    expect(within(allegro).getByText("Message sync")).toBeInTheDocument();
+    expect(within(allegro).getByText("Set to every 5 min, but not running")).toBeInTheDocument();
+    expect(within(allegro).getByText(/message sync is configured but not running/)).toBeInTheDocument();
+    // the import schedule beside it is unaffected
+    expect(within(allegro).getByText(/Every 15 min, next/)).toBeInTheDocument();
   });
 
   it("asks the backend again on request", async () => {

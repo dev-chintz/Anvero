@@ -553,7 +553,18 @@ log, the same as a missing orders scope.
 **Not done:** Erli (its public API has no messaging endpoint that could be
 found — see "Erli" below), starting a new thread from Anvero, attachments,
 marking a thread read back to Allegro (reading it here does not mark it read
-there), a schedule (today only the button runs a sync), and disputes.
+there), and disputes.
+
+**Reading on a schedule.** With `ALLEGRO_MESSAGE_SYNC_INTERVAL_MINUTES` set above
+0 the backend reads the Message Center by itself every that many minutes,
+starting one interval after it starts (the same sync as the button, on its own
+schedule beside the order import's). Off by default, and for **exactly one**
+backend per database for the same reason as the order import: it takes the same
+lock and refreshes the same rotating token. A run skips quietly when no account
+is connected or when an import is running; a failed run is logged and the next
+one tries again. The outcome of a sync is not stored (unlike an order import's):
+the Status page shows only whether the schedule is running here, when it is due
+next and when it last ran.
 
 ## Erli
 

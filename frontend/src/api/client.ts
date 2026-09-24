@@ -355,6 +355,8 @@ export interface AllegroHealth {
   token_expires_at: string | null;
   last_import: LastImport;
   schedule: ScheduleStatus;
+  /** This backend's schedule for reading buyer messages into the inbox. */
+  message_schedule: ScheduleStatus;
 }
 
 export interface ErliHealth {

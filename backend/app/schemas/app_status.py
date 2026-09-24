@@ -42,6 +42,8 @@ class AllegroHealth(BaseModel):
     token_expires_at: UtcDateTime | None
     last_import: LastImport
     schedule: ScheduleStatus
+    # this backend's schedule for reading buyer messages into the inbox
+    message_schedule: ScheduleStatus
 
 
 class ErliHealth(BaseModel):

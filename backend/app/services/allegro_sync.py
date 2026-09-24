@@ -102,17 +102,18 @@ def _scheduled_run() -> None:
         db.close()
 
 
-async def scheduler(interval_minutes: int | None = None) -> None:
-    """Import every `interval` minutes until cancelled; the first run is one
-    interval after start, so restarting the backend does not trigger one.
+async def run_schedule(
+    state: ScheduleState, minutes: int, job: Callable[[], None], what: str
+) -> None:
+    """Run `job` every `minutes` minutes until cancelled, keeping `state` up to
+    date; the first run is one interval after start, so restarting the backend
+    does not trigger one. Does nothing when `minutes` is 0.
 
-    The import is blocking (HTTP and database), so it runs in a worker thread.
+    The job is blocking (HTTP and database), so it runs in a worker thread.
     """
-    minutes = settings.allegro_import_interval_minutes if interval_minutes is None else interval_minutes
     if minutes <= 0:
         return
-    logger.info("Allegro imports scheduled every %d minutes", minutes)
-    state = schedule_state
+    logger.info("%s scheduled every %d minutes", what, minutes)
     state.interval_minutes = minutes
     state.running = True
     state.started_at = datetime.now(UTC)
@@ -121,8 +122,14 @@ async def scheduler(interval_minutes: int | None = None) -> None:
             state.next_run_at = datetime.now(UTC) + timedelta(minutes=minutes)
             await asyncio.sleep(minutes * 60)
             state.next_run_at = None
-            await asyncio.to_thread(_scheduled_run)
+            await asyncio.to_thread(job)
             state.last_run_at = datetime.now(UTC)
     finally:
         state.running = False
         state.next_run_at = None
+
+
+async def scheduler(interval_minutes: int | None = None) -> None:
+    """Import orders every `interval` minutes until cancelled."""
+    minutes = settings.allegro_import_interval_minutes if interval_minutes is None else interval_minutes
+    await run_schedule(schedule_state, minutes, lambda: _scheduled_run(), "Allegro imports")

@@ -194,3 +194,37 @@ def test_the_whole_status_carries_safe_mode_and_the_version(session):
     assert status.safe_mode is True
     assert status.version == settings.app_version
     assert status.checked_at == NOW
+
+
+def test_the_message_schedule_is_reported_beside_the_import_schedule(session):
+    _application(session)
+    _credential(session, token_issued_at=NOW, last_import_at=NOW)
+    messages = ScheduleState(interval_minutes=5, running=True, started_at=NOW)
+
+    health = app_status.allegro_health(session, NOW, ScheduleState(), messages)
+
+    assert health.problems == []
+    assert health.message_schedule.running is True
+    assert health.message_schedule.interval_minutes == 5
+    assert health.schedule.interval_minutes == 0
+
+
+def test_a_message_schedule_configured_but_not_running_here_is_flagged(session, monkeypatch):
+    monkeypatch.setattr(settings, "allegro_message_sync_interval_minutes", 5)
+    _application(session)
+    _credential(session, token_issued_at=NOW, last_import_at=NOW)
+
+    health = app_status.allegro_health(session, NOW, ScheduleState(), ScheduleState())
+
+    assert health.problems == ["message_schedule_stopped"]
+    assert health.message_schedule.interval_minutes == 5
+
+
+def test_a_message_schedule_that_is_off_is_not_a_problem(session):
+    _application(session)
+    _credential(session, token_issued_at=NOW, last_import_at=NOW)
+
+    health = app_status.allegro_health(session, NOW, ScheduleState(), ScheduleState())
+
+    assert health.problems == []
+    assert health.message_schedule.interval_minutes == 0

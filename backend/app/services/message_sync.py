@@ -13,7 +13,10 @@ from dataclasses import dataclass
 
 from sqlalchemy.orm import Session
 
+from app.core.config import settings
+from app.db.session import SessionLocal
 from app.integrations.allegro.messaging import AllegroMessagingAdapter
+from app.integrations.base import IntegrationError
 from app.repositories.integration_credential_repository import (
     IntegrationCredentialRepository,
 )
@@ -21,7 +24,12 @@ from app.repositories.message_repository import MessageRepository
 from app.schemas.types import _as_utc
 from app.services import allegro_settings
 from app.services.allegro_import import build_allegro_client
-from app.services.allegro_sync import ImportAlreadyRunning, import_lock
+from app.services.allegro_sync import (
+    ImportAlreadyRunning,
+    ScheduleState,
+    import_lock,
+    run_schedule,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -101,3 +109,42 @@ def run_message_sync(db: Session) -> MessageSyncResult:
         return build_message_sync_service(db).sync()
     finally:
         import_lock.release()
+
+# what this process's message schedule is doing, for the status page
+message_schedule_state = ScheduleState()
+
+
+def _scheduled_message_run() -> None:
+    """One scheduled message sync, on its own session. Never raises."""
+    db = SessionLocal()
+    try:
+        if not build_allegro_client(db).is_configured:
+            # nothing connected yet (or disconnected since): not an error
+            return
+        result = run_message_sync(db)
+        logger.info(
+            "Scheduled message sync: %d threads touched, %d new messages",
+            result.threads_synced,
+            result.messages_added,
+        )
+    except ImportAlreadyRunning:
+        logger.info("Scheduled message sync skipped: an import or sync is running")
+    except IntegrationError as exc:
+        logger.warning("Scheduled message sync failed: %s", exc)
+    except Exception:
+        logger.exception("Scheduled message sync failed")
+    finally:
+        db.close()
+
+
+async def message_scheduler(interval_minutes: int | None = None) -> None:
+    """Read the Message Center every `interval` minutes until cancelled."""
+    minutes = (
+        settings.allegro_message_sync_interval_minutes
+        if interval_minutes is None
+        else interval_minutes
+    )
+    await run_schedule(
+        message_schedule_state, minutes, lambda: _scheduled_message_run(), "Allegro message syncs"
+    )
+

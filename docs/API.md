@@ -435,7 +435,9 @@ and never rotates a token (`DECISIONS.md`).
    "token_issued_at": "...Z", "token_expires_at": "...Z",
    "last_import": {"at": "...Z", "created": 2, "updated": 7, "error": null},
    "schedule": {"interval_minutes": 15, "running": true, "started_at": "...Z",
-                "next_run_at": "...Z", "last_run_at": null}},
+                "next_run_at": "...Z", "last_run_at": null},
+   "message_schedule": {"interval_minutes": 5, "running": true,
+                "started_at": "...Z", "next_run_at": "...Z", "last_run_at": null}},
  "erli": {"state": "off", "problems": [], "configured": false,
    "last_import": {"at": null, "created": null, "updated": null, "error": null},
    "schedule": null}}
@@ -455,6 +457,7 @@ as codes the interface words:
 | `last_import_failed` | error | the last import ended in an error, in `last_import.error` |
 | `import_overdue` | warning | the schedule runs, but no import finished for three intervals |
 | `schedule_stopped` | warning | `ALLEGRO_IMPORT_INTERVAL_MINUTES` is set, but the schedule is not running in this backend |
+| `message_schedule_stopped` | warning | `ALLEGRO_MESSAGE_SYNC_INTERVAL_MINUTES` is set, but its schedule is not running in this backend |
 
 `token_expires_at` is `token_issued_at` plus Allegro's three months (taken as
 90 days); every import issues a new token, so it only nears when nothing
