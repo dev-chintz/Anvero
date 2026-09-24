@@ -124,6 +124,24 @@ class AfterSalesRepository:
             & (cast(Order.source, String) == cast(AfterSalesCase.source, String)),
         )
 
+    def for_order(
+        self, source: OrderSource, external_id: str
+    ) -> list[tuple[AfterSalesCase, uuid.UUID | None, int | None]]:
+        rows = self.db.execute(
+            self._query()
+            .where(
+                AfterSalesCase.source == source,
+                AfterSalesCase.order_external_id == external_id,
+            )
+            .order_by(AfterSalesCase.opened_at.desc())
+        ).all()
+        return [(case, order_id, number) for case, order_id, number in rows]
+
+    # Defined after every method above whose own annotation spells `list[...]`:
+    # a method literally named `list` shadows the builtin for the rest of this
+    # class body once it is bound, so an annotation evaluated afterwards would
+    # resolve `list` to this method instead (TypeError: 'function' object is
+    # not subscriptable) - see OrderRepository for the same fix, PROJECT_STATUS.md.
     def list(
         self,
         view: CaseView = CaseView.ACTION,
@@ -152,19 +170,6 @@ class AfterSalesRepository:
         total = self.db.scalar(select(func.count()).select_from(query.order_by(None).subquery()))
         rows = self.db.execute(query.limit(limit).offset(offset)).all()
         return [(case, order_id, number) for case, order_id, number in rows], total or 0
-
-    def for_order(
-        self, source: OrderSource, external_id: str
-    ) -> list[tuple[AfterSalesCase, uuid.UUID | None, int | None]]:
-        rows = self.db.execute(
-            self._query()
-            .where(
-                AfterSalesCase.source == source,
-                AfterSalesCase.order_external_id == external_id,
-            )
-            .order_by(AfterSalesCase.opened_at.desc())
-        ).all()
-        return [(case, order_id, number) for case, order_id, number in rows]
 
     def summary(self, now: datetime) -> AfterSalesSummary:
         waiting = [AfterSalesCase.action != CaseAction.NONE]

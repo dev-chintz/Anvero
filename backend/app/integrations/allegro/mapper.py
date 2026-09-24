@@ -483,17 +483,18 @@ def map_checkout_form(checkout_form: dict[str, Any]) -> OrderCreate:
 
 # --- Message Center (INTEGRATIONS.md, "Buyer messages") ---------------------
 #
-# developer.allegro.pl was unreachable while this was built (the sandbox
-# environment's network egress blocked it), so these field names come from
-# Allegro's Message Center announcement and search-indexed excerpts of the
-# tutorial, not a read of the published OpenAPI specification or a real
-# response. Treat every name below as unconfirmed until one of those is
-# checked. Confirmed by more than one source: GET /messaging/threads returns
-# `threads: [{id, read, lastMessageDateTime, interlocutor: {login, ...}}]`,
-# and POST /messaging/messages takes `{recipient: {login}, order: {id}, text,
-# attachments}`. Unconfirmed: the exact shape of one entry of GET
-# /messaging/threads/{id}/messages - assumed here to be `{id, text, createdAt,
-# author: {login}}`, by analogy with the confirmed shapes above.
+# Built without ever reaching Allegro with a real request (no Sandbox
+# credentials or network egress in the session that wrote this): this session
+# could still not call the API, but could this time reach
+# developer.allegro.pl's own published pages and Allegro's GitHub issue
+# tracker, and confirmed the message shape there (two independent pages
+# agree): GET /messaging/threads/{id}/messages returns `messages: [{id,
+# status, type, createdAt, thread: {id}, author: {login, isInterlocutor},
+# text, subject, relatesTo, hasAdditionalAttachments, attachments}]`, and GET
+# /messaging/threads returns `threads: [{id, read, lastMessageDateTime,
+# interlocutor: {login, ...}}]`, both public.v1 (no beta header needed; only
+# the new `type`/`subType` thread filter, unused here, is beta.v1). Still not
+# checked against a real response - see INTEGRATIONS.md, "Buyer messages".
 
 
 def map_thread(raw: dict[str, Any]) -> SyncedThread | None:
@@ -525,24 +526,32 @@ def map_thread(raw: dict[str, Any]) -> SyncedThread | None:
 def map_message(raw: dict[str, Any], seller_login: str | None) -> SyncedMessage | None:
     """One entry of GET /messaging/threads/{id}/messages, or None if unusable.
 
-    Allegro's response is not known to carry a direction of its own, so this
-    decides IN/OUT by comparing the author's login to the connected seller's
-    own (read once when the account was connected, `account_login`, and
-    passed in here): a message the seller's own login wrote is OUT, whoever
-    sent it from - the API or Allegro's own Message Center. Without a seller
-    login to compare against, every message maps as IN, which only affects a
-    thread read before an account has ever connected.
+    Direction is read from the author's own `isInterlocutor` flag when present
+    (confirmed against Allegro's published documentation, not yet a real
+    response): `false` means the authenticated seller wrote it (OUT), `true`
+    means the other party did (IN). Without that flag - an older response
+    shape, or a value that is not a bool - this falls back to comparing the
+    author's login to the connected seller's own (read once when the account
+    was connected, `account_login`, passed in here): a message the seller's
+    own login wrote is OUT. Without a seller login to compare against either,
+    every message maps as IN, which only affects a thread read before an
+    account has ever connected.
     """
     text_value = _text(raw.get("text"))
     if text_value is None:
         return None
     message_id = _text(raw.get("id"))
-    author_login = _text(_obj(raw.get("author")).get("login"))
-    direction = (
-        MessageDirection.OUT
-        if seller_login and author_login == seller_login
-        else MessageDirection.IN
-    )
+    author = _obj(raw.get("author"))
+    author_login = _text(author.get("login"))
+    is_interlocutor = author.get("isInterlocutor")
+    if isinstance(is_interlocutor, bool):
+        direction = MessageDirection.IN if is_interlocutor else MessageDirection.OUT
+    else:
+        direction = (
+            MessageDirection.OUT
+            if seller_login and author_login == seller_login
+            else MessageDirection.IN
+        )
     return _build(
         SyncedMessage,
         message_id or "?",

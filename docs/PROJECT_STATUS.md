@@ -131,9 +131,11 @@ Returns, claims and disputes (plan B4, `INTEGRATIONS.md`, "Returns and claims") 
 
 Billing entries (fees, `INTEGRATIONS.md`, "Fees") are likewise from the documentation and fakes only: not known whether the application may read them, or whether the history holds anything besides fees.
 
-Buyer messages (plan B2, `INTEGRATIONS.md`, "Buyer messages") have never talked to Allegro: built without reading its published OpenAPI specification, since this session's network egress could not reach `developer.allegro.pl`, and tested against fakes shaped by search-indexed excerpts of the documentation instead. Unconfirmed: the exact shape of one thread message, whether threads really sort newest-activity-first (the sync's early stop depends on it), and the messaging scope's real name. Safe mode has been on throughout, so nothing has reached a real buyer. Erli is not read: no messaging endpoint was found in its public API.
+Buyer messages (plan B2, `INTEGRATIONS.md`, "Buyer messages") have never talked to Allegro: no Sandbox credentials or network route to `api.allegro.pl` has been available in any session that worked on this, including the one revisiting it below. Still tested against fakes only. **Narrowed 2026-09-24:** a later session's web search, unlike the first attempt, could reach `developer.allegro.pl`'s own pages and `allegro/allegro-api`'s GitHub issues, and confirmed the exact shape of one thread message and that `author.isInterlocutor` is Allegro's own word on direction — the mapper now reads it, see `DECISIONS.md`. Still unconfirmed: whether threads really sort newest-activity-first (the sync's early stop depends on it — now with a specific reason to doubt it, `INTEGRATIONS.md`), and the messaging scope's real name (repeated in search results, no primary scope list read). Safe mode has been on throughout, so nothing has reached a real buyer. Erli is not read: no messaging endpoint was found in its public API.
 
 One backend test failure was found while working on the above, unrelated to it: `tests/services/test_order_import_service.py::test_the_recorded_point_is_the_start_of_the_run_less_a_small_overlap` compares a naive and an aware datetime and only fails on SQLite (`TypeError: can't compare offset-naive and offset-aware datetimes`); the full suite passes on PostgreSQL (527, 2026-09-24, after merging B1/A7 and B2). A second, unrelated bug was found and fixed: `OrderRepository.list_buyer_orders` and `.list_in_queue_with_items`, added by plan A3, had a `-> list[Order]` return annotation evaluated *after* a method literally named `list` in the same class body, so Python resolved `list` to that method instead of the builtin and the whole backend failed to import (`TypeError: 'function' object is not subscriptable`) — moved both methods earlier in the file; no behaviour changed. Worth checking whether this broke every backend since plan A3 landed earlier the same day.
+
+The same bug, found by taking that suggestion seriously: `AfterSalesRepository.list` (plan B4) shadowed the builtin the same way, ahead of `for_order`'s own `-> list[tuple[...]]` annotation, and failed backend startup entirely — every endpoint, not just after-sales, since `app/main.py` imports the whole router. Fixed 2026-09-24 by moving `for_order` above `list`, the same fix as before; no other repository has a method named `list`. Whether this broke every backend since plan B4 landed earlier the same day is worth checking, same as the first one.
 
 What the sandbox did **not** cover: a cancelled order and the flag it sets,
 an order with several line items or without a pickup point, more than one
@@ -166,10 +168,15 @@ the "to make today" list, search) touches only Anvero's own data and can
 start before the NAS or production Allegro are done.
 
 **Also started 2026-09-24, ahead of that order:** plan B2, buyer messages —
-see "Current State" (`AI_START_HERE.md`) and "Not yet verified" above. Left:
-confirming the unverified fields against Allegro's real response or its
-published spec (this session could not reach `developer.allegro.pl`), and
-trying a reply on the Sandbox with safe mode off.
+see "Current State" (`AI_START_HERE.md`) and "Not yet verified" above.
+Narrowed the same day: message direction now reads Allegro's own
+`isInterlocutor` field, confirmed against the published documentation (not a
+real response — this session, like the first, had no route to
+`api.allegro.pl`). Left: the messaging scope's real name and the sort-order
+assumption behind the sync's early stop, both still only checkable against a
+real response, and trying a reply on the Sandbox with safe mode off — needs
+the authorized machine's stored credentials and its network access, neither
+available in a cloud session.
 
 Run the Allegro import against a real account, starting in the Allegro
 Sandbox. Agreed plan, in order:

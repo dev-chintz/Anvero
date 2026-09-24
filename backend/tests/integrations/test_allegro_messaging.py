@@ -148,6 +148,38 @@ def test_a_message_without_text_is_dropped():
     assert map_message({"id": "M1", "author": {"login": "x"}}, seller_login=None) is None
 
 
+def test_is_interlocutor_true_maps_as_incoming_even_without_a_seller_login():
+    raw = _raw_message(author="buyer1")
+    raw["author"]["isInterlocutor"] = True
+
+    message = map_message(raw, seller_login=None)
+
+    assert message is not None
+    assert message.direction is MessageDirection.IN
+
+
+def test_is_interlocutor_false_maps_as_outgoing_even_when_the_login_does_not_match():
+    # the seller's own login as stored locally can be stale; isInterlocutor is
+    # Allegro's own word on who sent it and takes precedence
+    raw = _raw_message(author="some-other-login")
+    raw["author"]["isInterlocutor"] = False
+
+    message = map_message(raw, seller_login="seller1")
+
+    assert message is not None
+    assert message.direction is MessageDirection.OUT
+
+
+def test_a_non_bool_is_interlocutor_falls_back_to_the_login_comparison():
+    raw = _raw_message(author="seller1")
+    raw["author"]["isInterlocutor"] = "not a bool"
+
+    message = map_message(raw, seller_login="seller1")
+
+    assert message is not None
+    assert message.direction is MessageDirection.OUT
+
+
 # --- the adapter --------------------------------------------------------
 
 

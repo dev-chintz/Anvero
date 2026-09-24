@@ -504,12 +504,48 @@ GitHub where one could be found. Confirmed by more than one of those
 sources: the endpoint list below, and that a thread is
 `{id, read, lastMessageDateTime, interlocutor: {login, ...}}` and that
 `POST /messaging/messages` takes `{recipient: {login}, order: {id}, text,
-attachments}`. **Not confirmed, and to be checked before trusting this
-further:** the exact shape of one entry of `GET
-/messaging/threads/{id}/messages` — assumed to be `{id, text, createdAt,
-author: {login}}` by analogy with the confirmed shapes — and the scope name
-below. Read `app/integrations/allegro/mapper.py`'s own note on this before
-changing the mapping.
+attachments}`.
+
+**Revisited 2026-09-24, still without a real request** (no Sandbox
+credentials or network route to `api.allegro.pl` in that later session
+either), but that session's web search *could* reach
+`developer.allegro.pl`'s own pages and `allegro/allegro-api`'s GitHub issues
+this time, which the first attempt could not. Confirmed there, by two
+independent pages agreeing: one entry of `GET
+/messaging/threads/{id}/messages` is `{id, status, type, createdAt, thread:
+{id}, author: {login, isInterlocutor}, text, subject, relatesTo,
+hasAdditionalAttachments, attachments}` — closer to, and a superset of, the
+shape guessed by analogy before. `author.isInterlocutor` is Allegro's own
+word on direction (`mapper.py`'s `map_message` now reads it, falling back to
+the login comparison only when it is absent or not a bool — see "Direction"
+below). The full endpoint list from the announcement (issue #4727) is: `GET
+/messaging/threads`, `GET /messaging/threads/{id}`, `PUT
+/messaging/threads/{id}/read`, `POST /messaging/messages`, `GET
+/messaging/threads/{id}/messages`, `POST /messaging/threads/{id}/messages`,
+`GET /messaging/messages/{id}`, `DELETE /messaging/messages/{id}`, `POST
+/messaging/message-attachments`, `PUT
+/messaging/message-attachments/{id}`, `GET
+/messaging/message-attachments/{id}`. These are `public.v1`, matching the
+client's default `Accept` header (no change needed); only a `type`/`subType`
+thread filter added 2026-08-26 (`COMMON` vs `POST_PURCHASE_ISSUE` threads,
+issue #13998) is `beta.v1`, and is not used here.
+
+**Still not confirmed, and still to be checked against a real response
+before trusting further:** the messaging scope's real name — search results
+repeat `allegro:api:messaging`, matching what the client already sends, but
+no primary scope-list page could be read to confirm it directly — and
+whether threads truly sort newest-activity-first, which the sync's early
+stop still depends on (see "Reading" below). One new, sharper reason to
+doubt the second: Allegro's own issue tracker (`allegro-api` issue #13907)
+says `createdAt` and `lastMessageDateTime` record when a message was
+*written*, not when it became visible through the API — a buyer's message
+can arrive in the API later than its own timestamp claims. If threads are
+actually sorted by when they were last touched rather than by that
+timestamp, a page that looks stale by timestamp could still hold a thread
+whose message only just became visible; the early stop would then miss it
+silently. Worth a specific check on the first real sync: send two messages
+close together, on threads far apart in the list, and see whether the later
+one's thread moves to the top regardless of what its `createdAt` says.
 
 Endpoints used, all through the same rotating token as orders:
 
@@ -534,11 +570,15 @@ external_id)`, since a message once sent is never edited or withdrawn.
 Shares the import's lock (`import_lock`): both refresh the same rotating
 token.
 
-**Direction.** Allegro's response is not known to carry a message's
-direction (buyer or seller) as a field of its own, so it is decided by
-comparing the message's `author.login` to the connected seller's own
-(`integration_credentials.account_login`, read once when the account was
-connected). Without one to compare against, every message reads as incoming.
+**Direction.** Read from `author.isInterlocutor` when Allegro's response
+carries it (confirmed 2026-09-24 against the published documentation, not
+yet a real response): `false` means the authenticated seller wrote it (OUT),
+`true` means the other party did (IN). When that field is absent or not a
+bool — an older response shape, or the guess above turning out wrong —
+direction falls back to comparing the message's `author.login` to the
+connected seller's own (`integration_credentials.account_login`, read once
+when the account was connected). Without either to go on, every message
+reads as incoming.
 
 **Sending.** A reply goes through `MarketplaceWriter`, like a status or a
 tracking number: safe mode holds it back by default, and switching it off is
