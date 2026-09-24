@@ -66,8 +66,9 @@ describe("OrderRow", () => {
     renderRow(makeOrder());
 
     expect(screen.getByRole("link", { name: "AN-000042" })).toHaveAttribute("href", "/orders/1");
-    // the marketplace's own id stays visible, beneath Anvero's number
-    expect(screen.getByText("ext-1")).toBeInTheDocument();
+    // the marketplace's own id is not in the row, only in the number's tooltip
+    expect(screen.queryByText("ext-1")).not.toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "AN-000042" })).toHaveAttribute("title", "ext-1");
     expect(screen.getByText("45.49 PLN")).toBeInTheDocument();
   });
 
@@ -303,5 +304,44 @@ describe("deleting from the row", () => {
     fireEvent.click(screen.getByRole("button", { name: "Restore order AN-000042" }));
 
     expect(onRestore).toHaveBeenCalledWith(order);
+  });
+});
+
+describe("the buyer in the order cell", () => {
+  const cellText = () =>
+    Array.from(
+      screen.getByRole("link", { name: "AN-000042" }).parentElement?.children ?? [],
+    ).map((child) => child.textContent);
+
+  it("puts the login right under the number, before the name", () => {
+    renderRow(
+      makeOrder({
+        customer_login: "kupujaca_ola",
+        customer_first_name: "Aleksandra",
+        customer_last_name: "Nowak",
+      }),
+    );
+
+    expect(cellText()).toEqual(["AN-000042", "kupujaca_ola", "Aleksandra Nowak", "ALLEGRO"]);
+    expect(screen.getByText("kupujaca_ola")).toHaveClass("order-cell-login");
+  });
+
+  it("shows only the login when there is no name, and does not repeat it", () => {
+    renderRow(makeOrder({ customer_login: "kupujaca_ola" }));
+
+    expect(cellText()).toEqual(["AN-000042", "kupujaca_ola", "ALLEGRO"]);
+    expect(screen.queryByText("buyer@example.com")).not.toBeInTheDocument();
+  });
+
+  it("shows the name without a login line when the marketplace gives no login", () => {
+    renderRow(makeOrder({ customer_first_name: "Jan", customer_last_name: "Kowalski" }));
+
+    expect(cellText()).toEqual(["AN-000042", "Jan Kowalski", "ALLEGRO"]);
+  });
+
+  it("shows the email when there is neither a login nor a name, so the cell is never bare", () => {
+    renderRow(makeOrder());
+
+    expect(cellText()).toEqual(["AN-000042", "buyer@example.com", "ALLEGRO"]);
   });
 });

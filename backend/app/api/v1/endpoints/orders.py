@@ -1,3 +1,4 @@
+import re
 import uuid
 from datetime import date
 from decimal import Decimal
@@ -80,8 +81,23 @@ def get_order_stats(db: Session = Depends(get_db)):
 
 # like /stats, must stay above /{order_id}
 @router.get("/production", response_model=ProductionList)
-def get_production_list(db: Session = Depends(get_db)):
-    return build_production_list(OrderRepository(db).list_in_queue_with_items(OrderQueue.TO_MAKE))
+def get_production_list(
+    status: OrderStatus | None = Query(default=None),
+    search: str | None = Query(default=None, max_length=500),
+    db: Session = Depends(get_db),
+):
+    """What to make, by product, for the orders still to be made.
+
+    `status` narrows it to the orders in one Anvero status; `search` to the orders
+    a search finds, where several can be given separated by commas or semicolons
+    (`AN-000041, AN-000043`) and an order matching any of them counts.
+    """
+    terms = re.split(r"[;,\n]", search) if search else []
+    return build_production_list(
+        OrderRepository(db).list_in_queue_with_items(
+            OrderQueue.TO_MAKE, status=status, search_terms=terms
+        )
+    )
 
 
 @router.get("/{order_id}", response_model=OrderDetailRead)

@@ -138,13 +138,13 @@
   gap: 0.75rem;
 }
 
-.orders-page .queue-tabs {
+:is(.orders-page, .production-page) .queue-tabs {
   display: flex;
   flex-wrap: wrap;
   gap: 0.5rem;
 }
 
-.orders-page .queue-tab {
+:is(.orders-page, .production-page) .queue-tab {
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
@@ -157,17 +157,17 @@
   cursor: pointer;
 }
 
-.orders-page .queue-tab:hover {
+:is(.orders-page, .production-page) .queue-tab:hover {
   border-color: var(--color-accent);
 }
 
-.orders-page .queue-tab[aria-pressed="true"] {
+:is(.orders-page, .production-page) .queue-tab[aria-pressed="true"] {
   background: var(--color-accent);
   border-color: var(--color-accent);
   color: #fff;
 }
 
-.orders-page .queue-count {
+:is(.orders-page, .production-page) .queue-count {
   min-width: 1.5em;
   padding: 0 0.4em;
   border-radius: 999px;
@@ -178,7 +178,7 @@
   text-align: center;
 }
 
-.orders-page .queue-tab[aria-pressed="true"] .queue-count {
+:is(.orders-page, .production-page) .queue-tab[aria-pressed="true"] .queue-count {
   background: rgba(255, 255, 255, 0.25);
   color: #fff;
 }

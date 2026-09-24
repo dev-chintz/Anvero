@@ -50,6 +50,13 @@ export const AdvancedFilters: React.FC<AdvancedFiltersProps> = ({
 
   const isInitialRender = useRef(true);
 
+  // a status chosen elsewhere (a quick button above the list) shows here too, so
+  // that changing the search later does not put the old one back
+  const outsideStatus = initialFilters?.status;
+  useEffect(() => {
+    setFilters((prev) => (prev.status === outsideStatus ? prev : { ...prev, status: outsideStatus }));
+  }, [outsideStatus]);
+
   useEffect(() => {
     // do not echo the mount-time filters back to the parent; that would
     // overwrite the URL the filters were just read from

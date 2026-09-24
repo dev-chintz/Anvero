@@ -14,13 +14,15 @@ import type { OrderLinkState } from "./orderLinkState";
 import { ItemThumb } from "./ItemThumb";
 import { TrackingLink } from "./TrackingLink";
 
-// name, then login (an Allegro account may have no name on file), then
-// email as the last resort so the cell is never blank
-function buyerDisplayName(order: Order): string {
-  const name = [order.customer_first_name, order.customer_last_name]
-    .filter(Boolean)
-    .join(" ");
-  return name || order.customer_login || order.customer_email;
+// the name, when the marketplace gave one; the login is shown on its own line
+function buyerName(order: Order): string {
+  return [order.customer_first_name, order.customer_last_name].filter(Boolean).join(" ");
+}
+
+// under the login: the name, or, with neither a name nor a login, the email so
+// the cell is never blank
+function buyerDetail(order: Order): string {
+  return buyerName(order) || (order.customer_login ? "" : order.customer_email);
 }
 
 // payment_type/provider are already on the list row (see types/order.ts);
@@ -82,15 +84,25 @@ export function OrderRow({
     <tr>
       <td>
         <div className="order-cell">
-          <Link to={`/orders/${order.id}`} state={linkState} className="order-link">
+          {/* the marketplace's own id is on the order's page; here it is what the link's tooltip says */}
+          <Link
+            to={`/orders/${order.id}`}
+            state={linkState}
+            className="order-link"
+            title={order.external_id}
+          >
             {order.order_label}
           </Link>
-          <span className="order-cell-external" title={order.external_id}>
-            {order.external_id}
-          </span>
-          <span className="order-cell-buyer" title={buyerDisplayName(order)}>
-            {buyerDisplayName(order)}
-          </span>
+          {order.customer_login && (
+            <span className="order-cell-login" title={order.customer_login}>
+              {order.customer_login}
+            </span>
+          )}
+          {buyerDetail(order) && (
+            <span className="order-cell-buyer" title={buyerDetail(order)}>
+              {buyerDetail(order)}
+            </span>
+          )}
           <span className={SOURCE_CLASS[order.source]}>{order.source}</span>
         </div>
       </td>

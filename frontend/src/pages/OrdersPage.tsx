@@ -7,8 +7,8 @@ import type { OrderLinkState } from '../components/orderLinkState';
 import { AdvancedFilters, type Filters } from '../components/AdvancedFilters';
 import { useOrders } from '../hooks/useOrders';
 import { useOrderStats } from '../hooks/useOrderStats';
-import { OrderQueue, OrderSort } from '../types/order';
-import type { Order, OrderSource, OrderStatus } from '../types/order';
+import { OrderQueue, OrderSort, OrderStatus } from '../types/order';
+import type { Order, OrderSource } from '../types/order';
 import { useTranslation } from '../i18n';
 import { describeWrite } from '../components/marketplaceWrite';
 import '../styles/OrdersPage.css';
@@ -239,6 +239,18 @@ export function OrdersPage({ addToast }: OrdersPageProps) {
     setSearchParams(next);
   };
 
+  // One of the quick buttons above the list: each shows one thing, so it clears
+  // the others (a queue, a status, the deleted ones) and starts from the first page.
+  const showQuickly = (choice: Record<string, string | undefined>) =>
+    updateParams({
+      queue: undefined,
+      status: undefined,
+      deleted: undefined,
+      sort: undefined,
+      skip: '0',
+      ...choice,
+    });
+
   const handleFiltersChange = (filters: Filters) => {
     updateParams({
       search: filters.search || undefined,
@@ -321,18 +333,39 @@ export function OrdersPage({ addToast }: OrdersPageProps) {
 
       <div className="queue-bar">
         <nav className="queue-tabs" aria-label={t('queue.label')}>
-          {[undefined, ...Object.values(OrderQueue)].map((q) => (
+          <button
+            type="button"
+            className="queue-tab"
+            aria-pressed={!deleted && !queue && !status}
+            onClick={() => showQuickly({})}
+          >
+            {t('queue.all')}
+          </button>
+          {/* what is "in progress" on the marketplace is asked for most, so it has a button of its own */}
+          <button
+            type="button"
+            className="queue-tab"
+            aria-pressed={!deleted && !queue && status === OrderStatus.CONFIRMED}
+            onClick={() => showQuickly({ status: OrderStatus.CONFIRMED })}
+          >
+            {t(`status.${OrderStatus.CONFIRMED}`)}
+            {stats?.by_status && (
+              <>
+                {' '}
+                <span className="queue-count">{stats.by_status[OrderStatus.CONFIRMED] ?? 0}</span>
+              </>
+            )}
+          </button>
+          {Object.values(OrderQueue).map((q) => (
             <button
-              key={q ?? 'all'}
+              key={q}
               type="button"
               className={`queue-tab${q === OrderQueue.LATE ? ' queue-tab-late' : ''}`}
               aria-pressed={!deleted && queue === q}
-              onClick={() =>
-                updateParams({ queue: q, deleted: undefined, sort: undefined, skip: '0' })
-              }
+              onClick={() => showQuickly({ queue: q })}
             >
-              {t(q ? `queue.${q}` : 'queue.all')}
-              {q && stats?.queues && (
+              {t(`queue.${q}`)}
+              {stats?.queues && (
                 <>
                   {' '}
                   <span className="queue-count">{stats.queues[q]}</span>
@@ -345,12 +378,7 @@ export function OrdersPage({ addToast }: OrdersPageProps) {
             className="queue-tab queue-tab-deleted"
             aria-pressed={deleted}
             onClick={() =>
-              updateParams({
-                deleted: deleted ? undefined : 'true',
-                queue: undefined,
-                sort: undefined,
-                skip: '0',
-              })
+              showQuickly(deleted ? {} : { deleted: 'true' })
             }
           >
             {t('orders.deletedView')}

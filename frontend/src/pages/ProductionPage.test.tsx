@@ -1,5 +1,5 @@
-import { render, screen, within } from "@testing-library/react";
-import { MemoryRouter } from "react-router-dom";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { MemoryRouter, useLocation } from "react-router-dom";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { OrderSource, OrderStatus, type ProductionList } from "../types/order";
 
@@ -63,9 +63,15 @@ const LIST: ProductionList = {
   ],
 };
 
-function renderPage() {
+function Where() {
+  const location = useLocation();
+  return <p data-testid="where">{`${location.pathname}${location.search}`}</p>;
+}
+
+function renderPage(path = "/production") {
   return render(
-    <MemoryRouter>
+    <MemoryRouter initialEntries={[path]}>
+      <Where />
       <ProductionPage />
     </MemoryRouter>,
   );
@@ -108,5 +114,117 @@ describe("the to-make list", () => {
     renderPage();
 
     expect(await screen.findByText(/Nothing to make/)).toBeInTheDocument();
+  });
+});
+
+describe("narrowing the to-make list", () => {
+  it("asks for everything at first", async () => {
+    vi.mocked(ordersApi.production).mockResolvedValue(LIST);
+    renderPage();
+
+    await screen.findAllByRole("row");
+
+    expect(ordersApi.production).toHaveBeenCalledWith({ status: undefined, search: undefined });
+    expect(screen.getByRole("button", { name: "All" })).toHaveAttribute("aria-pressed", "true");
+  });
+
+  it("offers the statuses an order to make can be in, and asks for the one chosen", async () => {
+    vi.mocked(ordersApi.production).mockResolvedValue(LIST);
+    renderPage();
+    await screen.findAllByRole("row");
+
+    fireEvent.click(screen.getByRole("button", { name: "In progress" }));
+
+    await waitFor(() =>
+      expect(ordersApi.production).toHaveBeenLastCalledWith({ status: "CONFIRMED", search: undefined }),
+    );
+    expect(screen.getByRole("button", { name: "In progress" })).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByRole("button", { name: "All" })).toHaveAttribute("aria-pressed", "false");
+    expect(screen.getByTestId("where")).toHaveTextContent("/production?status=CONFIRMED");
+    // no status the queue does not hold
+    expect(screen.queryByRole("button", { name: "Shipped" })).not.toBeInTheDocument();
+  });
+
+  it("starts from the status in the address", async () => {
+    vi.mocked(ordersApi.production).mockResolvedValue(LIST);
+    renderPage("/production?status=NEW");
+
+    await screen.findAllByRole("row");
+
+    expect(ordersApi.production).toHaveBeenCalledWith({ status: "NEW", search: undefined });
+    expect(screen.getByRole("button", { name: "New" })).toHaveAttribute("aria-pressed", "true");
+  });
+
+  it("ignores a status that is not one of those", async () => {
+    vi.mocked(ordersApi.production).mockResolvedValue(LIST);
+    renderPage("/production?status=SHIPPED");
+
+    await screen.findAllByRole("row");
+
+    expect(ordersApi.production).toHaveBeenCalledWith({ status: undefined, search: undefined });
+  });
+
+  it("searches for the orders typed, several with commas, after a pause in typing", async () => {
+    vi.mocked(ordersApi.production).mockResolvedValue(LIST);
+    renderPage();
+    await screen.findAllByRole("row");
+    vi.mocked(ordersApi.production).mockClear();
+
+    fireEvent.change(screen.getByRole("searchbox"), { target: { value: " AN-000001, AN-000002 " } });
+
+    await waitFor(() =>
+      expect(ordersApi.production).toHaveBeenLastCalledWith({
+        status: undefined,
+        search: "AN-000001, AN-000002",
+      }),
+    );
+    expect(ordersApi.production).toHaveBeenCalledTimes(1);
+    expect(screen.getByTestId("where")).toHaveTextContent("search=");
+  });
+
+  it("puts a status and a search together", async () => {
+    vi.mocked(ordersApi.production).mockResolvedValue(LIST);
+    renderPage("/production?status=CONFIRMED");
+    await screen.findAllByRole("row");
+
+    fireEvent.change(screen.getByRole("searchbox"), { target: { value: "ola" } });
+
+    await waitFor(() =>
+      expect(ordersApi.production).toHaveBeenLastCalledWith({ status: "CONFIRMED", search: "ola" }),
+    );
+  });
+
+  it("says nothing matches, rather than that nothing is to be made, when a search finds nothing", async () => {
+    vi.mocked(ordersApi.production).mockResolvedValue({ lines: [], order_count: 0 });
+    renderPage("/production?search=nobody");
+
+    expect(await screen.findByText("No order to make matches this.")).toBeInTheDocument();
+    expect(screen.queryByText(/Nothing to make/)).not.toBeInTheDocument();
+  });
+
+  it("clears the search with its button", async () => {
+    vi.mocked(ordersApi.production).mockResolvedValue(LIST);
+    renderPage("/production?search=ola");
+    await screen.findAllByRole("row");
+    expect(screen.getByRole("searchbox")).toHaveValue("ola");
+
+    fireEvent.click(screen.getByRole("button", { name: "Clear the search" }));
+
+    await waitFor(() =>
+      expect(ordersApi.production).toHaveBeenLastCalledWith({ status: undefined, search: undefined }),
+    );
+    expect(screen.getByRole("searchbox")).toHaveValue("");
+    expect(screen.getByTestId("where")).not.toHaveTextContent("search=");
+  });
+
+  it("closes an order opened from here back to the list as it was narrowed", async () => {
+    vi.mocked(ordersApi.production).mockResolvedValue(LIST);
+    renderPage("/production?status=CONFIRMED&search=ola");
+    const rows = (await screen.findAllByRole("row")).slice(1);
+
+    fireEvent.click(within(rows[0]).getByRole("link", { name: "AN-000002" }));
+
+    // the link carries where to go back to
+    expect(within(rows[0]).getByRole("link", { name: "AN-000002" })).toHaveAttribute("href", "/orders/order-2");
   });
 });

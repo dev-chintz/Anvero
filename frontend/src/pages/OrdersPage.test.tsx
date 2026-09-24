@@ -106,7 +106,7 @@ beforeEach(() => {
     pending: 1,
     cancellation_warnings: 0,
     queues: { to_make: 4, unpaid: 1, to_ship: 2, late: 3 },
-    by_status: { NEW: 1 },
+    by_status: { NEW: 1, CONFIRMED: 6 },
     by_source: { ALLEGRO: 1 },
   });
   vi.mocked(integrationsApi.allegroStatus).mockResolvedValue({
@@ -533,5 +533,68 @@ describe("going to a page of the list", () => {
     await waitFor(() =>
       expect(ordersApi.list).toHaveBeenLastCalledWith(expect.objectContaining({ skip: 80 })),
     );
+  });
+});
+
+describe("the quick button for orders in progress", () => {
+  it("shows how many orders are in progress, beside the other quick buttons", async () => {
+    renderAt("/orders");
+
+    await screen.findByRole("button", { name: "In progress 6" });
+    const nav = screen.getByRole("navigation", { name: "Work queues" });
+
+    // right after "All", ahead of the queues
+    const tabs = Array.from(nav.querySelectorAll("button")).map((b) => b.textContent?.trim());
+    expect(tabs.slice(0, 3)).toEqual(["All", "In progress 6", "To make 4"]);
+  });
+
+  it("asks for the orders in that status only, and shows itself pressed", async () => {
+    renderAt("/orders");
+    fireEvent.click(await screen.findByRole("button", { name: "In progress 6" }));
+
+    await waitFor(() =>
+      expect(ordersApi.list).toHaveBeenLastCalledWith(
+        expect.objectContaining({ status: "CONFIRMED", queue: undefined, skip: 0 }),
+      ),
+    );
+    expect(screen.getByRole("button", { name: "In progress 6" })).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByRole("button", { name: "All" })).toHaveAttribute("aria-pressed", "false");
+    expect(screen.getByTestId("where")).toHaveTextContent("status=CONFIRMED");
+  });
+
+  it("gives way to a queue, which does not keep the status", async () => {
+    renderAt("/orders?status=CONFIRMED");
+    expect(await screen.findByRole("button", { name: "In progress 6" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "To ship 2" }));
+
+    await waitFor(() =>
+      expect(ordersApi.list).toHaveBeenLastCalledWith(
+        expect.objectContaining({ queue: "to_ship", status: undefined }),
+      ),
+    );
+    expect(screen.getByRole("button", { name: "In progress 6" })).toHaveAttribute("aria-pressed", "false");
+  });
+
+  it("goes back to everything from All", async () => {
+    renderAt("/orders?status=CONFIRMED");
+    await screen.findByRole("link", { name: "AN-000007" });
+
+    fireEvent.click(screen.getByRole("button", { name: "All" }));
+
+    await waitFor(() =>
+      expect(ordersApi.list).toHaveBeenLastCalledWith(expect.objectContaining({ status: undefined })),
+    );
+    expect(screen.getByRole("button", { name: "All" })).toHaveAttribute("aria-pressed", "true");
+  });
+
+  it("is not pressed while the deleted orders are shown", async () => {
+    renderAt("/orders?status=CONFIRMED&deleted=true");
+    await screen.findByRole("button", { name: "Deleted" });
+
+    expect(screen.getByRole("button", { name: "In progress 6" })).toHaveAttribute("aria-pressed", "false");
   });
 });

@@ -1005,6 +1005,106 @@ def test_only_orders_still_to_make_count():
 # --- search beyond the order's own ids -----------------------------------------
 
 
+# --- narrowing the "to make today" list to some orders -----------------------------
+
+
+def _three_orders_to_make(tag):
+    """Three orders, each with a product of its own and a buyer of its own.
+
+    The tests share one database, so each names its own set with `tag`."""
+
+    def item(name):
+        return [
+            {"name": f"FILT{tag} {name}", "sku": f"FILT{tag}-{name}", "quantity": 2, "unit_price": "1.00"}
+        ]
+
+    return (
+        _to_make(f"filt{tag}-a", item("A"), status="NEW", customer={"login": f"nick_a_{tag}"}),
+        _to_make(f"filt{tag}-b", item("B"), status="CONFIRMED", customer={"login": f"Nick_B_{tag}"}),
+        _to_make(f"filt{tag}-c", item("C"), status="CONFIRMED", customer={"login": f"nick_c_{tag}"}),
+    )
+
+
+def _filtered_production(tag, **params) -> dict[str, int]:
+    body = client.get("/api/v1/orders/production", params=params).json()
+    return {
+        line["name"].removeprefix(f"FILT{tag} "): line["quantity"]
+        for line in body["lines"]
+        if line["name"].startswith(f"FILT{tag} ")
+    }
+
+
+def test_the_production_list_can_be_narrowed_to_one_status():
+    _three_orders_to_make("st")
+
+    assert _filtered_production("st", status="CONFIRMED") == {"B": 2, "C": 2}
+    assert _filtered_production("st", status="NEW") == {"A": 2}
+    # a status the queue does not hold gives nothing, not everything
+    assert _filtered_production("st", status="SHIPPED") == {}
+
+
+def test_the_production_list_can_be_narrowed_to_orders_by_number_login_or_product():
+    _, b, _ = _three_orders_to_make("nl")
+
+    assert _filtered_production("nl", search=b["order_label"]) == {"B": 2}
+    # a login is found whatever its case
+    assert _filtered_production("nl", search="NICK_A_NL") == {"A": 2}
+    assert _filtered_production("nl", search="FILTnl-C") == {"C": 2}
+
+
+def test_several_orders_can_be_asked_for_at_once():
+    a, b, c = _three_orders_to_make("sv")
+
+    assert _filtered_production("sv", search=f"{a['order_label']}, {c['order_label']}") == {
+        "A": 2,
+        "C": 2,
+    }
+    assert _filtered_production("sv", search=f"{a['order_label']};{b['order_label']}\n") == {
+        "A": 2,
+        "B": 2,
+    }
+
+
+def test_a_search_and_a_status_both_have_to_hold():
+    _three_orders_to_make("ss")
+
+    assert _filtered_production("ss", search="nick_a_ss", status="CONFIRMED") == {}
+    assert _filtered_production("ss", search="nick_b_ss", status="CONFIRMED") == {"B": 2}
+
+
+def test_a_search_that_finds_nothing_leaves_the_list_empty_not_full():
+    _three_orders_to_make("nf")
+    body = client.get("/api/v1/orders/production", params={"search": "nobody-has-this"}).json()
+
+    assert body["lines"] == []
+    assert body["order_count"] == 0
+
+
+def test_an_empty_search_leaves_the_list_as_it_is():
+    _three_orders_to_make("em")
+
+    assert _filtered_production("em", search=" , ; ") == _filtered_production("em")
+    assert len(_filtered_production("em")) == 3
+
+
+def test_the_count_of_orders_follows_the_narrowing():
+    a, b, _ = _three_orders_to_make("ct")
+
+    narrowed = client.get(
+        "/api/v1/orders/production", params={"search": f"{a['order_label']},{b['order_label']}"}
+    ).json()
+
+    assert narrowed["order_count"] == 2
+
+
+def test_a_deleted_order_is_not_in_the_production_list_however_it_is_asked_for():
+    a, _, _ = _three_orders_to_make("dl")
+    client.delete(f"/api/v1/orders/{a['id']}")
+
+    assert _filtered_production("dl", search=a["order_label"]) == {}
+    assert "A" not in _filtered_production("dl")
+
+
 def _find(term):
     listed = client.get("/api/v1/orders", params={"search": term}).json()
     return listed["total"], [o["external_id"] for o in listed["items"]]

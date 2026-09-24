@@ -321,8 +321,16 @@ export const ordersApi = {
     return request<OrderWithDetails>(`/orders/${orderId}/restore`, { method: "POST" });
   },
 
-  production(): Promise<ProductionList> {
-    return request<ProductionList>("/orders/production");
+  /**
+   * The to-make list. `status` keeps the orders in one status; `search` keeps the
+   * orders it finds, several separated by commas (`AN-000041, AN-000043`).
+   */
+  production(params: { status?: OrderStatus; search?: string } = {}): Promise<ProductionList> {
+    const query = new URLSearchParams();
+    if (params.status) query.set("status", params.status);
+    if (params.search) query.set("search", params.search);
+    const queryString = query.toString();
+    return request<ProductionList>(`/orders/production${queryString ? `?${queryString}` : ""}`);
   },
 
   stats(): Promise<OrderStats> {

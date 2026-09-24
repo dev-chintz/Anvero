@@ -318,18 +318,35 @@ class OrderRepository:
             )
         )
 
-    def list_in_queue_with_items(self, queue: OrderQueue) -> list[Order]:
+    def list_in_queue_with_items(
+        self,
+        queue: OrderQueue,
+        status: OrderStatus | None = None,
+        search_terms: list[str] | None = None,
+    ) -> list[Order]:
         """Every order in a queue, with its items, most urgent first.
 
         Unpaged: a queue is the day's work, tens of orders, not the history.
+        `status` keeps the orders in that Anvero status; `search_terms` keep the
+        orders any of them finds, each as the order list's search reads it (an
+        Anvero number, a buyer's login or name, a product's code or name, ...),
+        so the list can be narrowed to the orders being made now.
         """
+        query = self._filtered(queue=queue, status=status)
+        terms = [term.strip() for term in search_terms or [] if term.strip()]
+        if terms:
+            found: set = set()
+            for term in terms:
+                found.update(
+                    self._filtered(queue=queue, status=status, search=term)
+                    .with_entities(Order.id)
+                    .all()
+                )
+            query = query.filter(Order.id.in_({row[0] for row in found}))
         return list(
-            self.db.scalars(
-                select(Order)
-                .where(self._in_queue(queue), Order.deleted_at.is_(None))
-                .options(selectinload(Order.items))
-                .order_by(*self._ordering(OrderSort.AT_RISK))
-            )
+            query.options(selectinload(Order.items))
+            .order_by(*self._ordering(OrderSort.AT_RISK))
+            .all()
         )
 
     def _to_db_datetime(self, value: datetime) -> datetime:

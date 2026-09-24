@@ -457,6 +457,20 @@ definitions. No queue holds an order cancelled on its marketplace.
 The `to_make` queue (see "Work queues" above) turned around by product, for
 the "to make" page. Unpaged: it is the day's work, not the history.
 
+Two optional query parameters narrow it to the orders being made now:
+
+- `status`: keep the orders in one Anvero status (the queue holds `NEW` and
+  `CONFIRMED`; any other gives an empty list).
+- `search`: keep the orders the order list's search finds (an Anvero number,
+  a buyer's login or name, a product's code or name, ...), at most 500 characters.
+  Several can be given separated by commas, semicolons or line breaks
+  (`AN-000041, AN-000043`), and an order matching any of them counts. A search
+  that finds nothing gives an empty list, not the whole one; one made only of
+  separators is no search.
+
+Both hold together. `order_count` and every line follow the narrowing, and a deleted
+order is never in the list.
+
 ```json
 {
   "order_count": 2,

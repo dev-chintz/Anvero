@@ -279,9 +279,11 @@ td {
   gap: 0.2rem;
 }
 
-.orders-table .order-cell-external {
-  color: var(--color-muted);
-  font-size: 0.75rem;
+/* the buyer's login, right under Anvero's number: what an operator knows a buyer by */
+.orders-table .order-cell-login {
+  color: var(--color-heading);
+  font-size: 0.9rem;
+  font-weight: 600;
   max-width: 180px;
   overflow: hidden;
   text-overflow: ellipsis;

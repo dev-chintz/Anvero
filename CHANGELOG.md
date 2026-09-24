@@ -4,6 +4,23 @@ All significant changes to the Anvero project.
 
 ---
 
+## 2026-09-25
+
+### ⚡ Quick "In progress" button, buyer login in the list, narrowing the to-make list
+
+- A **"W realizacji" quick button** (with the number of such orders) right after
+  "Wszystkie" shows only the orders in that status; each quick button clears the
+  others, and the filter panel follows it.
+- The order cell of the list shows the **buyer's login** right under Anvero's number,
+  then the name, instead of the marketplace's order id (which is the number's tooltip).
+- The **"Do wykonania" page** has quick buttons (All, New, In progress) and a search
+  box: type one or several order numbers, logins or names separated by commas to
+  see only what is needed for those orders. The address keeps the choice.
+- `GET /orders/production` takes `status` and `search`.
+- 696 backend and 256 frontend tests passing.
+
+---
+
 ## 2026-09-24
 
 ### 📋 Order list: parcels and open orders refreshed, scrolling, thumbnails, paging

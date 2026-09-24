@@ -138,3 +138,53 @@
     break-inside: avoid;
   }
 }
+
+/* Narrowing the list to a status or to some orders (ProductionPage.tsx) */
+.production-filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.production-search {
+  position: relative;
+  flex: 1 1 22rem;
+  max-width: 34rem;
+}
+
+.production-search input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0.5rem 2rem 0.5rem 0.75rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg);
+  color: var(--color-text);
+  font: inherit;
+}
+
+.production-search input:focus {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 0;
+}
+
+.production-search-clear {
+  position: absolute;
+  top: 50%;
+  right: 0.4rem;
+  transform: translateY(-50%);
+  border: none;
+  background: none;
+  color: var(--color-muted);
+  cursor: pointer;
+  padding: 0.25rem 0.4rem;
+}
+
+@media print {
+  .production-filters {
+    display: none;
+  }
+}
