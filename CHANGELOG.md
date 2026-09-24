@@ -6,6 +6,35 @@ All significant changes to the Anvero project.
 
 ## 2026-09-24
 
+### 📥 A unified inbox for buyer messages (started, plan B2)
+
+- `message_threads` and `messages` (migration `440a475bcd05`): one buyer
+  conversation each, from any marketplace, and its messages, kept whether
+  read from a marketplace or written in Anvero (`created_in_anvero`).
+- Allegro's Message Center read into it: `POST
+  /integrations/allegro/messages/sync` (a button, not yet scheduled) reads
+  threads and their messages, comparing each thread's activity and read flag
+  against what is stored so nothing already caught up is re-read.
+- `GET /messages/threads` (the inbox, newest activity first), `GET
+  /messages/threads/{id}` (one thread), `PATCH .../aside` (put a thread aside
+  or bring it back, local to Anvero), `POST .../reply` (through
+  `MarketplaceWriter`, so safe mode decides whether it really reaches the
+  buyer). An Inbox page: a thread list with an unread mark, a reply box, and
+  the aside filter.
+- Built without reading Allegro's published OpenAPI specification — this
+  session's network egress could not reach `developer.allegro.pl` — from its
+  Message Center announcement and search-indexed excerpts instead, flagged
+  unverified where more than one source does not agree
+  (`INTEGRATIONS.md`, "Buyer messages"). Erli is not read: no messaging
+  endpoint was found in its public API. Never sent for real: safe mode has
+  been on throughout.
+- Fixed in passing: `OrderRepository.list_buyer_orders` and
+  `.list_in_queue_with_items` (added by plan A3, the same day) sat after a
+  method literally named `list` in the same class, so their own `->
+  list[Order]` return annotations resolved `list` to that method instead of
+  the builtin and the backend failed to import at all. Moved both above it;
+  no behaviour changed.
+
 ### 📤 Status and tracking numbers sent to Allegro (through safe mode)
 
 - A status set in Anvero is sent to Allegro's fulfillment status, and a

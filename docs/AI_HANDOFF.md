@@ -54,8 +54,10 @@ Repository: <https://github.com/dev-chintz/Anvero>
   Allegro note imported alongside the buyer's message, and item pictures
   fetched from Allegro's offer API (unverified against the sandbox for
   scope). Full detail in `DECISIONS.md` and `CHANGELOG.md`.
-- 425 backend tests and 92 frontend tests (Vitest + React Testing Library)
-  passing
+- 456 of 457 backend tests and 98 frontend tests (Vitest + React Testing
+  Library) passing; the one backend failure is pre-existing and unrelated
+  (SQLite-only naive/aware datetime comparison in an order-sync test, found
+  2026-09-24 — see `PROJECT_STATUS.md`, "Not yet verified")
 
 ---
 

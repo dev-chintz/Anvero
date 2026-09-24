@@ -32,6 +32,11 @@ are days in the business timezone, `BUSINESS_TIMEZONE`, default
 | `GET` | `/api/v1/integrations/allegro/connect/{flow_id}` | has the seller confirmed yet; rate limited to 60 per minute per IP |
 | `DELETE` | `/api/v1/integrations/allegro/connection` | forget the connected account |
 | `POST` | `/api/v1/integrations/allegro/import` | run an Allegro import; rate limited to 6 attempts per minute per IP |
+| `POST` | `/api/v1/integrations/allegro/messages/sync` | read new and changed Message Center threads; rate limited to 6 per minute per IP |
+| `GET` | `/api/v1/messages/threads` | the unified inbox: threads across every source, newest activity first |
+| `GET` | `/api/v1/messages/threads/{id}` | one thread with its messages |
+| `PATCH` | `/api/v1/messages/threads/{id}/aside` | put a thread aside, or bring it back |
+| `POST` | `/api/v1/messages/threads/{id}/reply` | reply to a thread, also sent to Allegro (safe mode permitting) |
 
 There is no registration endpoint. Accounts are created on the server with
 `scripts/create_user.py`; see `DECISIONS.md`.
@@ -140,6 +145,83 @@ Error responses:
 
 Every error detail is a plain description; none of them include a token,
 credential or raw Allegro response.
+
+## `POST /api/v1/integrations/allegro/messages/sync`
+
+Reads Allegro's Message Center: threads whose last message or read flag has
+moved since the last sync, and their messages. No request body.
+
+```json
+{"threads_synced": 2, "messages_added": 3}
+```
+
+Rate limited to 6 attempts per minute per IP, and shares the Allegro import's
+lock (both refresh the same rotating token), so `409` while an import or
+another message sync is running. Same error shapes as `.../import` otherwise.
+See `INTEGRATIONS.md`, "Buyer messages", for what a thread and a message
+carry and what is unconfirmed about it.
+
+## `GET /api/v1/messages/threads`
+
+The unified inbox, newest activity first. Query parameters: `source`
+(`ALLEGRO` or `ERLI`), `aside` (default `false`: threads set aside are
+excluded unless this is `true`), `unread_only` (default `false`).
+
+```json
+[
+  {
+    "id": "...", "source": "ALLEGRO", "interlocutor_login": "buyer1",
+    "order_external_id": "5e2a4f40-...", "last_message_at": "...Z",
+    "last_message_text": "Kiedy wyślecie paczkę?", "read": false, "aside": false
+  }
+]
+```
+
+`order_external_id` is the marketplace's own order id, not an Anvero one -
+match it against `orders.external_id` for the same `source` to find the
+order, if it has been imported.
+
+## `GET /api/v1/messages/threads/{id}`
+
+One thread with its messages, oldest first:
+
+```json
+{
+  "...": "as above",
+  "messages": [
+    {
+      "id": "...", "direction": "IN", "author_login": "buyer1",
+      "text": "Kiedy wyślecie paczkę?", "sent_at": "...Z", "created_in_anvero": false
+    }
+  ]
+}
+```
+
+`404` for an id no thread has.
+
+## `PATCH /api/v1/messages/threads/{id}/aside`
+
+Body `{"aside": true}` or `{"aside": false}`; returns the thread. Local to
+Anvero only - nothing is sent to the marketplace.
+
+## `POST /api/v1/messages/threads/{id}/reply`
+
+Body `{"text": "..."}`, up to 4000 characters. Writes the reply to Anvero and
+sends it to the marketplace unless safe mode holds it back, through the same
+door as a status change or a tracking number (see "Changes that reach the
+marketplace" below).
+
+```json
+{
+  "thread": {"...": "as GET .../threads/{id}"},
+  "marketplace_write": {"...": "as GET /api/v1/marketplace-writes"}
+}
+```
+
+The reply is kept in the thread whatever becomes of sending it - `outcome`
+says whether it was sent, held back by safe mode, or refused, and `detail`
+why. `409` for a source with no messaging endpoint (only `ALLEGRO` has one
+today; see `INTEGRATIONS.md`, "Buyer messages").
 
 ## `GET /api/v1/orders/{id}/billing`
 
@@ -317,6 +399,10 @@ A status is sent only for an Allegro order, and only when it actually changes:
 `FEDEX`, `ALLEGRO`, `OTHER` (`422` otherwise); `OTHER` needs `carrier_name`.
 The parcel is stored on any order; for an Allegro one it is also sent. A
 parcel added in Anvero stays on the order when an import does not list it.
+
+`POST /api/v1/messages/threads/{id}/reply` reports the same way, as
+`marketplace_write` in its own response rather than nested in an order (a
+thread is not one): action `message_reply`.
 
 ## `GET /api/v1/orders/{id}/buyer-orders`
 

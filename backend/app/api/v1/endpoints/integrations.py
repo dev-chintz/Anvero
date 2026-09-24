@@ -24,12 +24,14 @@ from app.schemas.integration import (
     AllegroSettingsRequest,
     AllegroStatus,
 )
+from app.schemas.message import MessageSyncResult
 from app.services import allegro_settings
 from app.services.allegro_import import (
     build_allegro_client,
     build_allegro_import_service,
 )
 from app.services.allegro_sync import ImportAlreadyRunning, import_lock, run_import
+from app.services.message_sync import run_message_sync
 
 # Every endpoint here requires a logged-in user, same as the orders router.
 router = APIRouter(
@@ -179,4 +181,34 @@ def import_from_allegro(
         created=result.created,
         updated=result.updated,
         cancellation_warnings=result.cancellation_warnings,
+    )
+
+
+@router.post("/allegro/messages/sync", response_model=MessageSyncResult)
+@limiter.limit("6/minute")
+def sync_allegro_messages(request: Request, db: Session = Depends(get_db)):
+    """Read the Message Center: new and changed threads, and their messages.
+
+    Shares the import lock with an order import, since both refresh the same
+    rotating token.
+    """
+    try:
+        result = run_message_sync(db)
+    except ImportAlreadyRunning as exc:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="An Allegro import or message sync is already running",
+        ) from exc
+    except IntegrationNotConfigured as exc:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Allegro is not configured",
+        ) from exc
+    except IntegrationAuthError as exc:
+        raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=str(exc)) from exc
+    except IntegrationError as exc:
+        raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=str(exc)) from exc
+
+    return MessageSyncResult(
+        threads_synced=result.threads_synced, messages_added=result.messages_added
     )

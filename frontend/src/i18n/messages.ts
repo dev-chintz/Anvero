@@ -347,6 +347,30 @@ export const en = {
 
   // toasts
   "toast.close": "Close notification",
+
+  // inbox: buyer messages, one across every channel
+  "nav.inbox": "Inbox",
+  "inbox.title": "Inbox",
+  "inbox.subtitle": "Buyer messages from every channel, in one place",
+  "inbox.sync": "Check for new messages",
+  "inbox.syncing": "Checking…",
+  "inbox.empty": "Nothing here. New messages show up after the next sync.",
+  "inbox.asideEmpty": "No threads set aside.",
+  "inbox.filter.active": "Needs attention",
+  "inbox.filter.aside": "Set aside",
+  "inbox.noOrder": "No linked order",
+  "inbox.order": "Order {order}",
+  "inbox.putAside": "Put aside",
+  "inbox.bringBack": "Bring back",
+  "inbox.selectThread": "Select a conversation to read it",
+  "inbox.you": "You",
+  "inbox.reply.placeholder": "Write a reply…",
+  "inbox.reply.send": "Send",
+  "inbox.reply.sending": "Sending…",
+  "inbox.reply.dryRun": "Held back by safe mode: recorded, not sent to the buyer.",
+  "inbox.reply.sent": "Sent.",
+  "inbox.reply.failed": "Not sent: {detail}",
+  "inbox.erliUnsupported": "Erli has no messaging endpoint yet; this thread is read-only.",
 } as const;
 
 export type MessageKey = keyof typeof en;
@@ -698,4 +722,27 @@ export const pl: Record<MessageKey, string> & Record<string, string> = {
   "tracking.RETURNED": "Zwrócona",
 
   "toast.close": "Zamknij powiadomienie",
+
+  "nav.inbox": "Wiadomości",
+  "inbox.title": "Wiadomości",
+  "inbox.subtitle": "Wiadomości od kupujących ze wszystkich kanałów, w jednym miejscu",
+  "inbox.sync": "Sprawdź nowe wiadomości",
+  "inbox.syncing": "Sprawdzanie…",
+  "inbox.empty": "Brak wiadomości. Nowe pojawią się po kolejnej synchronizacji.",
+  "inbox.asideEmpty": "Żaden wątek nie został odłożony.",
+  "inbox.filter.active": "Do obsłużenia",
+  "inbox.filter.aside": "Odłożone",
+  "inbox.noOrder": "Brak powiązanego zamówienia",
+  "inbox.order": "Zamówienie {order}",
+  "inbox.putAside": "Odłóż",
+  "inbox.bringBack": "Przywróć",
+  "inbox.selectThread": "Wybierz rozmowę, aby ją przeczytać",
+  "inbox.you": "Ty",
+  "inbox.reply.placeholder": "Napisz odpowiedź…",
+  "inbox.reply.send": "Wyślij",
+  "inbox.reply.sending": "Wysyłanie…",
+  "inbox.reply.dryRun": "Wstrzymane przez tryb bezpieczny: zapisane, nie wysłane do kupującego.",
+  "inbox.reply.sent": "Wysłano.",
+  "inbox.reply.failed": "Nie wysłano: {detail}",
+  "inbox.erliUnsupported": "Erli nie ma jeszcze API wiadomości; ten wątek jest tylko do odczytu.",
 };

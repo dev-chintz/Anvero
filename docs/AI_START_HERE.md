@@ -34,7 +34,18 @@ wider search and the buyer's other orders; A4, the Erli import, has its
 adapter built from Erli's docs and waits for the owner's API key; A5, safe
 mode, is done, so every marketplace write must go through `MarketplaceWriter`;
 A6, status and tracking number to Allegro, is built but never sent for real;
-A7, the application status page, is next).
+A7, the application status page, is next; separately, B2, a unified buyer
+inbox, was also started the same day — see below).
+
+Also started 2026-09-24, out of the plan's order since the owner asked for
+it directly: **B2, buyer messages.** A unified inbox reads Allegro's Message
+Center (`message_threads`, `messages`), replies go out through safe mode,
+and a thread can be put aside. Built without reading Allegro's published
+OpenAPI specification, since this session's network egress could not reach
+`developer.allegro.pl`; field names beyond what more than one other source
+confirms are flagged unverified in `INTEGRATIONS.md`, "Buyer messages", and
+`DECISIONS.md`. Erli is not read: no messaging endpoint was found in its
+public API. Nothing has been sent to a real buyer yet.
 
 **Open task:** the first deployment to the NAS is prepared but not yet run; see "PICK UP HERE" in `PROJECT_STATUS.md` and `DEPLOYMENT.md`.
 
@@ -50,7 +61,8 @@ breakdown; the short version:
   history.
 - Allegro adapter, import script, an import endpoint and a button, one
   import at a time.
-- 425 backend and 92 frontend tests passing.
+- 456 of 457 backend and 98 frontend tests passing (one pre-existing backend
+  failure, unrelated to buyer messages; see `PROJECT_STATUS.md`).
 
 - One shared PostgreSQL 17 on the owner's NAS is the development database;
   each machine's `backend/.env` points at it (the password is not in Git, ask

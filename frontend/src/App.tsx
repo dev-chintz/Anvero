@@ -13,6 +13,7 @@ import { Dashboard } from './pages/Dashboard';
 import { LoginPage } from './pages/LoginPage';
 import { OrdersPage } from './pages/OrdersPage';
 import { ProductionPage } from './pages/ProductionPage';
+import { InboxPage } from './pages/InboxPage';
 import { Settings } from './pages/Settings';
 import { useTranslation } from './i18n';
 import './App.css';
@@ -118,6 +119,7 @@ export default function App() {
                   <Route path=":id" element={<OrderDetail />} />
                 </Route>
                 <Route path="/production" element={<ProductionPage />} />
+                <Route path="/inbox" element={<InboxPage />} />
                 <Route path="/settings" element={<Settings />} />
                 <Route
                   path="*"

@@ -437,6 +437,71 @@ invalidate one of them. Try it on the Sandbox first: switch safe mode off
 there, change one order's status and add a tracking number, and check both on
 the Sandbox's own order page.
 
+### Buyer messages
+
+Started 2026-09-24: the unified inbox (plan B2), reading Allegro's Message
+Center and replying to a thread through safe mode. **Built without reading
+Allegro's published OpenAPI specification**: `developer.allegro.pl` was
+blocked by this session's network egress and could not be reached, unlike
+every other Allegro feature above, which was built by reading the real
+documentation. What follows comes instead from Allegro's own Message Center
+announcement (`allegro/allegro-api` issue #4727) and search-indexed excerpts
+of the tutorial page, cross-checked against a generated API client's docs on
+GitHub where one could be found. Confirmed by more than one of those
+sources: the endpoint list below, and that a thread is
+`{id, read, lastMessageDateTime, interlocutor: {login, ...}}` and that
+`POST /messaging/messages` takes `{recipient: {login}, order: {id}, text,
+attachments}`. **Not confirmed, and to be checked before trusting this
+further:** the exact shape of one entry of `GET
+/messaging/threads/{id}/messages` — assumed to be `{id, text, createdAt,
+author: {login}}` by analogy with the confirmed shapes — and the scope name
+below. Read `app/integrations/allegro/mapper.py`'s own note on this before
+changing the mapping.
+
+Endpoints used, all through the same rotating token as orders:
+
+- `GET /messaging/threads`, paged like billing entries (`limit`/`offset`),
+  assumed newest activity first — nothing here confirms Allegro's default
+  sort, and the sync (below) depends on it to stop early.
+- `GET /messaging/threads/{id}/messages`, paged the same way.
+- `POST /messaging/threads/{id}/messages` with `{"text": ..., "attachments":
+  []}`: a reply in an existing thread. Starting a new thread from Anvero
+  (`POST /messaging/messages`, confirmed above but unused) is left for later;
+  today every thread starts on the marketplace.
+
+**Reading.** `POST /integrations/allegro/messages/sync` (a button, not yet
+scheduled) reads every thread page, newest activity first, and compares each
+against what is stored: a thread whose `lastMessageDateTime` and `read` flag
+have not moved is skipped, so a sync with nothing new costs one page of
+summaries. A page with nothing new stops the sync, on the assumption that
+everything later is stale too. A thread's own fields (`interlocutor_login`,
+`order_external_id`, `read`) are replaced on each sync, like an order's
+details; its messages are only added to, matched by `(thread_id,
+external_id)`, since a message once sent is never edited or withdrawn.
+Shares the import's lock (`import_lock`): both refresh the same rotating
+token.
+
+**Direction.** Allegro's response is not known to carry a message's
+direction (buyer or seller) as a field of its own, so it is decided by
+comparing the message's `author.login` to the connected seller's own
+(`integration_credentials.account_login`, read once when the account was
+connected). Without one to compare against, every message reads as incoming.
+
+**Sending.** A reply goes through `MarketplaceWriter`, like a status or a
+tracking number: safe mode holds it back by default, and switching it off is
+needed to actually send one — try it on the Sandbox first, same as writing
+statuses. The message is kept in Anvero either way (`created_in_anvero`),
+whatever becomes of sending it, the same choice `add_shipment` makes for a
+tracking number. Needs a scope believed to be `allegro:api:messaging` — seen
+in an access token in a GitHub search result, not the developer portal's own
+scope list — which the application may not carry yet; a 403 says so in the
+log, the same as a missing orders scope.
+
+**Not done:** Erli (its public API has no messaging endpoint that could be
+found — see "Erli" below), starting a new thread from Anvero, attachments,
+marking a thread read back to Allegro (reading it here does not mark it read
+there), a schedule (today only the button runs a sync), and disputes.
+
 ## Erli
 
 **Built 2026-09-24 from Erli's published API description only**
@@ -508,3 +573,12 @@ moves, exactly as for Allegro.
 - `comment` is the buyer's message. `deliveryTracking.trackingNumber` and
   `vendor` become a shipment, its `status` the tracking code.
 - Erli's order has no dispatch deadline, so Erli orders are never "late".
+
+### Buyer messages
+
+Not built. Erli's published API description (`erli.pl/svc/shop-api/doc/`)
+was searched for a messaging or conversation endpoint while building the
+unified inbox (plan B2, "Buyer messages" under Allegro above) and none was
+found — only order events (`/inbox`) and webhooks (`hooks`). Until Erli
+confirms otherwise, the inbox reads Allegro only; an Erli buyer's messages
+stay in Erli's own seller panel.

@@ -15,7 +15,9 @@ from app.integrations.base import IntegrationError
 from app.integrations.mapping import build as _build
 from app.integrations.mapping import obj as _obj
 from app.integrations.mapping import text as _text
+from app.models.message import MessageDirection
 from app.models.order import OrderSource, OrderStatus, PaymentType
+from app.schemas.message import SyncedMessage, SyncedThread
 from app.schemas.order import (
     BUYER_MESSAGE_MAX_LENGTH,
     SELLER_NOTE_MAX_LENGTH,
@@ -477,3 +479,80 @@ def map_checkout_form(checkout_form: dict[str, Any]) -> OrderCreate:
         raise OrderMappingError(
             f"order {external_id} fails validation on: {', '.join(fields)}"
         ) from exc
+
+
+# --- Message Center (INTEGRATIONS.md, "Buyer messages") ---------------------
+#
+# developer.allegro.pl was unreachable while this was built (the sandbox
+# environment's network egress blocked it), so these field names come from
+# Allegro's Message Center announcement and search-indexed excerpts of the
+# tutorial, not a read of the published OpenAPI specification or a real
+# response. Treat every name below as unconfirmed until one of those is
+# checked. Confirmed by more than one source: GET /messaging/threads returns
+# `threads: [{id, read, lastMessageDateTime, interlocutor: {login, ...}}]`,
+# and POST /messaging/messages takes `{recipient: {login}, order: {id}, text,
+# attachments}`. Unconfirmed: the exact shape of one entry of GET
+# /messaging/threads/{id}/messages - assumed here to be `{id, text, createdAt,
+# author: {login}}`, by analogy with the confirmed shapes above.
+
+
+def map_thread(raw: dict[str, Any]) -> SyncedThread | None:
+    """One entry of GET /messaging/threads, or None without an id.
+
+    Read leniently, like every other mapper here: an unreadable interlocutor,
+    order reference or read flag costs only that field, not the thread.
+    """
+    thread_id = _text(raw.get("id"))
+    if thread_id is None:
+        return None
+    interlocutor = _obj(raw.get("interlocutor"))
+    read = raw.get("read")
+    return _build(
+        SyncedThread,
+        thread_id,
+        "message thread",
+        {
+            "external_id": thread_id,
+            "interlocutor_login": _text(interlocutor.get("login")),
+            "order_external_id": _text(_obj(raw.get("order")).get("id")),
+            "last_message_at": _text(raw.get("lastMessageDateTime")),
+            "read": read if isinstance(read, bool) else True,
+        },
+        label="Thread",
+    )
+
+
+def map_message(raw: dict[str, Any], seller_login: str | None) -> SyncedMessage | None:
+    """One entry of GET /messaging/threads/{id}/messages, or None if unusable.
+
+    Allegro's response is not known to carry a direction of its own, so this
+    decides IN/OUT by comparing the author's login to the connected seller's
+    own (read once when the account was connected, `account_login`, and
+    passed in here): a message the seller's own login wrote is OUT, whoever
+    sent it from - the API or Allegro's own Message Center. Without a seller
+    login to compare against, every message maps as IN, which only affects a
+    thread read before an account has ever connected.
+    """
+    text_value = _text(raw.get("text"))
+    if text_value is None:
+        return None
+    message_id = _text(raw.get("id"))
+    author_login = _text(_obj(raw.get("author")).get("login"))
+    direction = (
+        MessageDirection.OUT
+        if seller_login and author_login == seller_login
+        else MessageDirection.IN
+    )
+    return _build(
+        SyncedMessage,
+        message_id or "?",
+        "message",
+        {
+            "external_id": message_id,
+            "direction": direction,
+            "author_login": author_login,
+            "text": text_value,
+            "sent_at": _text(raw.get("createdAt")),
+        },
+        label="Message",
+    )

@@ -287,7 +287,18 @@ In this order (the owner chose queues before any write to Allegro):
 
 1. **Labels through "Wysyłam z Allegro"**: buy the shipment, print A6.
 2. **Buyer messages**: one inbox across channels, reply from Anvero, put a
-   thread aside until later.
+   thread aside until later. Started 2026-09-24: `message_threads` and
+   `messages`, Allegro's Message Center read into a unified inbox, a reply
+   sent through safe mode, and putting a thread aside (`INTEGRATIONS.md`,
+   "Buyer messages"; `DECISIONS.md`). Built without reading Allegro's
+   published OpenAPI specification — this session's network egress could
+   not reach `developer.allegro.pl` — so field names beyond what more than
+   one other source confirms are flagged unverified rather than asserted.
+   Erli is not read: no messaging endpoint was found in its public API.
+   Left: starting a new thread from Anvero (only replying to an existing
+   one works), attachments, a schedule (only the button runs a sync today),
+   disputes, and sending anything for real (safe mode has been on
+   throughout, as for the first Allegro status and tracking-number writes).
 3. **Invoices and money.** Choose the invoicing program first (compare APIs,
    KSeF support and cost; Fakturownia, wFirma, inFakt are candidates). Then a
    queue of orders waiting for an invoice, issuing through that program, and

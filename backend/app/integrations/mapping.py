@@ -31,14 +31,18 @@ def text(value: Any) -> str | None:
     return str(value).strip() or None
 
 
-def build(model: type[Part], external_id: Any, part: str, fields: dict) -> Part | None:
+def build(
+    model: type[Part], external_id: Any, part: str, fields: dict, label: str = "Order"
+) -> Part | None:
     """Build one part of the details, keeping as much of it as is valid.
 
     An optional field that fails validation (a phone number longer than any
     real one, an unreadable date) is dropped and the rest kept. If a required
     field fails, such as a line item without a name, the part is dropped.
     Either way it is logged by field name only: the values are buyers'
-    personal data, which do not belong in logs.
+    personal data, which do not belong in logs. `label` names what
+    `external_id` identifies in the log line - every caller but the messaging
+    mapper is building part of an order.
     """
     try:
         return model(**fields)
@@ -47,13 +51,14 @@ def build(model: type[Part], external_id: Any, part: str, fields: dict) -> Part 
         required = [name for name in bad if model.model_fields[name].is_required()]
         if required:
             logger.warning(
-                "Order %s: skipping %s, unreadable %s",
+                "%s %s: skipping %s, unreadable %s",
+                label,
                 external_id,
                 part,
                 ", ".join(required),
             )
             return None
         logger.warning(
-            "Order %s: ignoring unreadable %s in %s", external_id, ", ".join(bad), part
+            "%s %s: ignoring unreadable %s in %s", label, external_id, ", ".join(bad), part
         )
         return model(**{k: v for k, v in fields.items() if k not in bad})

@@ -1,5 +1,6 @@
 from app.models.integration import IntegrationCredential, IntegrationSettings
 from app.models.marketplace_write import AppSetting, MarketplaceWrite, WriteOutcome
+from app.models.message import Message, MessageDirection, MessageThread
 from app.models.order import (
     AddressType,
     BillingEntry,
@@ -23,6 +24,9 @@ __all__ = [
     "IntegrationCredential",
     "IntegrationSettings",
     "MarketplaceWrite",
+    "Message",
+    "MessageDirection",
+    "MessageThread",
     "Order",
     "OrderAddress",
     "OrderItem",

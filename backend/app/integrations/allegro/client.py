@@ -261,14 +261,20 @@ class AllegroClient:
         return _json_object(response, f"Allegro {what}")
 
     def _send(
-        self, method: str, path: str, what: str, body: dict[str, Any]
+        self,
+        method: str,
+        path: str,
+        what: str,
+        body: dict[str, Any],
+        scope: str = "allegro:api:orders:write",
     ) -> dict[str, Any] | None:
         """Send a change to Allegro; its JSON answer, or None when it has none.
 
         Only ever called through MarketplaceWriter (safe mode). A refusal is
         an IntegrationAuthError, as for reads; Allegro's own explanation of a
         rejected change (400/409/422) is kept in the error, since that is what
-        the operator needs to see.
+        the operator needs to see. `scope` only names the permission in that
+        message - orders and messaging need different ones.
         """
         token = self._access_token_value()
         try:
@@ -291,8 +297,7 @@ class AllegroClient:
             raise IntegrationAuthError("Allegro rejected the access token")
         if response.status_code == 403:
             raise IntegrationAuthError(
-                f"Allegro refused {what}; the application likely lacks the "
-                "allegro:api:orders:write scope"
+                f"Allegro refused {what}; the application likely lacks the {scope} scope"
             )
         if response.status_code >= 400:
             raise IntegrationUnavailable(
@@ -409,6 +414,59 @@ class AllegroClient:
         if not isinstance(offers, list):
             raise IntegrationUnavailable("Allegro offers is not a list")
         return [o for o in offers if isinstance(o, dict)]
+
+    def fetch_threads(self, limit: int = MAX_PAGE_SIZE, offset: int = 0) -> list[dict[str, Any]]:
+        """Return one page of Message Center threads, newest activity first.
+
+        `GET /messaging/threads`. Allegro's own default sort is assumed to be
+        by last activity, newest first, which the sync relies on to stop
+        early once it reaches threads already up to date; not confirmed
+        against a real response (see INTEGRATIONS.md, "Buyer messages").
+        """
+        if not 1 <= limit <= MAX_PAGE_SIZE:
+            raise ValueError(f"limit must be between 1 and {MAX_PAGE_SIZE}")
+        payload = self._get_object(
+            "/messaging/threads",
+            "message threads",
+            params=[("limit", str(limit)), ("offset", str(offset))],
+        )
+        threads = payload.get("threads", [])
+        if not isinstance(threads, list):
+            raise IntegrationUnavailable("Allegro message threads is not a list")
+        return [t for t in threads if isinstance(t, dict)]
+
+    def fetch_thread_messages(
+        self, thread_id: str, limit: int = MAX_PAGE_SIZE, offset: int = 0
+    ) -> list[dict[str, Any]]:
+        """Return one page of a thread's messages.
+
+        `GET /messaging/threads/{threadId}/messages`.
+        """
+        if not 1 <= limit <= MAX_PAGE_SIZE:
+            raise ValueError(f"limit must be between 1 and {MAX_PAGE_SIZE}")
+        payload = self._get_object(
+            f"/messaging/threads/{thread_id}/messages",
+            "thread messages",
+            params=[("limit", str(limit)), ("offset", str(offset))],
+        )
+        messages = payload.get("messages", [])
+        if not isinstance(messages, list):
+            raise IntegrationUnavailable("Allegro thread messages is not a list")
+        return [m for m in messages if isinstance(m, dict)]
+
+    def reply_to_thread(self, thread_id: str, text: str) -> dict[str, Any] | None:
+        """`POST /messaging/threads/{threadId}/messages`: a reply in an existing thread.
+
+        The recipient is the thread's own interlocutor, so only the text goes.
+        Allegro's answer carries the new message's `id`.
+        """
+        return self._send(
+            "POST",
+            f"/messaging/threads/{thread_id}/messages",
+            "the reply",
+            {"text": text, "attachments": []},
+            scope="allegro:api:messaging",
+        )
 
     def fetch_account_login(self) -> str | None:
         """Return the login of the seller the token belongs to, or None.

@@ -1,0 +1,129 @@
+"""The unified inbox: listing threads, a thread's messages, putting one
+aside, and replying (through safe mode, so no network is needed here)."""
+
+from datetime import UTC, datetime
+
+import pytest
+from fastapi.testclient import TestClient
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+
+from app.core.config import settings
+from app.core.security import create_access_token
+from app.db.base import Base
+from app.db.session import get_db
+from app.main import app
+from app.models.order import OrderSource
+from app.repositories.message_repository import MessageRepository
+from app.repositories.user_repository import UserRepository
+from app.schemas.message import SyncedMessage, SyncedThread
+from app.schemas.user import UserCreate
+from app.services.user_service import UserService
+
+engine = create_engine(
+    settings.database_url,
+    connect_args=({"check_same_thread": False} if "sqlite" in settings.database_url else {}),
+)
+TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+client = TestClient(app)
+
+
+def _override_get_db():
+    db = TestingSessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+
+
+@pytest.fixture
+def api():
+    app.dependency_overrides[get_db] = _override_get_db
+    Base.metadata.create_all(bind=engine)
+    db = TestingSessionLocal()
+    try:
+        operator = UserService(UserRepository(db)).create_user(
+            UserCreate(email="inbox-operator@example.com", password="operator-password-123")
+        )
+        client.headers["Authorization"] = f"Bearer {create_access_token(operator.id)}"
+        yield db
+    finally:
+        db.close()
+        Base.metadata.drop_all(bind=engine)
+        app.dependency_overrides.pop(get_db, None)
+
+
+def _thread(db, external_id="T1", **overrides):
+    data = {"external_id": external_id, "interlocutor_login": "buyer1"}
+    data.update(overrides)
+    return MessageRepository(db).upsert_thread(OrderSource.ALLEGRO, SyncedThread(**data))
+
+
+def test_the_inbox_lists_threads_newest_first(api):
+    older = _thread(api, "T1", last_message_at=datetime(2026, 9, 20, tzinfo=UTC))
+    newer = _thread(api, "T2", last_message_at=datetime(2026, 9, 21, tzinfo=UTC))
+
+    body = client.get("/api/v1/messages/threads").json()
+
+    assert [t["id"] for t in body] == [str(newer.id), str(older.id)]
+
+
+def test_a_thread_set_aside_is_excluded_by_default(api):
+    thread = _thread(api, "T1")
+    MessageRepository(api).set_aside(thread, True)
+
+    assert client.get("/api/v1/messages/threads").json() == []
+    aside = client.get("/api/v1/messages/threads?aside=true").json()
+    assert [t["id"] for t in aside] == [str(thread.id)]
+
+
+def test_a_thread_shows_its_messages(api):
+    thread = _thread(api, "T1")
+    MessageRepository(api).add_messages(
+        thread, [SyncedMessage(text="Hello", direction="IN", sent_at=datetime.now(UTC))]
+    )
+
+    body = client.get(f"/api/v1/messages/threads/{thread.id}").json()
+
+    assert len(body["messages"]) == 1
+    assert body["messages"][0]["text"] == "Hello"
+
+
+def test_an_unknown_thread_is_404(api):
+    missing = "00000000-0000-0000-0000-000000000000"
+    assert client.get(f"/api/v1/messages/threads/{missing}").status_code == 404
+
+
+def test_putting_a_thread_aside_and_back(api):
+    thread = _thread(api, "T1")
+
+    body = client.patch(f"/api/v1/messages/threads/{thread.id}/aside", json={"aside": True}).json()
+    assert body["aside"] is True
+
+    body = client.patch(f"/api/v1/messages/threads/{thread.id}/aside", json={"aside": False}).json()
+    assert body["aside"] is False
+
+
+def test_replying_in_safe_mode_is_recorded_but_not_sent(api):
+    thread = _thread(api, "T1")
+
+    response = client.post(
+        f"/api/v1/messages/threads/{thread.id}/reply", json={"text": "Dziękuję za zamówienie"}
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["marketplace_write"]["outcome"] == "DRY_RUN"
+    assert body["thread"]["messages"][-1]["text"] == "Dziękuję za zamówienie"
+    assert body["thread"]["messages"][-1]["created_in_anvero"] is True
+
+
+def test_messages_need_a_login(api):
+    thread = _thread(api, "T1")
+    anonymous = TestClient(app)
+
+    assert anonymous.get("/api/v1/messages/threads").status_code == 401
+    assert (
+        anonymous.post(f"/api/v1/messages/threads/{thread.id}/reply", json={"text": "hi"}).status_code
+        == 401
+    )
