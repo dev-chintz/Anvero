@@ -13,13 +13,15 @@ from app.repositories.integration_credential_repository import (
     IntegrationCredentialRepository,
 )
 from app.repositories.order_repository import OrderRepository
+from app.services.erli_settings import build_erli_client
 from app.services.order_import_service import OrderImportService
 
 PROVIDER = OrderSource.ERLI.value
 
 
 def build_erli_import_service(db: Session, client: ErliClient | None = None) -> OrderImportService:
-    """Build the import service for the Erli shop whose key is configured.
+    """Build the import service for the Erli shop whose key is configured
+    (in Settings, else in the environment; see `erli_settings`).
 
     Erli's key does not rotate, so nothing is stored for it; but the sync
     point and the last import's outcome live on an `integration_credentials`
@@ -27,9 +29,9 @@ def build_erli_import_service(db: Session, client: ErliClient | None = None) -> 
     key). A different key may be another shop, so it starts the sync over,
     exactly as a re-authorization does for Allegro.
     """
-    client = client or ErliClient()
+    client = client or build_erli_client(db)
     if not client.is_configured:
-        raise IntegrationNotConfigured("ERLI_API_KEY is not set")
+        raise IntegrationNotConfigured("No Erli API key is set")
     credentials = IntegrationCredentialRepository(db)
     fingerprint = hashlib.sha256(client.api_key.encode()).hexdigest()
     credentials.save(PROVIDER, refresh_token="", seed_fingerprint=fingerprint)

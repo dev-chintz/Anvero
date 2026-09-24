@@ -45,6 +45,10 @@ are days in the business timezone, `BUSINESS_TIMEZONE`, default
 | `GET` | `/api/v1/integrations/allegro/connect/{flow_id}` | has the seller confirmed yet; rate limited to 60 per minute per IP |
 | `DELETE` | `/api/v1/integrations/allegro/connection` | forget the connected account |
 | `POST` | `/api/v1/integrations/allegro/import` | run an Allegro import; rate limited to 6 attempts per minute per IP |
+| `GET` | `/api/v1/integrations/erli` | the Erli key's state (source, last characters, last import), never the key |
+| `PUT` | `/api/v1/integrations/erli/settings` | save the Erli API key once Erli has accepted it; rate limited to 10 per minute per IP |
+| `DELETE` | `/api/v1/integrations/erli/settings` | forget the key entered in Settings; the one in `backend/.env`, if any, applies again |
+| `POST` | `/api/v1/integrations/erli/import` | run an Erli import; rate limited to 6 per minute per IP |
 | `POST` | `/api/v1/integrations/allegro/messages/sync` | read new and changed Message Center threads; rate limited to 6 per minute per IP |
 | `GET` | `/api/v1/messages/threads` | the unified inbox: threads across every source, newest activity first |
 | `GET` | `/api/v1/messages/threads/{id}` | one thread with its messages |
@@ -120,6 +124,32 @@ refused something.
 
 Forgets the connected account and keeps the application's credentials.
 Returns the status. `409` while an import is running.
+
+## Erli: `/api/v1/integrations/erli`
+
+`GET` returns
+
+```json
+{"configured": true, "source": "settings", "key_hint": "…a4f2",
+ "last_import_at": "2026-09-24T10:00:00Z", "last_import_created": 3,
+ "last_import_updated": 1, "last_import_error": null}
+```
+
+`source` is `settings` (entered in Settings), `environment` (`ERLI_API_KEY` in
+`backend/.env`) or `none`; a key entered in Settings takes precedence. Only the
+last four characters of the key ever leave the backend. The `last_import_*`
+fields are those of the `ERLI` row of `integration_credentials`, filled by the
+button and by `scripts/import_erli.py` alike.
+
+`PUT /settings` takes `{"api_key": "..."}` (surrounding whitespace is trimmed)
+and asks Erli for one order with that key before saving it. `422` when Erli
+refuses the key, `502` when Erli cannot be asked; in both nothing is saved.
+Returns the status. `DELETE /settings` returns it too.
+
+`POST /import` runs the same sync as `scripts/import_erli.py` and returns the
+same body as the Allegro import (`cancellation_warnings` included). It takes the
+lock the Allegro import takes, so the two never overlap: `409` while either
+runs, and `409` when no key is set; `502` on any Erli failure.
 
 ## `POST /api/v1/integrations/allegro/import`
 

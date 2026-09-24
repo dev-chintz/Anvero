@@ -567,13 +567,19 @@ the documentation until a real import confirms it.
 
 1. In the Erli seller panel: My ERLI > Sales on ERLI.pl > Store settings >
    Integration method > Own API integration, generate the API key.
-2. Put it in `backend/.env` as `ERLI_API_KEY` (not in Git, never in chat or
-   a document). `ERLI_API_URL` defaults to production; Erli's documentation
-   says its test environment is on another domain without naming it.
-3. From `backend/`: `.\.venv\Scripts\python.exe scripts\import_erli.py`
-   (`--days N` for a backfill). There is no button or schedule for Erli yet;
-   the status page (Status in the sidebar) shows how the script's last run
-   ended.
+2. Enter it in Settings > Sales channels > Erli ("Save and check": Erli is
+   asked for one order, and the key is saved only if it accepts it). It is kept
+   in the database, so every machine on the shared database has it; only its
+   last four characters are ever shown again. Alternatively put it in
+   `backend/.env` as `ERLI_API_KEY` (not in Git, never in chat or a document);
+   a key entered in Settings takes precedence. `ERLI_API_URL` defaults to
+   production; Erli's documentation says its test environment is on another
+   domain without naming it.
+3. "Import now" on the same card, or from `backend/`:
+   `.\.venv\Scripts\python.exe scripts\import_erli.py` (`--days N` for a
+   backfill). There is no schedule for Erli yet; the card and the status page
+   (Status in the sidebar) show how the last import ended, whichever way it
+   was started.
 
 The key is a plain bearer token and does not rotate. Anvero stores only its
 SHA-256 fingerprint, on an `ERLI` row of `integration_credentials` that holds

@@ -17,20 +17,24 @@ from app.integrations.base import (
 from app.repositories.integration_credential_repository import (
     IntegrationCredentialRepository,
 )
+from app.models.user import User
 from app.schemas.integration import (
     AllegroConnectPoll,
     AllegroConnectStart,
     AllegroImportResult,
     AllegroSettingsRequest,
     AllegroStatus,
+    ErliSettingsRequest,
+    ErliStatus,
 )
 from app.schemas.message import MessageSyncResult
-from app.services import allegro_settings
+from app.services import allegro_settings, erli_import, erli_settings
 from app.services.allegro_import import (
     build_allegro_client,
     build_allegro_import_service,
 )
 from app.services.allegro_sync import ImportAlreadyRunning, import_lock, run_import
+from app.services.erli_import import build_erli_import_service
 from app.services.message_sync import run_message_sync
 
 # Every endpoint here requires a logged-in user, same as the orders router.
@@ -174,6 +178,86 @@ def import_from_allegro(
         ) from exc
     except IntegrationAuthError as exc:
         raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=str(exc)) from exc
+    except IntegrationError as exc:
+        raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=str(exc)) from exc
+
+    return AllegroImportResult(
+        created=result.created,
+        updated=result.updated,
+        cancellation_warnings=result.cancellation_warnings,
+    )
+
+
+def _erli_status(db: Session) -> ErliStatus:
+    key = erli_settings.resolve_key(db)
+    credential = IntegrationCredentialRepository(db).get(erli_import.PROVIDER)
+    return ErliStatus(
+        configured=bool(key.value),
+        source=key.source,
+        key_hint=key.hint,
+        last_import_at=credential.last_import_at if credential else None,
+        last_import_created=credential.last_import_created if credential else None,
+        last_import_updated=credential.last_import_updated if credential else None,
+        last_import_error=credential.last_import_error if credential else None,
+    )
+
+
+@router.get("/erli", response_model=ErliStatus)
+def get_erli_status(db: Session = Depends(get_db)):
+    return _erli_status(db)
+
+
+@router.put("/erli/settings", response_model=ErliStatus)
+@limiter.limit("10/minute")
+def save_erli_settings(
+    request: Request,
+    body: ErliSettingsRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Save the API key, once Erli has accepted it.
+
+    A key Erli refuses, or one that cannot be tried because Erli does not
+    answer, is not saved: better to say so now than to leave a key that fails
+    at the next import.
+    """
+    try:
+        erli_settings.check_key(body.api_key)
+    except IntegrationAuthError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Erli did not accept this API key",
+        ) from exc
+    except IntegrationError as exc:
+        raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=str(exc)) from exc
+    erli_settings.save_key(db, body.api_key, current_user.id)
+    return _erli_status(db)
+
+
+@router.delete("/erli/settings", response_model=ErliStatus)
+def forget_erli_key(db: Session = Depends(get_db)):
+    """Forget the key entered in Settings; the environment's, if any, applies."""
+    erli_settings.clear_key(db)
+    return _erli_status(db)
+
+
+@router.post("/erli/import", response_model=AllegroImportResult)
+@limiter.limit("6/minute")
+def import_from_erli(request: Request, db: Session = Depends(get_db)):
+    try:
+        result = run_import(
+            db, lambda: build_erli_import_service(db), provider=erli_import.PROVIDER
+        )
+    except ImportAlreadyRunning as exc:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="An import is already running",
+        ) from exc
+    except IntegrationNotConfigured as exc:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Erli is not configured",
+        ) from exc
     except IntegrationError as exc:
         raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=str(exc)) from exc
 

@@ -6,6 +6,21 @@ All significant changes to the Anvero project.
 
 ## 2026-09-24
 
+### ⚙️ Erli in Settings, and Settings arranged by purpose
+
+- Settings now has a menu of sections beside cards laid out over the whole
+  width, in three groups: sales channels (Allegro, Erli), shipping (the
+  sender and the default parcel) and general (safe mode, language).
+- A new Erli card: enter the API key (saved only once Erli has accepted it,
+  only its last four characters shown afterwards, removable), an "Import now"
+  button, and how the last import ended. The key lives in `app_settings`, so
+  one entry serves every machine; `ERLI_API_KEY` in `.env` remains the
+  fallback.
+- `GET /integrations/erli`, `PUT` and `DELETE /integrations/erli/settings`,
+  `POST /integrations/erli/import`; the Erli import shares the Allegro
+  import's lock. The status page reads the key wherever it comes from.
+- Still true: the Erli adapter has never seen a real response.
+
 ### 🔀 B1/A7 and B2 brought together on main
 
 - The two branches each added migrations after `f5c3b8e1d726`, leaving two

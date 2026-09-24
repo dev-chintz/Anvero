@@ -117,3 +117,26 @@ def test_a_failed_import_run_as_the_script_does_notes_the_error(session):
 
     credential = IntegrationCredentialRepository(session).get(PROVIDER)
     assert credential.last_import_error == "Erli is unreachable"
+
+
+def test_the_import_uses_the_key_entered_in_settings_over_the_environments(session, monkeypatch):
+    from app.core.config import settings
+    from app.services import erli_settings
+
+    monkeypatch.setattr(settings, "erli_api_key", "env-key")
+    assert erli_settings.resolve_key(session).source == "environment"
+
+    erli_settings.save_key(session, "typed-key", user_id=None)
+
+    resolved = erli_settings.resolve_key(session)
+    assert (resolved.value, resolved.source) == ("typed-key", "settings")
+    assert erli_settings.build_erli_client(session).api_key == "typed-key"
+
+
+def test_an_import_with_no_key_anywhere_is_not_configured(session, monkeypatch):
+    from app.core.config import settings
+
+    monkeypatch.setattr(settings, "erli_api_key", "")
+
+    with pytest.raises(IntegrationNotConfigured):
+        build_erli_import_service(session)

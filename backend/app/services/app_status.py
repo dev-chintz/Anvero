@@ -12,7 +12,6 @@ from datetime import UTC, datetime, timedelta
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
-from app.integrations.erli.client import ErliClient
 from app.models.integration import IntegrationCredential
 from app.repositories.integration_credential_repository import (
     IntegrationCredentialRepository,
@@ -25,7 +24,7 @@ from app.schemas.app_status import (
     LastImport,
     ScheduleStatus,
 )
-from app.services import allegro_settings, erli_import
+from app.services import allegro_settings, erli_import, erli_settings
 from app.services.allegro_sync import ScheduleState, schedule_state
 from app.services.marketplace_writes import safe_mode_on
 
@@ -142,7 +141,7 @@ def allegro_health(db: Session, now: datetime, state: ScheduleState) -> AllegroH
 
 
 def erli_health(db: Session) -> ErliHealth:
-    configured = ErliClient().is_configured
+    configured = erli_settings.build_erli_client(db).is_configured
     credential = IntegrationCredentialRepository(db).get(erli_import.PROVIDER)
     last_import = _last_import(credential)
     problems: list[str] = []

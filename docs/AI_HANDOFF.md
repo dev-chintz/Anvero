@@ -54,7 +54,7 @@ Repository: <https://github.com/dev-chintz/Anvero>
   Allegro note imported alongside the buyer's message, and item pictures
   fetched from Allegro's offer API (unverified against the sandbox for
   scope). Full detail in `DECISIONS.md` and `CHANGELOG.md`.
-- 527 backend tests and 118 frontend tests (Vitest + React Testing Library)
+- 543 backend tests and 130 frontend tests (Vitest + React Testing Library)
   passing
 
 ---

@@ -271,8 +271,9 @@ In this order (the owner chose queues before any write to Allegro):
 4. **Erli order import**, so the queues and the list above cover both
    channels. Started 2026-09-24: the adapter and `scripts/import_erli.py`,
    built from Erli's documentation and tested on fakes (`INTEGRATIONS.md`,
-   "Erli"). Left: a first run with the owner's API key, then an import button
-   and schedule like Allegro's.
+   "Erli"). Since 2026-09-24 the key is entered in Settings and an "Import
+   now" button runs it (`DECISIONS.md`). Left: a first run with the owner's
+   API key, then a schedule like Allegro's.
 5. ~~**Safe mode (dry run).**~~ Done 2026-09-24: `MarketplaceWriter`, the
    switch in Settings (on by default, asks before going off), the log of what
    was or would have been sent, and a banner while it is on (`DECISIONS.md`).

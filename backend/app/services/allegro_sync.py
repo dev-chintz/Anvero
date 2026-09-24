@@ -63,8 +63,10 @@ schedule_state = ScheduleState()
 def run_import(
     db: Session,
     service_factory: Callable[[], OrderImportService] | None = None,
+    provider: str = allegro_settings.PROVIDER,
 ) -> ImportResult:
-    """Run one sync and note how it ended.
+    """Run one sync and note how it ended, on `provider`'s row (Erli's import
+    passes its own; the lock is the same, so imports never overlap).
 
     Raises ImportAlreadyRunning without waiting if another import is under way;
     any error the import itself raises is noted (when there is an account to
@@ -74,7 +76,7 @@ def run_import(
         raise ImportAlreadyRunning
     factory = service_factory or (lambda: build_allegro_import_service(db))
     try:
-        return run_and_record(db, allegro_settings.PROVIDER, lambda: factory().sync_orders())
+        return run_and_record(db, provider, lambda: factory().sync_orders())
     finally:
         import_lock.release()
 

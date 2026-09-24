@@ -209,6 +209,7 @@ export function AllegroSettings() {
         </p>
       )}
 
+      <h4 className="allegro-subtitle">{t("allegro.application")}</h4>
       <form onSubmit={handleSave} className="allegro-form">
         <label>
           {t("allegro.environment")}
@@ -273,7 +274,7 @@ export function AllegroSettings() {
       </form>
 
       <div className="allegro-connect">
-        <h3>{t("allegro.sellerAccount")}</h3>
+        <h4 className="allegro-subtitle">{t("allegro.sellerAccount")}</h4>
 
         {flow ? (
           <div className="allegro-flow" role="status">

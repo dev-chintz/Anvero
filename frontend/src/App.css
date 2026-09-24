@@ -41,23 +41,7 @@
   padding: 2rem;
 }
 
-.settings-content {
-  max-width: 600px;
-}
-
-.settings-section {
-  background: var(--color-surface-alt);
-  padding: 1.5rem;
-  border-radius: var(--radius-lg);
-  border: 1px solid var(--color-divider);
-  margin-bottom: 1.5rem;
-}
-
-.settings-section h2 {
-  margin: 0 0 1rem 0;
-  font-size: 1.1rem;
-  color: var(--color-heading);
-}
+/* the layout of the Settings page itself is in styles/SettingsPage.css */
 
 /* Page Not Found */
 .page-not-found {

@@ -196,7 +196,41 @@ export interface AllegroImportResult {
   cancellation_warnings: number;
 }
 
+export interface ErliStatus {
+  /** A key is set, in Settings or in backend/.env. */
+  configured: boolean;
+  source: "settings" | "environment" | "none";
+  /** The key's last characters, never the key itself. */
+  key_hint: string | null;
+  /** How the last import ended, by the button or the script. */
+  last_import_at: string | null;
+  last_import_created: number | null;
+  last_import_updated: number | null;
+  /** Set when the last import failed. */
+  last_import_error: string | null;
+}
+
 export const integrationsApi = {
+  erliStatus(): Promise<ErliStatus> {
+    return request<ErliStatus>("/integrations/erli");
+  },
+
+  /** Saved only once Erli has accepted the key. */
+  saveErliKey(apiKey: string): Promise<ErliStatus> {
+    return request<ErliStatus>("/integrations/erli/settings", {
+      method: "PUT",
+      body: JSON.stringify({ api_key: apiKey }),
+    });
+  },
+
+  forgetErliKey(): Promise<ErliStatus> {
+    return request<ErliStatus>("/integrations/erli/settings", { method: "DELETE" });
+  },
+
+  importErli(): Promise<AllegroImportResult> {
+    return request<AllegroImportResult>("/integrations/erli/import", { method: "POST" });
+  },
+
   allegroStatus(): Promise<AllegroStatus> {
     return request<AllegroStatus>("/integrations/allegro");
   },
