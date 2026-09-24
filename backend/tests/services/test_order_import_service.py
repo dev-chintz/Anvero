@@ -456,7 +456,8 @@ def test_the_recorded_point_is_the_start_of_the_run_less_a_small_overlap(session
 
     _sync_service(session, PagedFakeAdapter([[_order("ALG-1")]]), credentials).sync_orders()
 
-    recorded = credentials.last_synced_at("ALLEGRO")
+    # SQLite hands the column back without a zone, PostgreSQL with one
+    recorded = _as_utc(credentials.last_synced_at("ALLEGRO"))
     assert before - SYNC_OVERLAP <= recorded <= datetime.now(UTC) - SYNC_OVERLAP
 
 
