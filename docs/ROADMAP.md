@@ -317,7 +317,14 @@ In this order (the owner chose queues before any write to Allegro):
    uploading the PDF to Allegro. Money: a period summary of Allegro's fees
    and what is left per order after them.
 4. **Returns and claims**: a queue with Allegro's deadlines (14 days to
-   decide, 45 to recover the commission) and an alert on the order.
+   decide, 45 to recover the commission) and an alert on the order. Started
+   2026-09-24: the Returns and claims page (what waits, closest deadline first),
+   an alert card on the order and a reminder on the dashboard, read from Allegro's
+   customer returns, disputes and claims, built from its published specification
+   (`INTEGRATIONS.md`, "Returns and claims"). Read only. Left: a first real read,
+   a schedule, and every action (accepting or rejecting a claim, rejecting a
+   return, replying in a dispute, applying for the commission back), all through
+   safe mode.
 5. **Own courier contract** (InPost ShipX first) for exceptions and Erli.
 
 ### C — Later, when daily use asks for it

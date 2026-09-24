@@ -23,6 +23,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isDarkMode, onThemeToggle }) =
     { path: '/orders', label: t('nav.orders'), icon: '📦' },
     { path: '/production', label: t('nav.production'), icon: '🛠️' },
     { path: '/labels', label: t('nav.labels'), icon: '🏷️' },
+    { path: '/after-sales', label: t('nav.afterSales'), icon: '↩️' },
     { path: '/status', label: t('nav.status'), icon: '🩺' },
 
     { path: '/inbox', label: t('nav.inbox'), icon: '✉️' },

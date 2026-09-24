@@ -6,6 +6,25 @@ All significant changes to the Anvero project.
 
 ## 2026-09-24
 
+### ↩️ Returns and claims (started, plan B4)
+
+- A **Returns and claims** page (sidebar): returns, claims and disputes read from
+  Allegro, by default what waits for you, the closest deadline first, with the
+  ones past their deadline in red. Views (to do, open, all), a filter by kind, and
+  a button that reads them from Allegro.
+- An alert card on the order when one of its cases waits for you, and a reminder
+  on the dashboard with the number waiting and the number overdue.
+- `after_sales_cases` (migration `8b41d6e0a9c3`); `GET /after-sales`,
+  `GET /after-sales/summary`, `GET /orders/{id}/after-sales`,
+  `POST /integrations/allegro/after-sales/sync`; `ALLEGRO_AFTER_SALES_DAYS`.
+- Built from Allegro's published OpenAPI specification (read in full this time).
+  A claim's deadline is Allegro's; a return has none in the API, so 14 days to
+  decide and 45 to claim the commission back are counted from the declaration
+  (`INTEGRATIONS.md`, "Returns and claims").
+- Read only: accepting or rejecting a claim, rejecting a return, replying in a
+  dispute and applying for the commission are not built. Never run against a
+  real account.
+
 ### ⏱️ Buyer messages read on a schedule
 
 - `ALLEGRO_MESSAGE_SYNC_INTERVAL_MINUTES` (default 0, off) makes the backend

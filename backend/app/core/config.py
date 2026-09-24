@@ -113,6 +113,10 @@ class Settings(BaseSettings):
     # database. Off by default.
     allegro_message_sync_interval_minutes: int = Field(default=0, ge=0, le=1440)
 
+    # How far back returns, claims and disputes are read: a return or a closed
+    # claim older than this is not fetched. Everything still open is, however old.
+    allegro_after_sales_days: int = Field(default=90, ge=1, le=365)
+
     # Erli integration: an API key generated in the seller panel (My ERLI >
     # Store settings > Integration method > Own API integration). It does not
     # rotate, so it lives here only. Empty leaves the integration off.

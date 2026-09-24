@@ -49,6 +49,10 @@ are days in the business timezone, `BUSINESS_TIMEZONE`, default
 | `PUT` | `/api/v1/integrations/erli/settings` | save the Erli API key once Erli has accepted it; rate limited to 10 per minute per IP |
 | `DELETE` | `/api/v1/integrations/erli/settings` | forget the key entered in Settings; the one in `backend/.env`, if any, applies again |
 | `POST` | `/api/v1/integrations/erli/import` | run an Erli import; rate limited to 6 per minute per IP |
+| `GET` | `/api/v1/after-sales` | returns, claims and disputes: by default what waits for the seller, closest deadline first |
+| `GET` | `/api/v1/after-sales/summary` | how many wait, how many are late, how many are due within three days |
+| `GET` | `/api/v1/orders/{id}/after-sales` | the cases on one order, open or not, newest first |
+| `POST` | `/api/v1/integrations/allegro/after-sales/sync` | read returns, claims and disputes from Allegro; rate limited to 6 per minute per IP |
 | `POST` | `/api/v1/integrations/allegro/messages/sync` | read new and changed Message Center threads; rate limited to 6 per minute per IP |
 | `GET` | `/api/v1/messages/threads` | the unified inbox: threads across every source, newest activity first |
 | `GET` | `/api/v1/messages/threads/{id}` | one thread with its messages |
@@ -124,6 +128,52 @@ refused something.
 
 Forgets the connected account and keeps the application's credentials.
 Returns the status. `409` while an import is running.
+
+## Returns, claims and disputes: `/api/v1/after-sales`
+
+A case: `{"id", "source", "kind", "status", "is_open", "action", "due_at",
+"overdue", "reference_number", "buyer_login", "buyer_email", "opened_at",
+"reason", "summary", "detail", "order_external_id", "order_id",
+"order_label"}`.
+
+- `kind` is `RETURN`, `CLAIM` (a formal claim, with a deadline) or `DISPUTE`.
+- `status` is Allegro's own (`DELIVERED`, `CLAIM_SUBMITTED`, `DISPUTE_ONGOING`...),
+  in its own words; `reason` its reason code (`DAMAGED`, `NOT_AS_DESCRIBED`...);
+  the interface words both and shows a code it does not know as it is.
+- `action` is what the case asks of the seller: `DECIDE` (refund or reject a
+  return whose goods are back; accept or reject a submitted claim), `REPLY` (a
+  dispute the seller did not write last in), `RECOVER_COMMISSION` (a refunded
+  return whose sales commission can still be claimed back) or `NONE`.
+- `due_at` is when the action is due, null when there is no deadline (a
+  dispute has none). A claim's comes from Allegro. A return's does not, so it is
+  worked out: 14 days from the day the return was declared to decide, 45 to claim
+  the commission back, early rather than late (`INTEGRATIONS.md`, "Returns and
+  claims"). `overdue` is true when `due_at` has passed while `action` is not
+  `NONE`.
+- `order_id` and `order_label` name the Anvero order the case belongs to, matched
+  by `(source, order_external_id)`; both null when the order was not imported.
+
+`GET /after-sales?view=action|open|all&kind=RETURN|CLAIM|DISPUTE&limit&offset`
+returns `{"items": [...], "total": n}`. `action` (the default) lists the cases
+whose `action` is not `NONE`, closest deadline first and those without one last;
+`open` everything still going on; `all` everything read; the last two newest
+opened first.
+
+`GET /after-sales/summary` returns `{"needs_action", "overdue", "due_soon"}`:
+the cases with an action, of those the ones past their deadline, and the ones
+due within the next three days.
+
+`GET /orders/{id}/after-sales` returns the cases of one order as a list; `404`
+for an unknown order.
+
+`POST /integrations/allegro/after-sales/sync` reads customer returns (created in
+the last `ALLEGRO_AFTER_SALES_DAYS`, default 90, and back to the oldest one still
+open here), every open dispute and claim however old, and the closed ones of that
+period, and returns `{"returns": n, "claims": n, "disputes": n}`. It takes the
+lock the order import takes: `409` while an import or another sync runs, and when
+Allegro is not configured; `502` when Allegro refuses (the application may lack
+`allegro:api:disputes` for disputes and claims, or `allegro:api:orders:read` for
+returns) or cannot be reached.
 
 ## Erli: `/api/v1/integrations/erli`
 

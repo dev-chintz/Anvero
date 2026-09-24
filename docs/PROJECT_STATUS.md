@@ -43,7 +43,7 @@ folder, and one was restored from that copy into a scratch database as a test.
   remains the no-setup default for a fresh clone)
 - Health endpoint and first order model — done
 - Minimal order list interface — done
-- Automated tests for core flows — done (553 backend, 131 frontend passing
+- Automated tests for core flows — done (635 backend, 145 frontend passing
   across the suite as of 2026-09-21)
 
 ---
@@ -126,6 +126,8 @@ Writing to Allegro (status and tracking number, `INTEGRATIONS.md`, "Writing to A
 The application status page (`GET /status`, the Status page) was checked in the browser on 2026-09-24 on a scratch SQLite database with made-up connection rows (an expiring token, a failed import, an Erli key never used), not against a real account: its verdicts rest on the last import, and the token expiry assumes Allegro's three months hold.
 
 Labels through Wysyłam z Allegro (`INTEGRATIONS.md`) have never bought anything: safe mode has been on and no Allegro was reachable where they were built. Unverified: the `allegro:api:shipments:write` scope, the shape of Allegro's shipment (carrier and waybill), whether Allegro links the shipment to the order itself, and the label PDF request, including one request for many labels (the Labels page), and every courier pickup call (proposals, ordering, their shapes). The Settings section and the order's label card were checked in the browser on 2026-09-24 on a scratch SQLite database, with a label row made up by hand, and the Labels page the same way.
+
+Returns, claims and disputes (plan B4, `INTEGRATIONS.md`, "Returns and claims") were built from Allegro's published OpenAPI specification, read in full, and tested against payloads shaped like its examples: never against a real account. Unverified: that the application carries `allegro:api:disputes`, the 14 and 45 day rules (Allegro's API gives no deadline for a return), and whether the 45 days start at the declaration. Read only; every action is left.
 
 Billing entries (fees, `INTEGRATIONS.md`, "Fees") are likewise from the documentation and fakes only: not known whether the application may read them, or whether the history holds anything besides fees.
 

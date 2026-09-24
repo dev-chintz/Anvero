@@ -658,3 +658,75 @@ export const messagesApi = {
     });
   },
 };
+
+export type CaseKind = "RETURN" | "CLAIM" | "DISPUTE";
+export type CaseAction = "NONE" | "DECIDE" | "REPLY" | "RECOVER_COMMISSION";
+/** What the queue shows: what waits for the seller, everything open, or everything. */
+export type CaseView = "action" | "open" | "all";
+
+/** A return, claim or dispute, and what it asks of the seller. */
+export interface AfterSalesCase {
+  id: string;
+  source: string;
+  kind: CaseKind;
+  /** The marketplace's own status (CLAIM_SUBMITTED, DELIVERED...). */
+  status: string;
+  is_open: boolean;
+  action: CaseAction;
+  /** By when the action is due; null when there is no deadline. */
+  due_at: string | null;
+  /** The deadline has passed while the seller still has to act. */
+  overdue: boolean;
+  reference_number: string | null;
+  buyer_login: string | null;
+  buyer_email: string | null;
+  opened_at: string;
+  /** The marketplace's reason code, worded by the interface. */
+  reason: string | null;
+  summary: string | null;
+  detail: string | null;
+  order_external_id: string | null;
+  /** The Anvero order it belongs to, when that has been imported. */
+  order_id: string | null;
+  order_label: string | null;
+}
+
+export interface AfterSalesList {
+  items: AfterSalesCase[];
+  total: number;
+}
+
+export interface AfterSalesSummary {
+  needs_action: number;
+  overdue: number;
+  due_soon: number;
+}
+
+export interface AfterSalesSyncResult {
+  returns: number;
+  claims: number;
+  disputes: number;
+}
+
+export const afterSalesApi = {
+  list(view: CaseView = "action", kind?: CaseKind): Promise<AfterSalesList> {
+    const query = new URLSearchParams({ view });
+    if (kind) query.set("kind", kind);
+    return request<AfterSalesList>(`/after-sales?${query.toString()}`);
+  },
+
+  summary(): Promise<AfterSalesSummary> {
+    return request<AfterSalesSummary>("/after-sales/summary");
+  },
+
+  forOrder(orderId: string): Promise<AfterSalesCase[]> {
+    return request<AfterSalesCase[]>(`/orders/${orderId}/after-sales`);
+  },
+
+  /** Read returns, claims and disputes from Allegro. */
+  sync(): Promise<AfterSalesSyncResult> {
+    return request<AfterSalesSyncResult>("/integrations/allegro/after-sales/sync", {
+      method: "POST",
+    });
+  },
+};

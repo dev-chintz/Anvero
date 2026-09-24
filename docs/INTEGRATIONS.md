@@ -566,6 +566,65 @@ one tries again. The outcome of a sync is not stored (unlike an order import's):
 the Status page shows only whether the schedule is running here, when it is due
 next and when it last ran.
 
+### Returns and claims
+
+Read into the after-sales queue (plan B4) from Allegro's **published OpenAPI
+specification**, read in full on 2026-09-24: the paths, parameters, statuses and
+fields below are the specification's own, and the payloads in the tests follow
+its examples. Nothing here has run against a real account.
+
+- **Customer returns**, `GET /order/customer-returns` (beta: it needs
+  `Accept: application/vnd.allegro.beta.v1+json`; scope `allegro:api:orders:read`).
+  Filtered by `createdAt.gte` and paged by `limit` (at most 100 here) and `offset`.
+  A return has `id`, `createdAt`, `referenceNumber`, `orderId` (the checkout form
+  id, so the order's external id), `buyer.login`/`email`, `items[]` (`name`,
+  `quantity`, `reason.type`, `reason.userComment`) and `status`: `CREATED`,
+  `DISPATCHED`, `IN_TRANSIT`, `DELIVERED`, `FINISHED`, `FINISHED_APT`, `REJECTED`,
+  `COMMISSION_REFUND_CLAIMED`, `COMMISSION_REFUNDED`, `WAREHOUSE_DELIVERED`,
+  `WAREHOUSE_VERIFICATION`. **It has no deadline field.**
+- **Disputes and claims**, `GET /sale/issues` (scope `allegro:api:disputes`), newest
+  opened first, paged by `limit` and `offset`, filtered by `status`. An issue is a
+  `DISPUTE` or a `CLAIM`; its state is `CLAIM_SUBMITTED`, `CLAIM_ACCEPTED`,
+  `CLAIM_REJECTED`, `DISPUTE_ONGOING`, `DISPUTE_CLOSED` or `DISPUTE_UNRESOLVED`.
+  A claim has `referenceNumber`, `decisionDueDate` and `currentState.statusDueDate`
+  (**Allegro's deadline**: the seller's decision, which Allegro treats as
+  accepted when it passes), `reason.type`, `right` (`WARRANTY` or `COMPLAINT`) and
+  `expectations[]` (`REPAIR`, `EXCHANGE`, `REFUND`, `PARTIAL_REFUND` with an
+  amount). A dispute has none of these; both carry `checkoutForm.id` (the order),
+  `buyer.login` and `chat.lastMessage.status` (`NEW`, `SELLER_REPLIED`,
+  `BUYER_REPLIED`, `ALLEGRO_ADVISOR_REPLIED`).
+
+What each asks of the seller, and by when (`app/services/after_sales.py`):
+
+| Case | Asks | By |
+| --- | --- | --- |
+| Return `DELIVERED` (goods back) | decide: refund or reject | 14 days from the declaration |
+| Return `FINISHED` (refunded) | claim the sales commission back | 45 days from the declaration; later there is nothing to do |
+| Claim `CLAIM_SUBMITTED` | accept or reject | the deadline Allegro gives |
+| Dispute `DISPUTE_ONGOING`, last message not the seller's | reply | none |
+| everything else | nothing | |
+
+**Unverified, and to be confirmed by the first real read:** the 14 and 45 days are
+the owner's figures (from AlleIntegrator's rules) and the law's, not something
+Allegro's API states; they are counted from `createdAt`, the declaration, so they
+can only come early. Whether the 45 days start there is not known. Whether
+Allegro Warehouse returns (`WAREHOUSE_*`) need the seller at all is not known, so
+they ask nothing. A dispute with no `lastMessage` status is treated as waiting.
+Whether the application carries the two scopes is not known: a `403` says so.
+
+A sync reads returns back `ALLEGRO_AFTER_SALES_DAYS` (default 90) and as far as
+the oldest return still open here; every open dispute and claim however old; and
+the closed ones of that period. An open one Allegro no longer lists as open is
+closed here. It runs under the import lock (one rotating token), from the button
+on the Returns and claims page; there is no schedule yet.
+
+**Not built:** anything that changes a case on Allegro: accepting or rejecting a
+claim (`POST /sale/issues/{id}/status`), rejecting a return
+(`POST /order/customer-returns/{id}/rejection`), replying in a dispute
+(`POST /sale/issues/{id}/message`), applying for the commission back
+(`POST /order/refund-claims`), refunds. All of them have legal or financial
+consequences and belong behind safe mode; the queue only shows what waits.
+
 ## Erli
 
 **Built 2026-09-24 from Erli's published API description only**

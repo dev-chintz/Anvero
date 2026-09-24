@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import { useAfterSalesSummary } from '../hooks/useAfterSalesSummary';
 import { useOrderStats } from '../hooks/useOrderStats';
 import { useOrders } from '../hooks/useOrders';
 import { OrderQueue } from '../types/order';
@@ -23,6 +24,7 @@ const QUEUE_TILES: {
 export const Dashboard: React.FC = () => {
   const { t, tc, formatMoney, formatNumber } = useTranslation();
   const { stats, loading: statsLoading, error: statsError } = useOrderStats();
+  const afterSales = useAfterSalesSummary();
   const { orders: recentOrders, error: ordersError } = useOrders({
     skip: 0,
     limit: RECENT_ORDERS_LIMIT,
@@ -49,6 +51,18 @@ export const Dashboard: React.FC = () => {
         <h1>{t('dashboard.title')}</h1>
         <p className="subtitle">{t('dashboard.subtitle')}</p>
       </header>
+
+      {afterSales && afterSales.needs_action > 0 && (
+        <div role="alert" className="warning-banner">
+          <strong>
+            {t('afterSales.dashboard', {
+              n: afterSales.needs_action,
+              overdue: afterSales.overdue,
+            })}
+          </strong>{' '}
+          <Link to="/after-sales">{t('afterSales.dashboardLink')}</Link>
+        </div>
+      )}
 
       {stats.cancellation_warnings > 0 && (
         <div role="alert" className="warning-banner">

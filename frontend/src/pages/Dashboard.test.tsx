@@ -4,6 +4,10 @@ import { describe, expect, it, vi } from "vitest";
 import { Dashboard } from "./Dashboard";
 import { OrderSource, OrderStatus, type Order } from "../types/order";
 
+vi.mock("../hooks/useAfterSalesSummary", () => ({
+  useAfterSalesSummary: () => null,
+}));
+
 vi.mock("../hooks/useOrderStats", () => ({
   useOrderStats: () => ({
     loading: false,

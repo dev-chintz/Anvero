@@ -20,8 +20,8 @@ The model will be deployed via migrations after framework selection, but a commo
 
 Migrations currently create `users`, `orders`, `order_items`,
 `order_addresses`, `order_shipments`, `billing_entries`,
-`order_status_history`, `integration_credentials`, `message_threads` and
-`messages`. `integration` and `customer` are still targets.
+`order_status_history`, `integration_credentials`, `message_threads`,
+`messages` and `after_sales_cases`. `integration` and `customer` are still targets.
 
 `orders` deviates from the target shape while there are no integrations to
 point at:
@@ -154,6 +154,24 @@ comparing the message's author login to the connected seller's own
 messages". `created_in_anvero` marks a reply written here, as opposed to one
 read from the marketplace, which includes the seller's own past replies sent
 from its own panel.
+
+`after_sales_cases`: a return, claim or dispute read from a marketplace (plan
+B4, `INTEGRATIONS.md`, "Returns and claims"), one row each, kept by `(source,
+external_id)` and replaced on every sync (the marketplace owns every field).
+`kind` is `RETURN`, `CLAIM` or `DISPUTE`; `status` is the marketplace's own
+status as text; `is_open` is false once the process is over on its side (a
+refunded return is over, though its commission may still be claimed).
+`action` (`NONE`, `DECIDE`, `REPLY`, `RECOVER_COMMISSION`, indexed) and `due_at`
+(nullable, indexed) are worked out when the row is stored, by the rules in
+`app/services/after_sales.py`: they are what the queue sorts and filters by, so
+they are stored, not derived on every read. `order_external_id` (indexed) names
+the order by the marketplace's id and is deliberately not a foreign key, like
+`message_threads.order_external_id`: the order may not have been imported. The
+API joins to `orders` on `(source, external_id)`. `reason` is the marketplace's
+reason code, `summary` what the case is about (the goods returned, or the
+buyer's own words) and `detail` the buyer's comment or, for a claim, what it asks
+for; both are cut to 500 characters. `reference_number` is the number Allegro
+prints on a claim.
 
 These columns hold buyers' personal data: names, addresses, phone numbers.
 It is never written to logs; mapping problems are logged by field name only.

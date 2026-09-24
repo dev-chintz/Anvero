@@ -11,6 +11,7 @@ import {
 import type { Order, OrderBilling, OrderStatusChange, OrderWithDetails } from "../types/order";
 import { translate, useTranslation } from "../i18n";
 import { AddShipmentForm } from "./AddShipmentForm";
+import { AfterSalesCard } from "./AfterSalesCard";
 import { BuyerOrdersCard } from "./BuyerOrdersCard";
 import { describeWrite } from "./marketplaceWrite";
 import { OrderWritesCard } from "./OrderWritesCard";
@@ -285,6 +286,8 @@ export function OrderDetail() {
             </div>
           </dl>
         )}
+
+        {!loading && !error && !notFound && order && <AfterSalesCard orderId={order.id} />}
 
         {!loading && !error && !notFound && order && <OrderDetailsPanel order={order} />}
 

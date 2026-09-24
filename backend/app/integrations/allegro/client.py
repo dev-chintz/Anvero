@@ -27,6 +27,8 @@ logger = logging.getLogger(__name__)
 
 # the API refuses requests that do not pin a version
 ACCEPT_HEADER = "application/vnd.allegro.public.v1+json"
+# the customer returns endpoints are still in beta and answer only to this one
+BETA_ACCEPT_HEADER = "application/vnd.allegro.beta.v1+json"
 
 # refresh slightly early so a token cannot expire mid-request
 TOKEN_EXPIRY_MARGIN_SECONDS = 60
@@ -229,7 +231,11 @@ class AllegroClient:
         return forms
 
     def _get_object(
-        self, path: str, what: str, params: list[tuple[str, str]] | None = None
+        self,
+        path: str,
+        what: str,
+        params: list[tuple[str, str]] | None = None,
+        accept: str = ACCEPT_HEADER,
     ) -> dict[str, Any]:
         """GET one Allegro resource and return its JSON object.
 
@@ -243,7 +249,7 @@ class AllegroClient:
                 f"{self._api_url}{path}",
                 headers={
                     "Authorization": f"Bearer {token}",
-                    "Accept": ACCEPT_HEADER,
+                    "Accept": accept,
                     "User-Agent": self._user_agent,
                 },
                 params=params,
@@ -596,6 +602,49 @@ class AllegroClient:
         if not isinstance(messages, list):
             raise IntegrationUnavailable("Allegro thread messages is not a list")
         return [m for m in messages if isinstance(m, dict)]
+
+    def fetch_customer_returns(
+        self, created_since: datetime, limit: int = MAX_PAGE_SIZE, offset: int = 0
+    ) -> list[dict[str, Any]]:
+        """One page of customer returns created since `created_since`.
+
+        `GET /order/customer-returns` (beta, scope `allegro:api:orders:read`),
+        paged by `limit` and `offset`; the answer is `{count, customerReturns}`.
+        """
+        if not 1 <= limit <= MAX_PAGE_SIZE:
+            raise ValueError(f"limit must be between 1 and {MAX_PAGE_SIZE}")
+        payload = self._get_object(
+            "/order/customer-returns",
+            "customer returns",
+            params=[
+                ("createdAt.gte", created_since.astimezone(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")),
+                ("limit", str(limit)),
+                ("offset", str(offset)),
+            ],
+            accept=BETA_ACCEPT_HEADER,
+        )
+        returns = payload.get("customerReturns", [])
+        if not isinstance(returns, list):
+            raise IntegrationUnavailable("Allegro customer returns is not a list")
+        return [r for r in returns if isinstance(r, dict)]
+
+    def fetch_issues(
+        self, statuses: list[str], limit: int = MAX_PAGE_SIZE, offset: int = 0
+    ) -> list[dict[str, Any]]:
+        """One page of disputes and claims in the given statuses, newest opened first.
+
+        `GET /sale/issues` (scope `allegro:api:disputes`); the answer is
+        `{issues: [...]}`.
+        """
+        if not 1 <= limit <= MAX_PAGE_SIZE:
+            raise ValueError(f"limit must be between 1 and {MAX_PAGE_SIZE}")
+        params = [("status", status) for status in statuses]
+        params += [("limit", str(limit)), ("offset", str(offset))]
+        payload = self._get_object("/sale/issues", "disputes and claims", params=params)
+        issues = payload.get("issues", [])
+        if not isinstance(issues, list):
+            raise IntegrationUnavailable("Allegro issues is not a list")
+        return [i for i in issues if isinstance(i, dict)]
 
     def reply_to_thread(self, thread_id: str, text: str) -> dict[str, Any] | None:
         """`POST /messaging/threads/{threadId}/messages`: a reply in an existing thread.

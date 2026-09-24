@@ -1,3 +1,4 @@
+from app.models.after_sales import AfterSalesCase, CaseAction, CaseKind
 from app.models.courier_pickup import CourierPickup, PickupStatus
 from app.models.integration import IntegrationCredential, IntegrationSettings
 from app.models.marketplace_write import AppSetting, MarketplaceWrite, WriteOutcome
@@ -20,8 +21,11 @@ from app.models.user import User
 
 __all__ = [
     "AddressType",
+    "AfterSalesCase",
     "AppSetting",
     "BillingEntry",
+    "CaseAction",
+    "CaseKind",
     "Counter",
     "CourierPickup",
     "IntegrationCredential",

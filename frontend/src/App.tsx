@@ -17,6 +17,7 @@ import { InboxPage } from './pages/InboxPage';
 import { Settings } from './pages/Settings';
 import { StatusPage } from './pages/StatusPage';
 import { LabelsPage } from './pages/LabelsPage';
+import { AfterSalesPage } from './pages/AfterSalesPage';
 import { useTranslation } from './i18n';
 import './App.css';
 
@@ -122,6 +123,7 @@ export default function App() {
                 </Route>
                 <Route path="/production" element={<ProductionPage />} />
                 <Route path="/labels" element={<LabelsPage />} />
+                <Route path="/after-sales" element={<AfterSalesPage />} />
                 <Route path="/status" element={<StatusPage />} />
 
                 <Route path="/inbox" element={<InboxPage />} />

@@ -18,6 +18,7 @@ from app.models.user import User
 from app.repositories.integration_credential_repository import (
     IntegrationCredentialRepository,
 )
+from app.schemas.after_sales import AfterSalesSyncResult
 from app.schemas.integration import (
     AllegroConnectPoll,
     AllegroConnectStart,
@@ -29,6 +30,7 @@ from app.schemas.integration import (
 )
 from app.schemas.message import MessageSyncResult
 from app.services import allegro_settings, erli_import, erli_settings
+from app.services.after_sales import run_after_sales_sync
 from app.services.allegro_import import (
     build_allegro_client,
     build_allegro_import_service,
@@ -296,3 +298,27 @@ def sync_allegro_messages(request: Request, db: Session = Depends(get_db)):
     return MessageSyncResult(
         threads_synced=result.threads_synced, messages_added=result.messages_added
     )
+
+@router.post("/allegro/after-sales/sync", response_model=AfterSalesSyncResult)
+@limiter.limit("6/minute")
+def sync_allegro_after_sales(request: Request, db: Session = Depends(get_db)):
+    """Read returns, claims and disputes into the after-sales queue.
+
+    Shares the import lock with an order import, since both refresh the same
+    rotating token.
+    """
+    try:
+        return run_after_sales_sync(db)
+    except ImportAlreadyRunning as exc:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="An Allegro import or sync is already running",
+        ) from exc
+    except IntegrationNotConfigured as exc:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Allegro is not configured",
+        ) from exc
+    except IntegrationError as exc:
+        raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=str(exc)) from exc
+
