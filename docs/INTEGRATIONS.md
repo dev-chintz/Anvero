@@ -211,7 +211,7 @@ is checked first.
 | `status: CANCELLED` | `CANCELLED` |
 | `fulfillment.status: NEW` | `NEW` |
 | `fulfillment.status: PROCESSING` | `CONFIRMED` |
-| `fulfillment.status: READY_FOR_SHIPMENT` | `CONFIRMED` |
+| `fulfillment.status: READY_FOR_SHIPMENT` | `READY_FOR_SHIPMENT` |
 | `fulfillment.status: SENT` | `SHIPPED` |
 | `fulfillment.status: READY_FOR_PICKUP` | `SHIPPED` |
 | `fulfillment.status: PICKED_UP` | `DELIVERED` |
@@ -234,8 +234,16 @@ operator's status, since Anvero does not write statuses back to Allegro. See
 
 Every import also records what the marketplace says in `marketplace_status`,
 beside the Anvero one, and Allegro's own value for it, unmapped, in
-`marketplace_status_label` — `READY_FOR_SHIPMENT` rather than `CONFIRMED`,
+`marketplace_status_label` — e.g. `READY_FOR_PICKUP` rather than `SHIPPED`,
 since the table above sends several Allegro statuses to the same Anvero one.
+
+### Dispatch deadline
+
+`delivery.time.dispatch.to` of the checkout form, the end of the window the
+seller must hand the parcel over in, is stored as `dispatch_by` and drives the
+work queues' "at risk" order and the "late" queue. Read from Allegro's
+documentation only: no sandbox order seen so far has shown whether the field
+is filled, so until one does, orders may simply have no deadline.
 The order page and the order list show the unmapped value whenever the mapped
 one differs from the Anvero status, which now means the operator has set
 something Allegro has not caught up with.

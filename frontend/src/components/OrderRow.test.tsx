@@ -186,3 +186,23 @@ describe("OrderRow", () => {
     expect(cell).toHaveAttribute("title", "a-fairly-long-buyer-address@example.com");
   });
 });
+
+describe("OrderRow dispatch deadline", () => {
+  it("warns about an order past its dispatch deadline", () => {
+    renderRow(makeOrder({ dispatch_by: "2020-01-01T10:00:00Z" }));
+
+    expect(screen.getByText(/Overdue, was due/)).toHaveClass("dispatch-late");
+  });
+
+  it("shows the deadline of a waiting order", () => {
+    renderRow(makeOrder({ status: OrderStatus.READY_FOR_SHIPMENT, dispatch_by: "2999-01-01T10:00:00Z" }));
+
+    expect(screen.getByText(/Ship by/)).toHaveClass("dispatch-later");
+  });
+
+  it("shows none once the order has shipped", () => {
+    renderRow(makeOrder({ status: OrderStatus.SHIPPED, dispatch_by: "2020-01-01T10:00:00Z" }));
+
+    expect(screen.queryByText(/Ship by|Overdue/)).not.toBeInTheDocument();
+  });
+});

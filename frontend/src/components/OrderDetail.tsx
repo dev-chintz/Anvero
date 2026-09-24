@@ -18,7 +18,8 @@ const STATUSES = Object.values(OrderStatus);
 
 const STATUS_ICON: Record<OrderStatus, string> = {
   [OrderStatus.NEW]: "🆕",
-  [OrderStatus.CONFIRMED]: "✅",
+  [OrderStatus.CONFIRMED]: "🛠️",
+  [OrderStatus.READY_FOR_SHIPMENT]: "✅",
   [OrderStatus.SHIPPED]: "🚚",
   [OrderStatus.DELIVERED]: "📦",
   [OrderStatus.CANCELLED]: "✖",

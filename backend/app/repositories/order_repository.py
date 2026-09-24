@@ -1,9 +1,10 @@
+import enum
 import uuid
 from datetime import UTC, date, datetime, time, timedelta
 from decimal import Decimal
 from zoneinfo import ZoneInfo
 
-from sqlalchemy import func, or_, select
+from sqlalchemy import and_, func, not_, or_, select
 from sqlalchemy.orm import Query, Session
 
 from app.core.config import settings
@@ -15,10 +16,39 @@ from app.models.order import (
     OrderSource,
     OrderStatus,
     OrderStatusHistory,
+    PaymentType,
 )
 from app.schemas.order import BillingEntryCreate
 
-PENDING_STATUSES = (OrderStatus.NEW, OrderStatus.CONFIRMED)
+PENDING_STATUSES = (OrderStatus.NEW, OrderStatus.CONFIRMED, OrderStatus.READY_FOR_SHIPMENT)
+TO_MAKE_STATUSES = (OrderStatus.NEW, OrderStatus.CONFIRMED)
+TO_SHIP_STATUSES = (OrderStatus.READY_FOR_SHIPMENT,)
+# paid for only after it arrives, so no payment is owed before shipping
+PAY_LATER_TYPES = (PaymentType.CASH_ON_DELIVERY, PaymentType.DEFERRED)
+
+
+class OrderQueue(str, enum.Enum):
+    """The work queues: ready-made views of the orders waiting on someone.
+
+    None of them holds an order cancelled on its marketplace; those have
+    their own warning.
+    """
+
+    # paid (or paid later) and still to be made or prepared
+    TO_MAKE = "to_make"
+    # still waiting, but the buyer has not paid what is due before shipping
+    UNPAID = "unpaid"
+    # made and packed, waiting for the carrier
+    TO_SHIP = "to_ship"
+    # in to_make or to_ship with its dispatch deadline passed; overlaps them
+    LATE = "late"
+
+
+class OrderSort(str, enum.Enum):
+    NEWEST = "newest"
+    OLDEST = "oldest"
+    # closest dispatch deadline first; orders without one after all others
+    AT_RISK = "at_risk"
 
 # tracking codes after which a parcel needs no more asking about
 FINAL_TRACKING_STATUSES = ("DELIVERED", "RETURNED")
@@ -228,6 +258,40 @@ class OrderRepository:
         return self._to_db_datetime(local_midnight.astimezone(UTC))
 
     @staticmethod
+    def _is_unpaid():
+        """The buyer owes payment before the order may ship.
+
+        Known unpaid (a paid amount short of the total), or paying up front
+        with no payment recorded. An order whose payment is unknown in both
+        type and amount, such as one entered by hand, is not called unpaid:
+        that would park every such order where nobody looks. Written so it is
+        never NULL, since the queues also use it negated.
+        """
+        pays_up_front = or_(
+            Order.payment_type.is_(None), Order.payment_type.notin_(PAY_LATER_TYPES)
+        )
+        short = and_(Order.paid_amount.is_not(None), Order.paid_amount < Order.total_amount)
+        nothing_recorded = and_(Order.paid_amount.is_(None), Order.payment_type.is_not(None))
+        return and_(pays_up_front, or_(short, nothing_recorded))
+
+    def _in_queue(self, queue: OrderQueue):
+        """One definition per queue, shared by the list filter and the counts."""
+        if queue is OrderQueue.LATE:
+            return self._is_late()
+        not_cancelled = Order.marketplace_cancelled_at.is_(None)
+        if queue is OrderQueue.UNPAID:
+            return and_(not_cancelled, Order.status.in_(PENDING_STATUSES), self._is_unpaid())
+        statuses = TO_MAKE_STATUSES if queue is OrderQueue.TO_MAKE else TO_SHIP_STATUSES
+        return and_(not_cancelled, Order.status.in_(statuses), not_(self._is_unpaid()))
+
+    def _is_late(self):
+        """In a queue that still needs work, past the dispatch deadline."""
+        return and_(
+            or_(self._in_queue(OrderQueue.TO_MAKE), self._in_queue(OrderQueue.TO_SHIP)),
+            Order.dispatch_by < self._to_db_datetime(datetime.now(UTC)),
+        )
+
+    @staticmethod
     def _has_cancellation_warning():
         """Cancelled on the marketplace, but not (yet) cancelled in Anvero.
 
@@ -246,6 +310,7 @@ class OrderRepository:
         date_from: date | None = None,
         date_to: date | None = None,
         cancellation_warning: bool = False,
+        queue: OrderQueue | None = None,
     ) -> Query:
         """Single source of truth for filtering.
 
@@ -253,6 +318,8 @@ class OrderRepository:
         of results and its reported total disagree.
         """
         query = self.db.query(Order)
+        if queue is not None:
+            query = query.filter(self._in_queue(queue))
         if cancellation_warning:
             query = query.filter(self._has_cancellation_warning())
         if source is not None:
@@ -293,6 +360,8 @@ class OrderRepository:
         date_from: date | None = None,
         date_to: date | None = None,
         cancellation_warning: bool = False,
+        queue: OrderQueue | None = None,
+        sort: OrderSort = OrderSort.NEWEST,
     ) -> list[Order]:
         return (
             self._filtered(
@@ -302,11 +371,9 @@ class OrderRepository:
                 date_from=date_from,
                 date_to=date_to,
                 cancellation_warning=cancellation_warning,
+                queue=queue,
             )
-            # created_at and id break ties: many orders share an ordered_at at
-            # the database's timestamp resolution, and without a total order
-            # offset pagination could repeat or skip rows between pages
-            .order_by(Order.ordered_at.desc(), Order.created_at.desc(), Order.id)
+            .order_by(*self._ordering(sort))
             .offset(skip)
             .limit(limit)
             .all()
@@ -320,6 +387,7 @@ class OrderRepository:
         date_from: date | None = None,
         date_to: date | None = None,
         cancellation_warning: bool = False,
+        queue: OrderQueue | None = None,
     ) -> int:
         return self._filtered(
             source=source,
@@ -328,7 +396,26 @@ class OrderRepository:
             date_from=date_from,
             date_to=date_to,
             cancellation_warning=cancellation_warning,
+            queue=queue,
         ).count()
+
+    @staticmethod
+    def _ordering(sort: OrderSort) -> tuple:
+        # created_at and id break ties: many orders share an ordered_at at
+        # the database's timestamp resolution, and without a total order
+        # offset pagination could repeat or skip rows between pages
+        if sort is OrderSort.OLDEST:
+            return (Order.ordered_at.asc(), Order.created_at.asc(), Order.id)
+        if sort is OrderSort.AT_RISK:
+            # "IS NULL" sorts false before true on both databases, which puts
+            # orders without a deadline last without NULLS LAST syntax
+            return (
+                Order.dispatch_by.is_(None),
+                Order.dispatch_by.asc(),
+                Order.ordered_at.asc(),
+                Order.id,
+            )
+        return (Order.ordered_at.desc(), Order.created_at.desc(), Order.id)
 
     def _week_cutoff(self) -> datetime:
         return self._to_db_datetime(datetime.now(UTC) - timedelta(days=7))
@@ -355,6 +442,13 @@ class OrderRepository:
             select(func.count(Order.id)).where(self._has_cancellation_warning())
         ).scalar_one()
 
+        queues = {
+            queue.value: self.db.execute(
+                select(func.count(Order.id)).where(self._in_queue(queue))
+            ).scalar_one()
+            for queue in OrderQueue
+        }
+
         by_status = self.db.execute(
             select(Order.status, func.count(Order.id)).group_by(Order.status)
         ).all()
@@ -369,6 +463,7 @@ class OrderRepository:
             "this_week": this_week,
             "pending": pending,
             "cancellation_warnings": cancellation_warnings,
+            "queues": queues,
             "by_status": {status.value: count for status, count in by_status},
             "by_source": {source.value: count for source, count in by_source},
         }

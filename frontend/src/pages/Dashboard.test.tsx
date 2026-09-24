@@ -14,6 +14,7 @@ vi.mock("../hooks/useOrderStats", () => ({
       this_week: 3,
       pending: 2,
       cancellation_warnings: 0,
+      queues: { to_make: 5, unpaid: 1, to_ship: 2, late: 3 },
       by_status: { NEW: 12 },
       by_source: { ALLEGRO: 12 },
     },
@@ -74,5 +75,20 @@ describe("Dashboard links", () => {
 
     const link = screen.getByRole("link", { name: "AN-000001" });
     expect(link).toHaveAttribute("href", "/orders/order-1");
+  });
+});
+
+describe("Dashboard work queues", () => {
+  it("links each queue's tile to that queue on the orders list", () => {
+    renderDashboard();
+
+    expect(screen.getByRole("link", { name: /To make: 5/ })).toHaveAttribute(
+      "href",
+      "/orders?queue=to_make",
+    );
+    expect(screen.getByRole("link", { name: /Past deadline: 3/ })).toHaveAttribute(
+      "href",
+      "/orders?queue=late",
+    );
   });
 });

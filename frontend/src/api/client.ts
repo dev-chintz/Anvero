@@ -6,7 +6,7 @@ import type {
   OrderStatusChange,
   OrderWithDetails,
 } from "../types/order";
-import type { OrderSource, OrderStatus } from "../types/order";
+import type { OrderQueue, OrderSort, OrderSource, OrderStatus } from "../types/order";
 import type { Token, User } from "../types/user";
 import { translate } from "../i18n";
 
@@ -101,6 +101,8 @@ export interface ListOrdersParams {
   dateFrom?: string;
   dateTo?: string;
   cancellationWarning?: boolean;
+  queue?: OrderQueue;
+  sort?: OrderSort;
 }
 
 function buildQuery(params: ListOrdersParams): string {
@@ -113,6 +115,8 @@ function buildQuery(params: ListOrdersParams): string {
   if (params.dateFrom) query.set("date_from", params.dateFrom);
   if (params.dateTo) query.set("date_to", params.dateTo);
   if (params.cancellationWarning) query.set("cancellation_warning", "true");
+  if (params.queue) query.set("queue", params.queue);
+  if (params.sort) query.set("sort", params.sort);
   const queryString = query.toString();
   return queryString ? `?${queryString}` : "";
 }

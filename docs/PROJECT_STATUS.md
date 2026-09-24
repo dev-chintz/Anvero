@@ -43,7 +43,7 @@ folder, and one was restored from that copy into a scratch database as a test.
   remains the no-setup default for a fresh clone)
 - Health endpoint and first order model — done
 - Minimal order list interface — done
-- Automated tests for core flows — done (333 backend, 65 frontend passing
+- Automated tests for core flows — done (344 backend, 76 frontend passing
   across the suite as of 2026-09-21)
 
 ---
@@ -116,6 +116,8 @@ ways of importing have now run against the real API.
 The NAS deployment (`DEPLOYMENT.md`) and the scheduled import (`ALLEGRO_IMPORT_INTERVAL_MINUTES`) have not run: the Dockerfiles, the compose file and the publish workflow were written without Docker or GitHub Actions to try them on, and the scheduled path was only checked up to "skips when no account is connected" on a machine without one.
 
 Shipments and carrier tracking (`INTEGRATIONS.md`) were built from Allegro's documentation and tested against fakes only: no real response has been seen, and whether the application's scopes allow the two endpoints is unknown.
+
+The dispatch deadline (`dispatch_by`, `INTEGRATIONS.md`, "Dispatch deadline") is read from the documented `delivery.time.dispatch.to`; no real order has shown it yet, so the "late" queue and the at-risk order stay empty-handed until one does. The queue tabs and dashboard tiles were checked in the browser on 2026-09-24 against the one sandbox order, which has no deadline.
 
 Billing entries (fees, `INTEGRATIONS.md`, "Fees") are likewise from the documentation and fakes only: not known whether the application may read them, or whether the history holds anything besides fees.
 
@@ -226,4 +228,4 @@ PostgreSQL 17, SQLite (no-setup default for a fresh clone)
 
 ## Last Update
 
-2026-09-18
+2026-09-24

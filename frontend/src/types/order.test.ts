@@ -3,6 +3,7 @@ import {
   OrderSource,
   OrderStatus,
   type Order,
+  dispatchUrgency,
   hasCancellationWarning,
   marketplaceStatusDiffers,
   marketplaceStatusText,
@@ -91,5 +92,29 @@ describe("marketplaceStatusText", () => {
 
   it("is empty when there is nothing to show", () => {
     expect(marketplaceStatusText(makeOrder())).toBe("");
+  });
+});
+
+describe("dispatchUrgency", () => {
+  const now = new Date("2026-09-24T12:00:00Z");
+
+  it("is late once the deadline has passed", () => {
+    expect(dispatchUrgency(makeOrder({ dispatch_by: "2026-09-24T11:59:00Z" }), now)).toBe("late");
+  });
+
+  it("is soon within a day of it, and later beyond that", () => {
+    expect(dispatchUrgency(makeOrder({ dispatch_by: "2026-09-25T11:00:00Z" }), now)).toBe("soon");
+    expect(dispatchUrgency(makeOrder({ dispatch_by: "2026-09-26T12:00:00Z" }), now)).toBe("later");
+  });
+
+  it("has nothing to say without a deadline or once the order has left", () => {
+    expect(dispatchUrgency(makeOrder({ dispatch_by: null }), now)).toBeNull();
+    expect(dispatchUrgency(makeOrder(), now)).toBeNull();
+    expect(
+      dispatchUrgency(
+        makeOrder({ status: OrderStatus.SHIPPED, dispatch_by: "2026-09-20T12:00:00Z" }),
+        now,
+      ),
+    ).toBeNull();
   });
 });

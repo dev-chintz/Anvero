@@ -174,6 +174,9 @@ class OrderDetails(BaseModel):
     # checkout form; written by the seller, not the buyer, and read-only
     # here - a re-import refreshes it like every other detail
     seller_note: str | None = _text(SELLER_NOTE_MAX_LENGTH)
+    # the latest moment the seller must hand the parcel over, as the
+    # marketplace states it; null when it states none
+    dispatch_by: UtcDateTime | None = None
     # the parcels sent; None means "not known", which an import leaves the
     # stored ones alone for, unlike an empty list, which says there are none
     shipments: list[ShipmentCreate] | None = None
@@ -214,6 +217,8 @@ class OrderRead(OrderBase):
     customer_last_name: str | None = None
     payment_type: PaymentType | None = None
     payment_provider: str | None = None
+    # the list sorts and flags orders by it
+    dispatch_by: UtcDateTime | None = None
     # small, and the list shows them in its Shipping column
     shipments: list[ShipmentRead] = Field(default_factory=list)
 
@@ -308,11 +313,21 @@ class OrderStatusHistoryRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
+class OrderQueueCounts(BaseModel):
+    """How many orders wait in each work queue; see OrderQueue."""
+
+    to_make: int
+    unpaid: int
+    to_ship: int
+    late: int
+
+
 class OrderStats(BaseModel):
     total_orders: int
     total_revenue: Decimal
     this_week: int
     pending: int
     cancellation_warnings: int
+    queues: OrderQueueCounts
     by_status: dict[str, int]
     by_source: dict[str, int]

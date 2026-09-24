@@ -86,6 +86,16 @@ beforeEach(() => {
   });
   vi.mocked(ordersApi.get).mockResolvedValue(makeOrderDetails());
   vi.mocked(ordersApi.history).mockResolvedValue([]);
+  vi.mocked(ordersApi.stats).mockResolvedValue({
+    total_orders: 1,
+    total_revenue: "45.49",
+    this_week: 1,
+    pending: 1,
+    cancellation_warnings: 0,
+    queues: { to_make: 4, unpaid: 1, to_ship: 2, late: 3 },
+    by_status: { NEW: 1 },
+    by_source: { ALLEGRO: 1 },
+  });
   vi.mocked(integrationsApi.allegroStatus).mockResolvedValue({
     configured: false,
     connected: false,
@@ -183,5 +193,53 @@ describe("the order detail drawer, nested under /orders", () => {
     await waitFor(() => expect(screen.getByTestId("path")).toHaveTextContent(/^\/orders$/));
     expect(screen.queryByText("the dashboard")).not.toBeInTheDocument();
     expect(await screen.findByRole("link", { name: "AN-000007" })).toBeInTheDocument();
+  });
+});
+
+describe("the work queues above the list", () => {
+  it("shows each queue with how many orders wait in it", async () => {
+    renderOrdersAt("/orders");
+
+    expect(await screen.findByRole("button", { name: "To make 4" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Past deadline 3" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "All" })).toHaveAttribute("aria-pressed", "true");
+  });
+
+  it("opens a queue with the most urgent orders first", async () => {
+    renderOrdersAt("/orders");
+    fireEvent.click(await screen.findByRole("button", { name: "To ship 2" }));
+
+    await waitFor(() =>
+      expect(ordersApi.list).toHaveBeenLastCalledWith(
+        expect.objectContaining({ queue: "to_ship", sort: "at_risk", skip: 0 }),
+      ),
+    );
+    expect(screen.getByRole("button", { name: "To ship 2" })).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByRole("combobox", { name: "Sort" })).toHaveValue("at_risk");
+  });
+
+  it("keeps the whole list newest first", async () => {
+    renderOrdersAt("/orders");
+
+    await waitFor(() =>
+      expect(ordersApi.list).toHaveBeenCalledWith(
+        expect.objectContaining({ queue: undefined, sort: "newest" }),
+      ),
+    );
+  });
+
+  it("counts again after a status change moves an order", async () => {
+    renderOrdersAt("/orders/order-1");
+    await screen.findByRole("region", { name: "Order details" });
+    const before = vi.mocked(ordersApi.stats).mock.calls.length;
+    vi.mocked(ordersApi.updateStatus).mockResolvedValue(
+      makeOrderDetails({ status: OrderStatus.READY_FOR_SHIPMENT }),
+    );
+
+    fireEvent.change(screen.getByLabelText("Status"), {
+      target: { value: OrderStatus.READY_FOR_SHIPMENT },
+    });
+
+    await waitFor(() => expect(vi.mocked(ordersApi.stats).mock.calls.length).toBe(before + 1));
   });
 });

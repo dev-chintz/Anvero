@@ -4,6 +4,25 @@ All significant changes to the Anvero project.
 
 ---
 
+## 2026-09-24
+
+### 🗂️ Work queues, a "ready to ship" status and the dispatch deadline
+
+- New status **Ready to ship** (`READY_FOR_SHIPMENT`) between In progress
+  (`CONFIRMED`, relabelled from "Confirmed") and Shipped, mapped from
+  Allegro's own `READY_FOR_SHIPMENT` (migration `d8f2b6a4c917`).
+- The dispatch deadline (`dispatch_by`, from Allegro's
+  `delivery.time.dispatch.to`) is imported and shown under the order date,
+  amber within a day and red once passed.
+- `GET /orders?queue=to_make|unpaid|to_ship|late&sort=newest|oldest|at_risk`,
+  and the queue counts in `GET /orders/stats`. The orders page has queue tabs
+  with counts and a sort; the dashboard has a "Waiting for you" row of tiles
+  leading into them.
+- Feature plan modelled on AlleIntegrator agreed and written into
+  `ROADMAP.md`; this is its stage A1.
+
+---
+
 ## 2026-09-21
 
 ### 🛒 Script: order the offers of an import CSV on the Sandbox

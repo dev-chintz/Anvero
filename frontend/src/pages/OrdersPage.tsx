@@ -1,9 +1,11 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, Outlet, useSearchParams } from 'react-router-dom';
 import { ApiError, integrationsApi, ordersApi, type AllegroStatus } from '../api/client';
 import { OrderList } from '../components/OrderList';
 import { AdvancedFilters, type Filters } from '../components/AdvancedFilters';
 import { useOrders } from '../hooks/useOrders';
+import { useOrderStats } from '../hooks/useOrderStats';
+import { OrderQueue, OrderSort } from '../types/order';
 import type { OrderSource, OrderStatus } from '../types/order';
 import { useTranslation } from '../i18n';
 import '../styles/OrdersPage.css';
@@ -40,10 +42,15 @@ export function OrdersPage({ addToast }: OrdersPageProps) {
   const dateFrom = searchParams.get('dateFrom') || undefined;
   const dateTo = searchParams.get('dateTo') || undefined;
   const cancellationWarning = searchParams.get('cancellationWarning') === 'true';
+  const queue = (searchParams.get('queue') as OrderQueue) || undefined;
+  // a queue is a to-do list, so it opens with what is most at risk; the
+  // whole list keeps opening with what is newest
+  const sort =
+    (searchParams.get('sort') as OrderSort) || (queue ? OrderSort.AT_RISK : OrderSort.NEWEST);
 
   // every filter is applied by the backend, so results and the total span
   // all pages rather than just the rows already fetched
-  const { orders, loading, error, count, refetch } = useOrders({
+  const { orders, loading, error, count, refetch: refetchOrders } = useOrders({
     skip,
     limit,
     source,
@@ -52,7 +59,18 @@ export function OrdersPage({ addToast }: OrdersPageProps) {
     dateFrom,
     dateTo,
     cancellationWarning,
+    queue,
+    sort,
   });
+
+  // the queue tabs' counts; fetched again whenever the list is, since what
+  // changes one (a status change, an import) moves orders between queues
+  const [statsKey, setStatsKey] = useState(0);
+  const { stats } = useOrderStats(statsKey);
+  const refetch = useCallback(() => {
+    refetchOrders();
+    setStatsKey((key) => key + 1);
+  }, [refetchOrders]);
 
   const [allegro, setAllegro] = useState<AllegroStatus | null>(null);
   const [allegroStatusFailed, setAllegroStatusFailed] = useState(false);
@@ -237,6 +255,41 @@ export function OrdersPage({ addToast }: OrdersPageProps) {
         onFiltersChange={handleFiltersChange}
         onClearFilters={handleClearFilters}
       />
+
+      <div className="queue-bar">
+        <nav className="queue-tabs" aria-label={t('queue.label')}>
+          {[undefined, ...Object.values(OrderQueue)].map((q) => (
+            <button
+              key={q ?? 'all'}
+              type="button"
+              className={`queue-tab${q === OrderQueue.LATE ? ' queue-tab-late' : ''}`}
+              aria-pressed={queue === q}
+              onClick={() => updateParams({ queue: q, sort: undefined, skip: '0' })}
+            >
+              {t(q ? `queue.${q}` : 'queue.all')}
+              {q && stats?.queues && (
+                <>
+                  {' '}
+                  <span className="queue-count">{stats.queues[q]}</span>
+                </>
+              )}
+            </button>
+          ))}
+        </nav>
+        <label className="queue-sort">
+          {t('sort.label')}
+          <select
+            value={sort}
+            onChange={(e) => updateParams({ sort: e.target.value, skip: '0' })}
+          >
+            {Object.values(OrderSort).map((s) => (
+              <option key={s} value={s}>
+                {t(`sort.${s}`)}
+              </option>
+            ))}
+          </select>
+        </label>
+      </div>
 
       {cancellationWarning && (
         // wrapped: .orders-page pads its direct children, which would fight

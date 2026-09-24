@@ -255,10 +255,11 @@ data and can proceed alongside them.
 
 In this order (the owner chose queues before any write to Allegro):
 
-1. **Work queues and dashboard tiles.** Ready-made views: to make/pack,
-   unpaid, to ship; sort by oldest, newest and **at risk** (closest dispatch
-   deadline). Dashboard tiles lead into them. Needs the dispatch deadline
-   imported from the checkout form, which Anvero does not read yet.
+1. ~~**Work queues and dashboard tiles.**~~ Done 2026-09-24: to make,
+   unpaid, to ship and late, sorted newest, oldest or at risk (closest
+   dispatch deadline), with dashboard tiles leading into them; a new "ready
+   to ship" status, and the dispatch deadline imported (`DECISIONS.md`).
+   Whether Allegro actually fills the deadline is unverified.
 2. **"To make today" list.** Everything the waiting orders need, grouped by
    product (SKU / offer) with quantities, the orders each serves, and the
    earliest dispatch deadline. AlleIntegrator's picking list, turned into a

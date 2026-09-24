@@ -39,7 +39,7 @@ _FULFILLMENT_TO_STATUS = {
     "NEW": OrderStatus.NEW,
     "PROCESSING": OrderStatus.CONFIRMED,
     # packed but not yet handed to the carrier
-    "READY_FOR_SHIPMENT": OrderStatus.CONFIRMED,
+    "READY_FOR_SHIPMENT": OrderStatus.READY_FOR_SHIPMENT,
     "SENT": OrderStatus.SHIPPED,
     # already at the pickup point, so it has travelled even though nobody has
     # collected it yet
@@ -428,6 +428,9 @@ def map_details(checkout_form: dict[str, Any]) -> OrderDetails:
     )
 
     return OrderDetails(
+        # the end of the window the seller must dispatch in; the start is
+        # when it becomes possible, which nothing here needs
+        dispatch_by=_moment(_obj(_obj(delivery.get("time")).get("dispatch")).get("to")),
         customer=customer or Customer(),
         items=items,
         delivery=delivery_details or Delivery(),

@@ -165,7 +165,9 @@ database, so `total` counts every match rather than the returned page.
 | --- | --- |
 | `skip`, `limit` | pagination; `limit` defaults to 100, maximum 500 |
 | `source` | `ALLEGRO` or `ERLI` |
-| `status` | `NEW`, `CONFIRMED`, `SHIPPED`, `DELIVERED`, `CANCELLED` |
+| `status` | `NEW`, `CONFIRMED` (in progress), `READY_FOR_SHIPMENT`, `SHIPPED`, `DELIVERED`, `CANCELLED` |
+| `queue` | a work queue, see below: `to_make`, `unpaid`, `to_ship`, `late` |
+| `sort` | `newest` (default: `ordered_at` newest first), `oldest`, or `at_risk`: closest `dispatch_by` first, orders without one last |
 | `search` | substring of `external_id` or `customer_email`, case-insensitive; also an Anvero order number in any form a person types it (`AN-000123`, `an-123`, `000123`, `123`) |
 | `date_from`, `date_to` | `YYYY-MM-DD`, both inclusive, calendar days in the business timezone, matched on `ordered_at` |
 | `cancellation_warning` | `true` returns only orders cancelled on their marketplace whose Anvero status is not `CANCELLED` |
@@ -210,6 +212,26 @@ operator has since moved on, and needs their attention. `GET /api/v1/orders/stat
 such orders exist as `cancellation_warnings`, using the same definition as the
 filter above. The warning clears when the status is `CANCELLED` again.
 
+Each order carries `dispatch_by`: the latest moment the parcel must be handed
+over, as the marketplace states it, or `null` when it states none.
+
+### Work queues
+
+`queue` narrows the list to the orders waiting on someone, and
+`GET /api/v1/orders/stats` returns how many are in each as
+`queues: {"to_make": N, "unpaid": N, "to_ship": N, "late": N}`, by the same
+definitions. No queue holds an order cancelled on its marketplace.
+
+- **unpaid**: `NEW`, `CONFIRMED` or `READY_FOR_SHIPMENT`, and the buyer owes
+  payment before shipping: `paid_amount` is known and below `total_amount`, or
+  the order has a `payment_type` and no `paid_amount` at all. Cash on
+  delivery and deferred payment never count as unpaid. An order with neither
+  a payment type nor a paid amount (entered by hand) is not called unpaid.
+- **to_make**: `NEW` or `CONFIRMED`, and not unpaid.
+- **to_ship**: `READY_FOR_SHIPMENT`, and not unpaid.
+- **late**: in `to_make` or `to_ship` with `dispatch_by` in the past; it
+  overlaps both.
+
 ## `GET /api/v1/orders/{id}`
 
 Returns the order with the fields the list has, plus its details:
@@ -219,8 +241,8 @@ Returns the order with the fields the list has, plus its details:
   "id": "...", "external_id": "...", "source": "ALLEGRO", "status": "NEW",
   "customer_email": "...", "total_amount": "149.99", "currency": "PLN",
   "ordered_at": "...Z", "created_at": "...Z", "updated_at": "...Z",
-  "marketplace_status": "CONFIRMED", "marketplace_status_label": "READY_FOR_SHIPMENT",
-  "marketplace_cancelled_at": null,
+  "marketplace_status": "CONFIRMED", "marketplace_status_label": "PROCESSING",
+  "marketplace_cancelled_at": null, "dispatch_by": "...Z",
   "customer": {"login": "...", "first_name": "...", "last_name": "...", "company_name": null, "phone": "..."},
   "items": [
     {"id": "...", "external_id": "...", "offer_id": "...", "sku": "KUB-350", "name": "...", "quantity": 1, "unit_price": "24.99", "image_url": "https://a.allegroimg.com/original/..."}

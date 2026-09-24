@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { ApiError, ordersApi } from "../api/client";
 import { translate } from "../i18n";
-import type { Order, OrderSource, OrderStatus } from "../types/order";
+import type { Order, OrderQueue, OrderSort, OrderSource, OrderStatus } from "../types/order";
 
 export interface UseOrdersParams {
   skip: number;
@@ -12,6 +12,8 @@ export interface UseOrdersParams {
   dateFrom?: string;
   dateTo?: string;
   cancellationWarning?: boolean;
+  queue?: OrderQueue;
+  sort?: OrderSort;
 }
 
 export interface UseOrdersResult {
@@ -41,6 +43,8 @@ export function useOrders(params: UseOrdersParams): UseOrdersResult {
     dateFrom,
     dateTo,
     cancellationWarning,
+    queue,
+    sort,
   } = params;
 
   const [orders, setOrders] = useState<Order[]>([]);
@@ -67,6 +71,8 @@ export function useOrders(params: UseOrdersParams): UseOrdersResult {
         dateFrom,
         dateTo,
         cancellationWarning,
+        queue,
+        sort,
       })
       .then((response) => {
         if (cancelled) return;
@@ -97,6 +103,8 @@ export function useOrders(params: UseOrdersParams): UseOrdersResult {
     dateFrom,
     dateTo,
     cancellationWarning,
+    queue,
+    sort,
     version,
   ]);
 

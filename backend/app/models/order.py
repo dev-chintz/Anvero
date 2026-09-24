@@ -34,7 +34,10 @@ class OrderSource(str, enum.Enum):
 
 class OrderStatus(str, enum.Enum):
     NEW = "NEW"
+    # being made or prepared ("in progress"); Allegro's PROCESSING
     CONFIRMED = "CONFIRMED"
+    # made and packed, waiting for the carrier; Allegro's READY_FOR_SHIPMENT
+    READY_FOR_SHIPMENT = "READY_FOR_SHIPMENT"
     SHIPPED = "SHIPPED"
     DELIVERED = "DELIVERED"
     CANCELLED = "CANCELLED"
@@ -198,6 +201,10 @@ class Order(Base):
     delivery_cost: Mapped[Decimal | None] = mapped_column(Numeric(12, 2))
     pickup_point_id: Mapped[str | None] = mapped_column(String(255))
     pickup_point_name: Mapped[str | None] = mapped_column(String(255))
+    # the latest moment the seller has promised to hand the parcel over, as
+    # the marketplace states it (Allegro: delivery.time.dispatch.to); what the
+    # work queues sort "at risk" by
+    dispatch_by: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), index=True)
 
     payment_type: Mapped[PaymentType | None] = mapped_column(PAYMENT_TYPE)
     # the operator behind the payment, as the marketplace names it

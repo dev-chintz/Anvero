@@ -9,7 +9,7 @@ from app.core.security import get_current_user
 from app.db.session import get_db
 from app.models.order import OrderSource, OrderStatus
 from app.models.user import User
-from app.repositories.order_repository import OrderRepository
+from app.repositories.order_repository import OrderQueue, OrderRepository, OrderSort
 from app.schemas.order import (
     OrderBillingRead,
     OrderCreate,
@@ -41,6 +41,8 @@ def list_orders(
     date_from: date | None = Query(default=None),
     date_to: date | None = Query(default=None),
     cancellation_warning: bool = Query(default=False),
+    queue: OrderQueue | None = Query(default=None),
+    sort: OrderSort = Query(default=OrderSort.NEWEST),
     db: Session = Depends(get_db),
 ):
     service = OrderService(OrderRepository(db))
@@ -53,6 +55,8 @@ def list_orders(
         date_from=date_from,
         date_to=date_to,
         cancellation_warning=cancellation_warning,
+        queue=queue,
+        sort=sort,
     )
     return OrderListResponse(items=orders, total=total, skip=skip, limit=limit)
 

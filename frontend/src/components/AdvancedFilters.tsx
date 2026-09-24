@@ -144,6 +144,7 @@ export const AdvancedFilters: React.FC<AdvancedFiltersProps> = ({
                 <option value="">{t('filters.allStatuses')}</option>
                 <option value="NEW">{t('status.NEW')}</option>
                 <option value="CONFIRMED">{t('status.CONFIRMED')}</option>
+                <option value="READY_FOR_SHIPMENT">{t('status.READY_FOR_SHIPMENT')}</option>
                 <option value="SHIPPED">{t('status.SHIPPED')}</option>
                 <option value="DELIVERED">{t('status.DELIVERED')}</option>
                 <option value="CANCELLED">{t('status.CANCELLED')}</option>

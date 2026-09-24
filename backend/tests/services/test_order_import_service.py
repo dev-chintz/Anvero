@@ -118,7 +118,7 @@ def test_re_import_follows_the_marketplace_status_as_it_changes(session):
     _service(session, [_order("ALG-1")]).import_orders()
     moved_on = _order("ALG-1").model_copy(
         update={
-            "status": OrderStatus.CONFIRMED,
+            "status": OrderStatus.READY_FOR_SHIPMENT,
             "marketplace_status_label": "READY_FOR_SHIPMENT",
         }
     )
@@ -126,10 +126,8 @@ def test_re_import_follows_the_marketplace_status_as_it_changes(session):
     _service(session, [moved_on]).import_orders()
 
     stored = session.query(Order).one()
-    assert stored.status is OrderStatus.CONFIRMED
-    assert stored.marketplace_status is OrderStatus.CONFIRMED
-    # Anvero has one status for both PROCESSING and READY_FOR_SHIPMENT, so
-    # only the label says which one Allegro means
+    assert stored.status is OrderStatus.READY_FOR_SHIPMENT
+    assert stored.marketplace_status is OrderStatus.READY_FOR_SHIPMENT
     assert stored.marketplace_status_label == "READY_FOR_SHIPMENT"
 
 

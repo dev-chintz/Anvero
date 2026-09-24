@@ -5,7 +5,10 @@ export enum OrderSource {
 
 export enum OrderStatus {
   NEW = "NEW",
+  /** Being made or prepared ("in progress"); Allegro's PROCESSING. */
   CONFIRMED = "CONFIRMED",
+  /** Made and packed, waiting for the carrier. */
+  READY_FOR_SHIPMENT = "READY_FOR_SHIPMENT",
   SHIPPED = "SHIPPED",
   DELIVERED = "DELIVERED",
   CANCELLED = "CANCELLED",
@@ -54,8 +57,51 @@ export interface Order {
   customer_last_name?: string | null;
   payment_type?: PaymentType | null;
   payment_provider?: string | null;
+  /**
+   * The latest moment the parcel must be handed over, as the marketplace
+   * states it; null when it states none. Optional because a backend older
+   * than the field omits it.
+   */
+  dispatch_by?: string | null;
   /** Optional because a backend older than the field omits it. */
   shipments?: Shipment[];
+}
+
+/** Statuses of an order still waiting on the seller. */
+export const PENDING_STATUSES: readonly OrderStatus[] = [
+  OrderStatus.NEW,
+  OrderStatus.CONFIRMED,
+  OrderStatus.READY_FOR_SHIPMENT,
+];
+
+/** The work queues `GET /orders?queue=` knows; the backend defines what is in each. */
+export enum OrderQueue {
+  TO_MAKE = "to_make",
+  UNPAID = "unpaid",
+  TO_SHIP = "to_ship",
+  /** To make or to ship, past the dispatch deadline; overlaps both. */
+  LATE = "late",
+}
+
+export enum OrderSort {
+  NEWEST = "newest",
+  OLDEST = "oldest",
+  /** Closest dispatch deadline first, orders without one last. */
+  AT_RISK = "at_risk",
+}
+
+/**
+ * How the dispatch deadline stands for a waiting order: null when there is
+ * none to watch (no deadline, or the order is past waiting).
+ */
+export function dispatchUrgency(
+  order: Order,
+  now: Date = new Date(),
+): "late" | "soon" | "later" | null {
+  if (!order.dispatch_by || !PENDING_STATUSES.includes(order.status)) return null;
+  const left = new Date(order.dispatch_by).getTime() - now.getTime();
+  if (left < 0) return "late";
+  return left < 24 * 60 * 60 * 1000 ? "soon" : "later";
 }
 
 export enum PaymentType {
@@ -228,6 +274,8 @@ export interface OrderStats {
   this_week: number;
   pending: number;
   cancellation_warnings: number;
+  /** Orders in each work queue. Optional because an older backend omits it. */
+  queues?: Record<OrderQueue, number>;
   by_status: Record<string, number>;
   by_source: Record<string, number>;
 }

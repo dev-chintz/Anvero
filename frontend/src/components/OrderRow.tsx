@@ -3,6 +3,7 @@ import type { Order } from "../types/order";
 import {
   OrderSource,
   OrderStatus,
+  dispatchUrgency,
   hasCancellationWarning,
   marketplaceStatusDiffers,
   marketplaceStatusText,
@@ -30,6 +31,7 @@ function paymentSummary(order: Order): string {
 const STATUS_CLASS: Record<OrderStatus, string> = {
   [OrderStatus.NEW]: "badge badge-new",
   [OrderStatus.CONFIRMED]: "badge badge-confirmed",
+  [OrderStatus.READY_FOR_SHIPMENT]: "badge badge-ready_for_shipment",
   [OrderStatus.SHIPPED]: "badge badge-shipped",
   [OrderStatus.DELIVERED]: "badge badge-delivered",
   [OrderStatus.CANCELLED]: "badge badge-cancelled",
@@ -53,6 +55,7 @@ export function OrderRow({ order, onStatusChange, updating }: OrderRowProps) {
   const { t, formatDateTime, formatMoney, trackingLabel } = useTranslation();
   const shipments = order.shipments ?? [];
   const formattedDate = formatDateTime(order.ordered_at);
+  const urgency = dispatchUrgency(order);
 
   return (
     <tr>
@@ -134,7 +137,16 @@ export function OrderRow({ order, onStatusChange, updating }: OrderRowProps) {
       <td>
         {formatMoney(order.total_amount, order.currency)}
       </td>
-      <td>{formattedDate}</td>
+      <td>
+        {formattedDate}
+        {urgency && order.dispatch_by && (
+          <div className={`dispatch-by dispatch-${urgency}`}>
+            {t(urgency === "late" ? "orders.dispatchOverdue" : "orders.dispatchBy", {
+              when: formatDateTime(order.dispatch_by),
+            })}
+          </div>
+        )}
+      </td>
     </tr>
   );
 }

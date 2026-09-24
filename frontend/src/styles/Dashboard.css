@@ -15,6 +15,8 @@
   --status-new-fg: #0d47a1;
   --status-confirmed-bg: #c8e6c9;
   --status-confirmed-fg: #1b5e20;
+  --status-ready_for_shipment-bg: #b2ebf2;
+  --status-ready_for_shipment-fg: #006064;
   --status-shipped-bg: #ffe0b2;
   --status-shipped-fg: #e65100;
   --status-delivered-bg: #b2dfdb;
@@ -24,6 +26,7 @@
   /* each also shared with a .stat-* card's accent border */
   --status-new-solid: #1976d2;
   --status-confirmed-solid: #388e3c;
+  --status-ready_for_shipment-solid: #0097a7;
   --status-shipped-solid: #f57c00;
   --status-cancelled-solid: #d32f2f;
 }
@@ -149,6 +152,12 @@
 }
 
 /* Charts Section */
+.queue-tiles h2 {
+  margin: 0 0 1rem 0;
+  font-size: 1.1rem;
+  color: var(--color-heading);
+}
+
 .charts-section {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
@@ -201,6 +210,11 @@
   color: var(--status-confirmed-fg);
 }
 
+.status-ready_for_shipment {
+  background: var(--status-ready_for_shipment-bg);
+  color: var(--status-ready_for_shipment-fg);
+}
+
 .status-shipped {
   background: var(--status-shipped-bg);
   color: var(--status-shipped-fg);
@@ -234,6 +248,10 @@
 
 .status-fill.status-confirmed {
   background: var(--status-confirmed-solid);
+}
+
+.status-fill.status-ready_for_shipment {
+  background: var(--status-ready_for_shipment-solid);
 }
 
 .status-fill.status-shipped {
@@ -436,6 +454,11 @@
 .order-status.status-confirmed {
   background: var(--status-confirmed-bg);
   color: var(--status-confirmed-fg);
+}
+
+.order-status.status-ready_for_shipment {
+  background: var(--status-ready_for_shipment-bg);
+  color: var(--status-ready_for_shipment-fg);
 }
 
 .order-status.status-shipped {

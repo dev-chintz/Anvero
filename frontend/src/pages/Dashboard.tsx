@@ -1,12 +1,24 @@
 import { Link } from 'react-router-dom';
 import { useOrderStats } from '../hooks/useOrderStats';
 import { useOrders } from '../hooks/useOrders';
+import { OrderQueue } from '../types/order';
 import type { Order } from '../types/order';
 import { useTranslation } from '../i18n';
 import { en, type MessageKey } from '../i18n/messages';
 import '../styles/Dashboard.css';
 
 const RECENT_ORDERS_LIMIT = 5;
+
+const QUEUE_TILES: {
+  queue: OrderQueue;
+  icon: string;
+  color: 'primary' | 'success' | 'warning' | 'danger';
+}[] = [
+  { queue: OrderQueue.TO_MAKE, icon: '🛠️', color: 'primary' },
+  { queue: OrderQueue.UNPAID, icon: '💳', color: 'warning' },
+  { queue: OrderQueue.TO_SHIP, icon: '📦', color: 'success' },
+  { queue: OrderQueue.LATE, icon: '⏰', color: 'danger' },
+];
 
 export const Dashboard: React.FC = () => {
   const { t, tc, formatMoney, formatNumber } = useTranslation();
@@ -44,6 +56,24 @@ export const Dashboard: React.FC = () => {
           {tc('dashboard.cancelledRest', stats.cancellation_warnings)}{' '}
           <Link to="/orders?cancellationWarning=true">{t('dashboard.reviewBeforeShipping')}</Link>
         </div>
+      )}
+
+      {stats.queues && (
+        <section className="queue-tiles" aria-labelledby="queue-tiles-heading">
+          <h2 id="queue-tiles-heading">{t('dashboard.queues')}</h2>
+          <div className="stats-grid">
+            {QUEUE_TILES.map(({ queue, icon, color }) => (
+              <StatCard
+                key={queue}
+                title={t(`queue.${queue}`)}
+                value={stats.queues![queue]}
+                icon={icon}
+                color={color}
+                to={`/orders?queue=${queue}`}
+              />
+            ))}
+          </div>
+        </section>
       )}
 
       <section className="stats-grid">

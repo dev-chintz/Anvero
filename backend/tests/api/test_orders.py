@@ -783,3 +783,99 @@ def test_the_number_is_searchable_in_every_form_a_person_types_it():
     for term in (f"AN-{number:06d}", f"an-{number}", f"{number:06d}", str(number)):
         found = client.get("/api/v1/orders", params={"search": term}).json()["items"]
         assert created["id"] in [order["id"] for order in found], term
+
+
+# --- work queues -----------------------------------------------------------
+
+
+def _queued(external_id, status, payment=None, **overrides):
+    """Create an order for the queue tests; every one's id starts QUEUE-."""
+    payload = _order_payload(external_id=f"QUEUE-{external_id}", status=status, **overrides)
+    if payment is not None:
+        payload["payment"] = payment
+    response = client.post("/api/v1/orders", json=payload)
+    assert response.status_code == 200, response.text
+    return response.json()
+
+
+def _queue(name, **params):
+    listed = client.get(
+        "/api/v1/orders", params={"queue": name, "search": "QUEUE-", **params}
+    ).json()
+    return [order["external_id"].removeprefix("QUEUE-") for order in listed["items"]]
+
+
+def test_each_waiting_order_is_in_the_one_queue_that_needs_it():
+    paid = {"type": "ONLINE", "paid_amount": "129.99"}
+    _queued("new-paid", "NEW", paid)
+    _queued("in-progress-cod", "CONFIRMED", {"type": "CASH_ON_DELIVERY"})
+    _queued("by-hand", "NEW")
+    _queued("ready", "READY_FOR_SHIPMENT", paid)
+    _queued("online-unpaid", "NEW", {"type": "ONLINE"})
+    _queued("transfer-short", "CONFIRMED", {"type": "BANK_TRANSFER", "paid_amount": "10.00"})
+    _queued("shipped", "SHIPPED", paid)
+    cancelled = _queued("cancelled-on-allegro", "NEW", paid)
+    _flag_cancelled_on_marketplace(cancelled["id"])
+
+    assert sorted(_queue("to_make")) == ["by-hand", "in-progress-cod", "new-paid"]
+    assert _queue("to_ship") == ["ready"]
+    assert sorted(_queue("unpaid")) == ["online-unpaid", "transfer-short"]
+
+
+def test_an_unknown_queue_is_rejected():
+    assert client.get("/api/v1/orders", params={"queue": "someday"}).status_code == 422
+
+
+def test_at_risk_puts_the_closest_dispatch_deadline_first_and_none_last():
+    paid = {"type": "ONLINE", "paid_amount": "129.99"}
+    now = datetime.now(UTC)
+    _queued("risk-later", "NEW", paid, dispatch_by=(now + timedelta(days=2)).isoformat())
+    _queued("risk-none", "NEW", paid, ordered_at=(now - timedelta(days=9)).isoformat())
+    _queued("risk-soon", "NEW", paid, dispatch_by=(now + timedelta(hours=3)).isoformat())
+    _queued("risk-late", "NEW", paid, dispatch_by=(now - timedelta(hours=1)).isoformat())
+
+    ordered = [x for x in _queue("to_make", sort="at_risk") if x.startswith("risk-")]
+
+    assert ordered == ["risk-late", "risk-soon", "risk-later", "risk-none"]
+
+
+def test_oldest_first_reverses_the_default_order():
+    now = datetime.now(UTC)
+    for days in (3, 1, 2):
+        _queued(f"age-{days}", "NEW", ordered_at=(now - timedelta(days=days)).isoformat())
+
+    newest = [x for x in _queue("to_make") if x.startswith("age-")]
+    oldest = [x for x in _queue("to_make", sort="oldest") if x.startswith("age-")]
+
+    assert newest == ["age-1", "age-2", "age-3"]
+    assert oldest == ["age-3", "age-2", "age-1"]
+
+
+def test_the_list_carries_the_dispatch_deadline():
+    created = _queued("deadline", "NEW", dispatch_by="2026-09-25T12:00:00Z")
+
+    (listed,) = client.get("/api/v1/orders", params={"search": "QUEUE-deadline"}).json()["items"]
+
+    assert created["dispatch_by"] == listed["dispatch_by"] == "2026-09-25T12:00:00Z"
+
+
+def test_the_dashboard_counts_each_queue_and_the_late_ones():
+    before = client.get("/api/v1/orders/stats").json()["queues"]
+    past = (datetime.now(UTC) - timedelta(hours=2)).isoformat()
+    paid = {"type": "ONLINE", "paid_amount": "129.99"}
+    _queued("count-make-late", "NEW", paid, dispatch_by=past)
+    _queued("count-ship", "READY_FOR_SHIPMENT", paid)
+    # late, but not paid, so nobody should be working on it yet
+    _queued("count-unpaid-late", "NEW", {"type": "ONLINE"}, dispatch_by=past)
+
+    after = client.get("/api/v1/orders/stats").json()["queues"]
+
+    assert {k: after[k] - before[k] for k in after} == {
+        "to_make": 1,
+        "to_ship": 1,
+        "unpaid": 1,
+        "late": 1,
+    }
+    for name in after:
+        total = client.get("/api/v1/orders", params={"queue": name, "limit": 1}).json()["total"]
+        assert after[name] == total, name

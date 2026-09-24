@@ -154,7 +154,7 @@ def test_cancellation_outranks_fulfillment():
     [
         ("NEW", OrderStatus.NEW),
         ("PROCESSING", OrderStatus.CONFIRMED),
-        ("READY_FOR_SHIPMENT", OrderStatus.CONFIRMED),
+        ("READY_FOR_SHIPMENT", OrderStatus.READY_FOR_SHIPMENT),
         ("SENT", OrderStatus.SHIPPED),
         ("READY_FOR_PICKUP", OrderStatus.SHIPPED),
         ("PICKED_UP", OrderStatus.DELIVERED),
@@ -199,12 +199,34 @@ def test_unknown_fulfillment_status_is_treated_as_new_work():
     ],
 )
 def test_the_label_keeps_allegros_own_status(form_kwargs, expected):
-    """PROCESSING and READY_FOR_SHIPMENT are both CONFIRMED in Anvero, so
-    only the label tells the operator which one Allegro means."""
+    """The label is Allegro's word as it comes, whatever Anvero maps it to."""
     form = _checkout_form(status="READY_FOR_PROCESSING", **form_kwargs)
 
     assert map_status_label(form) == expected
-    assert map_status(form) is OrderStatus.CONFIRMED
+
+
+def test_maps_the_dispatch_deadline():
+    form = _checkout_form()
+    form["delivery"]["time"] = {
+        "from": "2026-09-17T08:00:00Z",
+        "to": "2026-09-18T18:00:00Z",
+        "dispatch": {"from": "2026-09-14T10:01:00Z", "to": "2026-09-15T14:00:00+02:00"},
+    }
+
+    # the end of the window, the latest moment the parcel may be handed over
+    assert map_checkout_form(form).dispatch_by == datetime(2026, 9, 15, 12, 0, tzinfo=UTC)
+
+
+@pytest.mark.parametrize(
+    "time",
+    [None, {}, {"dispatch": None}, {"dispatch": {"to": "next Tuesday"}}],
+)
+def test_a_missing_or_unreadable_dispatch_deadline_is_left_out(time):
+    form = _checkout_form()
+    if time is not None:
+        form["delivery"]["time"] = time
+
+    assert map_checkout_form(form).dispatch_by is None
 
 
 def test_the_label_falls_back_to_the_checkout_status():

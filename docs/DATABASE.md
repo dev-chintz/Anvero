@@ -36,9 +36,19 @@ point at:
   not caught up with). NULL for an order no import has touched.
 - `marketplace_status_label` (nullable, 64 characters) holds the same status
   unmapped, in the marketplace's own words, e.g. Allegro's
-  `READY_FOR_SHIPMENT`. Anvero's five statuses collapse distinctions the
-  marketplace's panel shows — `PROCESSING` and `READY_FOR_SHIPMENT` are both
-  `CONFIRMED` — and this is what the interface displays.
+  `READY_FOR_PICKUP`. Anvero's statuses collapse distinctions the
+  marketplace's panel shows — `SENT` and `READY_FOR_PICKUP` are both
+  `SHIPPED` — and this is what the interface displays.
+- `status` (and `marketplace_status`) take one of `NEW`, `CONFIRMED` (in
+  progress: being made or prepared), `READY_FOR_SHIPMENT` (made and packed,
+  waiting for the carrier), `SHIPPED`, `DELIVERED`, `CANCELLED`.
+  `READY_FOR_SHIPMENT` was added on 2026-09-24; the migration moved orders
+  whose Allegro label already said so, and whose status still matched
+  Allegro's, from `CONFIRMED` to it, without a history entry (a
+  reclassification, not a change anyone made).
+- `dispatch_by` (nullable, indexed) is not in the target: the latest moment
+  the seller must hand the parcel over, as the marketplace states it (Allegro:
+  `delivery.time.dispatch.to`). The work queues sort and flag orders by it.
 - `marketplace_cancelled_at` (nullable) is not in the target. It records when
   an import first found the order cancelled on its marketplace; the Anvero
   status is left to the operator, so this is what flags the conflict.

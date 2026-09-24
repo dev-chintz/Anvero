@@ -43,6 +43,16 @@ const minutesAgo = (minutes: number) => new Date(Date.now() - minutes * 60_000).
 
 beforeEach(() => {
   vi.mocked(ordersApi.list).mockResolvedValue({ items: [], total: 0, skip: 0, limit: 20 });
+  vi.mocked(ordersApi.stats).mockResolvedValue({
+    total_orders: 1,
+    total_revenue: "45.49",
+    this_week: 1,
+    pending: 1,
+    cancellation_warnings: 0,
+    queues: { to_make: 4, unpaid: 1, to_ship: 2, late: 3 },
+    by_status: { NEW: 1 },
+    by_source: { ALLEGRO: 1 },
+  });
 });
 
 afterEach(() => {

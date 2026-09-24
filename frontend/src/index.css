@@ -200,6 +200,10 @@ td {
   background: #8b5cf6;
 }
 
+.badge-ready_for_shipment {
+  background: #0d9488;
+}
+
 .badge-shipped {
   background: var(--color-warning);
 }

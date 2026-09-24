@@ -4,7 +4,7 @@ from datetime import date
 from fastapi import HTTPException, status
 
 from app.models.order import Order, OrderSource, OrderStatus, OrderStatusHistory
-from app.repositories.order_repository import OrderRepository
+from app.repositories.order_repository import OrderQueue, OrderRepository, OrderSort
 from app.schemas.order import OrderCreate
 from app.services.order_details import apply_details
 
@@ -133,6 +133,8 @@ class OrderService:
         date_from: date | None = None,
         date_to: date | None = None,
         cancellation_warning: bool = False,
+        queue: OrderQueue | None = None,
+        sort: OrderSort = OrderSort.NEWEST,
     ) -> tuple[list[Order], int]:
         """List orders with optional filtering and pagination.
 
@@ -152,6 +154,9 @@ class OrderService:
                 calendar day in the business timezone.
             cancellation_warning: When true, only orders cancelled on their
                 marketplace whose Anvero status is not yet CANCELLED.
+            queue: Optional work queue (see OrderQueue).
+            sort: Newest first by default; also oldest first, or closest
+                dispatch deadline first.
 
         Returns:
             A tuple of (matching orders for the current page, total count
@@ -164,8 +169,9 @@ class OrderService:
             "date_from": date_from,
             "date_to": date_to,
             "cancellation_warning": cancellation_warning,
+            "queue": queue,
         }
-        orders = self.repository.list(skip=skip, limit=limit, **filters)
+        orders = self.repository.list(skip=skip, limit=limit, sort=sort, **filters)
         total = self.repository.count(**filters)
         return orders, total
 
