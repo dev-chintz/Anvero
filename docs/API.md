@@ -18,6 +18,7 @@ are days in the business timezone, `BUSINESS_TIMEZONE`, default
 | `GET` | `/api/v1/orders/{id}` | one order with its details: items, buyer, delivery, payment, invoice |
 | `PATCH` | `/api/v1/orders/{id}/status` | internal status change |
 | `GET` | `/api/v1/orders/{id}/history` | status change history |
+| `GET` | `/api/v1/orders/{id}/buyer-orders` | the same buyer's other orders, newest first, at most 20 |
 | `POST` | `/api/v1/orders` | create an order — local testing until marketplace ingestion exists |
 | `POST` | `/api/v1/auth/login` | obtain a JWT; rate limited to 5 attempts per minute per IP |
 | `GET` | `/api/v1/users/me` | current user |
@@ -169,7 +170,7 @@ database, so `total` counts every match rather than the returned page.
 | `status` | `NEW`, `CONFIRMED` (in progress), `READY_FOR_SHIPMENT`, `SHIPPED`, `DELIVERED`, `CANCELLED` |
 | `queue` | a work queue, see below: `to_make`, `unpaid`, `to_ship`, `late` |
 | `sort` | `newest` (default: `ordered_at` newest first), `oldest`, or `at_risk`: closest `dispatch_by` first, orders without one last |
-| `search` | substring of `external_id` or `customer_email`, case-insensitive; also an Anvero order number in any form a person types it (`AN-000123`, `an-123`, `000123`, `123`) |
+| `search` | case-insensitive substring of: `external_id`, `customer_email`, the buyer's login, full name, last name, company or phone, the pickup point's id or name, any item's `sku` or name, any address's city, any shipment's waybill; also an Anvero order number in any form a person types it (`AN-000123`, `an-123`, `000123`, `123`). An order matching on several items or addresses is still one result |
 | `date_from`, `date_to` | `YYYY-MM-DD`, both inclusive, calendar days in the business timezone, matched on `ordered_at` |
 | `cancellation_warning` | `true` returns only orders cancelled on their marketplace whose Anvero status is not `CANCELLED` |
 
@@ -262,6 +263,14 @@ counted. Lines come in the order their product is first needed: `dispatch_by`
 is the earliest among the line's orders, lines without any deadline come last,
 oldest order first; each line's `orders` are in the same order. `order_count`
 counts the queue's orders, including any without items.
+
+## `GET /api/v1/orders/{id}/buyer-orders`
+
+The same buyer's other orders, in the shape of the list's items, newest
+`ordered_at` first, at most 20; `404` for an unknown order. The same buyer is
+the same `customer_email`, or the same `customer_login` on the same `source`
+(a login is unique only within one marketplace). An empty list means this is
+the buyer's first order in Anvero.
 
 ## `GET /api/v1/orders/{id}`
 

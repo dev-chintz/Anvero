@@ -954,3 +954,11 @@ branch is unverified: only the SQLite path has been run.
 **Rationale:** The seller's code is the one identity shared by Allegro and Erli listings of one product, so both channels' orders land on one line; the listing and then the name keep items without a code from vanishing or merging with others. At 10–50 orders a day the queue is small enough that a query plus grouping in code is simpler than SQL aggregation, and works the same on SQLite and PostgreSQL. Using the status as the "done" marker avoids a second, parallel state to keep in step.
 
 **Consequences:** Items without a SKU are only grouped per listing, so the same product in two listings shows twice until the listings carry a code. Partial progress (3 of 5 made) is not recorded anywhere.
+
+## 2026-09-24 — The same buyer: the same email, or the same login on the same marketplace
+
+**Decision:** An order's "other orders of this buyer" are those with the same `customer_email`, or the same `customer_login` on the same `source`. Search matches the buyer, items, city, pickup point and waybill through `EXISTS` subqueries.
+
+**Rationale:** There is no customer table yet (`DATABASE.md`), and a marketplace may hand out a masked email that is not stable for one buyer, while its login is; a login is only unique within one marketplace, so it is compared per source. Matching the two channels' accounts of one person would need a customer record, which nothing needs yet. `EXISTS` keeps one row per order, so the count and the page agree however many items match.
+
+**Consequences:** A buyer using different emails and different marketplaces appears as two buyers. Search runs several `ILIKE`s with a leading wildcard, which no index serves; fine at this size, worth revisiting at tens of thousands of orders.

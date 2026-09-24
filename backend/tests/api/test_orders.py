@@ -979,3 +979,88 @@ def test_only_orders_still_to_make_count():
             "order_label"
         ]
     ]
+
+
+# --- search beyond the order's own ids -----------------------------------------
+
+
+def _find(term):
+    listed = client.get("/api/v1/orders", params={"search": term}).json()
+    return listed["total"], [o["external_id"] for o in listed["items"]]
+
+
+def test_search_finds_an_order_by_what_the_operator_remembers_of_it():
+    client.post(
+        "/api/v1/orders",
+        json=_details_payload(
+            external_id="SEARCH-WIDE",
+            customer={"login": "zosia_kupuje", "first_name": "Zofia", "last_name": "Wyszukiwalska"},
+            items=[
+                {"name": "Kubek emaliowany", "sku": "SRCH-KUB-9", "quantity": 1, "unit_price": "10.00"},
+                {"name": "Kubek drugi", "sku": "SRCH-KUB-10", "quantity": 1, "unit_price": "10.00"},
+            ],
+            delivery={
+                "address": {"city": "Szczebrzeszyn"},
+                "pickup_point": {"id": "SZC01M", "name": "Paczkomat SZC01M"},
+            },
+            shipments=[{"carrier_id": "INPOST", "waybill": "620111222333444555666777"}],
+        ),
+    )
+
+    for term in (
+        "SRCH-KUB-9",  # the seller's product code
+        "emaliowany",  # the product's name
+        "szczebrzeszyn",  # the delivery city, in any case
+        "SZC01M",  # the parcel locker
+        "620111222333",  # part of the tracking number
+        "zosia_kupuje",  # the marketplace login
+        "Zofia Wyszukiwalska",  # the buyer's full name
+    ):
+        assert _find(term) == (1, ["SEARCH-WIDE"]), term
+
+
+def test_an_order_matching_on_two_items_is_found_once():
+    total, found = _find("SRCH-KUB")
+
+    assert (total, found) == (1, ["SEARCH-WIDE"])
+
+
+# --- the same buyer's other orders --------------------------------------------
+
+
+def _buyer_order(external_id, **overrides):
+    response = client.post(
+        "/api/v1/orders",
+        json=_details_payload(external_id=f"BUYER-{external_id}", **overrides),
+    )
+    return response.json()
+
+
+def test_an_order_lists_the_same_buyers_other_orders():
+    first = _buyer_order(
+        "1", customer_email="stala@example.com", customer={"login": "stala_klientka"},
+        ordered_at="2026-09-01T10:00:00Z",
+    )
+    # another email (a marketplace can mask it per order), same login
+    second = _buyer_order(
+        "2", customer_email="inny@example.com", customer={"login": "stala_klientka"},
+        ordered_at="2026-09-10T10:00:00Z",
+    )
+    # the same email, no login
+    third = _buyer_order("3", customer_email="stala@example.com", customer={})
+    # the same login on another marketplace is someone else
+    _buyer_order(
+        "4", source="ERLI", customer_email="ktos@example.com", customer={"login": "stala_klientka"}
+    )
+    _buyer_order("5", customer_email="obcy@example.com", customer={"login": "ktos_inny"})
+
+    others = client.get(f"/api/v1/orders/{first['id']}/buyer-orders")
+
+    assert others.status_code == 200
+    assert [o["external_id"] for o in others.json()] == [third["external_id"], second["external_id"]]
+
+
+def test_buyer_orders_of_an_unknown_order_is_404():
+    missing = "00000000-0000-0000-0000-000000000000"
+
+    assert client.get(f"/api/v1/orders/{missing}/buyer-orders").status_code == 404

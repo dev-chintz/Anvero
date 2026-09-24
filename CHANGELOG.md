@@ -6,6 +6,15 @@ All significant changes to the Anvero project.
 
 ## 2026-09-24
 
+### 🔎 Search by what you remember, and the buyer's other orders
+
+- The order search also matches the buyer's login, name, company and phone,
+  a product's SKU or name, the delivery city, the parcel locker and the
+  tracking number.
+- `GET /orders/{id}/buyer-orders` and a "The buyer's other orders" card on the
+  order: the same email, or the same login on the same marketplace.
+- Stage A3 of the feature plan.
+
 ### 🛠️ "To make": what to make and how many
 
 - `GET /orders/production` and a "To make" page (sidebar, and a link from the

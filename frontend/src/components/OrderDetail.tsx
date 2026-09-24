@@ -8,8 +8,9 @@ import {
   marketplaceStatusDiffers,
   marketplaceStatusText,
 } from "../types/order";
-import type { OrderBilling, OrderStatusChange, OrderWithDetails } from "../types/order";
+import type { Order, OrderBilling, OrderStatusChange, OrderWithDetails } from "../types/order";
 import { translate, useTranslation } from "../i18n";
+import { BuyerOrdersCard } from "./BuyerOrdersCard";
 import { OrderBillingCard } from "./OrderBillingCard";
 import { OrderDetailsPanel } from "./OrderDetailsPanel";
 import "../styles/OrderHistory.css";
@@ -42,6 +43,7 @@ export function OrderDetail() {
   const [saveError, setSaveError] = useState<string | null>(null);
   const [history, setHistory] = useState<OrderStatusChange[]>([]);
   const [billing, setBilling] = useState<OrderBilling | null>(null);
+  const [buyerOrders, setBuyerOrders] = useState<Order[] | null>(null);
 
   useEffect(() => {
     if (!id) return;
@@ -65,6 +67,10 @@ export function OrderDetail() {
           .then(() => ordersApi.billing(data.id))
           .catch(() => null);
         if (!cancelled) setBilling(fees);
+        const others = await Promise.resolve()
+          .then(() => ordersApi.buyerOrders(data.id))
+          .catch(() => null);
+        if (!cancelled) setBuyerOrders(others);
       })
       .catch((err: unknown) => {
         if (cancelled) return;
@@ -255,6 +261,10 @@ export function OrderDetail() {
         )}
 
         {!loading && !error && !notFound && order && <OrderDetailsPanel order={order} />}
+
+        {!loading && !error && !notFound && order && buyerOrders && (
+          <BuyerOrdersCard orders={buyerOrders} />
+        )}
 
         {!loading && !error && !notFound && order && billing && (
           <OrderBillingCard billing={billing} orderTotal={order.total_amount} />

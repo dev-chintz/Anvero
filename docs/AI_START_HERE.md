@@ -29,7 +29,8 @@ Read the following files in order:
 
 **Feature work:** decided 2026-09-24 to keep building, modelled on
 AlleIntegrator; the order of work is the feature plan at the end of
-`ROADMAP.md` (stages A1, work queues, and A2, the "to make" list, are done).
+`ROADMAP.md` (stages A1–A3 are done: work queues, the "to make" list,
+wider search and the buyer's other orders; A4, the Erli import, is next).
 
 **Open task:** the first deployment to the NAS is prepared but not yet run; see "PICK UP HERE" in `PROJECT_STATUS.md` and `DEPLOYMENT.md`.
 
@@ -45,7 +46,7 @@ breakdown; the short version:
   history.
 - Allegro adapter, import script, an import endpoint and a button, one
   import at a time.
-- 348 backend and 80 frontend tests passing.
+- 352 backend and 83 frontend tests passing.
 
 - One shared PostgreSQL 17 on the owner's NAS is the development database;
   each machine's `backend/.env` points at it (the password is not in Git, ask

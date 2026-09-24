@@ -4,7 +4,7 @@ from datetime import UTC, date, datetime, time, timedelta
 from decimal import Decimal
 from zoneinfo import ZoneInfo
 
-from sqlalchemy import and_, func, not_, or_, select
+from sqlalchemy import and_, exists, func, not_, or_, select
 from sqlalchemy.orm import Query, Session, selectinload
 
 from app.core.config import settings
@@ -12,6 +12,8 @@ from app.core.order_number import parse_order_number
 from app.models.order import (
     BillingEntry,
     Order,
+    OrderAddress,
+    OrderItem,
     OrderShipment,
     OrderSource,
     OrderStatus,
@@ -339,9 +341,30 @@ class OrderRepository:
             # silently match every row
             escaped = search.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
             pattern = f"%{escaped}%"
+
+            def like(column):
+                return column.ilike(pattern, escape="\\")
+
+            full_name = Order.customer_first_name.concat(" ").concat(Order.customer_last_name)
             matches = [
-                Order.external_id.ilike(pattern, escape="\\"),
-                Order.customer_email.ilike(pattern, escape="\\"),
+                like(Order.external_id),
+                like(Order.customer_email),
+                # the buyer, however the operator remembers them
+                like(Order.customer_login),
+                like(full_name),
+                like(Order.customer_last_name),
+                like(Order.customer_company_name),
+                like(Order.customer_phone),
+                like(Order.pickup_point_id),
+                like(Order.pickup_point_name),
+                # EXISTS rather than joins, so an order matching on two of
+                # its items or addresses is still one row, and counts once
+                exists().where(
+                    OrderItem.order_id == Order.id,
+                    or_(like(OrderItem.sku), like(OrderItem.name)),
+                ),
+                exists().where(OrderAddress.order_id == Order.id, like(OrderAddress.city)),
+                exists().where(OrderShipment.order_id == Order.id, like(OrderShipment.waybill)),
             ]
             # "AN-000123", "000123" and "123" all name order 123
             number = parse_order_number(search)
@@ -416,6 +439,27 @@ class OrderRepository:
                 Order.id,
             )
         return (Order.ordered_at.desc(), Order.created_at.desc(), Order.id)
+
+    def list_buyer_orders(self, order: Order, limit: int = 20) -> list[Order]:
+        """The same buyer's other orders, newest first.
+
+        The same buyer is the same email, or the same marketplace login on
+        the same marketplace (a login is only unique within one). An order
+        with neither to go on has no others.
+        """
+        same_buyer = [Order.customer_email == order.customer_email]
+        if order.customer_login:
+            same_buyer.append(
+                and_(Order.source == order.source, Order.customer_login == order.customer_login)
+            )
+        return list(
+            self.db.scalars(
+                select(Order)
+                .where(Order.id != order.id, or_(*same_buyer))
+                .order_by(*self._ordering(OrderSort.NEWEST))
+                .limit(limit)
+            )
+        )
 
     def list_in_queue_with_items(self, queue: OrderQueue) -> list[Order]:
         """Every order in a queue, with its items, most urgent first.

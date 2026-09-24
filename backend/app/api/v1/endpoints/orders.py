@@ -15,6 +15,7 @@ from app.schemas.order import (
     OrderCreate,
     OrderDetailRead,
     OrderListResponse,
+    OrderRead,
     OrderStats,
     OrderStatusHistoryRead,
     OrderUpdate,
@@ -86,6 +87,13 @@ def get_order(order_id: uuid.UUID, db: Session = Depends(get_db)):
 def get_order_status_history(order_id: uuid.UUID, db: Session = Depends(get_db)):
     service = OrderService(OrderRepository(db))
     return service.get_status_history(order_id)
+
+
+@router.get("/{order_id}/buyer-orders", response_model=list[OrderRead])
+def get_buyer_orders(order_id: uuid.UUID, db: Session = Depends(get_db)):
+    repository = OrderRepository(db)
+    order = OrderService(repository).get_order(order_id)
+    return repository.list_buyer_orders(order)
 
 
 @router.get("/{order_id}/billing", response_model=OrderBillingRead)

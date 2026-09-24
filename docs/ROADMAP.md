@@ -264,9 +264,10 @@ In this order (the owner chose queues before any write to Allegro):
    `GET /orders/production`, the to-make queue grouped by product (SKU, else
    listing, else name) with quantities, the orders each serves and the
    earliest dispatch deadline, most urgent first, printable.
-3. **Search and the buyer's other orders.** Search by SKU, city, pickup
-   point and tracking number besides buyer and number; on an order, the same
-   buyer's other orders.
+3. ~~**Search and the buyer's other orders.**~~ Done 2026-09-24: search
+   also by login, name, company, phone, SKU or product name, city, pickup
+   point and tracking number; the order shows the same buyer's other orders
+   (same email, or same login on the same marketplace).
 4. **Erli order import**, so the queues and the list above cover both
    channels.
 5. **Safe mode (dry run).** A switch, on by default, under which every write
