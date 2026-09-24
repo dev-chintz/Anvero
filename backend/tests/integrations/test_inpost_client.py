@@ -204,3 +204,10 @@ def test_an_unreachable_inpost_is_reported():
 def test_an_answer_that_is_not_json_is_reported():
     with pytest.raises(IntegrationUnavailable, match="JSON"):
         _client(lambda request: httpx2.Response(200, text="not json")).get_shipment("1")
+
+
+def test_a_refused_token_carries_inposts_own_words():
+    body = {"status": 401, "error": "token_invalid", "message": "Token is missing or invalid.", "details": {}}
+
+    with pytest.raises(IntegrationAuthError, match="Token is missing or invalid"):
+        _client(lambda request: _json(body, 401)).get_organization()

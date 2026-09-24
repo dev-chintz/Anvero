@@ -90,8 +90,19 @@ async function extractErrorMessage(response: Response): Promise<string> {
   }
 
   try {
-    const body = (await response.json()) as { detail?: string; error?: string };
-    return body.detail ?? body.error ?? translate("error.requestFailed", { status: response.status });
+    const body = (await response.json()) as {
+      detail?: string | { loc?: unknown[]; msg?: string }[];
+      error?: string;
+    };
+    // a field the backend's validation rejected comes as a list, one entry per field
+    if (Array.isArray(body.detail)) {
+      const named = body.detail
+        .map((problem) => [problem.loc?.slice(1).join("."), problem.msg].filter(Boolean).join(": "))
+        .filter(Boolean);
+      if (named.length > 0) return named.join("; ");
+    }
+    if (typeof body.detail === "string") return body.detail;
+    return body.error ?? translate("error.requestFailed", { status: response.status });
   } catch {
     return translate("error.requestFailed", { status: response.status });
   }

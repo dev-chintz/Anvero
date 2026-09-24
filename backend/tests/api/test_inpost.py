@@ -452,3 +452,19 @@ def test_labels_to_print_are_listed_and_printed_together_as_one_pdf(inpost):
 def test_printing_an_unknown_label_is_not_found_and_nothing_chosen_is_refused(inpost):
     assert client.post("/api/v1/inpost/labels/pdf", json={"shipment_ids": [str(uuid.uuid4())]}).status_code == 404
     assert client.post("/api/v1/inpost/labels/pdf", json={"shipment_ids": []}).status_code == 422
+
+
+def test_a_long_token_is_taken(monkeypatch):
+    # InPost's tokens are JWTs of some nine hundred characters
+    long_token = "eyJ" + "a" * 900
+    asked = []
+    monkeypatch.setattr(inpost_settings, "check", lambda *args: asked.append(args))
+    try:
+        response = client.put(
+            "/api/v1/integrations/inpost/settings", json={"token": long_token, "organization_id": "777"}
+        )
+
+        assert response.status_code == 200
+        assert asked[0][0] == long_token
+    finally:
+        client.delete("/api/v1/integrations/inpost/settings")

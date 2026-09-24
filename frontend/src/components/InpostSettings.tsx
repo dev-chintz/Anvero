@@ -75,10 +75,12 @@ export function InpostSettings() {
       setToken("");
       setNote({ text: translate("inpost.saved"), error: false });
     } catch (err: unknown) {
-      // 422 is InPost refusing the pair: say so in the interface's language
-      const refused = err instanceof ApiError && err.status === 422;
+      // a 422 that starts "InPost" is InPost refusing the pair: say so in the interface's
+      // language, followed by its own answer, which says which of the two it did not like.
+      // Any other 422 is a field the backend rejected, and says so itself.
+      const refused = err instanceof ApiError && err.status === 422 && err.message.startsWith("InPost");
       setNote({
-        text: refused ? translate("inpost.refused") : messageOf(err, translate("inpost.saveFailed")),
+        text: refused ? `${translate("inpost.refused")} (${err.message})` : messageOf(err, translate("inpost.saveFailed")),
         error: true,
       });
     } finally {

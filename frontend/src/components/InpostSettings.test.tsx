@@ -120,6 +120,22 @@ describe("InpostSettings", () => {
     expect(await screen.findByRole("alert")).toHaveTextContent(/nie przyjął|did not accept/);
   });
 
+  it("shows the backend's own words when it is a field it rejected, not InPost", async () => {
+    vi.mocked(inpostApi.saveSettings).mockRejectedValue(new ApiError(422, "body.token: String should have at most 500 characters"));
+    render(<InpostSettings />);
+    await screen.findByText(/Niepołączone|Not connected/);
+
+    fireEvent.change(screen.getByLabelText(/Token API|API token/), { target: { value: "tok-12345678" } });
+    fireEvent.change(screen.getByLabelText(/Numer organizacji|Organization number/), {
+      target: { value: "1" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: SAVE }));
+
+    const alert = await screen.findByRole("alert");
+    expect(alert).toHaveTextContent("at most 500 characters");
+    expect(alert).not.toHaveTextContent(/nie przyjął|did not accept/);
+  });
+
   it("forgets the token after confirming", async () => {
     vi.mocked(inpostApi.status).mockResolvedValue(
       status({ configured: true, organization_id: "777", token_hint: "…5678" }),

@@ -173,7 +173,11 @@ class InpostClient:
             raise IntegrationUnavailable(f"InPost is unreachable for {what}: {exc}") from exc
 
         if response.status_code in (401, 403):
-            raise IntegrationAuthError(f"InPost refused the token for {what} ({response.status_code})")
+            explanation = _explain(response)
+            raise IntegrationAuthError(
+                f"InPost refused the token for {what} ({response.status_code})"
+                + (f": {explanation}" if explanation else "")
+            )
         if response.status_code == 429:
             raise IntegrationUnavailable(f"InPost asked to slow down for {what} (429)")
         if response.status_code >= 400:

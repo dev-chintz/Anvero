@@ -23,7 +23,7 @@ class InpostStatus(BaseModel):
 class InpostSettingsRequest(BaseModel):
     """The token is optional once one is saved: leaving it out keeps the stored one."""
 
-    token: str | None = Field(default=None, min_length=8, max_length=500)
+    token: str | None = Field(default=None, min_length=8, max_length=4000)
     organization_id: str = Field(pattern=r"^\d{1,20}$")
     environment: Environment = "sandbox"
     default_template: Template = "small"

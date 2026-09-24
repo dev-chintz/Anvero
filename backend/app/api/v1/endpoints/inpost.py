@@ -106,7 +106,7 @@ def save_inpost_settings(
     except IntegrationAuthError as exc:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail="InPost did not accept this token and organization",
+            detail=f"InPost did not accept this token and organization: {exc}",
         ) from exc
     except IntegrationError as exc:
         raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=str(exc)) from exc
