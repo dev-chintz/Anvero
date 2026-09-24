@@ -26,6 +26,19 @@ are days in the business timezone, `BUSINESS_TIMEZONE`, default
 | `GET` | `/api/v1/settings/safe-mode` | whether safe mode is on, and who last switched it |
 | `PUT` | `/api/v1/settings/safe-mode` | switch safe mode on or off |
 | `GET` | `/api/v1/marketplace-writes` | what Anvero sent to a marketplace, or held back in safe mode |
+| `GET` | `/api/v1/status` | the application status page: connections, last imports, the schedule |
+| `GET` | `/api/v1/settings/shipping` | the sender and the usual parcel, for labels |
+| `PUT` | `/api/v1/settings/shipping` | store them |
+| `GET` | `/api/v1/orders/{id}/labels` | the order's labels bought through Wysyłam z Allegro, newest first |
+| `POST` | `/api/v1/orders/{id}/labels` | buy the order's shipment (safe mode permitting) |
+| `POST` | `/api/v1/orders/{id}/labels/{label_id}/refresh` | ask Allegro again about a label still being created |
+| `POST` | `/api/v1/orders/{id}/labels/{label_id}/cancel` | cancel a bought shipment (safe mode permitting) |
+| `GET` | `/api/v1/orders/{id}/labels/{label_id}/pdf` | the label, A6, as a PDF |
+| `GET` | `/api/v1/labels` | bought labels across every order, for printing many at once |
+| `POST` | `/api/v1/labels/pdf` | several labels as one A6 PDF |
+| `POST` | `/api/v1/pickups/proposals` | when a courier could come for chosen parcels on a day |
+| `POST` | `/api/v1/pickups` | order the courier for a proposed slot (safe mode permitting) |
+| `POST` | `/api/v1/pickups/{id}/refresh` | ask Allegro again about a pickup still being confirmed |
 | `GET` | `/api/v1/integrations/allegro` | the Allegro connection's state, never a secret |
 | `PUT` | `/api/v1/integrations/allegro/settings` | store the Allegro application's credentials |
 | `POST` | `/api/v1/integrations/allegro/connect` | start connecting a seller account; rate limited to 10 per minute per IP |
@@ -295,6 +308,117 @@ Every write to a marketplace, sent or held back, newest first: `order_id`
 is `DRY_RUN` (safe mode held it back), `SENT` or `FAILED`; `detail` is the
 marketplace's answer or the error. Nothing writes to it yet: the first writes
 come with feature plan stage A6.
+
+## `GET /api/v1/status`
+
+What the application status page shows. Read entirely from what Anvero holds:
+nothing is asked of Allegro or Erli, so it can be called as often as wanted
+and never rotates a token (`DECISIONS.md`).
+
+```json
+{"checked_at": "...Z", "version": "0.1.0", "safe_mode": true,
+ "allegro": {"state": "warning", "problems": ["token_expiring"],
+   "application_complete": true, "connected": true, "environment": "sandbox",
+   "account_login": "seller_login",
+   "token_issued_at": "...Z", "token_expires_at": "...Z",
+   "last_import": {"at": "...Z", "created": 2, "updated": 7, "error": null},
+   "schedule": {"interval_minutes": 15, "running": true, "started_at": "...Z",
+                "next_run_at": "...Z", "last_run_at": null}},
+ "erli": {"state": "off", "problems": [], "configured": false,
+   "last_import": {"at": null, "created": null, "updated": null, "error": null},
+   "schedule": null}}
+```
+
+`state` is `off` (not set up at all), `ok`, `warning` (works, but needs
+attention) or `error` (does not work until someone acts); `problems` says why,
+as codes the interface words:
+
+| Code | Level | Meaning |
+| --- | --- | --- |
+| `application_incomplete` | warning | client id, secret or User-Agent missing (Allegro) |
+| `not_connected` | warning | no seller account connected (Allegro) |
+| `never_imported` | warning | connected, but no import has run, so the connection is unproven |
+| `token_expiring` | warning | the refresh token lapses within 14 days (Allegro) |
+| `token_expired` | error | the refresh token has lapsed: connect the account again |
+| `last_import_failed` | error | the last import ended in an error, in `last_import.error` |
+| `import_overdue` | warning | the schedule runs, but no import finished for three intervals |
+| `schedule_stopped` | warning | `ALLEGRO_IMPORT_INTERVAL_MINUTES` is set, but the schedule is not running in this backend |
+
+`token_expires_at` is `token_issued_at` plus Allegro's three months (taken as
+90 days); every import issues a new token, so it only nears when nothing
+imports. `last_import` is the last import by any route: the button, the
+schedule or either script. `schedule` is this backend's own: another backend
+importing on the same database is not seen here, though its imports show in
+`last_import`. It lives in memory, so `last_run_at` is null until the first
+scheduled run after a start. Erli has no schedule yet: `schedule` is null.
+
+## Labels through Wysyłam z Allegro
+
+`GET`/`PUT /api/v1/settings/shipping`:
+`{"sender": {"name", "company", "street", "postal_code", "city",
+"country_code", "email", "phone"} | null, "default_package": {"length_cm",
+"width_cm", "height_cm", "weight_kg"} | null}`. `company` is optional,
+`country_code` two capitals (default `PL`); dimensions in centimetres (at most
+350), weight in kilograms (at most 100), as decimal strings. `PUT` replaces
+both; null clears one.
+
+A label: `{"id", "created_at", "status", "shipment_id", "carrier_id",
+"waybill", "length_cm", "width_cm", "height_cm", "weight_kg", "error"}`.
+`status` is `PENDING` (Allegro is still creating the shipment), `CREATED`,
+`FAILED` (Allegro refused it, `error` says why) or `CANCELLED`.
+
+`POST /api/v1/orders/{id}/labels` takes the parcel (`length_cm`, `width_cm`,
+`height_cm`, `weight_kg`) and returns `{"label": ... | null,
+"marketplace_write": {...}}`. It reads the order's delivery method from
+Allegro, then sends the create command through safe mode: with safe mode on,
+`label` is null and the write is `DRY_RUN`, its payload what would have been
+sent; a refused command is a `FAILED` write and no label. Otherwise it waits a
+few seconds for Allegro: the label comes back `CREATED` (and the waybill is
+added to the order, as `POST /orders/{id}/shipments` would), `FAILED`, or
+still `PENDING`, for `refresh` to settle. `409` when the label cannot be asked
+for: not an Allegro order, cash on delivery (not shipped by the business), no sender in
+the settings, a label already `PENDING` or `CREATED` on the order (cancel it
+first), or no delivery method on Allegro's order; `502` when Allegro cannot be
+reached.
+
+`POST .../cancel` (a `CREATED` label only, else `409`) returns the same shape;
+the label turns `CANCELLED` once Allegro confirms, or keeps `CREATED` with the
+reason in `error`. `GET .../pdf` returns `application/pdf`; `409` unless the
+label is `CREATED`. Printing is a read: it does not go through safe mode.
+Every label has `printed_at`: when its PDF was last fetched, by either route;
+null until then.
+
+`GET /api/v1/labels` lists `CREATED` labels across every order, oldest first
+(the order they were bought), at most 200. `view` chooses which: `to_print`
+(the default: never printed), `no_pickup` (no courier ordered, or only a
+refused one) or `all`; anything else is `422`. Each is a label plus
+`order_id`, `order_label` (the `AN-` number), `buyer` (the name, else login,
+else email), `delivery_method` and `pickup`: the courier ordered for it, or
+null (`{"id", "created_at", "status", "pickup_id", "carrier_id",
+"ready_date", "proposal_label", "error"}`, `status` being `PENDING`,
+`ORDERED` or `FAILED`).
+
+`POST /api/v1/labels/pdf` takes `{"label_ids": [...]}` (1 to 50) and returns
+one A6 PDF with those labels in that order, from one request to Allegro, and
+notes them printed. `404` if an id is unknown, `409` if any is not `CREATED`
+or there are more than 50, `422` for an empty list, `502` when Allegro fails.
+
+### Courier pickup
+
+`POST /api/v1/pickups/proposals` takes `{"label_ids": [...], "ready_date":
+"YYYY-MM-DD"}` and returns the slots Allegro proposes, `[{"id", "label"}]`;
+an empty list means no courier comes for those parcels that day (a parcel
+locker shipment is dropped off, not collected). It changes nothing and does
+not go through safe mode. `POST /api/v1/pickups` takes the same plus
+`proposal_id` and `proposal_label` (the slot as shown) and returns
+`{"pickup": ... | null, "marketplace_write": {...}}`: null with a `DRY_RUN`
+write in safe mode, or with a `FAILED` write when Allegro refused the
+command; otherwise the pickup, `ORDERED`, `PENDING` (for `refresh`) or
+`FAILED` with `error`, whose parcels are then free again. Both refuse with
+`409`: more than 50 parcels, a day already past (in the business timezone),
+a parcel not `CREATED`, a parcel already in a pending or ordered pickup, or
+parcels of more than one carrier (one pickup serves one carrier); `404` for
+an unknown label; `502` when Allegro cannot be reached.
 
 ## Changes that reach the marketplace
 

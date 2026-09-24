@@ -1,0 +1,143 @@
+/* the shipping section of Settings */
+.shipping-settings {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.shipping-settings .subtitle {
+  margin: 0;
+  color: var(--color-muted);
+  font-size: 0.9rem;
+}
+
+.shipping-settings fieldset {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 0.75rem;
+  margin: 0;
+  padding: 1rem;
+  border: 1px solid var(--color-divider);
+  border-radius: var(--radius-md);
+}
+
+.shipping-settings legend {
+  padding: 0 0.4rem;
+  font-weight: 600;
+  color: var(--color-heading);
+}
+
+.shipping-settings label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--color-muted-strong);
+}
+
+.shipping-settings input {
+  padding: 0.55rem 0.7rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  font-size: 0.95rem;
+  font-weight: 400;
+  background: var(--color-bg);
+  color: var(--color-text);
+}
+
+.shipping-settings > button {
+  align-self: flex-start;
+}
+
+/* the label card on an order */
+.label-list {
+  margin: 0 0 0.75rem;
+  padding: 0;
+  list-style: none;
+  font-size: 0.9rem;
+}
+
+.label-list li {
+  padding: 0.5rem 0;
+  border-bottom: 1px solid var(--color-divider);
+}
+
+.label-list .label-meta {
+  color: var(--color-muted);
+}
+
+.label-created strong {
+  color: var(--color-success);
+}
+
+.label-failed strong {
+  color: var(--color-error);
+}
+
+.label-cancelled strong {
+  color: var(--color-muted);
+}
+
+.label-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.4rem;
+}
+
+.label-actions:empty {
+  display: none;
+}
+
+.label-size-input {
+  width: 6.5rem;
+}
+
+.label-confirm {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+  padding: 0.75rem;
+  border: 1px solid var(--color-warning);
+  border-radius: var(--radius-md);
+}
+
+.label-confirm p {
+  flex-basis: 100%;
+  margin: 0;
+}
+
+.shipping-label button,
+.shipping-settings button {
+  padding: 0.5rem 1rem;
+  border: 1px solid var(--color-accent);
+  border-radius: var(--radius-md);
+  background: var(--color-accent);
+  color: #fff;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.shipping-label button.secondary {
+  border-color: var(--color-border);
+  background: var(--color-bg);
+  color: var(--color-text);
+}
+
+.shipping-label button:disabled,
+.shipping-settings button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.shipping-label input {
+  padding: 0.45rem 0.6rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  font-size: 0.95rem;
+  background: var(--color-bg);
+  color: var(--color-text);
+}

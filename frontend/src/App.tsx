@@ -14,6 +14,8 @@ import { LoginPage } from './pages/LoginPage';
 import { OrdersPage } from './pages/OrdersPage';
 import { ProductionPage } from './pages/ProductionPage';
 import { Settings } from './pages/Settings';
+import { StatusPage } from './pages/StatusPage';
+import { LabelsPage } from './pages/LabelsPage';
 import { useTranslation } from './i18n';
 import './App.css';
 
@@ -118,6 +120,8 @@ export default function App() {
                   <Route path=":id" element={<OrderDetail />} />
                 </Route>
                 <Route path="/production" element={<ProductionPage />} />
+                <Route path="/labels" element={<LabelsPage />} />
+                <Route path="/status" element={<StatusPage />} />
                 <Route path="/settings" element={<Settings />} />
                 <Route
                   path="*"

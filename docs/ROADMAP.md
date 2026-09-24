@@ -280,12 +280,23 @@ In this order (the owner chose queues before any write to Allegro):
    fulfillment status and tracking number; the last change made in Anvero
    wins (`DECISIONS.md`). Not yet sent for real: try it on the Sandbox with
    safe mode off (`INTEGRATIONS.md`, "Writing to Allegro").
-7. **Application status page.** Allegro/Erli connection and token validity,
-   last import and its outcome, whether the schedule is running.
+7. ~~**Application status page.**~~ Done 2026-09-24: the Status page and
+   `GET /status`: per marketplace, the connection, until when Allegro's token
+   is valid, the last import and its outcome (by any route, the scripts
+   included), and whether this backend's schedule is running, each with a
+   verdict and what to do. Read from what Anvero holds, never a live call
+   (`DECISIONS.md`).
 
 ### B — Next, in the owner's order of urgency
 
 1. **Labels through "Wysyłam z Allegro"**: buy the shipment, print A6.
+   Started 2026-09-24: buying one parcel per order from the order, the A6
+   PDF, cancelling, the sender and the usual parcel in Settings, all through
+   safe mode, built from Allegro's documentation and tested on fakes
+   (`INTEGRATIONS.md`). Printing many at once and ordering a courier: the
+   Labels page, done the same day. Cash on delivery is not needed: the
+   business does not ship it (`DECISIONS.md`). Left: a first real purchase
+   and pickup on the Sandbox.
 2. **Buyer messages**: one inbox across channels, reply from Anvero, put a
    thread aside until later.
 3. **Invoices and money.** Choose the invoicing program first (compare APIs,

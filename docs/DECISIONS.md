@@ -986,3 +986,36 @@ branch is unverified: only the SQLite path has been run.
 **Rationale:** Without the timestamp an import already in flight when the operator acts would overwrite the newer choice with an older snapshot; with it, only a genuinely newer marketplace change wins, which keeps the earlier rule "status follows the marketplace when it moves" for everything the operator has not just decided. Cancelling an Allegro order through the fulfillment status refunds no one, so it stays an action on Allegro. Keeping the local change on a failed send respects the operator's decision and makes the failure visible rather than silently reverting.
 
 **Consequences:** Erli is not written to yet. Parcels typed in are flagged `added_in_anvero` and kept by imports that do not list them (for example while safe mode holds them back). Nothing has been sent to Allegro yet; the scope and the carrier ids are unverified (`INTEGRATIONS.md`, "Writing to Allegro").
+
+## 2026-09-24 — The status page reads what Anvero holds; it never asks the marketplace
+
+**Decision:** The application status page (`GET /status`, feature plan A7) judges each marketplace from what Anvero already stores: whether an account is connected, when Allegro issued the stored refresh token (new column `integration_credentials.token_issued_at`, plus Allegro's three months), how the last import ended, and this backend's in-memory schedule. There is no "test the connection now" call. Every import, the two scripts included, now notes its outcome through one helper (`app/services/import_outcome.py`), so the page sees imports by any route.
+
+**Rationale:** The only live check of Allegro is refreshing the token, and Allegro rotates it on every refresh: a status page doing that would compete with imports for the lock and spend a rotation for every look. The last import already is a live check made minutes ago when the schedule runs, and its error says what went wrong. Before this, the scripts left no note, so an Erli import (script only) and a manual Allegro backfill were invisible.
+
+**Consequences:** The verdict is only as fresh as the last import; with no schedule, "working" means "worked last time". The schedule shown is this process's: a backend that does not run the schedule reports it off even while another backend imports on the same database (its imports still show as the last import), and "configured but not running" is flagged when the interval is set here but the loop is not alive. Token expiry for rows that existed before the migration is estimated from the row's last change until the next rotation.
+
+## 2026-09-24 — Labels: one standing label per order, the delivery method read live
+
+**Decision:** A shipment bought through Wysyłam z Allegro is a write like any other: it goes through `MarketplaceWriter`, so safe mode records it as `DRY_RUN` and buys nothing. An order has at most one label that is being created or is created; another needs the first cancelled (or refused). The delivery method id is read from Allegro's order at the moment of buying, not imported. What was bought lives in its own table, `shipping_labels`, not in `order_shipments`; its waybill is added to the order as a tracking number, which also sends it to Allegro. The sender and the usual parcel are settings in `app_settings`, entered in the interface. Cash on delivery is refused for now.
+
+**Rationale:** A label costs money and a second one for the same parcel is money lost, so the default is to refuse rather than to allow duplicates; an order needing two parcels is rare for this business and can wait for multi-parcel support. Reading the method live avoids a migration and a re-import of every order, and uses what Allegro will charge for now. `order_shipments` is rewritten by every import, which would lose the shipment-management ids needed to reprint or cancel. Cash on delivery needs the seller's bank account and an amount check that is not worth building before the plain case works.
+
+**Consequences:** Buying needs Allegro reachable even in safe mode (the method is read first). If Allegro links the shipment to the order by itself, the tracking number Anvero adds may be refused as a duplicate: recorded as a failed write, harmless. Nothing has been bought for real; the Sandbox run is the next step (`INTEGRATIONS.md`).
+
+## 2026-09-24 — Courier pickup: one carrier per pickup, slots from Allegro's proposals
+
+**Decision:** A courier is ordered from the Labels page for chosen bought parcels: Anvero asks Allegro for pickup proposals for those parcels on the day they are ready, the operator picks one slot, and ordering it goes through `MarketplaceWriter` (safe mode). One pickup covers parcels of one carrier only; a parcel is in at most one pending or ordered pickup, and a refused pickup lets go of its parcels. Asking for proposals is treated as a read and does not go through safe mode. Cancelling a pickup is not built.
+
+**Rationale:** A courier comes from one carrier, and grouping by carrier keeps the proposals simple to show while their real shape is unknown; the rule can relax once a real answer shows whether Allegro mixes carriers. Refusing a second pickup for the same parcel avoids ordering two couriers for one parcel. Proposals change nothing on Allegro, so holding them back in safe mode would only make the flow impossible to try.
+
+**Consequences:** The operator orders one pickup per carrier. A pickup ordered by mistake has to be cancelled on Allegro for now. Everything is from the documentation and fakes until the Sandbox run (`INTEGRATIONS.md`).
+
+## 2026-09-24 — No cash on delivery
+
+**Decision:** The business does not ship cash on delivery, so Anvero will not build it for labels: an order whose payment is cash on delivery is refused a label, with a message to check it on Allegro, and no bank account or amount handling is added. This replaces "refused for now" in the labels decision above.
+
+**Rationale:** The owner's answer on 2026-09-24. Building it would mean storing the seller's bank account and checking amounts for a case that should never occur.
+
+**Consequences:** Stage B1 is complete in code. If such an order ever arrives (the offer's settings allowing it by mistake), the refusal is the signal to fix the offer on Allegro.
+

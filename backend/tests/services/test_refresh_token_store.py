@@ -80,3 +80,26 @@ def test_two_import_runs_against_one_database(session):
         ).fetch_checkout_forms()
 
     assert posted == ["env-token", "env-token-next"]
+
+
+def test_a_rotation_notes_when_the_new_token_was_issued(session):
+    repository = IntegrationCredentialRepository(session)
+    _store(session).save("rotated-1")
+    first = repository.get("ALLEGRO").token_issued_at
+    assert first is not None
+
+    # the same token saved again is not a new one
+    _store(session).save("rotated-1")
+    assert repository.get("ALLEGRO").token_issued_at == first
+
+    repository.get("ALLEGRO").token_issued_at = None
+    session.commit()
+    _store(session).save("rotated-2")
+    assert repository.get("ALLEGRO").token_issued_at is not None
+
+
+def test_connecting_an_account_notes_when_its_token_was_issued(session):
+    repository = IntegrationCredentialRepository(session)
+    repository.connect("ALLEGRO", "fresh", "seed", "seller")
+
+    assert repository.get("ALLEGRO").token_issued_at is not None

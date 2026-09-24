@@ -133,6 +133,9 @@ unique, so running it twice does not duplicate anything.
 
 Exit codes: `2` not configured, `3` credentials refused, `1` other failure.
 
+The script notes how the import ended exactly as the button does, so Settings
+and the status page show it too.
+
 **Only one import may run at a time**, from either the script or the
 endpoint calling it concurrently against the same database — enforced by a
 lock in the endpoint, not by anything the script itself checks. Allegro
@@ -411,6 +414,56 @@ and the order's total less them.
   It refuses to run unless the connection is the Sandbox one, and, like the
   script it reuses, has never been run against the real page.
 
+### Labels through Wysyłam z Allegro
+
+Built 2026-09-24 from Allegro's documentation of the shipment-management API
+and tested on fakes: **nothing has been bought for real**. The flow, on the
+order ("Label" card), after the sender is entered in Settings, "Shipping":
+
+1. `GET /order/checkout-forms/{id}`: the order's `delivery.method.id`, read
+   live (it decides the carrier and the price, and was never imported).
+2. `POST /shipment-management/shipments/create-commands` with a `commandId`
+   Anvero makes and `input`: `deliveryMethodId`, `sender`, `receiver` (the
+   delivery address, the buyer's email and phone, the pickup point as
+   `point`), `referenceNumber` (Anvero's `AN-` number), one `PACKAGE` with
+   its dimensions and weight, `labelFormat: PDF`. Through `MarketplaceWriter`:
+   the seller is charged, so safe mode holds it back like any write.
+3. `GET /shipment-management/shipments/create-commands/{commandId}` until
+   `SUCCESS` (`shipmentId`) or `ERROR` (`errors[].userMessage`), for about
+   eight seconds; after that the label stays pending and "Check again" asks
+   once more.
+4. `GET /shipment-management/shipments/{shipmentId}` for the carrier and the
+   waybill, which is then added to the order as a tracking number would be
+   (`POST /order/checkout-forms/{id}/shipments`).
+5. `POST /shipment-management/label` with `pageSize: A6` returns the PDF.
+   The Labels page sends several `shipmentIds` at once (at most 50, Anvero's
+   own cap: the documentation names none) for one PDF of many labels.
+6. Cancelling: `POST /shipment-management/shipments/cancel-commands`, then
+   its status the same way.
+
+**Courier pickup**, from the Labels page, for parcels of one carrier:
+`POST /shipment-management/pickup-proposals` with `shipmentIds` and
+`readyDate` returns the slots (read without safe mode: it only asks), then
+`POST /shipment-management/pickups/create-commands` with `shipmentIds` and
+`pickupDateProposalId` (through safe mode), then
+`GET .../pickups/create-commands/{commandId}` until `SUCCESS` (`pickupId`) or
+`ERROR`, as for a shipment. The shape of the proposals is read defensively:
+groups under `proposals`, each proposal a slot itself (`proposalId` or `id`,
+`name` or `date`) or holding slots in `proposalItems` (`id`, `name`). Which
+shape Allegro really sends, whether one pickup may mix carriers, and which
+delivery methods get proposals at all are unverified. Cancelling a pickup is
+not built.
+
+Unverified until tried on the Sandbox with safe mode off: that the application
+carries the `allegro:api:shipments:write` (and read) scope; the exact shape
+of the shipment's carrier and waybill (both shapes the documentation suggests
+are read); whether Allegro already links the shipment to the order by itself,
+in which case step 4's tracking number may be refused as a duplicate, harmless
+but noted as a failed write; and the label's `Accept` header. Not built yet:
+insurance and several parcels per order. Cash on delivery will not be: the
+business does not ship it, and such an order is refused a label. Unverified too: that one label
+request takes many shipments and how Allegro lays several A6 labels out.
+
 ### Writing to Allegro
 
 Built 2026-09-24, from Allegro's documentation, and **never sent**: safe mode
@@ -453,7 +506,9 @@ the documentation until a real import confirms it.
    a document). `ERLI_API_URL` defaults to production; Erli's documentation
    says its test environment is on another domain without naming it.
 3. From `backend/`: `.\.venv\Scripts\python.exe scripts\import_erli.py`
-   (`--days N` for a backfill). There is no button or schedule for Erli yet.
+   (`--days N` for a backfill). There is no button or schedule for Erli yet;
+   the status page (Status in the sidebar) shows how the script's last run
+   ended.
 
 The key is a plain bearer token and does not rotate. Anvero stores only its
 SHA-256 fingerprint, on an `ERLI` row of `integration_credentials` that holds

@@ -26,7 +26,9 @@ from app.integrations.base import (
     IntegrationError,
     IntegrationNotConfigured,
 )
+from app.services.erli_import import PROVIDER as ERLI_PROVIDER
 from app.services.erli_import import build_erli_import_service
+from app.services.import_outcome import run_and_record
 
 
 def _days(value: str) -> int:
@@ -50,7 +52,12 @@ def main() -> int:
 
     db = SessionLocal()
     try:
-        result = build_erli_import_service(db).sync_orders(days=args.days)
+        # noted, so the status page shows how it ended
+        result = run_and_record(
+            db,
+            ERLI_PROVIDER,
+            lambda: build_erli_import_service(db).sync_orders(days=args.days),
+        )
     except IntegrationNotConfigured as exc:
         print(f"Erli is not configured: {exc}", file=sys.stderr)
         return 2

@@ -6,6 +6,56 @@ All significant changes to the Anvero project.
 
 ## 2026-09-24
 
+### ✅ Stage B1 complete: no cash on delivery
+
+- The owner does not ship cash on delivery, so it will not be built; such an
+  order is refused a label with a message saying so.
+
+### 🚚 Ordering a courier for the parcels
+
+- On the Labels page: choose parcels of one carrier and the day they are
+  ready, see when Allegro proposes a courier could come, pick a slot and
+  order it (through safe mode). The courier ordered shows beside each
+  parcel; a pending one can be checked again.
+- The page shows parcels to print, parcels with no courier yet, or all.
+- `POST /pickups/proposals`, `POST /pickups`, `POST /pickups/{id}/refresh`,
+  `GET /labels?view=`; `courier_pickups` and `shipping_labels.pickup_id`
+  (migration `d2f7b3e9a614`).
+- Built from Allegro's documentation, tested on fakes. Stage B1, third part.
+
+### 🖨️ Printing many labels at once
+
+- A Labels page (sidebar): every bought label not yet printed, oldest first,
+  all selected; one click fetches them from Allegro as one A6 PDF and marks
+  them printed. Already printed ones can be shown and printed again.
+- `GET /labels`, `POST /labels/pdf`; `shipping_labels.printed_at` (migration
+  `c9e4a2d7f581`), also set when a single label is printed from the order.
+- Stage B1 of the feature plan, second part.
+
+### 🏷️ Labels through Wysyłam z Allegro
+
+- On an Allegro order, a "Label" card: enter or accept the parcel's size,
+  confirm, and Anvero buys the shipment through Allegro's shipment-management
+  API, adds its waybill to the order, and prints the label as an A6 PDF. A
+  bought shipment can be cancelled; one still being created can be checked
+  again.
+- Settings, "Shipping": the sender printed on labels and the usual parcel.
+- Through safe mode like every write; one standing label per order; cash on
+  delivery not yet. `shipping_labels` (migration `b6d2f8a1c357`).
+- Built from Allegro's documentation, tested on fakes; nothing bought for
+  real yet. Stage B1 of the feature plan, first part.
+
+### 🩺 Application status page
+
+- A Status page (sidebar) and `GET /status`: for Allegro and Erli, whether
+  they are set up and connected, until when Allegro's access is valid, how the
+  last import ended, and whether this backend's automatic import is running,
+  each with a verdict (working, needs attention, not working) and what to do.
+  Nothing is asked of the marketplaces.
+- `integration_credentials.token_issued_at` (migration `a3e7c5b9d142`), and
+  the import scripts now note their outcome like the button does.
+- Stage A7 of the feature plan.
+
 ### 📤 Status and tracking numbers sent to Allegro (through safe mode)
 
 - A status set in Anvero is sent to Allegro's fulfillment status, and a

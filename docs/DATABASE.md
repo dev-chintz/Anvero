@@ -145,6 +145,7 @@ the latest token has to be kept between runs:
 | --- | --- |
 | `provider` | primary key, e.g. `ALLEGRO`; an `ERLI` row holds Erli's sync point, with an empty `refresh_token` and the API key's fingerprint (Erli's key does not rotate and is never stored) |
 | `refresh_token` | the most recently issued refresh token |
+| `token_issued_at` | when that token was issued (a rotation or a connection), so the status page can say when it lapses; null for a row with no token, such as Erli's. The migration filled existing rows from `updated_at`, a slight overestimate |
 | `seed_fingerprint` | SHA-256 of the `.env` token the chain started from; a different `.env` token means a fresh authorization |
 | `last_import_at`, `last_import_created`, `last_import_updated`, `last_import_error` | how the last import ended, whoever ran it: when it finished, how many orders it created and updated, or the error if it failed (then the counts are null). Cleared when an account is connected |
 | `last_synced_at` | where the next import resumes: when the last one that fetched everything started, less five minutes; null until one has, and reset by a re-authorization, since another seller account has another order history |
@@ -163,6 +164,30 @@ sent stays sent), `action` (e.g. `fulfillment_status`), `payload` (the JSON,
 as text), `outcome` (`DRY_RUN`, `SENT` or `FAILED`), `detail` (the
 marketplace's answer or the error, up to 2000 characters), `user_id`
 (nullable).
+
+`shipping_labels`: shipments bought through Wysyłam z Allegro. Kept apart
+from `order_shipments`, which an import replaces, because Allegro's
+shipment-management ids are needed to print the label again or cancel it.
+`id`, `order_id` (indexed, deleted with the order), `created_at`,
+`created_by_user_id` (nullable, `SET NULL`), `command_id` (unique: the id
+Anvero gave the create command), `shipment_id` (Allegro's, once it exists),
+`status` (`PENDING`, `CREATED`, `FAILED`, `CANCELLED`, stored as text),
+`delivery_method_id`, `carrier_id`, `waybill`, `length_cm`, `width_cm`,
+`height_cm` (numeric 8,1), `weight_kg` (numeric 8,3), `error`, `printed_at`
+(when its PDF was last fetched; null puts it on the "to print" list),
+`pickup_id` (indexed, the courier ordered for it, `SET NULL`). The waybill
+also goes onto the order as an `order_shipments` row added in Anvero.
+
+`courier_pickups`: couriers ordered through Wysyłam z Allegro. `id`,
+`created_at`, `created_by_user_id` (nullable, `SET NULL`), `command_id`
+(unique), `pickup_id` (Allegro's), `status` (`PENDING`, `ORDERED`, `FAILED`,
+as text), `carrier_id`, `ready_date` (a date), `proposal_id` and
+`proposal_label` (the slot chosen, as its id and as it was shown), `error`.
+Its parcels are the `shipping_labels` pointing at it; a refused pickup lets
+go of them.
+
+`app_settings` also holds `shipping_sender` and `shipping_default_package`,
+each a JSON object (`API.md`, "Labels through Wysyłam z Allegro").
 
 `integration_settings` holds the application's own credentials when they were
 entered in Settings, and are then used instead of the `ALLEGRO_*` variables:

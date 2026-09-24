@@ -21,6 +21,13 @@ class IntegrationCredential(Base):
 
     refresh_token: Mapped[str] = mapped_column(Text, nullable=False)
 
+    # when the marketplace issued the refresh token held above, so the status
+    # page can say how long it has left (Allegro's live three months). Null
+    # for a row holding no token, such as Erli's, whose key does not expire.
+    token_issued_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+
     # SHA-256 of the environment token this chain of rotations started from.
     # When the environment holds a different token, someone authorized the
     # application again, and the stored chain is stale.

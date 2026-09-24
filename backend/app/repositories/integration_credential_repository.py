@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import UTC, datetime
 
 from sqlalchemy.orm import Session
 
@@ -80,6 +80,7 @@ class IntegrationCredentialRepository:
             credential = IntegrationCredential(provider=provider)
             self.db.add(credential)
         credential.refresh_token = refresh_token
+        credential.token_issued_at = datetime.now(UTC)
         credential.seed_fingerprint = seed_fingerprint
         credential.account_login = account_login
         credential.last_synced_at = None
@@ -114,6 +115,9 @@ class IntegrationCredentialRepository:
             # for the previous account says nothing about this one
             credential.last_synced_at = None
             credential.last_billing_synced_at = None
+        if refresh_token and refresh_token != credential.refresh_token:
+            # a rotation: the token just issued lives from now
+            credential.token_issued_at = datetime.now(UTC)
         credential.refresh_token = refresh_token
         credential.seed_fingerprint = seed_fingerprint
         # committed on its own, immediately: the token it replaces dies within

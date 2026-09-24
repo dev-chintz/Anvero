@@ -261,7 +261,12 @@ class AllegroClient:
         return _json_object(response, f"Allegro {what}")
 
     def _send(
-        self, method: str, path: str, what: str, body: dict[str, Any]
+        self,
+        method: str,
+        path: str,
+        what: str,
+        body: dict[str, Any],
+        scope: str = "allegro:api:orders:write",
     ) -> dict[str, Any] | None:
         """Send a change to Allegro; its JSON answer, or None when it has none.
 
@@ -292,7 +297,7 @@ class AllegroClient:
         if response.status_code == 403:
             raise IntegrationAuthError(
                 f"Allegro refused {what}; the application likely lacks the "
-                "allegro:api:orders:write scope"
+                f"{scope} scope"
             )
         if response.status_code >= 400:
             raise IntegrationUnavailable(
@@ -335,6 +340,148 @@ class AllegroClient:
             "the tracking number",
             body,
         )
+
+    def fetch_checkout_form(self, checkout_form_id: str) -> dict[str, Any]:
+        """`GET /order/checkout-forms/{id}`: one order as Allegro has it now."""
+        return self._get_object(f"/order/checkout-forms/{checkout_form_id}", "the order")
+
+    # "Wysyłam z Allegro": shipments bought through Allegro's own contracts,
+    # the shipment-management API. Built from Allegro's documentation; see
+    # docs/INTEGRATIONS.md, "Labels through Wysyłam z Allegro".
+
+    def create_shipment(self, command_id: str, shipment: dict[str, Any]) -> dict[str, Any] | None:
+        """`POST /shipment-management/shipments/create-commands`: buy a shipment.
+
+        Asynchronous: Allegro accepts the command and creates the shipment
+        shortly after; `shipment_command` says how it went. The seller is
+        charged for it, so this only ever runs through MarketplaceWriter.
+        """
+        return self._send(
+            "POST",
+            "/shipment-management/shipments/create-commands",
+            "the shipment",
+            {"commandId": command_id, "input": shipment},
+            scope="allegro:api:shipments:write",
+        )
+
+    def shipment_command(self, command_id: str) -> dict[str, Any]:
+        """`GET /shipment-management/shipments/create-commands/{id}`.
+
+        `status` is IN_PROGRESS, SUCCESS (with `shipmentId`) or ERROR (with
+        `errors`).
+        """
+        return self._get_object(
+            f"/shipment-management/shipments/create-commands/{command_id}",
+            "the shipment's creation",
+        )
+
+    def fetch_shipment(self, shipment_id: str) -> dict[str, Any]:
+        """`GET /shipment-management/shipments/{id}`: its carrier and waybill."""
+        return self._get_object(f"/shipment-management/shipments/{shipment_id}", "the shipment")
+
+    def cancel_shipment(self, command_id: str, shipment_id: str) -> dict[str, Any] | None:
+        """`POST /shipment-management/shipments/cancel-commands`: cancel a bought shipment."""
+        return self._send(
+            "POST",
+            "/shipment-management/shipments/cancel-commands",
+            "the cancellation",
+            {"commandId": command_id, "input": {"shipmentId": shipment_id}},
+            scope="allegro:api:shipments:write",
+        )
+
+    def cancel_command(self, command_id: str) -> dict[str, Any]:
+        """`GET /shipment-management/shipments/cancel-commands/{id}`."""
+        return self._get_object(
+            f"/shipment-management/shipments/cancel-commands/{command_id}",
+            "the shipment's cancellation",
+        )
+
+    def pickup_proposals(self, shipment_ids: list[str], ready_date: str) -> dict[str, Any]:
+        """`POST /shipment-management/pickup-proposals`: when a courier could come.
+
+        A read, though a POST: it only asks for proposals, so it does not go
+        through safe mode. `ready_date` is `YYYY-MM-DD`.
+        """
+        token = self._access_token_value()
+        try:
+            response = self._http.post(
+                f"{self._api_url}/shipment-management/pickup-proposals",
+                headers={
+                    "Authorization": f"Bearer {token}",
+                    "Accept": ACCEPT_HEADER,
+                    "Content-Type": ACCEPT_HEADER,
+                    "User-Agent": self._user_agent,
+                },
+                json={"shipmentIds": shipment_ids, "readyDate": ready_date},
+            )
+        except httpx2.RequestError as exc:
+            raise IntegrationUnavailable(f"Allegro API unreachable: {exc}") from exc
+        if response.status_code == 401:
+            self._access_token = None
+            raise IntegrationAuthError("Allegro rejected the access token")
+        if response.status_code == 403:
+            raise IntegrationAuthError("Allegro denied access to the pickup proposals")
+        if response.status_code >= 400:
+            raise IntegrationUnavailable(
+                f"Allegro refused the pickup proposals ({response.status_code}): {response.text[:500]}"
+            )
+        return _json_object(response, "Allegro pickup proposals")
+
+    def create_pickup(
+        self, command_id: str, shipment_ids: list[str], proposal_id: str
+    ) -> dict[str, Any] | None:
+        """`POST /shipment-management/pickups/create-commands`: order the courier."""
+        return self._send(
+            "POST",
+            "/shipment-management/pickups/create-commands",
+            "the courier pickup",
+            {
+                "commandId": command_id,
+                "input": {"shipmentIds": shipment_ids, "pickupDateProposalId": proposal_id},
+            },
+            scope="allegro:api:shipments:write",
+        )
+
+    def pickup_command(self, command_id: str) -> dict[str, Any]:
+        """`GET /shipment-management/pickups/create-commands/{id}`: IN_PROGRESS,
+        SUCCESS (with `pickupId`) or ERROR (with `errors`)."""
+        return self._get_object(
+            f"/shipment-management/pickups/create-commands/{command_id}",
+            "the courier pickup's ordering",
+        )
+
+    def fetch_label(self, shipment_ids: list[str], page_size: str = "A6") -> bytes:
+        """`POST /shipment-management/label`: the labels as one PDF.
+
+        A read, though a POST: it changes nothing, so it does not go through
+        safe mode.
+        """
+        token = self._access_token_value()
+        try:
+            response = self._http.post(
+                f"{self._api_url}/shipment-management/label",
+                headers={
+                    "Authorization": f"Bearer {token}",
+                    "Accept": "application/octet-stream",
+                    "Content-Type": ACCEPT_HEADER,
+                    "User-Agent": self._user_agent,
+                },
+                json={"shipmentIds": shipment_ids, "pageSize": page_size, "cutLine": False},
+            )
+        except httpx2.RequestError as exc:
+            raise IntegrationUnavailable(f"Allegro API unreachable: {exc}") from exc
+        if response.status_code == 401:
+            self._access_token = None
+            raise IntegrationAuthError("Allegro rejected the access token")
+        if response.status_code == 403:
+            raise IntegrationAuthError("Allegro denied access to the label")
+        if response.status_code >= 400:
+            raise IntegrationUnavailable(
+                f"Allegro refused the label ({response.status_code}): {response.text[:500]}"
+            )
+        if not response.content.startswith(b"%PDF"):
+            raise IntegrationUnavailable("Allegro's label is not a PDF")
+        return response.content
 
     def fetch_shipments(self, checkout_form_id: str) -> list[dict[str, Any]]:
         """Return the parcels registered for an order (carrier and waybill).

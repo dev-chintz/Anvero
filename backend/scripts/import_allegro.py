@@ -32,7 +32,9 @@ from app.integrations.base import (
     IntegrationError,
     IntegrationNotConfigured,
 )
+from app.services import allegro_settings
 from app.services.allegro_import import build_allegro_import_service
+from app.services.import_outcome import run_and_record
 
 logger = logging.getLogger(__name__)
 
@@ -60,9 +62,13 @@ def main() -> int:
     try:
         # same wiring the /integrations/allegro/import endpoint uses, so both
         # read and rotate the one stored refresh token; see
-        # app/services/allegro_import.py
-        service = build_allegro_import_service(db)
-        result = service.sync_orders(days=args.days)
+        # app/services/allegro_import.py. Its outcome is noted like the
+        # button's, so Settings and the status page show it too.
+        result = run_and_record(
+            db,
+            allegro_settings.PROVIDER,
+            lambda: build_allegro_import_service(db).sync_orders(days=args.days),
+        )
     except IntegrationNotConfigured as exc:
         print(f"Allegro is not configured: {exc}", file=sys.stderr)
         return 2

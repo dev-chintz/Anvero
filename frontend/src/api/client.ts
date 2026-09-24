@@ -36,10 +36,12 @@ interface RequestOptions extends Omit<RequestInit, "headers"> {
    * that has run out.
    */
   authenticated?: boolean;
+  /** Read the body as a Blob (a PDF) rather than JSON. */
+  blob?: boolean;
 }
 
 async function request<T>(path: string, options: RequestOptions = {}): Promise<T> {
-  const { authenticated = true, headers, ...init } = options;
+  const { authenticated = true, blob = false, headers, ...init } = options;
   const token = authenticated ? getToken() : null;
 
   let response: Response;
@@ -71,6 +73,7 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
     throw new ApiError(response.status, message);
   }
 
+  if (blob) return (await response.blob()) as T;
   return (await response.json()) as T;
 }
 
@@ -285,6 +288,225 @@ export interface SafeMode {
   changed_at: string | null;
   changed_by: string | null;
 }
+
+/** "off": not set up; "warning": works but needs attention; "error": does not work. */
+export type HealthState = "off" | "ok" | "warning" | "error";
+
+/** This backend's own import schedule. */
+export interface ScheduleStatus {
+  interval_minutes: number;
+  running: boolean;
+  started_at: string | null;
+  next_run_at: string | null;
+  last_run_at: string | null;
+}
+
+/** How the last import ended, whoever ran it; all null before the first. */
+export interface LastImport {
+  at: string | null;
+  created: number | null;
+  updated: number | null;
+  error: string | null;
+}
+
+export interface AllegroHealth {
+  state: HealthState;
+  /** Codes for what makes the state less than "ok"; worded by the page. */
+  problems: string[];
+  application_complete: boolean;
+  connected: boolean;
+  environment: AllegroEnvironment;
+  account_login: string | null;
+  token_issued_at: string | null;
+  token_expires_at: string | null;
+  last_import: LastImport;
+  schedule: ScheduleStatus;
+}
+
+export interface ErliHealth {
+  state: HealthState;
+  problems: string[];
+  configured: boolean;
+  last_import: LastImport;
+  /** Null: Erli has no schedule yet, only the import script. */
+  schedule: ScheduleStatus | null;
+}
+
+export interface AppStatus {
+  checked_at: string;
+  version: string;
+  safe_mode: boolean;
+  allegro: AllegroHealth;
+  erli: ErliHealth;
+}
+
+export const statusApi = {
+  get(): Promise<AppStatus> {
+    return request<AppStatus>("/status");
+  },
+};
+
+export interface ShippingSender {
+  name: string;
+  company: string | null;
+  street: string;
+  postal_code: string;
+  city: string;
+  country_code: string;
+  email: string;
+  phone: string;
+}
+
+/** Centimetres and kilograms, as decimal strings from the backend. */
+export interface PackageSize {
+  length_cm: string;
+  width_cm: string;
+  height_cm: string;
+  weight_kg: string;
+}
+
+export interface ShippingSettings {
+  sender: ShippingSender | null;
+  default_package: PackageSize | null;
+}
+
+export type LabelStatus = "PENDING" | "CREATED" | "FAILED" | "CANCELLED";
+
+export interface ShippingLabel extends PackageSize {
+  id: string;
+  created_at: string;
+  status: LabelStatus;
+  shipment_id: string | null;
+  carrier_id: string | null;
+  waybill: string | null;
+  error: string | null;
+  /** When its label was last fetched for printing; null until then. */
+  printed_at?: string | null;
+}
+
+export type PickupStatus = "PENDING" | "ORDERED" | "FAILED";
+
+/** A courier ordered through Wysyłam z Allegro to collect parcels. */
+export interface CourierPickup {
+  id: string;
+  created_at: string;
+  status: PickupStatus;
+  pickup_id: string | null;
+  carrier_id: string | null;
+  /** YYYY-MM-DD */
+  ready_date: string;
+  /** The slot chosen, as it was shown. */
+  proposal_label: string;
+  error: string | null;
+}
+
+/** A bought label on the Labels page, with what identifies its order. */
+export interface PrintableLabel extends ShippingLabel {
+  order_id: string;
+  order_label: string;
+  buyer: string | null;
+  delivery_method: string | null;
+  pickup?: CourierPickup | null;
+}
+
+/** Which bought labels the Labels page lists. */
+export type LabelView = "to_print" | "no_pickup" | "all";
+
+export interface PickupOption {
+  id: string;
+  label: string;
+}
+
+export interface PickupChangeResult {
+  /** Null when nothing was ordered: held back by safe mode, or refused. */
+  pickup: CourierPickup | null;
+  marketplace_write: MarketplaceWrite;
+}
+
+export interface LabelChangeResult {
+  /** Null when nothing was bought: held back by safe mode, or refused. */
+  label: ShippingLabel | null;
+  marketplace_write: MarketplaceWrite;
+}
+
+export const shippingApi = {
+  settings(): Promise<ShippingSettings> {
+    return request<ShippingSettings>("/settings/shipping");
+  },
+
+  saveSettings(settings: ShippingSettings): Promise<ShippingSettings> {
+    return request<ShippingSettings>("/settings/shipping", {
+      method: "PUT",
+      body: JSON.stringify(settings),
+    });
+  },
+
+  labels(orderId: string): Promise<ShippingLabel[]> {
+    return request<ShippingLabel[]>(`/orders/${orderId}/labels`);
+  },
+
+  buy(orderId: string, pkg: PackageSize): Promise<LabelChangeResult> {
+    return request<LabelChangeResult>(`/orders/${orderId}/labels`, {
+      method: "POST",
+      body: JSON.stringify(pkg),
+    });
+  },
+
+  refresh(orderId: string, labelId: string): Promise<ShippingLabel> {
+    return request<ShippingLabel>(`/orders/${orderId}/labels/${labelId}/refresh`, {
+      method: "POST",
+    });
+  },
+
+  cancel(orderId: string, labelId: string): Promise<LabelChangeResult> {
+    return request<LabelChangeResult>(`/orders/${orderId}/labels/${labelId}/cancel`, {
+      method: "POST",
+    });
+  },
+
+  /** Bought labels across every order, oldest first. */
+  printable(view: LabelView = "to_print"): Promise<PrintableLabel[]> {
+    return request<PrintableLabel[]>(`/labels?view=${view}`);
+  },
+
+  /** When a courier could come for these parcels that day; changes nothing. */
+  pickupProposals(labelIds: string[], readyDate: string): Promise<PickupOption[]> {
+    return request<PickupOption[]>("/pickups/proposals", {
+      method: "POST",
+      body: JSON.stringify({ label_ids: labelIds, ready_date: readyDate }),
+    });
+  },
+
+  orderPickup(labelIds: string[], readyDate: string, option: PickupOption): Promise<PickupChangeResult> {
+    return request<PickupChangeResult>("/pickups", {
+      method: "POST",
+      body: JSON.stringify({
+        label_ids: labelIds,
+        ready_date: readyDate,
+        proposal_id: option.id,
+        proposal_label: option.label,
+      }),
+    });
+  },
+
+  refreshPickup(pickupId: string): Promise<CourierPickup> {
+    return request<CourierPickup>(`/pickups/${pickupId}/refresh`, { method: "POST" });
+  },
+
+  /** Several labels as one A6 PDF, in the order given; notes them printed. */
+  pdfMany(labelIds: string[]): Promise<Blob> {
+    return request<Blob>("/labels/pdf", {
+      method: "POST",
+      body: JSON.stringify({ label_ids: labelIds }),
+      blob: true,
+    });
+  },
+
+  /** The A6 label as a PDF; it needs the login token, so it cannot be a plain link. */
+  pdf(orderId: string, labelId: string): Promise<Blob> {
+    return request<Blob>(`/orders/${orderId}/labels/${labelId}/pdf`, { blob: true });
+  },
+};
 
 export const safeModeApi = {
   get(): Promise<SafeMode> {

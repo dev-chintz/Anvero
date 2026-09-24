@@ -1,12 +1,14 @@
 from fastapi import APIRouter
 
 from app.api.v1.endpoints import (
+    app_status,
     auth,
     health,
     integrations,
     marketplace_writes,
     orders,
     root,
+    shipping,
     users,
 )
 
@@ -19,3 +21,5 @@ router.include_router(users.router)
 router.include_router(orders.router)
 router.include_router(integrations.router)
 router.include_router(marketplace_writes.router)
+router.include_router(app_status.router)
+router.include_router(shipping.router)

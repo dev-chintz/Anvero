@@ -16,6 +16,7 @@ import { describeWrite } from "./marketplaceWrite";
 import { OrderWritesCard } from "./OrderWritesCard";
 import { OrderBillingCard } from "./OrderBillingCard";
 import { OrderDetailsPanel } from "./OrderDetailsPanel";
+import { ShippingLabelCard } from "./ShippingLabelCard";
 import "../styles/OrderHistory.css";
 
 const STATUSES = Object.values(OrderStatus);
@@ -286,6 +287,17 @@ export function OrderDetail() {
         )}
 
         {!loading && !error && !notFound && order && <OrderDetailsPanel order={order} />}
+
+        {!loading && !error && !notFound && order && (
+          <ShippingLabelCard
+            order={order}
+            onChanged={() => {
+              ordersApi.get(order.id).then(setOrder).catch(() => undefined);
+              loadWrites(order.id);
+              onOrderChanged();
+            }}
+          />
+        )}
 
         {!loading && !error && !notFound && order && (
           <AddShipmentForm

@@ -43,7 +43,7 @@ folder, and one was restored from that copy into a scratch database as a test.
   remains the no-setup default for a fresh clone)
 - Health endpoint and first order model — done
 - Minimal order list interface — done
-- Automated tests for core flows — done (425 backend, 92 frontend passing
+- Automated tests for core flows — done (494 backend, 112 frontend passing
   across the suite as of 2026-09-21)
 
 ---
@@ -122,6 +122,10 @@ The dispatch deadline (`dispatch_by`, `INTEGRATIONS.md`, "Dispatch deadline") is
 The Erli import (`INTEGRATIONS.md`, "Erli") has never run: no API key has been used, and it was built from Erli's published OpenAPI description and tested against fakes. Unconfirmed in particular: that amounts are in grosze, the status mapping, and how soon Erli fills in the buyer's email.
 
 Writing to Allegro (status and tracking number, `INTEGRATIONS.md`, "Writing to Allegro") has never sent anything: safe mode has been on. Unverified: that the application carries the `allegro:api:orders:write` scope, that Allegro accepts the status transitions as mapped, and the carrier ids. Safe mode itself was checked in the browser on 2026-09-24 (banner, Settings, the confirmation), without switching it off on the shared database.
+
+The application status page (`GET /status`, the Status page) was checked in the browser on 2026-09-24 on a scratch SQLite database with made-up connection rows (an expiring token, a failed import, an Erli key never used), not against a real account: its verdicts rest on the last import, and the token expiry assumes Allegro's three months hold.
+
+Labels through Wysyłam z Allegro (`INTEGRATIONS.md`) have never bought anything: safe mode has been on and no Allegro was reachable where they were built. Unverified: the `allegro:api:shipments:write` scope, the shape of Allegro's shipment (carrier and waybill), whether Allegro links the shipment to the order itself, and the label PDF request, including one request for many labels (the Labels page), and every courier pickup call (proposals, ordering, their shapes). The Settings section and the order's label card were checked in the browser on 2026-09-24 on a scratch SQLite database, with a label row made up by hand, and the Labels page the same way.
 
 Billing entries (fees, `INTEGRATIONS.md`, "Fees") are likewise from the documentation and fakes only: not known whether the application may read them, or whether the history holds anything besides fees.
 

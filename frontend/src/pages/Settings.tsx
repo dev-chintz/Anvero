@@ -1,5 +1,6 @@
 import { AllegroSettings } from '../components/AllegroSettings';
 import { SafeModeSettings } from '../components/SafeModeSettings';
+import { ShippingSettingsForm } from '../components/ShippingSettingsForm';
 import { useTranslation, LANGUAGES, type Language } from '../i18n';
 
 export const Settings: React.FC = () => {
@@ -36,6 +37,11 @@ export const Settings: React.FC = () => {
         <section className="settings-section" aria-label="Allegro">
           <h2>Allegro</h2>
           <AllegroSettings />
+        </section>
+
+        <section className="settings-section" aria-label={t('shippingSettings.title')}>
+          <h2>{t('shippingSettings.title')}</h2>
+          <ShippingSettingsForm />
         </section>
       </div>
     </div>
