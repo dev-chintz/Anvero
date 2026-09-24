@@ -6,6 +6,20 @@ All significant changes to the Anvero project.
 
 ## 2026-09-24
 
+### 🐛 Buyer messages: the first real call was refused, and is fixed
+
+- Reading the Message Center on production Allegro answered
+  `422 Incorrect limit or offset`: Anvero asked for 100 threads a page and Allegro
+  allows 20 (also for a thread's messages). The page size is now 20
+  (`MESSAGING_PAGE_SIZE`), taken from Allegro's OpenAPI specification, which was
+  read for the first time.
+- A message's direction now comes from Allegro's own `author.isInterlocutor`
+  instead of comparing logins.
+- An Allegro refusal now carries Allegro's own words in the message
+  (`Allegro API returned 422 for message threads: Incorrect limit or offset`).
+- Known gap: a thread is not linked to its order, since only the messages say
+  which order they concern.
+
 ### 🏷️ Test label, and tracking numbers that link to the carrier
 
 - A **Test label** button on the Labels page opens a sample A6 PDF drawn by

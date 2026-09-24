@@ -37,6 +37,11 @@ REQUEST_TIMEOUT_SECONDS = 30.0
 
 MAX_PAGE_SIZE = 100
 
+# The Message Center lists at most 20 threads, and 20 messages of a thread, per
+# request: `limit` is `minimum: 1, maximum: 20` in Allegro's OpenAPI specification
+# and a larger one is answered `422 Incorrect limit or offset`.
+MESSAGING_PAGE_SIZE = 20
+
 # Allegro's limit for one tracking request
 MAX_TRACKING_WAYBILLS = 20
 
@@ -61,6 +66,18 @@ def _json_object(response: httpx2.Response, what: str) -> dict[str, Any]:
     if not isinstance(payload, dict):
         raise IntegrationUnavailable(f"{what} returned JSON that is not an object")
     return payload
+
+
+def _error_detail(response: httpx2.Response) -> str:
+    """What Allegro said was wrong, for the end of an error message: its own
+    words for the first error, or nothing when the body has none we can read."""
+    try:
+        errors = response.json().get("errors")
+        first = errors[0]
+        text = first.get("userMessage") or first.get("message")
+    except (ValueError, AttributeError, IndexError, KeyError, TypeError):
+        return ""
+    return f": {text[:300]}" if isinstance(text, str) and text else ""
 
 
 class AllegroClient:
@@ -263,7 +280,9 @@ class AllegroClient:
         if response.status_code == 403:
             raise IntegrationAuthError(f"Allegro denied access to {what}")
         if response.status_code >= 400:
-            raise IntegrationUnavailable(f"Allegro API returned {response.status_code} for {what}")
+            raise IntegrationUnavailable(
+                f"Allegro API returned {response.status_code} for {what}{_error_detail(response)}"
+            )
         return _json_object(response, f"Allegro {what}")
 
     def _send(
@@ -564,16 +583,17 @@ class AllegroClient:
             raise IntegrationUnavailable("Allegro offers is not a list")
         return [o for o in offers if isinstance(o, dict)]
 
-    def fetch_threads(self, limit: int = MAX_PAGE_SIZE, offset: int = 0) -> list[dict[str, Any]]:
+    def fetch_threads(
+        self, limit: int = MESSAGING_PAGE_SIZE, offset: int = 0
+    ) -> list[dict[str, Any]]:
         """Return one page of Message Center threads, newest activity first.
 
-        `GET /messaging/threads`. Allegro's own default sort is assumed to be
-        by last activity, newest first, which the sync relies on to stop
-        early once it reaches threads already up to date; not confirmed
-        against a real response (see INTEGRATIONS.md, "Buyer messages").
+        `GET /messaging/threads`, which the specification says is "sorted by
+        last message date, starting from newest": the sync relies on that to
+        stop early once it reaches threads already up to date.
         """
-        if not 1 <= limit <= MAX_PAGE_SIZE:
-            raise ValueError(f"limit must be between 1 and {MAX_PAGE_SIZE}")
+        if not 1 <= limit <= MESSAGING_PAGE_SIZE:
+            raise ValueError(f"limit must be between 1 and {MESSAGING_PAGE_SIZE}")
         payload = self._get_object(
             "/messaging/threads",
             "message threads",
@@ -585,14 +605,14 @@ class AllegroClient:
         return [t for t in threads if isinstance(t, dict)]
 
     def fetch_thread_messages(
-        self, thread_id: str, limit: int = MAX_PAGE_SIZE, offset: int = 0
+        self, thread_id: str, limit: int = MESSAGING_PAGE_SIZE, offset: int = 0
     ) -> list[dict[str, Any]]:
         """Return one page of a thread's messages.
 
         `GET /messaging/threads/{threadId}/messages`.
         """
-        if not 1 <= limit <= MAX_PAGE_SIZE:
-            raise ValueError(f"limit must be between 1 and {MAX_PAGE_SIZE}")
+        if not 1 <= limit <= MESSAGING_PAGE_SIZE:
+            raise ValueError(f"limit must be between 1 and {MESSAGING_PAGE_SIZE}")
         payload = self._get_object(
             f"/messaging/threads/{thread_id}/messages",
             "thread messages",

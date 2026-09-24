@@ -525,24 +525,26 @@ def map_thread(raw: dict[str, Any]) -> SyncedThread | None:
 def map_message(raw: dict[str, Any], seller_login: str | None) -> SyncedMessage | None:
     """One entry of GET /messaging/threads/{id}/messages, or None if unusable.
 
-    Allegro's response is not known to carry a direction of its own, so this
-    decides IN/OUT by comparing the author's login to the connected seller's
-    own (read once when the account was connected, `account_login`, and
-    passed in here): a message the seller's own login wrote is OUT, whoever
-    sent it from - the API or Allegro's own Message Center. Without a seller
-    login to compare against, every message maps as IN, which only affects a
-    thread read before an account has ever connected.
+    Allegro says which side wrote a message: `author.isInterlocutor` is true
+    for the other party (the buyer) and false for the seller, whoever sent it
+    from - the API or Allegro's own Message Center. That decides IN/OUT. A
+    response without the flag falls back to comparing the author's login to
+    the connected seller's own (read once when the account was connected,
+    `account_login`, and passed in here); without either, a message maps as
+    IN.
     """
     text_value = _text(raw.get("text"))
     if text_value is None:
         return None
     message_id = _text(raw.get("id"))
-    author_login = _text(_obj(raw.get("author")).get("login"))
-    direction = (
-        MessageDirection.OUT
-        if seller_login and author_login == seller_login
-        else MessageDirection.IN
-    )
+    author = _obj(raw.get("author"))
+    author_login = _text(author.get("login"))
+    is_interlocutor = author.get("isInterlocutor")
+    if isinstance(is_interlocutor, bool):
+        from_seller = not is_interlocutor
+    else:
+        from_seller = bool(seller_login) and author_login == seller_login
+    direction = MessageDirection.OUT if from_seller else MessageDirection.IN
     return _build(
         SyncedMessage,
         message_id or "?",

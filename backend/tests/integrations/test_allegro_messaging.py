@@ -6,7 +6,7 @@ from datetime import UTC, datetime
 import httpx2
 import pytest
 
-from app.integrations.allegro.client import AllegroClient
+from app.integrations.allegro.client import MESSAGING_PAGE_SIZE, AllegroClient
 from app.integrations.allegro.mapper import map_message, map_thread
 from app.integrations.allegro.messaging import AllegroMessagingAdapter
 from app.integrations.base import IntegrationAuthError, IntegrationUnavailable
@@ -50,11 +50,11 @@ def test_fetch_threads_asks_the_message_center():
         seen.append(request)
         return httpx2.Response(200, json={"threads": [_raw_thread()]})
 
-    threads = _client(handler).fetch_threads(limit=50, offset=100)
+    threads = _client(handler).fetch_threads(limit=15, offset=100)
 
     assert threads == [_raw_thread()]
     assert seen[0].url.path == "/messaging/threads"
-    assert (seen[0].url.params["limit"], seen[0].url.params["offset"]) == ("50", "100")
+    assert (seen[0].url.params["limit"], seen[0].url.params["offset"]) == ("15", "100")
 
 
 def test_fetch_thread_messages_asks_the_thread():
@@ -137,6 +137,53 @@ def test_maps_an_outgoing_message_from_the_seller():
     assert message.direction is MessageDirection.OUT
 
 
+def test_allegros_own_flag_decides_the_direction():
+    """`author.isInterlocutor` is true for the other party, false for the seller."""
+    from_buyer = {**_raw_message(author="whoever"), "author": {"login": "whoever", "isInterlocutor": True}}
+    from_seller = {**_raw_message(author="whoever"), "author": {"login": "whoever", "isInterlocutor": False}}
+
+    # without any seller login at all, and against the login comparison's own answer
+    assert map_message(from_buyer, seller_login=None).direction is MessageDirection.IN
+    assert map_message(from_seller, seller_login=None).direction is MessageDirection.OUT
+    assert map_message(from_seller, seller_login="whoever").direction is MessageDirection.OUT
+    assert map_message(from_buyer, seller_login="whoever").direction is MessageDirection.IN
+
+
+def test_the_page_size_is_what_the_message_center_allows():
+    """A larger `limit` is answered 422 (Incorrect limit or offset)."""
+    assert MESSAGING_PAGE_SIZE == 20
+    for method in (
+        lambda client: client.fetch_threads(limit=MESSAGING_PAGE_SIZE + 1),
+        lambda client: client.fetch_thread_messages("T1", limit=MESSAGING_PAGE_SIZE + 1),
+    ):
+        with pytest.raises(ValueError, match="limit must be between 1 and 20"):
+            method(_client(lambda request: httpx2.Response(200, json={})))
+
+
+def test_a_refusal_carries_what_allegro_said():
+    def handler(request):
+        if request.url.path == "/token":
+            return httpx2.Response(200, json={"access_token": "a", "expires_in": 3600})
+        return httpx2.Response(
+            422, json={"errors": [{"code": "X", "userMessage": "Incorrect limit or offset"}]}
+        )
+
+    with pytest.raises(IntegrationUnavailable, match="422 for message threads: Incorrect limit or offset"):
+        _client(handler).fetch_threads()
+
+
+def test_a_refusal_without_a_readable_body_is_still_reported():
+    def handler(request):
+        if request.url.path == "/token":
+            return httpx2.Response(200, json={"access_token": "a", "expires_in": 3600})
+        return httpx2.Response(422, text="not json")
+
+    with pytest.raises(IntegrationUnavailable) as caught:
+        _client(handler).fetch_threads()
+
+    assert str(caught.value) == "Allegro API returned 422 for message threads"
+
+
 def test_without_a_seller_login_everything_maps_as_incoming():
     message = map_message(_raw_message(author="seller1"), seller_login=None)
 
@@ -161,14 +208,14 @@ class FakeMessagingClient:
         self.thread_calls = []
         self.message_calls = []
 
-    def fetch_threads(self, limit=100, offset=0):
+    def fetch_threads(self, limit=MESSAGING_PAGE_SIZE, offset=0):
         self.thread_calls.append((limit, offset))
         if self.error:
             raise self.error
         index = offset // limit
         return self.thread_pages[index] if index < len(self.thread_pages) else []
 
-    def fetch_thread_messages(self, thread_id, limit=100, offset=0):
+    def fetch_thread_messages(self, thread_id, limit=MESSAGING_PAGE_SIZE, offset=0):
         self.message_calls.append((thread_id, limit, offset))
         index = offset // limit
         pages = self.message_pages
@@ -176,13 +223,13 @@ class FakeMessagingClient:
 
 
 def test_iter_thread_pages_reads_every_page_until_a_short_one():
-    full = [_raw_thread(f"T{i}") for i in range(100)]
+    full = [_raw_thread(f"T{i}") for i in range(MESSAGING_PAGE_SIZE)]
     client = FakeMessagingClient([full, [_raw_thread("LAST")]])
 
     pages = list(AllegroMessagingAdapter(client=client).iter_thread_pages())
 
-    assert [len(p) for p in pages] == [100, 1]
-    assert [c[1] for c in client.thread_calls] == [0, 100]
+    assert [len(p) for p in pages] == [MESSAGING_PAGE_SIZE, 1]
+    assert [c[1] for c in client.thread_calls] == [0, MESSAGING_PAGE_SIZE]
 
 
 def test_an_unusable_thread_costs_only_itself():
@@ -201,10 +248,10 @@ def test_a_failing_thread_page_raises_instead_of_returning_a_partial_read():
 
 
 def test_fetch_thread_messages_reads_every_page():
-    full = [_raw_message(f"M{i}") for i in range(100)]
+    full = [_raw_message(f"M{i}") for i in range(MESSAGING_PAGE_SIZE)]
     client = FakeMessagingClient(message_pages=[full, [_raw_message("LAST")]])
 
     messages = AllegroMessagingAdapter(client=client).fetch_thread_messages("T1", "seller1")
 
-    assert len(messages) == 101
+    assert len(messages) == MESSAGING_PAGE_SIZE + 1
     assert [c[0] for c in client.message_calls] == ["T1", "T1"]

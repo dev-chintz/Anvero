@@ -505,30 +505,39 @@ the Sandbox's own order page.
 ### Buyer messages
 
 Started 2026-09-24: the unified inbox (plan B2), reading Allegro's Message
-Center and replying to a thread through safe mode. **Built without reading
-Allegro's published OpenAPI specification**: `developer.allegro.pl` was
-blocked by this session's network egress and could not be reached, unlike
-every other Allegro feature above, which was built by reading the real
-documentation. What follows comes instead from Allegro's own Message Center
-announcement (`allegro/allegro-api` issue #4727) and search-indexed excerpts
-of the tutorial page, cross-checked against a generated API client's docs on
-GitHub where one could be found. Confirmed by more than one of those
-sources: the endpoint list below, and that a thread is
-`{id, read, lastMessageDateTime, interlocutor: {login, ...}}` and that
-`POST /messaging/messages` takes `{recipient: {login}, order: {id}, text,
-attachments}`. **Not confirmed, and to be checked before trusting this
-further:** the exact shape of one entry of `GET
-/messaging/threads/{id}/messages` — assumed to be `{id, text, createdAt,
-author: {login}}` by analogy with the confirmed shapes — and the scope name
-below. Read `app/integrations/allegro/mapper.py`'s own note on this before
-changing the mapping.
+Center and replying to a thread through safe mode. It was first built without
+Allegro's OpenAPI specification (`developer.allegro.pl` could not be reached
+then), from the Message Center announcement and search-indexed excerpts. **On
+2026-09-24 the specification was read** (`https://developer.allegro.pl/swagger.yaml`,
+fetched with WebFetch, which saves the whole 1.5 MB file) after the first real
+call, to production, was answered `422 Incorrect limit or offset`. It settles:
+
+- **`limit` is at most 20** for both threads and a thread's messages (`minimum
+  1, maximum 20, default 20`); the first version asked for 100, which is the
+  422. `MESSAGING_PAGE_SIZE = 20` in `client.py` is now the page size.
+- `GET /messaging/threads` is "sorted by last message date, starting from
+  newest": what the sync's early stop relies on.
+- The scope is `allegro:api:messaging` (a thread's messages, the list and the
+  reply all need it).
+- A thread (public v1) is `{id, read, lastMessageDateTime, interlocutor: {login,
+  avatarUrl}}`; it has **no `order`**. A message is `{id, status, type,
+  createdAt, thread: {id}, author: {login, isInterlocutor}, text, subject,
+  relatesTo: {offer?, order?: {id}}, attachments, ...}`.
+- **`author.isInterlocutor`** says which side wrote a message, so the direction
+  no longer depends on the seller's login (below).
+
+**Not settled:** the thread's link to an order. `map_thread` reads a thread's
+`order`, which the public schema does not have, so `order_external_id` stays
+empty; the order a conversation is about is in each message's
+`relatesTo.order.id`, and reading it from there is not built. Until a real
+response is seen, the mapping is still known only from the specification, not
+from an answer.
 
 Endpoints used, all through the same rotating token as orders:
 
-- `GET /messaging/threads`, paged like billing entries (`limit`/`offset`),
-  assumed newest activity first — nothing here confirms Allegro's default
-  sort, and the sync (below) depends on it to stop early.
-- `GET /messaging/threads/{id}/messages`, paged the same way.
+- `GET /messaging/threads`, paged with `limit` (at most 20) and `offset`,
+  newest activity first (the sync, below, depends on it to stop early).
+- `GET /messaging/threads/{id}/messages`, paged the same way (`limit` at most 20).
 - `POST /messaging/threads/{id}/messages` with `{"text": ..., "attachments":
   []}`: a reply in an existing thread. Starting a new thread from Anvero
   (`POST /messaging/messages`, confirmed above but unused) is left for later;
@@ -546,21 +555,22 @@ external_id)`, since a message once sent is never edited or withdrawn.
 Shares the import's lock (`import_lock`): both refresh the same rotating
 token.
 
-**Direction.** Allegro's response is not known to carry a message's
-direction (buyer or seller) as a field of its own, so it is decided by
-comparing the message's `author.login` to the connected seller's own
-(`integration_credentials.account_login`, read once when the account was
-connected). Without one to compare against, every message reads as incoming.
+**Direction.** A message carries `author.isInterlocutor`: true for the other
+party (the buyer), false for the seller, whichever way it was sent. That decides
+incoming or outgoing. Only a response without the flag falls back to comparing
+`author.login` with the connected seller's own (`integration_credentials.account_login`,
+read once when the account was connected), and without either a message reads as
+incoming. So the messages do not need the seller's login, or the `profile:read`
+scope that reads it.
 
 **Sending.** A reply goes through `MarketplaceWriter`, like a status or a
 tracking number: safe mode holds it back by default, and switching it off is
 needed to actually send one — try it on the Sandbox first, same as writing
 statuses. The message is kept in Anvero either way (`created_in_anvero`),
 whatever becomes of sending it, the same choice `add_shipment` makes for a
-tracking number. Needs a scope believed to be `allegro:api:messaging` — seen
-in an access token in a GitHub search result, not the developer portal's own
-scope list — which the application may not carry yet; a 403 says so in the
-log, the same as a missing orders scope.
+tracking number. Needs the `allegro:api:messaging` scope (confirmed by the
+specification), which the application may not carry; a 403 says so in the log,
+the same as a missing orders scope.
 
 **Not done:** Erli (its public API has no messaging endpoint that could be
 found — see "Erli" below), starting a new thread from Anvero, attachments,

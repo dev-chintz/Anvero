@@ -9,7 +9,7 @@ confirmed and what is read from memory.
 import logging
 from collections.abc import Iterator
 
-from app.integrations.allegro.client import MAX_PAGE_SIZE, AllegroClient
+from app.integrations.allegro.client import MESSAGING_PAGE_SIZE, AllegroClient
 from app.integrations.allegro.mapper import map_message, map_thread
 from app.integrations.base import IntegrationUnavailable
 from app.models.order import OrderSource
@@ -32,7 +32,7 @@ class AllegroMessagingAdapter:
         return self._client.is_configured
 
     def iter_thread_pages(self) -> Iterator[list[SyncedThread]]:
-        """Yield every page of threads, assumed newest activity first.
+        """Yield every page of threads, newest activity first.
 
         A caller that only wants what changed can stop reading pages as soon
         as one comes back with nothing newer than what it already has - it
@@ -41,7 +41,7 @@ class AllegroMessagingAdapter:
         partial read for a complete one.
         """
         for page in range(MAX_PAGES):
-            raw = self._client.fetch_threads(MAX_PAGE_SIZE, page * MAX_PAGE_SIZE)
+            raw = self._client.fetch_threads(MESSAGING_PAGE_SIZE, page * MESSAGING_PAGE_SIZE)
             threads = []
             for item in raw:
                 thread = map_thread(item)
@@ -50,10 +50,10 @@ class AllegroMessagingAdapter:
                 else:
                     threads.append(thread)
             yield threads
-            if len(raw) < MAX_PAGE_SIZE:
+            if len(raw) < MESSAGING_PAGE_SIZE:
                 return
         raise IntegrationUnavailable(
-            f"Allegro returned more than {MAX_PAGES * MAX_PAGE_SIZE} message threads; "
+            f"Allegro returned more than {MAX_PAGES * MESSAGING_PAGE_SIZE} message threads; "
             "narrow what is read and try again"
         )
 
@@ -64,7 +64,7 @@ class AllegroMessagingAdapter:
         messages: list[SyncedMessage] = []
         for page in range(MAX_PAGES):
             raw = self._client.fetch_thread_messages(
-                thread_external_id, MAX_PAGE_SIZE, page * MAX_PAGE_SIZE
+                thread_external_id, MESSAGING_PAGE_SIZE, page * MESSAGING_PAGE_SIZE
             )
             for item in raw:
                 message = map_message(item, seller_login)
@@ -75,11 +75,11 @@ class AllegroMessagingAdapter:
                     )
                 else:
                     messages.append(message)
-            if len(raw) < MAX_PAGE_SIZE:
+            if len(raw) < MESSAGING_PAGE_SIZE:
                 return messages
         raise IntegrationUnavailable(
             f"Allegro thread {thread_external_id} has more than "
-            f"{MAX_PAGES * MAX_PAGE_SIZE} messages; narrow what is read and try again"
+            f"{MAX_PAGES * MESSAGING_PAGE_SIZE} messages; narrow what is read and try again"
         )
 
     def reply(self, thread_external_id: str, text: str) -> dict | None:
