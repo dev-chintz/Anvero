@@ -176,9 +176,9 @@ which is still on hold; see `DECISIONS.md`):
   existing badge), instead of only from the order page.
 - The status-history timeline shows an icon for each entry's status instead
   of a plain dot.
-- The order detail view opens as a slide-over above the list instead of
-  navigating to a full page, so the list's filters and scroll position
-  survive opening and closing an order. `OrdersPage.drawer.test.tsx` covers
+- The order detail view opened as a slide-over above the list; since
+  2026-09-24 it is a page of its own again, with back and next/previous
+  arrows (`DECISIONS.md`, "Design agreements"). `OrdersPage.test.tsx` covers
   the routing.
 
 And the smaller fixes:

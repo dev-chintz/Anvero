@@ -49,8 +49,7 @@ export interface Order {
   marketplace_cancelled_at: string | null;
   /**
    * Flat columns on `orders`, so the list carries them at no extra query
-   * cost — unlike items, which need a join `GET /orders` does not do.
-   * Optional because a backend older than the field omits them.
+   * cost. Optional because a backend older than the field omits them.
    */
   customer_login?: string | null;
   customer_first_name?: string | null;
@@ -65,6 +64,21 @@ export interface Order {
   dispatch_by?: string | null;
   /** Optional because a backend older than the field omits it. */
   shipments?: Shipment[];
+  /**
+   * What was bought, in short: the list shows it in its Items column. Only
+   * these four fields are on the list; `OrderWithDetails` has the whole item.
+   * Optional because a backend older than the field omits it.
+   */
+  items?: OrderItemSummary[];
+}
+
+/** One item as the order list carries it: enough to recognise the product. */
+export interface OrderItemSummary {
+  name: string;
+  sku: string | null;
+  quantity: number;
+  /** The offer's picture, or null when there is none. */
+  image_url: string | null;
 }
 
 /** Statuses of an order still waiting on the seller. */

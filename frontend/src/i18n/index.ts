@@ -1,16 +1,16 @@
 import { useSyncExternalStore } from "react";
-import { en, pl, type CountKey, type MessageKey } from "./messages";
+import { DEFAULT_LANGUAGE, LANGUAGE_REGISTRY, isLanguage, type Language } from "./languages";
+import { en, type CountKey, type MessageKey } from "./messages";
 
-export type Language = "pl" | "en";
-export const LANGUAGES: readonly Language[] = ["pl", "en"];
+export { DEFAULT_LANGUAGE, LANGUAGES, languageName, type Language } from "./languages";
 
 const STORAGE_KEY = "language";
-const dictionaries: Record<Language, Record<string, string>> = { en, pl };
-const locales: Record<Language, string> = { en: "en-GB", pl: "pl-PL" };
-
-function isLanguage(value: unknown): value is Language {
-  return value === "pl" || value === "en";
-}
+const dictionaries = Object.fromEntries(
+  Object.entries(LANGUAGE_REGISTRY).map(([code, { messages }]) => [code, messages]),
+) as Record<Language, Record<string, string>>;
+const locales = Object.fromEntries(
+  Object.entries(LANGUAGE_REGISTRY).map(([code, { locale }]) => [code, locale]),
+) as Record<Language, string>;
 
 function initialLanguage(): Language {
   try {
@@ -21,7 +21,7 @@ function initialLanguage(): Language {
   }
   // Polish is the product's language; the tests assert English text, so they
   // start from English unless a test picks a language itself.
-  return import.meta.env.MODE === "test" ? "en" : "pl";
+  return import.meta.env.MODE === "test" ? "en" : DEFAULT_LANGUAGE;
 }
 
 let current: Language = initialLanguage();

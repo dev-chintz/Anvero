@@ -175,9 +175,9 @@ export const Dashboard: React.FC = () => {
                 </span>
                 <div className="order-details">
                   <p className="order-id">
-                    {/* opens the order's details over the orders list; the
-                        state tells the drawer to close to /orders, since
-                        going back would land on this page instead */}
+                    {/* the state makes "back" on the order's page lead to
+                        the orders list rather than to wherever it was
+                        opened from */}
                     <Link
                       to={`/orders/${order.id}`}
                       state={{ closeTo: '/orders' }}

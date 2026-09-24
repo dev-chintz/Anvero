@@ -1,6 +1,7 @@
 import type { Order, OrderStatus } from "../types/order";
 import { useTranslation } from "../i18n";
 import { OrderRow } from "./OrderRow";
+import type { OrderLinkState } from "./orderLinkState";
 
 interface OrderListProps {
   orders: Order[];
@@ -13,6 +14,8 @@ interface OrderListProps {
   onStatusChange: (orderId: string, status: OrderStatus) => void;
   /** id of the order whose status update is in flight, if any */
   updatingOrderId: string | null;
+  /** handed to every order's link, see OrderLinkState */
+  linkState?: OrderLinkState;
 }
 
 export function OrderList({
@@ -25,6 +28,7 @@ export function OrderList({
   onPageChange,
   onStatusChange,
   updatingOrderId,
+  linkState,
 }: OrderListProps) {
   const { t } = useTranslation();
   const currentPage = Math.floor(skip / limit) + 1;
@@ -68,6 +72,7 @@ export function OrderList({
                   order={order}
                   onStatusChange={onStatusChange}
                   updating={updatingOrderId === order.id}
+                  linkState={linkState}
                 />
               ))}
             </tbody>

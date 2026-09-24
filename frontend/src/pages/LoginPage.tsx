@@ -3,7 +3,7 @@ import { Navigate, useLocation } from "react-router-dom";
 import type { Location } from "react-router-dom";
 import { ApiError } from "../api/client";
 import { useAuth } from "../auth/AuthContext";
-import { LANGUAGES, useTranslation } from "../i18n";
+import { LANGUAGES, languageName, useTranslation } from "../i18n";
 import "../styles/Login.css";
 
 export function LoginPage() {
@@ -48,6 +48,7 @@ export function LoginPage() {
               key={code}
               type="button"
               aria-pressed={language === code}
+              title={languageName(code)}
               onClick={() => setLanguage(code)}
             >
               {code.toUpperCase()}

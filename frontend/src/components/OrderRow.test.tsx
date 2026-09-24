@@ -95,12 +95,62 @@ describe("OrderRow", () => {
     expect(screen.getByText("Online payment · P24")).toBeInTheDocument();
   });
 
-  it("shows a dash for items, payment and shipping when there is nothing to show yet", () => {
+  it("shows a dash for items, payment and shipping when there is nothing to show", () => {
     renderRow(makeOrder());
 
-    // items and shipping have no backing data at all yet (see index.css's
-    // .cell-placeholder); payment_type null is the same "nothing to show"
+    // an order with no items or shipments, and payment_type null, is "nothing to show"
     expect(screen.getAllByText("—")).toHaveLength(3);
+    expect(screen.getByLabelText("No items recorded")).toBeInTheDocument();
+  });
+
+  describe("the items column", () => {
+    const item = (name: string, quantity = 1, overrides = {}) => ({
+      name,
+      sku: null,
+      quantity,
+      image_url: null,
+      ...overrides,
+    });
+
+    it("lists what was bought with its quantity, and the picture when there is one", () => {
+      const { container } = renderRow(
+        makeOrder({
+          items: [
+            item("Wooden sign", 2, { sku: "D1727", image_url: "https://img.example/sign.jpg" }),
+            item("Macrame base"),
+          ],
+        }),
+      );
+
+      expect(screen.getByText("2×")).toBeInTheDocument();
+      expect(screen.getByText("Wooden sign")).toBeInTheDocument();
+      expect(screen.getByText("Macrame base")).toBeInTheDocument();
+      // the picture only for the item that has one; the other gets a plain box
+      expect(container.querySelectorAll("img.order-item-thumb")).toHaveLength(1);
+      expect(container.querySelector("img")).toHaveAttribute("src", "https://img.example/sign.jpg");
+      expect(container.querySelectorAll(".item-thumb-placeholder")).toHaveLength(1);
+      // the full name and SKU on hover
+      expect(screen.getByText("Wooden sign").closest("li")).toHaveAttribute(
+        "title",
+        "Wooden sign (D1727)",
+      );
+    });
+
+    it("lists three items and counts the rest", () => {
+      renderRow(
+        makeOrder({ items: ["A", "B", "C", "D", "E"].map((name) => item(`Item ${name}`)) }),
+      );
+
+      expect(screen.getByText("Item C")).toBeInTheDocument();
+      expect(screen.queryByText("Item D")).not.toBeInTheDocument();
+      expect(screen.getByText("+2 more items")).toBeInTheDocument();
+    });
+
+    it("does not mention more when everything fits", () => {
+      renderRow(makeOrder({ items: [item("A"), item("B"), item("C")] }));
+
+      expect(screen.queryByText(/more item/)).not.toBeInTheDocument();
+    });
   });
 
   it("warns when the marketplace cancelled an order Anvero still shows as active", () => {

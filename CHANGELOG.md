@@ -6,6 +6,29 @@ All significant changes to the Anvero project.
 
 ## 2026-09-24
 
+### 🧭 Design agreements: the order as a page, items in the list, counts in the menu
+
+- The **order opens as a full page** beside the menu instead of a panel over the
+  list (`/orders/:id`). **Back** returns to the list with its filters and page;
+  **next/previous arrows** and a position ("2 of 3") walk the orders of the page
+  it was opened from. Fields use three columns on a wide screen.
+- The **Items column of the list** shows what was bought: picture, quantity and
+  name for up to three items, then "N more". `GET /orders` carries the items in
+  short (`name`, `sku`, `quantity`, `image_url`); see `docs/API.md`.
+- **Counts in the menu**: orders to ship (red when any is past its deadline), to
+  make, returns and claims waiting (red when past their deadline), unread
+  messages. Read every minute and on each change of page.
+- **Languages**: one registry (`frontend/src/i18n/languages.ts`); adding a
+  language is a dictionary file and one line. The menu's button steps through
+  them, and the tests check each language, with plural forms taken from its
+  locale. Polish and English stay.
+- The author of each marketplace write is shown on the order. The theme is
+  pinned by a test: light until the operator chooses dark.
+- Fixed: the backend did not start on Python 3.13 (`after_sales_repository.py`,
+  a `list[...]` annotation after the `list` method), and one test failed on
+  SQLite (a naive against an aware datetime).
+- 636 backend and 168 frontend tests passing.
+
 ### ↩️ Returns and claims (started, plan B4)
 
 - A **Returns and claims** page (sidebar): returns, claims and disputes read from

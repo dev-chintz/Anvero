@@ -11,8 +11,8 @@ const BUYER_ORDERS_LIMIT = 20;
  */
 export function BuyerOrdersCard({ orders }: { orders: Order[] }) {
   const { t, tc, formatDateTime, formatMoney } = useTranslation();
-  // opening one of them replaces this order in the drawer, and closing it
-  // should still go wherever closing this one would have
+  // opening one of them shows it on this same page, and "back to orders"
+  // should still go wherever it would have from this one
   const location = useLocation();
 
   return (

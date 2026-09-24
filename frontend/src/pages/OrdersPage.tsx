@@ -1,7 +1,8 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { Link, Outlet, useSearchParams } from 'react-router-dom';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Link, useLocation, useSearchParams } from 'react-router-dom';
 import { ApiError, integrationsApi, ordersApi, type AllegroStatus } from '../api/client';
 import { OrderList } from '../components/OrderList';
+import type { OrderLinkState } from '../components/orderLinkState';
 import { AdvancedFilters, type Filters } from '../components/AdvancedFilters';
 import { useOrders } from '../hooks/useOrders';
 import { useOrderStats } from '../hooks/useOrderStats';
@@ -20,12 +21,6 @@ interface OrdersPageProps {
   addToast?: (message: string, type?: 'success' | 'error' | 'info' | 'warning') => void;
 }
 
-/** What the nested /orders/:id route (rendered via <Outlet>) can reach on its parent. */
-export interface OrdersOutletContext {
-  /** Re-fetches the list; call after the drawer changes something the list shows. */
-  onOrderChanged: () => void;
-}
-
 /**
  * Renders the orders list and keeps pagination/filter state in sync with
  * the URL query string (?skip=&limit=&source=&status=search) so pages are
@@ -33,6 +28,7 @@ export interface OrdersOutletContext {
  */
 export function OrdersPage({ addToast }: OrdersPageProps) {
   const [searchParams, setSearchParams] = useSearchParams();
+  const location = useLocation();
   const { t, formatRelative } = useTranslation();
 
   const skip = Number(searchParams.get('skip') ?? 0);
@@ -63,6 +59,17 @@ export function OrdersPage({ addToast }: OrdersPageProps) {
     queue,
     sort,
   });
+
+  // what an order opened from this list is told: where "back" goes (this very
+  // list, filters and page included) and the order of the orders on this page,
+  // for the next/previous arrows
+  const linkState = useMemo<OrderLinkState>(
+    () => ({
+      closeTo: `${location.pathname}${location.search}`,
+      orderIds: orders.map((order) => order.id),
+    }),
+    [location.pathname, location.search, orders],
+  );
 
   // the queue tabs' counts; fetched again whenever the list is, since what
   // changes one (a status change, an import) moves orders between queues
@@ -328,11 +335,8 @@ export function OrdersPage({ addToast }: OrdersPageProps) {
         onPageChange={(newSkip) => updateParams({ skip: String(newSkip) })}
         onStatusChange={handleStatusChange}
         updatingOrderId={updatingOrderId}
+        linkState={linkState}
       />
-
-      {/* the order-detail route nested under /orders renders here, as a
-          slide-over above this still-mounted list rather than replacing it */}
-      <Outlet context={{ onOrderChanged: refetch } satisfies OrdersOutletContext} />
     </div>
   );
 }

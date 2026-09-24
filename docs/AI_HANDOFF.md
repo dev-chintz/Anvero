@@ -49,12 +49,13 @@ Repository: <https://github.com/dev-chintz/Anvero>
 - 2026-09-18: several additive interface capabilities and one more imported
   field, pulled forward while production Allegro waits on the owner (not the
   redesign below) — inline status editing in the list, status-history
-  timeline icons, the order detail view as a slide-over drawer, the order
+  timeline icons, the order detail view as a slide-over drawer (a page again
+  since 2026-09-24), the order
   list reorganized toward a denser reference layout, the seller's own
   Allegro note imported alongside the buyer's message, and item pictures
   fetched from Allegro's offer API (unverified against the sandbox for
   scope). Full detail in `DECISIONS.md` and `CHANGELOG.md`.
-- 635 backend tests and 145 frontend tests (Vitest + React Testing Library)
+- 636 backend tests and 168 frontend tests (Vitest + React Testing Library)
   passing
 
 ---
@@ -103,7 +104,8 @@ somewhere with backups (`ROADMAP.md` item 5, `DECISIONS.md` 2026-09-17). That
 is still on hold. What is *not* on hold, per the owner: additive interface
 capabilities that reuse what already exists rather than restyle it — see the
 2026-09-18 entries in `DECISIONS.md` for what that has meant in practice
-(inline editing, a drawer instead of a page, denser list columns). The
+(inline editing, a drawer instead of a page - reversed on 2026-09-24 - denser
+list columns). The
 distinction that matters: does it change what a screen *looks* like
 everywhere, or does it add a capability without touching the values already
 in `index.css`.

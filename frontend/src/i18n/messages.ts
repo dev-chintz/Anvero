@@ -1,12 +1,14 @@
 /**
- * Every piece of interface text, in English and Polish.
+ * Every piece of interface text, in English and Polish. The languages the
+ * interface offers are listed in `languages.ts`, which also says how to add one.
  *
  * English is the source of truth: `pl` must have a translation for every key
- * `en` has (the compiler checks it), and `messages.test.ts` checks the rest -
- * that the two agree on which `{placeholders}` each message takes, and that
- * the extra plural forms Polish needs exist. A key ending in `.one`, `.few`,
- * `.many` or `.other` is one form of a counted message: use it through
- * `translateCount`, not `translate`.
+ * `en` has (the compiler checks it), and `i18n.test.tsx` checks the rest, for
+ * every registered language - that each agrees with English on which
+ * `{placeholders}` a message takes, and that it has the plural forms its
+ * locale needs. A key ending in `.zero`, `.one`, `.two`, `.few`, `.many` or
+ * `.other` is one form of a counted message: use it through `translateCount`,
+ * not `translate`.
  */
 
 export const en = {
@@ -22,6 +24,10 @@ export const en = {
   "nav.language": "Language",
   "nav.switchLanguage": "Switch language",
   "nav.logout": "Log out",
+  "nav.badge.orders": "To ship: {toShip} · past deadline: {late} · unpaid: {unpaid}",
+  "nav.badge.production": "To make: {count}",
+  "nav.badge.afterSales": "Waiting for you: {count} · past deadline: {overdue}",
+  "nav.badge.inbox": "Unread: {count}",
 
   // status and enums
   "status.NEW": "New",
@@ -146,7 +152,9 @@ export const en = {
   "orders.col.shipping": "Shipping",
   "orders.col.amount": "Amount",
   "orders.col.ordered": "Ordered",
-  "orders.itemsNotShown": "Items (not shown in the list yet)",
+  "orders.noItems": "No items recorded",
+  "orders.moreItems.one": "+{count} more item",
+  "orders.moreItems.other": "+{count} more items",
   "orders.shippingNotTracked": "Shipping (not tracked yet)",
   "orders.statusFor": "Status for order {order}",
   "orders.dispatchBy": "Ship by {when}",
@@ -178,9 +186,13 @@ export const en = {
   "filters.to": "To date",
   "filters.clear": "Clear all filters",
 
-  // order page (the drawer)
+  // order page
   "order.regionLabel": "Order details",
-  "order.close": "Close order details",
+  "order.navigation": "Order navigation",
+  "order.back": "Back",
+  "order.previous": "Previous order",
+  "order.next": "Next order",
+  "order.position": "{position} of {total}",
   "order.loading": "Loading order…",
   "order.notFound": "Order not found.",
   "order.cancelledBannerTitle": "Cancelled on {source} — do not ship.",
@@ -687,6 +699,10 @@ export const pl: Record<MessageKey, string> & Record<string, string> = {
   "nav.language": "Język",
   "nav.switchLanguage": "Zmień język",
   "nav.logout": "Wyloguj",
+  "nav.badge.orders": "Do wysłania: {toShip} · po terminie: {late} · nieopłacone: {unpaid}",
+  "nav.badge.production": "Do wykonania: {count}",
+  "nav.badge.afterSales": "Czeka na Ciebie: {count} · po terminie: {overdue}",
+  "nav.badge.inbox": "Nieprzeczytane: {count}",
 
   "status.NEW": "Nowe",
   "status.CONFIRMED": "W realizacji",
@@ -818,7 +834,11 @@ export const pl: Record<MessageKey, string> & Record<string, string> = {
   "orders.col.shipping": "Wysyłka",
   "orders.col.amount": "Kwota",
   "orders.col.ordered": "Złożone",
-  "orders.itemsNotShown": "Pozycje (jeszcze nie pokazywane na liście)",
+  "orders.noItems": "Brak pozycji",
+  "orders.moreItems.one": "jeszcze {count} pozycja",
+  "orders.moreItems.few": "jeszcze {count} pozycje",
+  "orders.moreItems.many": "jeszcze {count} pozycji",
+  "orders.moreItems.other": "jeszcze {count} pozycji",
   "orders.shippingNotTracked": "Wysyłka (jeszcze nieobsługiwana)",
   "orders.statusFor": "Status zamówienia {order}",
   "orders.dispatchBy": "Wyślij do {when}",
@@ -852,7 +872,11 @@ export const pl: Record<MessageKey, string> & Record<string, string> = {
   "filters.clear": "Wyczyść wszystkie filtry",
 
   "order.regionLabel": "Szczegóły zamówienia",
-  "order.close": "Zamknij szczegóły zamówienia",
+  "order.navigation": "Nawigacja po zamówieniach",
+  "order.back": "Wróć",
+  "order.previous": "Poprzednie zamówienie",
+  "order.next": "Następne zamówienie",
+  "order.position": "{position} z {total}",
   "order.loading": "Wczytywanie zamówienia…",
   "order.notFound": "Nie znaleziono zamówienia.",
   "order.cancelledBannerTitle": "Anulowane na {source} — nie wysyłaj.",

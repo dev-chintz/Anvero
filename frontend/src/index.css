@@ -297,22 +297,73 @@ td {
   white-space: nowrap;
 }
 
-/* Items and Shipping have no data behind them yet (order_items needs a join
-   the list does not do; carrier/tracking are not imported at all - see
-   ROADMAP.md). Held here, empty, so the row's eventual shape is visible now
-   rather than added later as a layout change. */
+/* A dash where an order has nothing to show: no items, no shipment. */
 .orders-table .cell-placeholder {
   color: var(--color-muted);
 }
 
+/* The Items column: what was bought, a line per item (see OrderRow.tsx). A
+   name runs to two lines and is cut after that; the full one and the SKU are
+   in the title. */
+.orders-table .items-cell {
+  width: 220px;
+  max-width: 220px;
+}
+
+.order-items-short {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.order-items-short li {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-width: 0;
+}
+
+.order-item-thumb,
 .orders-table .item-thumb-placeholder {
-  display: inline-block;
+  flex-shrink: 0;
   width: 32px;
   height: 32px;
-  margin-right: 0.4rem;
-  vertical-align: middle;
-  background: var(--color-divider);
   border-radius: var(--radius);
+}
+
+.order-item-thumb {
+  object-fit: cover;
+  border: 1px solid var(--color-border);
+  background: var(--color-bg);
+}
+
+.orders-table .item-thumb-placeholder {
+  background: var(--color-divider);
+}
+
+.order-item-quantity {
+  flex-shrink: 0;
+  font-weight: 600;
+}
+
+.order-item-name {
+  min-width: 0;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  line-height: 1.25;
+  font-size: 0.9rem;
+  white-space: normal;
+}
+
+.order-items-more {
+  color: var(--color-muted);
+  font-size: 0.8rem;
 }
 
 /* The marketplace's status when it differs from ours: information, not a
@@ -371,73 +422,70 @@ td {
   border-radius: var(--radius);
 }
 
-/* A slide-over above the still-mounted order list (OrderDetail.tsx, rendered
-   through OrdersPage's <Outlet>), not a page of its own - so the list keeps
-   its scroll position and filters when the drawer closes. */
-.order-drawer-backdrop {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.4);
-  z-index: 1500;
+/* The order's own page (OrderDetail.tsx): a full view beside the menu, not a
+   panel over the list. The list's filters live in its URL, so "back" restores
+   them. */
+.order-page-bar {
   display: flex;
-  justify-content: flex-end;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
 }
 
-.order-drawer {
-  position: relative;
-  width: min(720px, 100%);
-  height: 100vh;
-  overflow-y: auto;
-  background: var(--color-bg);
-  box-shadow: -8px 0 24px rgba(0, 0, 0, 0.2);
-  animation: order-drawer-in 0.2s ease-out;
-}
-
-@keyframes order-drawer-in {
-  from {
-    transform: translateX(100%);
-  }
-  to {
-    transform: translateX(0);
-  }
-}
-
-.order-drawer-close {
-  position: absolute;
-  top: 1rem;
-  right: 1rem;
-  background: none;
-  border: none;
-  font-size: 1.1rem;
-  line-height: 1;
-  cursor: pointer;
+.order-back {
   color: var(--color-muted);
-  padding: 0.5rem;
-  border-radius: 50%;
+  font-weight: 600;
+  text-decoration: none;
 }
 
-.order-drawer-close:hover {
+.order-back:hover {
   color: var(--color-heading);
+  text-decoration: underline;
+}
+
+.order-pager {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--color-muted);
+  font-size: 0.9rem;
+}
+
+.order-pager button {
+  background: var(--color-surface-alt);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  color: var(--color-heading);
+  cursor: pointer;
+  font-size: 1.2rem;
+  line-height: 1;
+  padding: 0.25rem 0.75rem;
+}
+
+.order-pager button:hover:not(:disabled) {
   background: var(--color-divider);
 }
 
-/* padded like the other pages, and capped: at the drawer's own width this
-   never binds today, but keeps order-fields from stretching too wide if the
-   drawer is ever widened */
+.order-pager button:disabled {
+  cursor: default;
+  opacity: 0.4;
+}
+
+.order-page-title {
+  margin: 0 0 0.5rem;
+}
+
+/* padded like the other pages; capped so a very wide screen does not stretch
+   the fields into unreadable lines */
 .order-detail {
   padding: 2rem;
-  max-width: 1100px;
+  max-width: 1400px;
 }
 
 @media (max-width: 768px) {
   .order-detail {
     padding: 1rem;
-  }
-}
-
-@media (max-width: 640px) {
-  .order-drawer {
-    width: 100%;
   }
 }
 
@@ -468,5 +516,11 @@ td {
 @media (min-width: 640px) {
   .order-detail dl.order-fields {
     grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (min-width: 1100px) {
+  .order-detail dl.order-fields {
+    grid-template-columns: repeat(3, 1fr);
   }
 }

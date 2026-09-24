@@ -3,7 +3,7 @@ import { AllegroSettings } from '../components/AllegroSettings';
 import { ErliSettings } from '../components/ErliSettings';
 import { SafeModeSettings } from '../components/SafeModeSettings';
 import { ShippingSettingsForm } from '../components/ShippingSettingsForm';
-import { useTranslation, LANGUAGES, type Language } from '../i18n';
+import { useTranslation, LANGUAGES, languageName, type Language } from '../i18n';
 import type { MessageKey } from '../i18n/messages';
 import '../styles/SettingsPage.css';
 
@@ -158,7 +158,7 @@ export const Settings: React.FC = () => {
                 >
                   {LANGUAGES.map((code) => (
                     <option key={code} value={code}>
-                      {code === 'pl' ? 'Polski' : 'English'}
+                      {languageName(code)}
                     </option>
                   ))}
                 </select>

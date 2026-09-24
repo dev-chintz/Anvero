@@ -1,6 +1,7 @@
 import { Link, useLocation } from 'react-router-dom';
 import { useState } from 'react';
 import { useAuth } from '../auth/AuthContext';
+import { useSidebarCounts } from '../hooks/useSidebarCounts';
 import { useTranslation, LANGUAGES, type Language } from '../i18n';
 import '../styles/Sidebar.css';
 
@@ -14,19 +15,67 @@ export const Sidebar: React.FC<SidebarProps> = ({ isDarkMode, onThemeToggle }) =
   const location = useLocation();
   const { user, logout } = useAuth();
   const { t, language, setLanguage } = useTranslation();
-  const otherLanguage: Language = LANGUAGES.find((l) => l !== language) ?? 'en';
+  // With two languages this is a toggle; with more it steps through them in turn
+  // (Settings has the full list).
+  const nextLanguage: Language = LANGUAGES[(LANGUAGES.indexOf(language) + 1) % LANGUAGES.length];
 
   const isActive = (path: string) => location.pathname === path;
 
-  const navItems = [
-    { path: '/dashboard', label: t('nav.dashboard'), icon: '📊' },
-    { path: '/orders', label: t('nav.orders'), icon: '📦' },
-    { path: '/production', label: t('nav.production'), icon: '🛠️' },
-    { path: '/labels', label: t('nav.labels'), icon: '🏷️' },
-    { path: '/after-sales', label: t('nav.afterSales'), icon: '↩️' },
-    { path: '/status', label: t('nav.status'), icon: '🩺' },
+  // read again whenever the operator moves to another page: what they just did
+  // there moves these numbers
+  const counts = useSidebarCounts(location.pathname);
 
-    { path: '/inbox', label: t('nav.inbox'), icon: '✉️' },
+  // `badge` is what waits in that section, shown beside it so an urgent thing is
+  // seen from any page; `urgent` turns it red; `hint` says what it counts
+  interface NavItem {
+    path: string;
+    label: string;
+    icon: string;
+    badge?: number | null;
+    urgent?: boolean;
+    hint?: string;
+  }
+  const navItems: NavItem[] = [
+    { path: '/dashboard', label: t('nav.dashboard'), icon: '📊' },
+    {
+      path: '/orders',
+      label: t('nav.orders'),
+      icon: '📦',
+      badge: counts.toShip,
+      urgent: (counts.late ?? 0) > 0,
+      hint: t('nav.badge.orders', {
+        toShip: counts.toShip ?? 0,
+        late: counts.late ?? 0,
+        unpaid: counts.unpaid ?? 0,
+      }),
+    },
+    {
+      path: '/production',
+      label: t('nav.production'),
+      icon: '🛠️',
+      badge: counts.toMake,
+      hint: t('nav.badge.production', { count: counts.toMake ?? 0 }),
+    },
+    { path: '/labels', label: t('nav.labels'), icon: '🏷️' },
+    {
+      path: '/after-sales',
+      label: t('nav.afterSales'),
+      icon: '↩️',
+      badge: counts.afterSales,
+      urgent: (counts.afterSalesOverdue ?? 0) > 0,
+      hint: t('nav.badge.afterSales', {
+        count: counts.afterSales ?? 0,
+        overdue: counts.afterSalesOverdue ?? 0,
+      }),
+    },
+    { path: '/status', label: t('nav.status'), icon: '🩺' },
+    {
+      path: '/inbox',
+      label: t('nav.inbox'),
+      icon: '✉️',
+      badge: counts.unreadMessages,
+      hint: t('nav.badge.inbox', { count: counts.unreadMessages ?? 0 }),
+    },
     { path: '/settings', label: t('nav.settings'), icon: '⚙️' },
   ];
 
@@ -54,10 +103,21 @@ export const Sidebar: React.FC<SidebarProps> = ({ isDarkMode, onThemeToggle }) =
             key={item.path}
             to={item.path}
             className={`nav-item ${isActive(item.path) ? 'active' : ''}`}
-            title={!isOpen ? item.label : ''}
+            // folded to icons the section's name is gone, so the tooltip brings it back
+            title={
+              !isOpen ? (item.hint ? `${item.label}: ${item.hint}` : item.label) : (item.hint ?? '')
+            }
           >
             <span className="nav-icon">{item.icon}</span>
             {isOpen && <span className="nav-label">{item.label}</span>}
+            {!!item.badge && (
+              <span
+                className={`nav-badge${item.urgent ? ' nav-badge-urgent' : ''}`}
+                aria-label={item.hint}
+              >
+                {item.badge > 99 ? '99+' : item.badge}
+              </span>
+            )}
           </Link>
         ))}
       </nav>
@@ -73,11 +133,11 @@ export const Sidebar: React.FC<SidebarProps> = ({ isDarkMode, onThemeToggle }) =
         <button
           type="button"
           className="theme-toggle language-toggle"
-          onClick={() => setLanguage(otherLanguage)}
+          onClick={() => setLanguage(nextLanguage)}
           title={t('nav.switchLanguage')}
           aria-label={t('nav.switchLanguage')}
         >
-          {otherLanguage.toUpperCase()}
+          {nextLanguage.toUpperCase()}
         </button>
         {isOpen && (
           <div className="user-profile">

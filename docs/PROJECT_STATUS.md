@@ -43,8 +43,8 @@ folder, and one was restored from that copy into a scratch database as a test.
   remains the no-setup default for a fresh clone)
 - Health endpoint and first order model — done
 - Minimal order list interface — done
-- Automated tests for core flows — done (635 backend, 145 frontend passing
-  across the suite as of 2026-09-21)
+- Automated tests for core flows — done (636 backend, 168 frontend passing
+  across the suite as of 2026-09-24)
 
 ---
 
@@ -133,7 +133,7 @@ Billing entries (fees, `INTEGRATIONS.md`, "Fees") are likewise from the document
 
 Buyer messages (plan B2, `INTEGRATIONS.md`, "Buyer messages") have never talked to Allegro: built without reading its published OpenAPI specification, since this session's network egress could not reach `developer.allegro.pl`, and tested against fakes shaped by search-indexed excerpts of the documentation instead. Unconfirmed: the exact shape of one thread message, whether threads really sort newest-activity-first (the sync's early stop depends on it), and the messaging scope's real name. Safe mode has been on throughout, so nothing has reached a real buyer. Erli is not read: no messaging endpoint was found in its public API.
 
-One backend test failure was found while working on the above, unrelated to it: `tests/services/test_order_import_service.py::test_the_recorded_point_is_the_start_of_the_run_less_a_small_overlap` compares a naive and an aware datetime and only fails on SQLite (`TypeError: can't compare offset-naive and offset-aware datetimes`); the full suite passes on PostgreSQL (527, 2026-09-24, after merging B1/A7 and B2). A second, unrelated bug was found and fixed: `OrderRepository.list_buyer_orders` and `.list_in_queue_with_items`, added by plan A3, had a `-> list[Order]` return annotation evaluated *after* a method literally named `list` in the same class body, so Python resolved `list` to that method instead of the builtin and the whole backend failed to import (`TypeError: 'function' object is not subscriptable`) — moved both methods earlier in the file; no behaviour changed. Worth checking whether this broke every backend since plan A3 landed earlier the same day.
+One backend test failure was found while working on the above, unrelated to it: `tests/services/test_order_import_service.py::test_the_recorded_point_is_the_start_of_the_run_less_a_small_overlap` compared a naive and an aware datetime and only failed on SQLite; fixed on 2026-09-24 by normalising with `_as_utc` (636 pass on SQLite). A second, unrelated bug was found and fixed: `OrderRepository.list_buyer_orders` and `.list_in_queue_with_items`, added by plan A3, had a `-> list[Order]` return annotation evaluated *after* a method literally named `list` in the same class body, so Python resolved `list` to that method instead of the builtin and the whole backend failed to import (`TypeError: 'function' object is not subscriptable`) — moved both methods earlier in the file; no behaviour changed. Worth checking whether this broke every backend since plan A3 landed earlier the same day. The same mistake came back in `AfterSalesRepository.list` (a `list[...]` annotation after a method named `list`), which stopped the backend from starting on Python 3.13 while CI (3.14, deferred annotations) stayed green; fixed on 2026-09-24 with `from __future__ import annotations`. Any class with a method named after a builtin it also uses in annotations can do this: run the suite on 3.13 as well as 3.14.
 
 What the sandbox did **not** cover: a cancelled order and the flag it sets,
 an order with several line items or without a pickup point, more than one
@@ -146,6 +146,10 @@ test suite, including the date filters, "this week" and the repository's
 per-dialect timestamp handling; sample data generation; the API starting and
 serving requests; logging in to the interface, opening an order with its
 details and changing its status. Only PostgreSQL 17 has been tried.
+
+---
+
+The 2026-09-24 interface work (`DECISIONS.md`, "Design agreements") was checked in the browser only for the order page, its arrows and back, and the list's Items column, on three real orders (two from Erli); the menu's counts were read from the DOM on real data, with no overdue or unread thing among them, so the red state and the messages figure have not been seen for real. Item pictures do not appear on any of the three (none carries one: the Allegro one predates the picture import, and Erli's import does not read pictures). The list's table is wider than its container at 1280 px because of the Shipping column, and scrolls sideways. The design document's open areas (place of work, a typical day, dashboard, packing, alert thresholds) are still unanswered.
 
 ---
 
@@ -211,8 +215,9 @@ postponed redesign (`DECISIONS.md` has the full list):
 
 - Order status is editable directly from the list, colored options included.
 - The status-history timeline shows an icon per entry.
-- The order detail view opens as a slide-over above the list instead of a
-  full-page navigation, so the list's filters and scroll position survive.
+- The order detail view opened as a slide-over above the list; since
+  2026-09-24 it is a page of its own again (back, next/previous), and the list
+  shows items and the menu shows counts (`DECISIONS.md`, "Design agreements").
 - The seller's own Allegro note (`note.text`, distinct from the buyer's
   message) is now imported and shown in its own yellow-tinted card.
 - The order list is reorganized toward the owner's reference (BaseLinker):

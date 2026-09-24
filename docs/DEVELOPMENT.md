@@ -122,6 +122,19 @@ To activate the environment manually:
 .\backend\.venv\Scripts\Activate.ps1
 ```
 
+## Adding an interface language
+
+The languages are listed in `frontend/src/i18n/languages.ts`. To add one:
+copy the `pl` dictionary at the end of `frontend/src/i18n/messages.ts` into a
+new file (say `messages.cs.ts`), translate every value, and add one line to
+`LANGUAGE_REGISTRY` with the language's code, its own name, the locale that
+formats its dates and numbers (`cs-CZ`), and the dictionary. The pickers on
+the login page, in the menu and in Settings, and the tests, then include it.
+`npx.cmd vitest run src/i18n` tells you what is missing: every English key, the
+same `{placeholders}`, and the plural forms the locale has (Czech has four,
+Hungarian two). Text that comes from the backend, such as error messages, is
+not translated (`DECISIONS.md`, 2026-09-21).
+
 ## Quality Control
 
 `bootstrap` enables a pre-commit hook from `.githooks/`. It runs the backend

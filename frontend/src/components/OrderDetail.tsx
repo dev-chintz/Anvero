@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
-import { useLocation, useNavigate, useOutletContext, useParams } from "react-router-dom";
+import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import { ApiError, marketplaceWritesApi, ordersApi, type MarketplaceWrite, type OrderChangeResult } from "../api/client";
-import type { OrdersOutletContext } from "../pages/OrdersPage";
+import type { OrderLinkState } from "./orderLinkState";
 import {
   OrderStatus,
   hasCancellationWarning,
@@ -36,9 +36,6 @@ export function OrderDetail() {
   const navigate = useNavigate();
   const { t, formatDateTime, formatMoney } = useTranslation();
   const location = useLocation();
-  // set by OrdersPage's <Outlet context>; this route only ever renders
-  // nested under /orders, as the slide-over above the still-mounted list
-  const { onOrderChanged } = useOutletContext<OrdersOutletContext>();
 
   const [order, setOrder] = useState<OrderWithDetails | null>(null);
   const [loading, setLoading] = useState(true);
@@ -107,33 +104,19 @@ export function OrderDetail() {
     };
   }, [id]);
 
-  // A drawer over the list, not a page of its own: closing it means going
-  // back to wherever the list's own filters and scroll position already are.
-  // Two cases where "back" would be wrong: a link from elsewhere (the
-  // dashboard) that names where to close to, since back would return there
-  // instead of showing the list, and a page opened directly, with nothing
-  // to go back to. Both close to the list itself.
-  const closeTo = (location.state as { closeTo?: string } | null)?.closeTo;
-  const hasHistory = (window.history.state as { idx?: number } | null)?.idx;
-  const handleClose = () => {
-    if (closeTo) navigate(closeTo, { replace: true });
-    else if (hasHistory) navigate(-1);
-    else navigate("/orders", { replace: true });
-  };
-
-  useEffect(() => {
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") handleClose();
-    };
-    document.addEventListener("keydown", onKeyDown);
-    // the list behind the drawer must not scroll along with it
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.removeEventListener("keydown", onKeyDown);
-      document.body.style.overflow = previousOverflow;
-    };
-  }, []);
+  // Where the order was opened from (see OrderLinkState): "back" is a link to
+  // the list it came from, filters and page included, or to the plain list
+  // when the page was opened directly. The arrows walk the orders of that
+  // list, so a run of orders can be gone through without returning to it;
+  // they replace the entry instead of adding one, so "back" stays one step.
+  const linkState = (location.state as OrderLinkState | null) ?? {};
+  const backTo = linkState.closeTo ?? "/orders";
+  const orderIds = linkState.orderIds ?? [];
+  const position = id ? orderIds.indexOf(id) : -1;
+  const previousId = position > 0 ? orderIds[position - 1] : undefined;
+  const nextId = position >= 0 ? orderIds[position + 1] : undefined;
+  const goTo = (orderId: string) =>
+    navigate(`/orders/${orderId}`, { replace: true, state: linkState });
 
   const handleStatusChange = async (nextStatus: OrderStatus) => {
     if (!order || nextStatus === order.status) return;
@@ -148,9 +131,6 @@ export function OrderDetail() {
       setWriteNote(describeWrite(result.marketplace_write));
       setHistory(await ordersApi.history(order.id));
       await loadWrites(order.id);
-      // the list is still mounted behind this drawer and won't otherwise
-      // learn that this order's status just changed
-      onOrderChanged();
     } catch (err: unknown) {
       setSaveError(
         err instanceof ApiError ? err.message : translate("error.updateStatus"),
@@ -161,20 +141,38 @@ export function OrderDetail() {
   };
 
   return (
-    <div className="order-drawer-backdrop" onClick={handleClose}>
-      <section
-        className="order-detail order-drawer"
-        aria-label={t("order.regionLabel")}
-        onClick={(e) => e.stopPropagation()}
-      >
-        <button
-          type="button"
-          className="order-drawer-close"
-          onClick={handleClose}
-          aria-label={t("order.close")}
-        >
-          ✕
-        </button>
+    <div className="order-page">
+      <section className="order-detail" aria-label={t("order.regionLabel")}>
+        <nav className="order-page-bar" aria-label={t("order.navigation")}>
+          <Link to={backTo} className="order-back">
+            ← {t("order.back")}
+          </Link>
+          {position >= 0 && (
+            <div className="order-pager">
+              <button
+                type="button"
+                disabled={!previousId}
+                onClick={() => previousId && goTo(previousId)}
+                aria-label={t("order.previous")}
+                title={t("order.previous")}
+              >
+                ‹
+              </button>
+              <span>{t("order.position", { position: position + 1, total: orderIds.length })}</span>
+              <button
+                type="button"
+                disabled={!nextId}
+                onClick={() => nextId && goTo(nextId)}
+                aria-label={t("order.next")}
+                title={t("order.next")}
+              >
+                ›
+              </button>
+            </div>
+          )}
+        </nav>
+
+        {order && !loading && !notFound && <h1 className="order-page-title">{order.order_label}</h1>}
 
         {loading && <p role="status">{t("order.loading")}</p>}
 
@@ -297,7 +295,6 @@ export function OrderDetail() {
             onChanged={() => {
               ordersApi.get(order.id).then(setOrder).catch(() => undefined);
               loadWrites(order.id);
-              onOrderChanged();
             }}
           />
         )}
@@ -308,7 +305,6 @@ export function OrderDetail() {
             onAdded={(result: OrderChangeResult) => {
               setOrder(result);
               loadWrites(result.id);
-              onOrderChanged();
             }}
           />
         )}
