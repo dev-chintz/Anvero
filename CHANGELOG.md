@@ -6,6 +6,19 @@ All significant changes to the Anvero project.
 
 ## 2026-09-24
 
+### 🏷️ Labels through Wysyłam z Allegro
+
+- On an Allegro order, a "Label" card: enter or accept the parcel's size,
+  confirm, and Anvero buys the shipment through Allegro's shipment-management
+  API, adds its waybill to the order, and prints the label as an A6 PDF. A
+  bought shipment can be cancelled; one still being created can be checked
+  again.
+- Settings, "Shipping": the sender printed on labels and the usual parcel.
+- Through safe mode like every write; one standing label per order; cash on
+  delivery not yet. `shipping_labels` (migration `b6d2f8a1c357`).
+- Built from Allegro's documentation, tested on fakes; nothing bought for
+  real yet. Stage B1 of the feature plan, first part.
+
 ### 🩺 Application status page
 
 - A Status page (sidebar) and `GET /status`: for Allegro and Erli, whether

@@ -27,6 +27,13 @@ are days in the business timezone, `BUSINESS_TIMEZONE`, default
 | `PUT` | `/api/v1/settings/safe-mode` | switch safe mode on or off |
 | `GET` | `/api/v1/marketplace-writes` | what Anvero sent to a marketplace, or held back in safe mode |
 | `GET` | `/api/v1/status` | the application status page: connections, last imports, the schedule |
+| `GET` | `/api/v1/settings/shipping` | the sender and the usual parcel, for labels |
+| `PUT` | `/api/v1/settings/shipping` | store them |
+| `GET` | `/api/v1/orders/{id}/labels` | the order's labels bought through Wysyłam z Allegro, newest first |
+| `POST` | `/api/v1/orders/{id}/labels` | buy the order's shipment (safe mode permitting) |
+| `POST` | `/api/v1/orders/{id}/labels/{label_id}/refresh` | ask Allegro again about a label still being created |
+| `POST` | `/api/v1/orders/{id}/labels/{label_id}/cancel` | cancel a bought shipment (safe mode permitting) |
+| `GET` | `/api/v1/orders/{id}/labels/{label_id}/pdf` | the label, A6, as a PDF |
 | `GET` | `/api/v1/integrations/allegro` | the Allegro connection's state, never a secret |
 | `PUT` | `/api/v1/integrations/allegro/settings` | store the Allegro application's credentials |
 | `POST` | `/api/v1/integrations/allegro/connect` | start connecting a seller account; rate limited to 10 per minute per IP |
@@ -339,6 +346,40 @@ schedule or either script. `schedule` is this backend's own: another backend
 importing on the same database is not seen here, though its imports show in
 `last_import`. It lives in memory, so `last_run_at` is null until the first
 scheduled run after a start. Erli has no schedule yet: `schedule` is null.
+
+## Labels through Wysyłam z Allegro
+
+`GET`/`PUT /api/v1/settings/shipping`:
+`{"sender": {"name", "company", "street", "postal_code", "city",
+"country_code", "email", "phone"} | null, "default_package": {"length_cm",
+"width_cm", "height_cm", "weight_kg"} | null}`. `company` is optional,
+`country_code` two capitals (default `PL`); dimensions in centimetres (at most
+350), weight in kilograms (at most 100), as decimal strings. `PUT` replaces
+both; null clears one.
+
+A label: `{"id", "created_at", "status", "shipment_id", "carrier_id",
+"waybill", "length_cm", "width_cm", "height_cm", "weight_kg", "error"}`.
+`status` is `PENDING` (Allegro is still creating the shipment), `CREATED`,
+`FAILED` (Allegro refused it, `error` says why) or `CANCELLED`.
+
+`POST /api/v1/orders/{id}/labels` takes the parcel (`length_cm`, `width_cm`,
+`height_cm`, `weight_kg`) and returns `{"label": ... | null,
+"marketplace_write": {...}}`. It reads the order's delivery method from
+Allegro, then sends the create command through safe mode: with safe mode on,
+`label` is null and the write is `DRY_RUN`, its payload what would have been
+sent; a refused command is a `FAILED` write and no label. Otherwise it waits a
+few seconds for Allegro: the label comes back `CREATED` (and the waybill is
+added to the order, as `POST /orders/{id}/shipments` would), `FAILED`, or
+still `PENDING`, for `refresh` to settle. `409` when the label cannot be asked
+for: not an Allegro order, cash on delivery (not supported yet), no sender in
+the settings, a label already `PENDING` or `CREATED` on the order (cancel it
+first), or no delivery method on Allegro's order; `502` when Allegro cannot be
+reached.
+
+`POST .../cancel` (a `CREATED` label only, else `409`) returns the same shape;
+the label turns `CANCELLED` once Allegro confirms, or keeps `CREATED` with the
+reason in `error`. `GET .../pdf` returns `application/pdf`; `409` unless the
+label is `CREATED`. Printing is a read: it does not go through safe mode.
 
 ## Changes that reach the marketplace
 

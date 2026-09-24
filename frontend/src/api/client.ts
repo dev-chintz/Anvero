@@ -36,10 +36,12 @@ interface RequestOptions extends Omit<RequestInit, "headers"> {
    * that has run out.
    */
   authenticated?: boolean;
+  /** Read the body as a Blob (a PDF) rather than JSON. */
+  blob?: boolean;
 }
 
 async function request<T>(path: string, options: RequestOptions = {}): Promise<T> {
-  const { authenticated = true, headers, ...init } = options;
+  const { authenticated = true, blob = false, headers, ...init } = options;
   const token = authenticated ? getToken() : null;
 
   let response: Response;
@@ -71,6 +73,7 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
     throw new ApiError(response.status, message);
   }
 
+  if (blob) return (await response.blob()) as T;
   return (await response.json()) as T;
 }
 
@@ -340,6 +343,89 @@ export interface AppStatus {
 export const statusApi = {
   get(): Promise<AppStatus> {
     return request<AppStatus>("/status");
+  },
+};
+
+export interface ShippingSender {
+  name: string;
+  company: string | null;
+  street: string;
+  postal_code: string;
+  city: string;
+  country_code: string;
+  email: string;
+  phone: string;
+}
+
+/** Centimetres and kilograms, as decimal strings from the backend. */
+export interface PackageSize {
+  length_cm: string;
+  width_cm: string;
+  height_cm: string;
+  weight_kg: string;
+}
+
+export interface ShippingSettings {
+  sender: ShippingSender | null;
+  default_package: PackageSize | null;
+}
+
+export type LabelStatus = "PENDING" | "CREATED" | "FAILED" | "CANCELLED";
+
+export interface ShippingLabel extends PackageSize {
+  id: string;
+  created_at: string;
+  status: LabelStatus;
+  shipment_id: string | null;
+  carrier_id: string | null;
+  waybill: string | null;
+  error: string | null;
+}
+
+export interface LabelChangeResult {
+  /** Null when nothing was bought: held back by safe mode, or refused. */
+  label: ShippingLabel | null;
+  marketplace_write: MarketplaceWrite;
+}
+
+export const shippingApi = {
+  settings(): Promise<ShippingSettings> {
+    return request<ShippingSettings>("/settings/shipping");
+  },
+
+  saveSettings(settings: ShippingSettings): Promise<ShippingSettings> {
+    return request<ShippingSettings>("/settings/shipping", {
+      method: "PUT",
+      body: JSON.stringify(settings),
+    });
+  },
+
+  labels(orderId: string): Promise<ShippingLabel[]> {
+    return request<ShippingLabel[]>(`/orders/${orderId}/labels`);
+  },
+
+  buy(orderId: string, pkg: PackageSize): Promise<LabelChangeResult> {
+    return request<LabelChangeResult>(`/orders/${orderId}/labels`, {
+      method: "POST",
+      body: JSON.stringify(pkg),
+    });
+  },
+
+  refresh(orderId: string, labelId: string): Promise<ShippingLabel> {
+    return request<ShippingLabel>(`/orders/${orderId}/labels/${labelId}/refresh`, {
+      method: "POST",
+    });
+  },
+
+  cancel(orderId: string, labelId: string): Promise<LabelChangeResult> {
+    return request<LabelChangeResult>(`/orders/${orderId}/labels/${labelId}/cancel`, {
+      method: "POST",
+    });
+  },
+
+  /** The A6 label as a PDF; it needs the login token, so it cannot be a plain link. */
+  pdf(orderId: string, labelId: string): Promise<Blob> {
+    return request<Blob>(`/orders/${orderId}/labels/${labelId}/pdf`, { blob: true });
   },
 };
 

@@ -414,6 +414,40 @@ and the order's total less them.
   It refuses to run unless the connection is the Sandbox one, and, like the
   script it reuses, has never been run against the real page.
 
+### Labels through Wysyłam z Allegro
+
+Built 2026-09-24 from Allegro's documentation of the shipment-management API
+and tested on fakes: **nothing has been bought for real**. The flow, on the
+order ("Label" card), after the sender is entered in Settings, "Shipping":
+
+1. `GET /order/checkout-forms/{id}`: the order's `delivery.method.id`, read
+   live (it decides the carrier and the price, and was never imported).
+2. `POST /shipment-management/shipments/create-commands` with a `commandId`
+   Anvero makes and `input`: `deliveryMethodId`, `sender`, `receiver` (the
+   delivery address, the buyer's email and phone, the pickup point as
+   `point`), `referenceNumber` (Anvero's `AN-` number), one `PACKAGE` with
+   its dimensions and weight, `labelFormat: PDF`. Through `MarketplaceWriter`:
+   the seller is charged, so safe mode holds it back like any write.
+3. `GET /shipment-management/shipments/create-commands/{commandId}` until
+   `SUCCESS` (`shipmentId`) or `ERROR` (`errors[].userMessage`), for about
+   eight seconds; after that the label stays pending and "Check again" asks
+   once more.
+4. `GET /shipment-management/shipments/{shipmentId}` for the carrier and the
+   waybill, which is then added to the order as a tracking number would be
+   (`POST /order/checkout-forms/{id}/shipments`).
+5. `POST /shipment-management/label` with `pageSize: A6` returns the PDF.
+6. Cancelling: `POST /shipment-management/shipments/cancel-commands`, then
+   its status the same way.
+
+Unverified until tried on the Sandbox with safe mode off: that the application
+carries the `allegro:api:shipments:write` (and read) scope; the exact shape
+of the shipment's carrier and waybill (both shapes the documentation suggests
+are read); whether Allegro already links the shipment to the order by itself,
+in which case step 4's tracking number may be refused as a duplicate, harmless
+but noted as a failed write; and the label's `Accept` header. Not built yet:
+cash on delivery (it needs the seller's bank account), insurance, ordering a
+courier pickup, several parcels per order, and printing many labels at once.
+
 ### Writing to Allegro
 
 Built 2026-09-24, from Allegro's documentation, and **never sent**: safe mode

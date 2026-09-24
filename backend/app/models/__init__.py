@@ -13,6 +13,7 @@ from app.models.order import (
     OrderStatusHistory,
     PaymentType,
 )
+from app.models.shipping_label import LabelStatus, ShippingLabel
 from app.models.user import User
 
 __all__ = [
@@ -22,6 +23,7 @@ __all__ = [
     "Counter",
     "IntegrationCredential",
     "IntegrationSettings",
+    "LabelStatus",
     "MarketplaceWrite",
     "Order",
     "OrderAddress",
@@ -31,6 +33,7 @@ __all__ = [
     "OrderStatus",
     "OrderStatusHistory",
     "PaymentType",
+    "ShippingLabel",
     "User",
     "WriteOutcome",
 ]

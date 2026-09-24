@@ -995,3 +995,11 @@ branch is unverified: only the SQLite path has been run.
 
 **Consequences:** The verdict is only as fresh as the last import; with no schedule, "working" means "worked last time". The schedule shown is this process's: a backend that does not run the schedule reports it off even while another backend imports on the same database (its imports still show as the last import), and "configured but not running" is flagged when the interval is set here but the loop is not alive. Token expiry for rows that existed before the migration is estimated from the row's last change until the next rotation.
 
+## 2026-09-24 — Labels: one standing label per order, the delivery method read live
+
+**Decision:** A shipment bought through Wysyłam z Allegro is a write like any other: it goes through `MarketplaceWriter`, so safe mode records it as `DRY_RUN` and buys nothing. An order has at most one label that is being created or is created; another needs the first cancelled (or refused). The delivery method id is read from Allegro's order at the moment of buying, not imported. What was bought lives in its own table, `shipping_labels`, not in `order_shipments`; its waybill is added to the order as a tracking number, which also sends it to Allegro. The sender and the usual parcel are settings in `app_settings`, entered in the interface. Cash on delivery is refused for now.
+
+**Rationale:** A label costs money and a second one for the same parcel is money lost, so the default is to refuse rather than to allow duplicates; an order needing two parcels is rare for this business and can wait for multi-parcel support. Reading the method live avoids a migration and a re-import of every order, and uses what Allegro will charge for now. `order_shipments` is rewritten by every import, which would lose the shipment-management ids needed to reprint or cancel. Cash on delivery needs the seller's bank account and an amount check that is not worth building before the plain case works.
+
+**Consequences:** Buying needs Allegro reachable even in safe mode (the method is read first). If Allegro links the shipment to the order by itself, the tracking number Anvero adds may be refused as a duplicate: recorded as a failed write, harmless. Nothing has been bought for real; the Sandbox run is the next step (`INTEGRATIONS.md`).
+

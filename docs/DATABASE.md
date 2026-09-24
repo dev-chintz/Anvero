@@ -165,6 +165,20 @@ as text), `outcome` (`DRY_RUN`, `SENT` or `FAILED`), `detail` (the
 marketplace's answer or the error, up to 2000 characters), `user_id`
 (nullable).
 
+`shipping_labels`: shipments bought through Wysyłam z Allegro. Kept apart
+from `order_shipments`, which an import replaces, because Allegro's
+shipment-management ids are needed to print the label again or cancel it.
+`id`, `order_id` (indexed, deleted with the order), `created_at`,
+`created_by_user_id` (nullable, `SET NULL`), `command_id` (unique: the id
+Anvero gave the create command), `shipment_id` (Allegro's, once it exists),
+`status` (`PENDING`, `CREATED`, `FAILED`, `CANCELLED`, stored as text),
+`delivery_method_id`, `carrier_id`, `waybill`, `length_cm`, `width_cm`,
+`height_cm` (numeric 8,1), `weight_kg` (numeric 8,3), `error`. The waybill
+also goes onto the order as an `order_shipments` row added in Anvero.
+
+`app_settings` also holds `shipping_sender` and `shipping_default_package`,
+each a JSON object (`API.md`, "Labels through Wysyłam z Allegro").
+
 `integration_settings` holds the application's own credentials when they were
 entered in Settings, and are then used instead of the `ALLEGRO_*` variables:
 `provider` (primary key), `client_id`, `client_secret` (plain text, never
