@@ -52,6 +52,18 @@ are days in the business timezone, `BUSINESS_TIMEZONE`, default
 | `PUT` | `/api/v1/integrations/erli/settings` | save the Erli API key once Erli has accepted it; rate limited to 10 per minute per IP |
 | `DELETE` | `/api/v1/integrations/erli/settings` | forget the key entered in Settings; the one in `backend/.env`, if any, applies again |
 | `POST` | `/api/v1/integrations/erli/import` | run an Erli import; rate limited to 6 per minute per IP |
+| `GET` | `/api/v1/integrations/inpost` | the InPost connection's state (environment, organization, last characters of the token, default size), never the token |
+| `PUT` | `/api/v1/integrations/inpost/settings` | save token, organization and environment once InPost has accepted them; rate limited to 10 per minute per IP |
+| `PUT` | `/api/v1/integrations/inpost/template` | change only the default parcel size |
+| `DELETE` | `/api/v1/integrations/inpost/settings` | forget the token and the organization |
+| `GET` | `/api/v1/orders/{id}/inpost-shipments` | the order's InPost shipments, newest first |
+| `POST` | `/api/v1/orders/{id}/inpost-shipments` | make the order's parcel-locker shipment at InPost |
+| `POST` | `/api/v1/orders/{id}/inpost-shipments/{shipment_id}/refresh` | ask InPost again about a shipment (its status, and its number once it has one) |
+| `POST` | `/api/v1/orders/{id}/inpost-shipments/{shipment_id}/cancel` | cancel the shipment at InPost |
+| `GET` | `/api/v1/inpost/orders` | orders a locker parcel could be made for now |
+| `POST` | `/api/v1/inpost/shipments` | make parcels for several orders at once (at most 50) |
+| `GET` | `/api/v1/inpost/labels` | shipments with a number, oldest first; `printed=false` (default), `true` or absent for all |
+| `POST` | `/api/v1/inpost/labels/pdf` | the labels of the given shipments as one A6 PDF; notes them printed |
 | `GET` | `/api/v1/after-sales` | returns, claims and disputes: by default what waits for the seller, closest deadline first |
 | `GET` | `/api/v1/after-sales/summary` | how many wait, how many are late, how many are due within three days |
 | `GET` | `/api/v1/orders/{id}/after-sales` | the cases on one order, open or not, newest first |
@@ -203,6 +215,53 @@ Returns the status. `DELETE /settings` returns it too.
 same body as the Allegro import (`cancellation_warnings` included). It takes the
 lock the Allegro import takes, so the two never overlap: `409` while either
 runs, and `409` when no key is set; `502` on any Erli failure.
+
+## InPost: `/api/v1/integrations/inpost`, `/api/v1/inpost` and the order's `inpost-shipments`
+
+Parcel locker shipments made at InPost (ShipX API) from Anvero, and their labels.
+Built from InPost's documentation and tested on fakes (`INTEGRATIONS.md`, "InPost").
+
+`GET /integrations/inpost` returns
+`{"configured": true, "environment": "sandbox", "organization_id": "777", "token_hint": "…5678", "default_template": "small"}`.
+`PUT /integrations/inpost/settings` takes `{"token": "...", "organization_id": "777",
+"environment": "sandbox" | "production", "default_template": "small" | "medium" | "large"}`;
+the token may be left out to keep the saved one. The organization is asked of InPost
+with that token before anything is saved: `422` when InPost refuses the pair, `502`
+when it cannot be asked, and nothing is saved in either case. `DELETE` forgets the
+token and the organization but keeps environment and size.
+
+`POST /orders/{id}/inpost-shipments` takes `{"template": "small"}` (optional; the
+saved default applies) and returns `{"shipment", "marketplace_write", "tracking_write"}`.
+The shipment is a `inpost_locker_standard` one to the locker the buyer chose
+(`custom_attributes.target_point`), sized by the template (`small`, `medium`, `large`
+are InPost's A, B, C), referenced by Anvero's `AN-` number. It goes through safe mode:
+held back, `shipment` is null and `marketplace_write.outcome` is `DRY_RUN`. InPost
+buys asynchronously, so the call waits about eight seconds for the tracking number;
+a shipment still without one is settled by `/refresh`. Once InPost has a number it is
+added to the order as a shipment with carrier `INPOST` (which also sends it to Allegro
+through the usual safe-mode write: `tracking_write`). `409` when Anvero would not ask
+(deleted or cancelled order, cash on delivery, not an InPost locker, an active InPost
+shipment or another tracking number on the order, missing name, e-mail or a phone that
+is not nine digits) with the reason as `detail`; `502` when InPost refuses, with its
+own words and the fields it names.
+
+`POST /orders/{id}/inpost-shipments/{shipment_id}/cancel` cancels at InPost (safe mode
+applies; `shipment.error` holds a refusal).
+
+`GET /inpost/orders` lists `{id, order_label, buyer, target_point, pickup_point_name,
+delivery_method, status, dispatch_by}` for orders that are open, for an InPost locker
+and have no tracking number. `POST /inpost/shipments` takes
+`{"order_ids": [...], "template": "small"}` (1 to 50 orders) and returns
+`{"items": [{"order_id", "order_label", "outcome", "message", "shipment"}]}` where
+`outcome` is `created`, `held_back`, `refused` (Anvero would not ask) or `failed`
+(InPost said no): one order's refusal does not stop the others, and the orders share
+one wait for InPost's numbers.
+
+`GET /inpost/labels` lists the shipments that have a number, with the order's label
+and the buyer. `POST /inpost/labels/pdf` takes `{"shipment_ids": [...]}` (at most 50)
+and returns `application/pdf` in that order: one label as InPost's own single label
+address, several through the organization's batch address. A shipment is noted
+printed only once the PDF is in hand. `404` for an unknown shipment.
 
 ## `POST /api/v1/integrations/allegro/import`
 

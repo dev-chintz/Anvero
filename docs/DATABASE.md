@@ -229,6 +229,19 @@ Anvero gave the create command), `shipment_id` (Allegro's, once it exists),
 `pickup_id` (indexed, the courier ordered for it, `SET NULL`). The waybill
 also goes onto the order as an `order_shipments` row added in Anvero.
 
+`inpost_shipments`: parcel locker shipments made through InPost's ShipX API
+(`INTEGRATIONS.md`, "InPost"). `id`, `order_id` (indexed, deleted with the order),
+`created_at`, `created_by_user_id` (nullable, `SET NULL`), `inpost_id` (InPost's own
+id, unique), `status` (InPost's word: `created`, `offer_selected`, `confirmed`,
+`cancelled`, ..., stored as text), `tracking_number` (null until InPost has bought
+the shipment), `target_point` (the locker), `template` (`small`, `medium`, `large`),
+`reference`, `error` (the last cancel InPost refused), `printed_at` (when its label
+was last fetched; null puts it on the "to print" list). The number also goes onto the
+order as an `order_shipments` row added in Anvero.
+
+`app_settings` also holds `inpost_api_token`, `inpost_organization_id`,
+`inpost_environment` (`sandbox` by default) and `inpost_default_template`.
+
 `courier_pickups`: couriers ordered through Wysyłam z Allegro. `id`,
 `created_at`, `created_by_user_id` (nullable, `SET NULL`), `command_id`
 (unique), `pickup_id` (Allegro's), `status` (`PENDING`, `ORDERED`, `FAILED`,

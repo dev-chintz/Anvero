@@ -17,6 +17,7 @@ import { describeWrite } from "./marketplaceWrite";
 import { OrderWritesCard } from "./OrderWritesCard";
 import { OrderBillingCard } from "./OrderBillingCard";
 import { OrderDetailsPanel } from "./OrderDetailsPanel";
+import { InpostShipmentCard } from "./InpostShipmentCard";
 import { ShippingLabelCard } from "./ShippingLabelCard";
 import "../styles/OrderHistory.css";
 
@@ -363,6 +364,16 @@ export function OrderDetail() {
 
         {!loading && !error && !notFound && order && !isDeleted && (
           <ShippingLabelCard
+            order={order}
+            onChanged={() => {
+              ordersApi.get(order.id).then(setOrder).catch(() => undefined);
+              loadWrites(order.id);
+            }}
+          />
+        )}
+
+        {!loading && !error && !notFound && order && !isDeleted && (
+          <InpostShipmentCard
             order={order}
             onChanged={() => {
               ordersApi.get(order.id).then(setOrder).catch(() => undefined);

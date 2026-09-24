@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { AllegroSettings } from '../components/AllegroSettings';
 import { ErliSettings } from '../components/ErliSettings';
+import { InpostSettings } from '../components/InpostSettings';
 import { SafeModeSettings } from '../components/SafeModeSettings';
 import { ShippingSettingsForm } from '../components/ShippingSettingsForm';
 import { useTranslation, LANGUAGES, languageName, type Language } from '../i18n';
@@ -31,7 +32,10 @@ const GROUPS: NavGroup[] = [
   {
     id: 'settings-shipping',
     title: 'settings.groupShipping',
-    items: [{ id: 'settings-shipping-form', label: 'settings.shippingCard' }],
+    items: [
+      { id: 'settings-shipping-form', label: 'settings.shippingCard' },
+      { id: 'settings-inpost', label: 'InPost' },
+    ],
   },
   {
     id: 'settings-general',
@@ -135,6 +139,10 @@ export const Settings: React.FC = () => {
               >
                 <h3>{t('settings.shippingCard')}</h3>
                 <ShippingSettingsForm />
+              </section>
+              <section id="settings-inpost" className="settings-section" aria-label="InPost">
+                <h3>InPost</h3>
+                <InpostSettings />
               </section>
             </div>
           </section>

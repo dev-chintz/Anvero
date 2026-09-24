@@ -770,3 +770,52 @@ unified inbox (plan B2, "Buyer messages" under Allegro above) and none was
 found — only order events (`/inbox`) and webhooks (`hooks`). Until Erli
 confirms otherwise, the inbox reads Allegro only; an Erli buyer's messages
 stay in Erli's own seller panel.
+
+## InPost
+
+Built 2026-09-25 from InPost's ShipX documentation and tested on fakes only:
+**nothing has been made at InPost for real**. It lets Anvero make a parcel locker
+shipment and print its label, one order or many, without the Manager Paczek. Parcels
+made in the Manager Paczek cannot be listed or printed through ShipX, so the tracking
+numbers that come from there stay as they are; Anvero makes its own.
+
+**Setting it up.** In the Manager Paczek: My account > API, a token and the
+organization number. In Settings, "Shipping" > InPost: token, organization number,
+environment (`sandbox`, `sandbox-api-shipx-pl.easypack24.net`, or `production`,
+`api-shipx-pl.easypack24.net`) and the default size. Save-and-check calls
+`GET /v1/organizations/{id}`; nothing is saved until InPost accepts the pair. The
+token is kept in `app_settings` and only its last four characters leave the backend.
+Start in the sandbox, which never delivers or charges.
+
+**The flow.**
+
+1. `POST /v1/organizations/{id}/shipments`: `service: inpost_locker_standard`,
+   `receiver` (first and last name, e-mail, phone as nine digits), `parcels.template`
+   (`small`, `medium`, `large`), `custom_attributes.target_point` (the locker the
+   buyer chose), `reference` (the `AN-` number). Through `MarketplaceWriter`, so safe
+   mode holds it back: InPost bills the seller for a real parcel.
+2. InPost buys asynchronously (status `created`, then `offer_selected`, then
+   `confirmed`, and only then `tracking_number`). Anvero waits about eight seconds
+   with `GET /v1/shipments/{id}`; a shipment still without a number is settled by
+   "Check again" on the order.
+3. Once there is a number it is added to the order as a shipment with carrier
+   `INPOST`, which also sends it to Allegro (safe mode again), so the buyer can follow
+   the parcel. Deduplicated by number.
+4. Label: one shipment, `GET /v1/shipments/{id}/label?format=pdf&type=A6`; several,
+   `POST /v1/organizations/{id}/shipments/labels` with `shipment_ids`, `format`,
+   `type`. The Labels page has an "InPost lockers" tab: the orders without a parcel
+   (all ticked) made in one go, or "create and print" for one PDF straight away, and
+   the parcels with a number, printed together and noted printed.
+5. Cancelling: `DELETE /v1/shipments/{id}`, allowed until InPost has taken the parcel.
+
+**Refused before asking InPost:** a deleted or cancelled order, cash on delivery, an
+order that is not for an InPost locker (courier delivery is not built), an order with
+an active InPost shipment or another tracking number, and a missing first name, last
+name, e-mail or phone (nine digits; a leading `48` is dropped).
+
+**Unverified until tried in the sandbox:** that `sending_method` need not be given;
+that an offer is chosen by InPost on its own; the status words after `confirmed`;
+the shape of the batch labels request (`shipment_ids` as numbers); that the
+organization check needs no more than the token. Not built: courier (non-locker)
+shipments, insurance, cash on delivery, ordering a courier for InPost parcels, and
+following a parcel's status after it was made.

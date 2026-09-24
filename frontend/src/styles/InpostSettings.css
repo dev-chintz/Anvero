@@ -1,0 +1,85 @@
+.inpost-settings {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.inpost-account {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 600;
+}
+
+.inpost-account-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--color-muted);
+}
+
+.inpost-account-dot.connected {
+  background: var(--color-success);
+}
+
+.inpost-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+}
+
+.inpost-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--color-muted-strong);
+}
+
+.inpost-form input,
+.inpost-form select {
+  padding: 0.6rem 0.75rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  font-size: 0.95rem;
+  font-weight: 400;
+  background: var(--color-bg);
+  color: var(--color-text);
+}
+
+.inpost-form input:focus,
+.inpost-form select:focus {
+  outline: none;
+  border-color: var(--color-accent);
+}
+
+.inpost-form .field-note {
+  font-weight: 400;
+}
+
+.inpost-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.inpost-settings button {
+  padding: 0.55rem 1.1rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.inpost-settings button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.inpost-settings button.danger {
+  color: var(--color-error);
+}

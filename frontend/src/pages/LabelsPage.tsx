@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ApiError, shippingApi, type CourierPickup, type LabelView, type PrintableLabel } from '../api/client';
+import { InpostLabelsPanel } from '../components/InpostLabelsPanel';
 import { openPdf } from '../components/openPdf';
 import { PickupPanel } from '../components/PickupPanel';
 import { TrackingLink } from '../components/TrackingLink';
@@ -23,6 +24,7 @@ export function LabelsPage() {
   const [error, setError] = useState<string | null>(null);
   const [printing, setPrinting] = useState(false);
   const [openingTest, setOpeningTest] = useState(false);
+  const [tab, setTab] = useState<'shipping' | 'inpost'>('shipping');
 
   const load = useCallback(() => {
     setError(null);
@@ -105,6 +107,7 @@ export function LabelsPage() {
           <h1>{t('labels.title')}</h1>
           <p className="subtitle">{t('labels.subtitle')}</p>
         </div>
+        {tab === 'shipping' && (
         <div className="labels-actions">
           <button
             type="button"
@@ -132,8 +135,31 @@ export function LabelsPage() {
             {printing ? t('labels.printing') : tc('labels.printSelected', selected.size)}
           </button>
         </div>
+        )}
       </header>
 
+      <div className="labels-tabs" role="tablist">
+        {(['shipping', 'inpost'] as const).map((id) => (
+          <button
+            key={id}
+            type="button"
+            role="tab"
+            aria-selected={tab === id}
+            className={tab === id ? 'active' : undefined}
+            onClick={() => setTab(id)}
+          >
+            {t(id === 'shipping' ? 'labels.tab.shipping' : 'inpost.tab')}
+          </button>
+        ))}
+      </div>
+
+      {tab === 'inpost' && (
+        <div className="labels-body">
+          <InpostLabelsPanel />
+        </div>
+      )}
+
+      {tab === 'shipping' && (
       <div className="labels-body">
         <label className="labels-filter">
           {t('labels.view')}
@@ -250,6 +276,7 @@ export function LabelsPage() {
           </div>
         )}
       </div>
+      )}
     </div>
   );
 }

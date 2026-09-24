@@ -208,3 +208,74 @@
 .labels-table td {
   overflow-wrap: anywhere;
 }
+
+.labels-tabs {
+  display: flex;
+  gap: 0.25rem;
+  padding: 0 2rem;
+  border-bottom: 1px solid var(--color-divider);
+}
+
+.labels-tabs button {
+  padding: 0.6rem 1rem;
+  border: none;
+  border-bottom: 2px solid transparent;
+  background: none;
+  color: var(--color-muted-strong);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.labels-tabs button.active {
+  color: var(--color-accent);
+  border-bottom-color: var(--color-accent);
+}
+
+.inpost-labels section {
+  margin-bottom: 2rem;
+}
+
+.inpost-labels h2 {
+  margin: 0 0 0.4rem;
+  font-size: 1.15rem;
+  color: var(--color-heading);
+}
+
+.inpost-bulk-actions {
+  align-items: center;
+  margin: 0.75rem 0;
+}
+
+.inpost-bulk-actions .labels-filter {
+  margin-bottom: 0;
+}
+
+.inpost-results {
+  margin: 1rem 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: 0.9rem;
+}
+
+.inpost-results li {
+  padding: 0.3rem 0;
+}
+
+.inpost-result-created strong {
+  color: var(--color-success);
+}
+
+.inpost-result-held_back strong {
+  color: var(--color-warning);
+}
+
+.inpost-result-refused strong,
+.inpost-result-failed strong {
+  color: var(--color-error);
+}
+
+@media (max-width: 768px) {
+  .labels-tabs {
+    padding: 0 1rem;
+  }
+}

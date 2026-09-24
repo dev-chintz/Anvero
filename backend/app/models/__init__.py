@@ -1,5 +1,6 @@
 from app.models.after_sales import AfterSalesCase, CaseAction, CaseKind
 from app.models.courier_pickup import CourierPickup, PickupStatus
+from app.models.inpost_shipment import InpostShipment
 from app.models.integration import IntegrationCredential, IntegrationSettings
 from app.models.marketplace_write import AppSetting, MarketplaceWrite, WriteOutcome
 from app.models.message import Message, MessageDirection, MessageThread
@@ -28,6 +29,7 @@ __all__ = [
     "CaseKind",
     "Counter",
     "CourierPickup",
+    "InpostShipment",
     "IntegrationCredential",
     "IntegrationSettings",
     "LabelStatus",

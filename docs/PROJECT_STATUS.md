@@ -43,7 +43,7 @@ folder, and one was restored from that copy into a scratch database as a test.
   remains the no-setup default for a fresh clone)
 - Health endpoint and first order model — done
 - Minimal order list interface — done
-- Automated tests for core flows — done (696 backend, 256 frontend passing
+- Automated tests for core flows — done (786 backend, 283 frontend passing
   across the suite as of 2026-09-25)
 
 ---
@@ -118,6 +118,8 @@ The NAS deployment (`DEPLOYMENT.md`) and the scheduled import (`ALLEGRO_IMPORT_I
 Shipments and carrier tracking (`INTEGRATIONS.md`) were built from Allegro's documentation and tested against fakes only: no real response has been seen, and whether the application's scopes allow the two endpoints is unknown.
 
 The dispatch deadline (`dispatch_by`, `INTEGRATIONS.md`, "Dispatch deadline") is read from the documented `delivery.time.dispatch.to`; no real order has shown it yet, so the "late" queue and the at-risk order stay empty-handed until one does. The queue tabs and dashboard tiles were checked in the browser on 2026-09-24 against the one sandbox order, which has no deadline.
+
+The InPost integration (`INTEGRATIONS.md`, "InPost") has never run against InPost: no token has been used, and it was built from ShipX's documentation and tested against fakes. Unconfirmed in particular: that `sending_method` is not required, that InPost chooses the offer itself, the batch labels request, and the status words after `confirmed`. Its migration `e9b4c2a7d5f1` was applied to the shared PostgreSQL on 2026-09-25: the other machines need `alembic upgrade head`. The Settings card, the Labels tab and the not-connected state were opened in the browser; nothing beyond that.
 
 The Erli import (`INTEGRATIONS.md`, "Erli") has never run: no API key has been used, and it was built from Erli's published OpenAPI description and tested against fakes. Unconfirmed in particular: that amounts are in grosze, the status mapping, and how soon Erli fills in the buyer's email.
 

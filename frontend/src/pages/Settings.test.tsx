@@ -50,6 +50,7 @@ describe("Settings page", () => {
       "#settings-allegro",
       "#settings-erli",
       "#settings-shipping-form",
+      "#settings-inpost",
       "#settings-safe-mode",
       "#settings-language",
     ]);

@@ -6,6 +6,23 @@ All significant changes to the Anvero project.
 
 ## 2026-09-25
 
+### 📮 InPost parcel lockers made and printed from Anvero
+
+- **Settings > Shipping > InPost**: token, organization number, environment
+  (sandbox by default) and default size; saved only after InPost accepts them.
+- **On an order** for an InPost locker: "Create InPost parcel" (size A/B/C), the
+  status, the number as a link, "Print label (A6)", "Check again" and cancel. Safe
+  mode holds back what is sent to InPost and to Allegro, and says so.
+- **Labels > InPost lockers**: the orders without a parcel made in one go, or
+  "Create and print" for one A6 PDF at once, and the parcels waiting for a label
+  printed together.
+- `inpost_shipments` table (migration `e9b4c2a7d5f1`: other machines need
+  `alembic upgrade head`) and the endpoints in `API.md`.
+- **Not verified against InPost yet**: built from its documentation and tested on
+  fakes; waiting for a sandbox token.
+- 786 backend and 283 frontend tests passing.
+
+
 ### 🔗 Tracking links for Allegro's own delivery
 
 - A number of Allegro Delivery (`AD...`: Kurier DPD, ORLEN Paczka, DHL BOX, DPD Pickup)

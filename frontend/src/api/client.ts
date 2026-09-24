@@ -575,6 +575,149 @@ export const shippingApi = {
   },
 };
 
+// ---- InPost: parcel locker shipments made and printed from Anvero --------------------
+
+export type InpostTemplate = "small" | "medium" | "large";
+export type InpostEnvironment = "sandbox" | "production";
+
+/** The InPost connection as Settings may know it: never the token itself. */
+export interface InpostStatus {
+  configured: boolean;
+  environment: InpostEnvironment;
+  organization_id: string | null;
+  token_hint: string | null;
+  default_template: InpostTemplate;
+}
+
+export interface InpostShipment {
+  id: string;
+  order_id: string;
+  created_at: string;
+  inpost_id: string;
+  /** InPost's own word: created, offer_selected, confirmed, ..., cancelled. */
+  status: string;
+  tracking_number: string | null;
+  target_point: string;
+  template: string;
+  reference: string | null;
+  error: string | null;
+  printed_at: string | null;
+}
+
+export interface InpostChangeResult {
+  shipment: InpostShipment | null;
+  /** What was asked of InPost, which safe mode may have held back (then `shipment` is null). */
+  marketplace_write: MarketplaceWrite | null;
+  /** The tracking number as it went to Allegro, once InPost had one. */
+  tracking_write: MarketplaceWrite | null;
+}
+
+export interface InpostAwaitingOrder {
+  id: string;
+  order_label: string;
+  buyer: string | null;
+  target_point: string;
+  pickup_point_name: string | null;
+  delivery_method: string | null;
+  status: string;
+  dispatch_by: string | null;
+}
+
+export interface InpostBulkItem {
+  order_id: string;
+  order_label: string;
+  outcome: "created" | "held_back" | "refused" | "failed";
+  message: string | null;
+  shipment: InpostShipment | null;
+}
+
+export interface InpostPrintable extends InpostShipment {
+  order_label: string;
+  buyer: string | null;
+}
+
+export const inpostApi = {
+  status(): Promise<InpostStatus> {
+    return request<InpostStatus>("/integrations/inpost");
+  },
+
+  /** Saved only once InPost has accepted the token and organization; the token can be left out to keep the saved one. */
+  saveSettings(settings: {
+    token?: string;
+    organization_id: string;
+    environment: InpostEnvironment;
+    default_template: InpostTemplate;
+  }): Promise<InpostStatus> {
+    return request<InpostStatus>("/integrations/inpost/settings", {
+      method: "PUT",
+      body: JSON.stringify(settings),
+    });
+  },
+
+  saveTemplate(defaultTemplate: InpostTemplate): Promise<InpostStatus> {
+    return request<InpostStatus>("/integrations/inpost/template", {
+      method: "PUT",
+      body: JSON.stringify({ default_template: defaultTemplate }),
+    });
+  },
+
+  forget(): Promise<InpostStatus> {
+    return request<InpostStatus>("/integrations/inpost/settings", { method: "DELETE" });
+  },
+
+  orderShipments(orderId: string): Promise<InpostShipment[]> {
+    return request<InpostShipment[]>(`/orders/${orderId}/inpost-shipments`);
+  },
+
+  /** Make the order's parcel; the size saved in Settings applies when none is given. */
+  create(orderId: string, template?: InpostTemplate): Promise<InpostChangeResult> {
+    return request<InpostChangeResult>(`/orders/${orderId}/inpost-shipments`, {
+      method: "POST",
+      body: JSON.stringify(template ? { template } : {}),
+    });
+  },
+
+  refresh(orderId: string, shipmentId: string): Promise<InpostChangeResult> {
+    return request<InpostChangeResult>(`/orders/${orderId}/inpost-shipments/${shipmentId}/refresh`, {
+      method: "POST",
+    });
+  },
+
+  cancel(orderId: string, shipmentId: string): Promise<InpostChangeResult> {
+    return request<InpostChangeResult>(`/orders/${orderId}/inpost-shipments/${shipmentId}/cancel`, {
+      method: "POST",
+    });
+  },
+
+  /** Orders a locker parcel could be made for now. */
+  awaiting(): Promise<InpostAwaitingOrder[]> {
+    return request<InpostAwaitingOrder[]>("/inpost/orders");
+  },
+
+  /** A parcel for each order; one order's refusal does not stop the others. */
+  createMany(orderIds: string[], template?: InpostTemplate): Promise<{ items: InpostBulkItem[] }> {
+    return request<{ items: InpostBulkItem[] }>("/inpost/shipments", {
+      method: "POST",
+      body: JSON.stringify(template ? { order_ids: orderIds, template } : { order_ids: orderIds }),
+    });
+  },
+
+  /** Shipments with a number: not yet printed (default), printed, or all (`null`). */
+  labels(printed: boolean | null = false): Promise<InpostPrintable[]> {
+    const query = printed === null ? "" : `?printed=${printed}`;
+    return request<InpostPrintable[]>(`/inpost/labels${query}`);
+  },
+
+  /** The labels as one A6 PDF, in the order given; notes them printed. */
+  pdf(shipmentIds: string[]): Promise<Blob> {
+    return request<Blob>("/inpost/labels/pdf", {
+      method: "POST",
+      body: JSON.stringify({ shipment_ids: shipmentIds }),
+      blob: true,
+    });
+  },
+};
+
 export const safeModeApi = {
   get(): Promise<SafeMode> {
     return request<SafeMode>("/settings/safe-mode");
