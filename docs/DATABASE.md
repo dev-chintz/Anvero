@@ -144,6 +144,19 @@ the latest token has to be kept between runs:
 | `account_login` | the connected seller's login, read once when the account is connected; only a label |
 | `updated_at` | last rotation |
 
+`app_settings` holds settings an operator changes in the interface, one row
+per key: `key` (primary key), `value` (text), `updated_at`,
+`updated_by_user_id` (nullable, `SET NULL` when the account goes). The only
+key so far is `safe_mode` (`on` or `off`); no row means on.
+
+`marketplace_writes` records every change Anvero made, or would have made, on
+a marketplace, and is never updated: `id`, `created_at` (indexed), `source`,
+`order_id` (nullable, indexed, `SET NULL` if the order is deleted: what was
+sent stays sent), `action` (e.g. `fulfillment_status`), `payload` (the JSON,
+as text), `outcome` (`DRY_RUN`, `SENT` or `FAILED`), `detail` (the
+marketplace's answer or the error, up to 2000 characters), `user_id`
+(nullable).
+
 `integration_settings` holds the application's own credentials when they were
 entered in Settings, and are then used instead of the `ALLEGRO_*` variables:
 `provider` (primary key), `client_id`, `client_secret` (plain text, never

@@ -1,4 +1,5 @@
 from app.models.integration import IntegrationCredential, IntegrationSettings
+from app.models.marketplace_write import AppSetting, MarketplaceWrite, WriteOutcome
 from app.models.order import (
     AddressType,
     BillingEntry,
@@ -16,10 +17,12 @@ from app.models.user import User
 
 __all__ = [
     "AddressType",
+    "AppSetting",
     "BillingEntry",
     "Counter",
     "IntegrationCredential",
     "IntegrationSettings",
+    "MarketplaceWrite",
     "Order",
     "OrderAddress",
     "OrderItem",
@@ -29,4 +32,5 @@ __all__ = [
     "OrderStatusHistory",
     "PaymentType",
     "User",
+    "WriteOutcome",
 ]

@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { BrowserRouter, Outlet, Route, Routes } from 'react-router-dom';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { Sidebar } from './components/Sidebar';
+import { SafeModeBanner } from './components/SafeModeBanner';
+import { SafeModeProvider } from './safeMode/SafeModeContext';
 import { OrderDetail } from './components/OrderDetail';
 import { ToastContainer, ToastMessage } from './components/Toast';
 import { AuthProvider } from './auth/AuthContext';
@@ -36,13 +38,16 @@ function AppLayout({ isDarkMode, onThemeToggle, toasts, onToastClose }: LayoutPr
   return (
     // theming keys off the `dark` class App sets on <html>, so no
     // per-component modifier is needed here
-    <div className="app">
-      <Sidebar isDarkMode={isDarkMode} onThemeToggle={onThemeToggle} />
-      <main className="app-content">
-        <Outlet />
-      </main>
-      <ToastContainer toasts={toasts} onClose={onToastClose} />
-    </div>
+    <SafeModeProvider>
+      <div className="app">
+        <Sidebar isDarkMode={isDarkMode} onThemeToggle={onThemeToggle} />
+        <main className="app-content">
+          <SafeModeBanner />
+          <Outlet />
+        </main>
+        <ToastContainer toasts={toasts} onClose={onToastClose} />
+      </div>
+    </SafeModeProvider>
   );
 }
 

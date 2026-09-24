@@ -1,4 +1,5 @@
 import { AllegroSettings } from '../components/AllegroSettings';
+import { SafeModeSettings } from '../components/SafeModeSettings';
 import { useTranslation, LANGUAGES, type Language } from '../i18n';
 
 export const Settings: React.FC = () => {
@@ -11,6 +12,11 @@ export const Settings: React.FC = () => {
       </header>
 
       <div className="settings-content">
+        <section className="settings-section" aria-label={t('safeMode.title')}>
+          <h2>{t('safeMode.title')}</h2>
+          <SafeModeSettings />
+        </section>
+
         <section className="settings-section" aria-label={t('settings.language')}>
           <h2>{t('settings.language')}</h2>
           <select

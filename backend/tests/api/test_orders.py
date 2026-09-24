@@ -1064,3 +1064,56 @@ def test_buyer_orders_of_an_unknown_order_is_404():
     missing = "00000000-0000-0000-0000-000000000000"
 
     assert client.get(f"/api/v1/orders/{missing}/buyer-orders").status_code == 404
+
+
+# --- safe mode ------------------------------------------------------------------
+
+
+def test_safe_mode_starts_on_and_says_who_switched_it():
+    first = client.get("/api/v1/settings/safe-mode").json()
+    assert first == {"enabled": True, "changed_at": None, "changed_by": None}
+
+    off = client.put("/api/v1/settings/safe-mode", json={"enabled": False})
+
+    assert off.status_code == 200
+    assert off.json()["enabled"] is False
+    assert off.json()["changed_by"] == OPERATOR_EMAIL
+    assert off.json()["changed_at"].endswith("Z")
+
+    back_on = client.put("/api/v1/settings/safe-mode", json={"enabled": True}).json()
+    assert back_on["enabled"] is True
+
+
+def test_safe_mode_and_the_write_log_need_a_login():
+    assert anonymous.get("/api/v1/settings/safe-mode").status_code == 401
+    assert anonymous.put("/api/v1/settings/safe-mode", json={"enabled": False}).status_code == 401
+    assert anonymous.get("/api/v1/marketplace-writes").status_code == 401
+
+
+def test_the_write_log_lists_what_would_have_been_sent():
+    import uuid
+
+    from app.models.order import OrderSource
+    from app.services.marketplace_writes import MarketplaceWriter
+
+    created = client.post("/api/v1/orders", json=_order_payload(external_id="WRITE-LOG-1")).json()
+    db = TestingSessionLocal()
+    try:
+        MarketplaceWriter(db).write(
+            OrderSource.ALLEGRO,
+            "fulfillment_status",
+            {"status": "SENT"},
+            lambda: None,
+            order_id=uuid.UUID(created["id"]),
+        )
+    finally:
+        db.close()
+
+    (entry,) = client.get(
+        "/api/v1/marketplace-writes", params={"order_id": created["id"]}
+    ).json()
+
+    assert entry["outcome"] == "DRY_RUN"
+    assert entry["action"] == "fulfillment_status"
+    assert entry["payload"] == '{"status": "SENT"}'
+    assert entry["source"] == "ALLEGRO"

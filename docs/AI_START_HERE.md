@@ -31,7 +31,8 @@ Read the following files in order:
 AlleIntegrator; the order of work is the feature plan at the end of
 `ROADMAP.md` (stages A1–A3 are done: work queues, the "to make" list,
 wider search and the buyer's other orders; A4, the Erli import, has its
-adapter built from Erli's docs and waits for the owner's API key).
+adapter built from Erli's docs and waits for the owner's API key; A5, safe
+mode, is done, so every marketplace write must go through `MarketplaceWriter`).
 
 **Open task:** the first deployment to the NAS is prepared but not yet run; see "PICK UP HERE" in `PROJECT_STATUS.md` and `DEPLOYMENT.md`.
 
@@ -47,7 +48,7 @@ breakdown; the short version:
   history.
 - Allegro adapter, import script, an import endpoint and a button, one
   import at a time.
-- 391 backend and 83 frontend tests passing.
+- 400 backend and 88 frontend tests passing.
 
 - One shared PostgreSQL 17 on the owner's NAS is the development database;
   each machine's `backend/.env` points at it (the password is not in Git, ask

@@ -6,6 +6,18 @@ All significant changes to the Anvero project.
 
 ## 2026-09-24
 
+### 🛡️ Safe mode for writes to the marketplaces
+
+- `MarketplaceWriter`: the one door every future write to Allegro or Erli goes
+  through. With safe mode on (the default) it only records what would have
+  been sent; off, it sends and records the answer. Log in
+  `marketplace_writes`, the switch in `app_settings` (migration
+  `e2a9c7f4b813`).
+- `GET`/`PUT /settings/safe-mode`, `GET /marketplace-writes`; a Safe mode
+  section in Settings (switching off asks first) with the log, and a banner on
+  every page while it is on.
+- Stage A5 of the feature plan.
+
 ### 🛍️ Erli adapter, built from Erli's documentation
 
 - `app/integrations/erli`: client, mapper and adapter for Erli's Shop API

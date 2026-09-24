@@ -273,9 +273,9 @@ In this order (the owner chose queues before any write to Allegro):
    built from Erli's documentation and tested on fakes (`INTEGRATIONS.md`,
    "Erli"). Left: a first run with the owner's API key, then an import button
    and schedule like Allegro's.
-5. **Safe mode (dry run).** A switch, on by default, under which every write
-   to a marketplace is logged and shown as "would send" instead of sent. In
-   place before the first write.
+5. ~~**Safe mode (dry run).**~~ Done 2026-09-24: `MarketplaceWriter`, the
+   switch in Settings (on by default, asks before going off), the log of what
+   was or would have been sent, and a banner while it is on (`DECISIONS.md`).
 6. **Writing to Allegro:** fulfillment status and tracking number (writes 1
    and 2 in item 4's survey), with the conflict rule for two changes at once
    decided first.

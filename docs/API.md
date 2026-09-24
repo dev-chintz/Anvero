@@ -22,6 +22,9 @@ are days in the business timezone, `BUSINESS_TIMEZONE`, default
 | `POST` | `/api/v1/orders` | create an order — local testing until marketplace ingestion exists |
 | `POST` | `/api/v1/auth/login` | obtain a JWT; rate limited to 5 attempts per minute per IP |
 | `GET` | `/api/v1/users/me` | current user |
+| `GET` | `/api/v1/settings/safe-mode` | whether safe mode is on, and who last switched it |
+| `PUT` | `/api/v1/settings/safe-mode` | switch safe mode on or off |
+| `GET` | `/api/v1/marketplace-writes` | what Anvero sent to a marketplace, or held back in safe mode |
 | `GET` | `/api/v1/integrations/allegro` | the Allegro connection's state, never a secret |
 | `PUT` | `/api/v1/integrations/allegro/settings` | store the Allegro application's credentials |
 | `POST` | `/api/v1/integrations/allegro/connect` | start connecting a seller account; rate limited to 10 per minute per IP |
@@ -263,6 +266,34 @@ counted. Lines come in the order their product is first needed: `dispatch_by`
 is the earliest among the line's orders, lines without any deadline come last,
 oldest order first; each line's `orders` are in the same order. `order_count`
 counts the queue's orders, including any without items.
+
+## Safe mode: `GET` and `PUT /api/v1/settings/safe-mode`
+
+`{"enabled": true, "changed_at": null, "changed_by": null}`. Safe mode is on
+until someone switches it off; `changed_at` and `changed_by` (an email) say
+who last switched it, null while no one has. `PUT` takes `{"enabled": bool}`
+and returns the same shape.
+
+While it is on, no change reaches a marketplace: every write Anvero would make
+(a status, a tracking number, later messages and invoices) is recorded with
+the outcome `DRY_RUN` instead of being sent. It is read afresh on every write,
+so switching it on stops the very next one.
+
+## `GET /api/v1/marketplace-writes`
+
+Every write to a marketplace, sent or held back, newest first: `order_id`
+(optional) narrows it to one order, `limit` (default 50, at most 500).
+
+```json
+[{"id": "...", "created_at": "...Z", "source": "ALLEGRO", "order_id": "...",
+  "action": "fulfillment_status", "payload": "{\"status\": \"SENT\"}",
+  "outcome": "DRY_RUN", "detail": null, "user": "operator@example.com"}]
+```
+
+`payload` is the JSON that was, or would have been, sent, as text. `outcome`
+is `DRY_RUN` (safe mode held it back), `SENT` or `FAILED`; `detail` is the
+marketplace's answer or the error. Nothing writes to it yet: the first writes
+come with feature plan stage A6.
 
 ## `GET /api/v1/orders/{id}/buyer-orders`
 

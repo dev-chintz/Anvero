@@ -267,3 +267,49 @@ export const ordersApi = {
     return request<OrderStats>("/orders/stats");
   },
 };
+
+/** Safe mode: while on, nothing Anvero would change on a marketplace is sent. */
+export interface SafeMode {
+  enabled: boolean;
+  /** When and by whom it was last switched; null while it never has been. */
+  changed_at: string | null;
+  changed_by: string | null;
+}
+
+export const safeModeApi = {
+  get(): Promise<SafeMode> {
+    return request<SafeMode>("/settings/safe-mode");
+  },
+
+  set(enabled: boolean): Promise<SafeMode> {
+    return request<SafeMode>("/settings/safe-mode", {
+      method: "PUT",
+      body: JSON.stringify({ enabled }),
+    });
+  },
+};
+
+/** One change sent to a marketplace, or held back by safe mode. */
+export interface MarketplaceWrite {
+  id: string;
+  created_at: string;
+  source: OrderSource;
+  order_id: string | null;
+  action: string;
+  /** JSON text, as the marketplace would get it. */
+  payload: string;
+  outcome: "DRY_RUN" | "SENT" | "FAILED";
+  /** The marketplace's answer, or the error. */
+  detail: string | null;
+  user: string | null;
+}
+
+export const marketplaceWritesApi = {
+  list(params: { orderId?: string; limit?: number } = {}): Promise<MarketplaceWrite[]> {
+    const query = new URLSearchParams();
+    if (params.orderId) query.set("order_id", params.orderId);
+    if (params.limit !== undefined) query.set("limit", String(params.limit));
+    const queryString = query.toString();
+    return request<MarketplaceWrite[]>(`/marketplace-writes${queryString ? `?${queryString}` : ""}`);
+  },
+};

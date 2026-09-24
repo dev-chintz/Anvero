@@ -115,3 +115,77 @@
     margin-left: 70px;
   }
 }
+
+/* safe mode: the reminder above every page, and its switch in Settings */
+.safe-mode-banner {
+  padding: 0.5rem 2rem;
+  background: #ecfdf5;
+  border-bottom: 1px solid #a7f3d0;
+  color: #065f46;
+  font-size: 0.9rem;
+}
+
+.safe-mode-banner a {
+  color: inherit;
+  font-weight: 600;
+}
+
+:root.dark .safe-mode-banner {
+  background: #0f2e25;
+  border-color: #065f46;
+  color: #a7f3d0;
+}
+
+.safe-mode-state {
+  font-weight: 600;
+  margin: 0 0 0.5rem;
+}
+
+.safe-mode-state.is-off {
+  color: var(--color-error);
+}
+
+.safe-mode-settings button {
+  margin-top: 0.5rem;
+}
+
+.safe-mode-settings .danger-button {
+  background: var(--color-error);
+  border-color: var(--color-error);
+  color: #fff;
+}
+
+.safe-mode-settings h3 {
+  margin: 1.5rem 0 0.5rem;
+  font-size: 1rem;
+}
+
+.safe-mode-log {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+
+.safe-mode-log th,
+.safe-mode-log td {
+  padding: 0.4rem 0.5rem;
+  border-bottom: 1px solid var(--color-divider);
+  text-align: left;
+  vertical-align: top;
+}
+
+.safe-mode-payload {
+  word-break: break-all;
+  color: var(--color-muted);
+}
+
+.safe-mode-log .outcome-failed {
+  color: var(--color-error);
+  font-weight: 600;
+}
+
+@media (max-width: 768px) {
+  .safe-mode-banner {
+    padding: 0.5rem 1rem;
+  }
+}
