@@ -252,10 +252,20 @@ export const ordersApi = {
     return request<OrderStatusChange[]>(`/orders/${orderId}/history`);
   },
 
-  updateStatus(orderId: string, status: OrderStatus): Promise<OrderWithDetails> {
-    return request<OrderWithDetails>(`/orders/${orderId}/status`, {
+  updateStatus(orderId: string, status: OrderStatus): Promise<OrderChangeResult> {
+    return request<OrderChangeResult>(`/orders/${orderId}/status`, {
       method: "PATCH",
       body: JSON.stringify({ status }),
+    });
+  },
+
+  addShipment(
+    orderId: string,
+    shipment: { carrier_id: string; carrier_name?: string; waybill: string },
+  ): Promise<OrderChangeResult> {
+    return request<OrderChangeResult>(`/orders/${orderId}/shipments`, {
+      method: "POST",
+      body: JSON.stringify(shipment),
     });
   },
 
@@ -312,4 +322,12 @@ export const marketplaceWritesApi = {
     const queryString = query.toString();
     return request<MarketplaceWrite[]>(`/marketplace-writes${queryString ? `?${queryString}` : ""}`);
   },
+};
+
+/**
+ * An order after a change made in Anvero, and what became of sending it to
+ * the marketplace; `marketplace_write` is null when nothing was for it.
+ */
+export type OrderChangeResult = OrderWithDetails & {
+  marketplace_write?: MarketplaceWrite | null;
 };

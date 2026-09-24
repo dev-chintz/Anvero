@@ -276,9 +276,10 @@ In this order (the owner chose queues before any write to Allegro):
 5. ~~**Safe mode (dry run).**~~ Done 2026-09-24: `MarketplaceWriter`, the
    switch in Settings (on by default, asks before going off), the log of what
    was or would have been sent, and a banner while it is on (`DECISIONS.md`).
-6. **Writing to Allegro:** fulfillment status and tracking number (writes 1
-   and 2 in item 4's survey), with the conflict rule for two changes at once
-   decided first.
+6. ~~**Writing to Allegro:**~~ Done 2026-09-24, through safe mode:
+   fulfillment status and tracking number; the last change made in Anvero
+   wins (`DECISIONS.md`). Not yet sent for real: try it on the Sandbox with
+   safe mode off (`INTEGRATIONS.md`, "Writing to Allegro").
 7. **Application status page.** Allegro/Erli connection and token validity,
    last import and its outcome, whether the schedule is running.
 

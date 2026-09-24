@@ -16,7 +16,8 @@ are days in the business timezone, `BUSINESS_TIMEZONE`, default
 | `GET` | `/api/v1/orders/stats` | aggregate figures for the dashboard |
 | `GET` | `/api/v1/orders/production` | the to-make queue by product: what to make and how many |
 | `GET` | `/api/v1/orders/{id}` | one order with its details: items, buyer, delivery, payment, invoice |
-| `PATCH` | `/api/v1/orders/{id}/status` | internal status change |
+| `PATCH` | `/api/v1/orders/{id}/status` | status change, also sent to Allegro (safe mode permitting) |
+| `POST` | `/api/v1/orders/{id}/shipments` | add a tracking number, also sent to Allegro (safe mode permitting) |
 | `GET` | `/api/v1/orders/{id}/history` | status change history |
 | `GET` | `/api/v1/orders/{id}/buyer-orders` | the same buyer's other orders, newest first, at most 20 |
 | `POST` | `/api/v1/orders` | create an order — local testing until marketplace ingestion exists |
@@ -294,6 +295,28 @@ Every write to a marketplace, sent or held back, newest first: `order_id`
 is `DRY_RUN` (safe mode held it back), `SENT` or `FAILED`; `detail` is the
 marketplace's answer or the error. Nothing writes to it yet: the first writes
 come with feature plan stage A6.
+
+## Changes that reach the marketplace
+
+`PATCH /api/v1/orders/{id}/status` and `POST /api/v1/orders/{id}/shipments`
+return the order in the shape of `GET /api/v1/orders/{id}`, plus
+`marketplace_write`: null when nothing was for the marketplace, otherwise the
+entry it made in `GET /api/v1/marketplace-writes` (`DRY_RUN` in safe mode,
+`SENT`, or `FAILED` with Allegro's reason in `detail`). A failure to send is
+not an error response: the change in Anvero stands, and `marketplace_write`
+says it did not reach Allegro.
+
+A status is sent only for an Allegro order, and only when it actually changes:
+`NEW` → `NEW`, `CONFIRMED` → `PROCESSING`, `READY_FOR_SHIPMENT` →
+`READY_FOR_SHIPMENT`, `SHIPPED` → `SENT`, `DELIVERED` → `PICKED_UP`.
+`CANCELLED` is never sent: an Allegro order is cancelled on Allegro.
+
+`POST /api/v1/orders/{id}/shipments` takes
+`{"carrier_id": "INPOST", "carrier_name": null, "waybill": "..."}`.
+`carrier_id` is one of `INPOST`, `DPD`, `DHL`, `POCZTA_POLSKA`, `UPS`, `GLS`,
+`FEDEX`, `ALLEGRO`, `OTHER` (`422` otherwise); `OTHER` needs `carrier_name`.
+The parcel is stored on any order; for an Allegro one it is also sent. A
+parcel added in Anvero stays on the order when an import does not list it.
 
 ## `GET /api/v1/orders/{id}/buyer-orders`
 

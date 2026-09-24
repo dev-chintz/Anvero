@@ -225,6 +225,18 @@ class OrderImportService:
 
             if not status_moved or data.status == existing.status:
                 continue
+            if self._set_by_hand_since(existing, data):
+                # the last change made in Anvero wins: the marketplace moved
+                # before the operator did, so this is not news to them
+                logger.info(
+                    "Order %s: %s reports %s from before the status was set by hand; "
+                    "keeping %s",
+                    data.external_id,
+                    data.source.value,
+                    data.status.value,
+                    existing.status.value,
+                )
+                continue
 
             previous = existing.status
             self.repository.update_status(existing, data.status)
@@ -256,6 +268,13 @@ class OrderImportService:
             updated=updated,
             cancellation_warnings=cancellation_warnings,
         )
+
+    @staticmethod
+    def _set_by_hand_since(existing: Order, data: OrderCreate) -> bool:
+        """The operator set the status after the marketplace last changed the order."""
+        if existing.status_set_at is None or data.marketplace_updated_at is None:
+            return False
+        return _as_utc(existing.status_set_at) >= data.marketplace_updated_at
 
     @staticmethod
     def _to_order(data: OrderCreate) -> Order:

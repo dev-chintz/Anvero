@@ -260,6 +260,82 @@ class AllegroClient:
             raise IntegrationUnavailable(f"Allegro API returned {response.status_code} for {what}")
         return _json_object(response, f"Allegro {what}")
 
+    def _send(
+        self, method: str, path: str, what: str, body: dict[str, Any]
+    ) -> dict[str, Any] | None:
+        """Send a change to Allegro; its JSON answer, or None when it has none.
+
+        Only ever called through MarketplaceWriter (safe mode). A refusal is
+        an IntegrationAuthError, as for reads; Allegro's own explanation of a
+        rejected change (400/409/422) is kept in the error, since that is what
+        the operator needs to see.
+        """
+        token = self._access_token_value()
+        try:
+            response = self._http.request(
+                method,
+                f"{self._api_url}{path}",
+                headers={
+                    "Authorization": f"Bearer {token}",
+                    "Accept": ACCEPT_HEADER,
+                    "Content-Type": ACCEPT_HEADER,
+                    "User-Agent": self._user_agent,
+                },
+                json=body,
+            )
+        except httpx2.RequestError as exc:
+            raise IntegrationUnavailable(f"Allegro API unreachable: {exc}") from exc
+
+        if response.status_code == 401:
+            self._access_token = None
+            raise IntegrationAuthError("Allegro rejected the access token")
+        if response.status_code == 403:
+            raise IntegrationAuthError(
+                f"Allegro refused {what}; the application likely lacks the "
+                "allegro:api:orders:write scope"
+            )
+        if response.status_code >= 400:
+            raise IntegrationUnavailable(
+                f"Allegro refused {what} ({response.status_code}): {response.text[:500]}"
+            )
+        if not response.content:
+            return None
+        return _json_object(response, f"Allegro {what}")
+
+    def set_fulfillment_status(self, checkout_form_id: str, status: str) -> None:
+        """`PUT /order/checkout-forms/{id}/fulfillment`: the order's handling status.
+
+        Allegro answers 204 with no body.
+        """
+        self._send(
+            "PUT",
+            f"/order/checkout-forms/{checkout_form_id}/fulfillment",
+            "the fulfillment status",
+            {"status": status},
+        )
+
+    def add_shipment(
+        self,
+        checkout_form_id: str,
+        carrier_id: str,
+        waybill: str,
+        carrier_name: str | None = None,
+    ) -> dict[str, Any] | None:
+        """`POST /order/checkout-forms/{id}/shipments`: a tracking number.
+
+        `carrierName` is only for carrier OTHER. Allegro then shows the number
+        to the buyer; the answer carries the shipment's `id`.
+        """
+        body: dict[str, Any] = {"carrierId": carrier_id, "waybill": waybill}
+        if carrier_name:
+            body["carrierName"] = carrier_name
+        return self._send(
+            "POST",
+            f"/order/checkout-forms/{checkout_form_id}/shipments",
+            "the tracking number",
+            body,
+        )
+
     def fetch_shipments(self, checkout_form_id: str) -> list[dict[str, Any]]:
         """Return the parcels registered for an order (carrier and waybill).
 

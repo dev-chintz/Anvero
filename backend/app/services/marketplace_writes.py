@@ -73,13 +73,15 @@ class MarketplaceWriter:
         send: Callable[[], Any],
         order_id: uuid.UUID | None = None,
         user_id: int | None = None,
+        raise_errors: bool = True,
     ) -> WriteResult:
         """Send one change to a marketplace, unless safe mode holds it back.
 
         `send` performs the actual request and is only called with safe mode
         off, which is read afresh on every write, so switching it on stops the
         very next one. A failure is recorded and then raised, so the caller
-        can tell the operator.
+        can tell the operator; with `raise_errors` false it is returned as a
+        FAILED result instead.
         """
         body = json.dumps(payload, ensure_ascii=False, sort_keys=True, default=str)
         if safe_mode_on(self.db):
@@ -91,11 +93,14 @@ class MarketplaceWriter:
             response = send()
         except Exception as exc:
             self.db.rollback()
-            self._record(
+            record = self._record(
                 source, action, body, WriteOutcome.FAILED, str(exc) or type(exc).__name__,
                 order_id, user_id,
             )
-            raise
+            if raise_errors:
+                raise
+            logger.warning("%s %s not sent: %s", source.value, action, exc)
+            return WriteResult(WriteOutcome.FAILED, record)
         detail = None if response is None else json.dumps(response, ensure_ascii=False, default=str)
         record = self._record(source, action, body, WriteOutcome.SENT, detail, order_id, user_id)
         return WriteResult(WriteOutcome.SENT, record, response)

@@ -1,7 +1,14 @@
 import uuid
 from decimal import Decimal
 
-from pydantic import BaseModel, ConfigDict, EmailStr, Field, computed_field
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    EmailStr,
+    Field,
+    computed_field,
+    model_validator,
+)
 
 from app.core.order_number import format_order_number
 from app.models.order import (
@@ -11,6 +18,7 @@ from app.models.order import (
     OrderStatus,
     PaymentType,
 )
+from app.schemas.marketplace_write import MarketplaceWriteRead
 from app.schemas.types import UtcDateTime
 
 BUYER_MESSAGE_MAX_LENGTH = 4000
@@ -189,6 +197,9 @@ class OrderCreate(OrderBase, OrderDetails):
     # when the buyer placed the order; omitted means "now". A value without a
     # zone is taken as UTC.
     ordered_at: UtcDateTime | None = None
+    # when the marketplace last changed the order, by its own clock; compared
+    # with when the operator last set the status, never stored
+    marketplace_updated_at: UtcDateTime | None = None
 
 
 class OrderUpdate(BaseModel):
@@ -283,6 +294,32 @@ class OrderDetailRead(OrderRead, OrderDetails):
             buyer_message=order.buyer_message,
             seller_note=order.seller_note,
         )
+
+
+class OrderChangeResult(OrderDetailRead):
+    """An order after a change made in Anvero, and what became of sending it.
+
+    `marketplace_write` is null when nothing was for the marketplace (an Erli
+    order, a status Allegro is not told); otherwise it says whether the change
+    was sent, held back by safe mode, or refused, and why.
+    """
+
+    marketplace_write: MarketplaceWriteRead | None = None
+
+
+class ShipmentAdd(BaseModel):
+    """A tracking number typed in on an order."""
+
+    # Allegro's carrier id, e.g. INPOST; OTHER needs carrier_name
+    carrier_id: str = Field(min_length=1, max_length=64, pattern=r"^[A-Z_]+$")
+    carrier_name: str | None = _text(255)
+    waybill: str = Field(min_length=1, max_length=255)
+
+    @model_validator(mode="after")
+    def _other_needs_a_name(self) -> "ShipmentAdd":
+        if self.carrier_id == "OTHER" and not self.carrier_name:
+            raise ValueError("carrier_name is required when carrier_id is OTHER")
+        return self
 
 
 def _address(order: Order, address_type: AddressType) -> Address | None:

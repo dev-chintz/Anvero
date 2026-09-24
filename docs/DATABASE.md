@@ -46,6 +46,11 @@ point at:
   whose Allegro label already said so, and whose status still matched
   Allegro's, from `CONFIRMED` to it, without a history entry (a
   reclassification, not a change anyone made).
+- `status_set_at` (nullable) is when an operator last set the status by hand
+  (the API, not an import). An import does not move the status for a
+  marketplace change older than this: the last change made in Anvero wins
+  (`DECISIONS.md`). The migration filled it from the history's latest change
+  with an author.
 - `dispatch_by` (nullable, indexed) is not in the target: the latest moment
   the seller must hand the parcel over, as the marketplace states it (Allegro:
   `delivery.time.dispatch.to`). The work queues sort and flag orders by it.
@@ -100,8 +105,10 @@ enforced by a unique constraint), `first_name`, `last_name`, `company_name`,
 marketplace's clock), `tracking_status` (the carrier's latest code:
 `PENDING`, `IN_TRANSIT`, `RELEASED_FOR_DELIVERY`, `AVAILABLE_FOR_PICKUP`,
 `NOTICE_LEFT`, `ISSUE`, `DELIVERED`, `RETURNED`; null when none was read) and
-`tracking_updated_at`. Replaced by an import like the items, except that
-parcels an import could not read are left as they were.
+`tracking_updated_at`, and `added_in_anvero` (a tracking number typed in on
+the order rather than read from the marketplace). Replaced by an import like
+the items, except that parcels an import could not read are left as they
+were, and a parcel added in Anvero that the marketplace does not list is kept.
 
 All three child tables are deleted with their order.
 

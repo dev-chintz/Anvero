@@ -8,6 +8,7 @@ import { useOrderStats } from '../hooks/useOrderStats';
 import { OrderQueue, OrderSort } from '../types/order';
 import type { OrderSource, OrderStatus } from '../types/order';
 import { useTranslation } from '../i18n';
+import { describeWrite } from '../components/marketplaceWrite';
 import '../styles/OrdersPage.css';
 
 const DEFAULT_LIMIT = 20;
@@ -153,8 +154,10 @@ export function OrdersPage({ addToast }: OrdersPageProps) {
     setUpdatingOrderId(orderId);
     ordersApi
       .updateStatus(orderId, status)
-      .then(() => {
+      .then((result) => {
         addToast?.(t('orders.statusSet', { status: t(`status.${status}`) }), 'success');
+        const write = describeWrite(result.marketplace_write);
+        if (write) addToast?.(write.text, write.tone);
         refetch();
       })
       .catch((err: unknown) => {

@@ -217,3 +217,63 @@
 .order-items thead th.numeric {
   white-space: normal;
 }
+
+/* what became of a change sent to the marketplace */
+.write-note {
+  margin: 0.4rem 0 0;
+  font-size: 0.85rem;
+}
+
+.write-success {
+  color: #15803d;
+}
+
+.write-info {
+  color: #0f766e;
+}
+
+.write-error {
+  color: var(--color-error);
+  font-weight: 600;
+}
+
+:root.dark .write-success {
+  color: #4ade80;
+}
+
+:root.dark .write-info {
+  color: #5eead4;
+}
+
+.add-shipment-fields {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 0.75rem;
+}
+
+.add-shipment-fields label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.85rem;
+  color: var(--color-muted-strong);
+}
+
+.order-writes ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 0.85rem;
+}
+
+.order-writes li {
+  padding: 0.35rem 0;
+  border-bottom: 1px solid var(--color-divider);
+  word-break: break-all;
+}
+
+.order-writes .outcome-failed strong,
+.order-writes .write-detail {
+  color: var(--color-error);
+}

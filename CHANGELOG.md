@@ -6,6 +6,19 @@ All significant changes to the Anvero project.
 
 ## 2026-09-24
 
+### 📤 Status and tracking numbers sent to Allegro (through safe mode)
+
+- A status set in Anvero is sent to Allegro's fulfillment status, and a
+  tracking number typed in on the order (new form in the order drawer) is sent
+  as a shipment; both through `MarketplaceWriter`, so safe mode only records
+  them. The drawer shows what became of each change and lists what was sent
+  or held back for the order.
+- The last change made in Anvero wins: `orders.status_set_at`, and an import
+  no longer undoes it with an older Allegro change. Parcels added in Anvero
+  survive an import (`order_shipments.added_in_anvero`; migration
+  `f5c3b8e1d726`).
+- Never sent for real yet. Stage A6 of the feature plan.
+
 ### 🛡️ Safe mode for writes to the marketplaces
 
 - `MarketplaceWriter`: the one door every future write to Allegro or Erli goes

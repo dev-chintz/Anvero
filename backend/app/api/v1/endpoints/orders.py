@@ -2,7 +2,7 @@ import uuid
 from datetime import date
 from decimal import Decimal
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
 from app.core.security import get_current_user
@@ -10,8 +10,10 @@ from app.db.session import get_db
 from app.models.order import OrderSource, OrderStatus
 from app.models.user import User
 from app.repositories.order_repository import OrderQueue, OrderRepository, OrderSort
+from app.schemas.marketplace_write import MarketplaceWriteRead
 from app.schemas.order import (
     OrderBillingRead,
+    OrderChangeResult,
     OrderCreate,
     OrderDetailRead,
     OrderListResponse,
@@ -20,8 +22,10 @@ from app.schemas.order import (
     OrderStatusHistoryRead,
     OrderUpdate,
     ProductionList,
+    ShipmentAdd,
 )
 from app.services.order_service import OrderService
+from app.services.order_writes import ALLEGRO_CARRIERS, OrderWrites
 from app.services.production import build_production_list
 
 # Every order endpoint requires a logged-in user. Set on the router rather
@@ -113,7 +117,7 @@ def get_order_billing(order_id: uuid.UUID, db: Session = Depends(get_db)):
 # because a change here is meant to record an entry in the status history
 # returns the details too: the order page replaces its copy of the order with
 # this response, and would otherwise lose them
-@router.patch("/{order_id}/status", response_model=OrderDetailRead)
+@router.patch("/{order_id}/status", response_model=OrderChangeResult)
 def update_order_status(
     order_id: uuid.UUID,
     payload: OrderUpdate,
@@ -121,10 +125,41 @@ def update_order_status(
     current_user: User = Depends(get_current_user),
 ):
     service = OrderService(OrderRepository(db))
+    previous = service.get_order(order_id).status
     order = service.update_order_status(
         order_id, payload.status, changed_by_user_id=current_user.id
     )
-    return OrderDetailRead.from_order(order)
+    # the marketplace hears of it too (or, in safe mode, the log does)
+    write = None
+    if order.status != previous:
+        write = OrderWrites(db).push_status(order, current_user.id)
+    return _change_result(order, write)
+
+
+@router.post("/{order_id}/shipments", response_model=OrderChangeResult)
+def add_order_shipment(
+    order_id: uuid.UUID,
+    payload: ShipmentAdd,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    if payload.carrier_id not in ALLEGRO_CARRIERS:
+        raise HTTPException(
+            status_code=422,
+            detail=f"carrier_id must be one of {', '.join(ALLEGRO_CARRIERS)}",
+        )
+    order = OrderService(OrderRepository(db)).get_order(order_id)
+    _, write = OrderWrites(db).add_shipment(
+        order, payload.carrier_id, payload.carrier_name, payload.waybill, current_user.id
+    )
+    return _change_result(order, write)
+
+
+def _change_result(order, write) -> OrderChangeResult:
+    return OrderChangeResult(
+        **OrderDetailRead.from_order(order).model_dump(),
+        marketplace_write=MarketplaceWriteRead.model_validate(write.record) if write else None,
+    )
 
 
 @router.post("", response_model=OrderDetailRead)

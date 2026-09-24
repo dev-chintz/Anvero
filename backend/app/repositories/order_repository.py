@@ -148,9 +148,49 @@ class OrderRepository:
             )
         )
         order.status = status
+        if changed_by_user_id is not None:
+            order.status_set_at = self._to_db_datetime(datetime.now(UTC))
         self.db.commit()
         self.db.refresh(order)
         return order
+
+    def record_marketplace_status(
+        self, order: Order, status: OrderStatus, label: str | None
+    ) -> None:
+        """Note what the marketplace now says, after Anvero told it so.
+
+        The next import compares against this, so the change Anvero just
+        sent does not look like the marketplace moving on its own.
+        """
+        order.marketplace_status = status
+        order.marketplace_status_label = label
+        self.db.commit()
+
+    def add_shipment(
+        self,
+        order: Order,
+        carrier_id: str | None,
+        carrier_name: str | None,
+        waybill: str,
+    ) -> OrderShipment:
+        """Add a parcel entered in Anvero, after those already on the order."""
+        shipment = OrderShipment(
+            order_id=order.id,
+            position=len(order.shipments),
+            carrier_id=carrier_id,
+            carrier_name=carrier_name,
+            waybill=waybill,
+            shipped_at=self._to_db_datetime(datetime.now(UTC)),
+            added_in_anvero=True,
+        )
+        self.db.add(shipment)
+        self.db.commit()
+        self.db.refresh(order)
+        return shipment
+
+    def set_shipment_external_id(self, shipment: OrderShipment, external_id: str) -> None:
+        shipment.external_id = external_id
+        self.db.commit()
 
     def shipments_awaiting_tracking(
         self, source: OrderSource, limit: int = 200

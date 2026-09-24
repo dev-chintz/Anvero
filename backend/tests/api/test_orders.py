@@ -1117,3 +1117,62 @@ def test_the_write_log_lists_what_would_have_been_sent():
     assert entry["action"] == "fulfillment_status"
     assert entry["payload"] == '{"status": "SENT"}'
     assert entry["source"] == "ALLEGRO"
+
+
+# --- changes sent to the marketplace ------------------------------------------------
+
+
+def test_a_status_change_says_what_became_of_sending_it():
+    allegro = client.post("/api/v1/orders", json=_order_payload(external_id="PUSH-ALG")).json()
+    erli = client.post(
+        "/api/v1/orders", json=_order_payload(external_id="PUSH-ERLI", source="ERLI")
+    ).json()
+
+    changed = client.patch(f"/api/v1/orders/{allegro['id']}/status", json={"status": "SHIPPED"})
+    not_for_allegro = client.patch(f"/api/v1/orders/{erli['id']}/status", json={"status": "SHIPPED"})
+
+    assert changed.status_code == 200
+    write = changed.json()["marketplace_write"]
+    # safe mode is on, so it is only recorded
+    assert (write["outcome"], write["action"]) == ("DRY_RUN", "fulfillment_status")
+    assert write["payload"] == '{"checkoutFormId": "PUSH-ALG", "status": "SENT"}'
+    assert write["user"] == OPERATOR_EMAIL
+    assert changed.json()["status"] == "SHIPPED"
+    assert not_for_allegro.json()["marketplace_write"] is None
+
+
+def test_setting_the_same_status_again_sends_nothing():
+    created = client.post("/api/v1/orders", json=_order_payload(external_id="PUSH-SAME")).json()
+
+    same = client.patch(f"/api/v1/orders/{created['id']}/status", json={"status": "NEW"}).json()
+
+    assert same["marketplace_write"] is None
+
+
+def test_a_tracking_number_is_added_and_held_back():
+    created = client.post("/api/v1/orders", json=_order_payload(external_id="TRACK-1")).json()
+
+    added = client.post(
+        f"/api/v1/orders/{created['id']}/shipments",
+        json={"carrier_id": "INPOST", "waybill": "TRK-777001"},
+    )
+
+    assert added.status_code == 200
+    body = added.json()
+    assert [(s["carrier_id"], s["waybill"]) for s in body["shipments"]] == [("INPOST", "TRK-777001")]
+    assert body["marketplace_write"]["outcome"] == "DRY_RUN"
+    assert body["marketplace_write"]["action"] == "shipment"
+    # and the list shows it too
+    listed = client.get("/api/v1/orders", params={"search": "TRK-777001"}).json()
+    assert [o["external_id"] for o in listed["items"]] == ["TRACK-1"]
+
+
+def test_a_tracking_number_needs_a_known_carrier_and_other_needs_a_name():
+    created = client.post("/api/v1/orders", json=_order_payload(external_id="TRACK-BAD")).json()
+    url = f"/api/v1/orders/{created['id']}/shipments"
+
+    assert client.post(url, json={"carrier_id": "PIGEON", "waybill": "1"}).status_code == 422
+    assert client.post(url, json={"carrier_id": "OTHER", "waybill": "1"}).status_code == 422
+    assert client.post(url, json={"carrier_id": "INPOST", "waybill": ""}).status_code == 422
+    ok = client.post(url, json={"carrier_id": "OTHER", "carrier_name": "Kurier Janek", "waybill": "1"})
+    assert ok.status_code == 200

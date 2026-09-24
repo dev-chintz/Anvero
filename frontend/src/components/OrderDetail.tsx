@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useLocation, useNavigate, useOutletContext, useParams } from "react-router-dom";
-import { ApiError, ordersApi } from "../api/client";
+import { ApiError, marketplaceWritesApi, ordersApi, type MarketplaceWrite, type OrderChangeResult } from "../api/client";
 import type { OrdersOutletContext } from "../pages/OrdersPage";
 import {
   OrderStatus,
@@ -10,7 +10,10 @@ import {
 } from "../types/order";
 import type { Order, OrderBilling, OrderStatusChange, OrderWithDetails } from "../types/order";
 import { translate, useTranslation } from "../i18n";
+import { AddShipmentForm } from "./AddShipmentForm";
 import { BuyerOrdersCard } from "./BuyerOrdersCard";
+import { describeWrite } from "./marketplaceWrite";
+import { OrderWritesCard } from "./OrderWritesCard";
 import { OrderBillingCard } from "./OrderBillingCard";
 import { OrderDetailsPanel } from "./OrderDetailsPanel";
 import "../styles/OrderHistory.css";
@@ -44,6 +47,14 @@ export function OrderDetail() {
   const [history, setHistory] = useState<OrderStatusChange[]>([]);
   const [billing, setBilling] = useState<OrderBilling | null>(null);
   const [buyerOrders, setBuyerOrders] = useState<Order[] | null>(null);
+  const [writes, setWrites] = useState<MarketplaceWrite[]>([]);
+  const [writeNote, setWriteNote] = useState<{ text: string; tone: string } | null>(null);
+
+  const loadWrites = (orderId: string) =>
+    Promise.resolve()
+      .then(() => marketplaceWritesApi.list({ orderId }))
+      .then(setWrites)
+      .catch(() => setWrites([]));
 
   useEffect(() => {
     if (!id) return;
@@ -52,6 +63,8 @@ export function OrderDetail() {
     setLoading(true);
     setError(null);
     setNotFound(false);
+    // a note about the previous order's change does not belong to this one
+    setWriteNote(null);
 
     ordersApi
       .get(id)
@@ -71,6 +84,7 @@ export function OrderDetail() {
           .then(() => ordersApi.buyerOrders(data.id))
           .catch(() => null);
         if (!cancelled) setBuyerOrders(others);
+        if (!cancelled) await loadWrites(data.id);
       })
       .catch((err: unknown) => {
         if (cancelled) return;
@@ -127,8 +141,11 @@ export function OrderDetail() {
     try {
       // replace with the server's response rather than the local guess, so
       // updated_at reflects what was actually stored
-      setOrder(await ordersApi.updateStatus(order.id, nextStatus));
+      const result = await ordersApi.updateStatus(order.id, nextStatus);
+      setOrder(result);
+      setWriteNote(describeWrite(result.marketplace_write));
       setHistory(await ordersApi.history(order.id));
+      await loadWrites(order.id);
       // the list is still mounted behind this drawer and won't otherwise
       // learn that this order's status just changed
       onOrderChanged();
@@ -224,6 +241,14 @@ export function OrderDetail() {
                     {saveError}
                   </span>
                 )}
+                {writeNote && (
+                  <p
+                    role={writeNote.tone === "error" ? "alert" : "status"}
+                    className={`write-note write-${writeNote.tone}`}
+                  >
+                    {writeNote.text}
+                  </p>
+                )}
                 {marketplaceStatusDiffers(order) && (
                   <p className="field-note">
                     {t("order.marketplaceNote", {
@@ -261,6 +286,19 @@ export function OrderDetail() {
         )}
 
         {!loading && !error && !notFound && order && <OrderDetailsPanel order={order} />}
+
+        {!loading && !error && !notFound && order && (
+          <AddShipmentForm
+            orderId={order.id}
+            onAdded={(result: OrderChangeResult) => {
+              setOrder(result);
+              loadWrites(result.id);
+              onOrderChanged();
+            }}
+          />
+        )}
+
+        {!loading && !error && !notFound && order && <OrderWritesCard writes={writes} />}
 
         {!loading && !error && !notFound && order && buyerOrders && (
           <BuyerOrdersCard orders={buyerOrders} />

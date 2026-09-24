@@ -273,6 +273,7 @@ def map_order(order: dict[str, Any]) -> OrderCreate:
             total_amount=total,
             currency=currency,
             ordered_at=_moment(order.get("purchasedAt")) or _moment(order.get("created")),
+            marketplace_updated_at=_moment(order.get("updated")),
             # Erli names no buyer apart from the delivery address
             customer=build(
                 Customer,

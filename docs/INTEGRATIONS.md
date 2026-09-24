@@ -411,6 +411,32 @@ and the order's total less them.
   It refuses to run unless the connection is the Sandbox one, and, like the
   script it reuses, has never been run against the real page.
 
+### Writing to Allegro
+
+Built 2026-09-24, from Allegro's documentation, and **never sent**: safe mode
+has been on throughout. Two changes go to Allegro, both through
+`MarketplaceWriter`, so with safe mode on they are only recorded:
+
+- **The status** an operator sets: `PUT /order/checkout-forms/{id}/fulfillment`
+  with `{"status": ...}` (mapping in `API.md`, "Changes that reach the
+  marketplace"). `CANCELLED` is not sent.
+- **A tracking number** typed in on the order: `POST
+  /order/checkout-forms/{id}/shipments` with `carrierId`, `waybill` and, for
+  `OTHER`, `carrierName`. Allegro's answer gives the shipment its id.
+
+Both need the application to carry the `allegro:api:orders:write` scope, which
+is enabled for the application on Allegro's developer portal; the device-flow
+connection asks for no particular scopes, so it grants what the application
+has, and the account may need connecting again after the scope is added. A
+403 says so in the log. The carrier ids offered are from memory of Allegro's
+list (`GET /order/carriers`) and must be checked on the first real send.
+
+A write takes the same lock as an import and waits up to a minute for one to
+finish: both refresh the rotating token, and two refreshes at once would
+invalidate one of them. Try it on the Sandbox first: switch safe mode off
+there, change one order's status and add a tracking number, and check both on
+the Sandbox's own order page.
+
 ## Erli
 
 **Built 2026-09-24 from Erli's published API description only**

@@ -43,7 +43,7 @@ folder, and one was restored from that copy into a scratch database as a test.
   remains the no-setup default for a fresh clone)
 - Health endpoint and first order model — done
 - Minimal order list interface — done
-- Automated tests for core flows — done (400 backend, 88 frontend passing
+- Automated tests for core flows — done (425 backend, 92 frontend passing
   across the suite as of 2026-09-21)
 
 ---
@@ -120,6 +120,8 @@ Shipments and carrier tracking (`INTEGRATIONS.md`) were built from Allegro's doc
 The dispatch deadline (`dispatch_by`, `INTEGRATIONS.md`, "Dispatch deadline") is read from the documented `delivery.time.dispatch.to`; no real order has shown it yet, so the "late" queue and the at-risk order stay empty-handed until one does. The queue tabs and dashboard tiles were checked in the browser on 2026-09-24 against the one sandbox order, which has no deadline.
 
 The Erli import (`INTEGRATIONS.md`, "Erli") has never run: no API key has been used, and it was built from Erli's published OpenAPI description and tested against fakes. Unconfirmed in particular: that amounts are in grosze, the status mapping, and how soon Erli fills in the buyer's email.
+
+Writing to Allegro (status and tracking number, `INTEGRATIONS.md`, "Writing to Allegro") has never sent anything: safe mode has been on. Unverified: that the application carries the `allegro:api:orders:write` scope, that Allegro accepts the status transitions as mapped, and the carrier ids. Safe mode itself was checked in the browser on 2026-09-24 (banner, Settings, the confirmation), without switching it off on the shared database.
 
 Billing entries (fees, `INTEGRATIONS.md`, "Fees") are likewise from the documentation and fakes only: not known whether the application may read them, or whether the history holds anything besides fees.
 

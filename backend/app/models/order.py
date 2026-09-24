@@ -180,6 +180,14 @@ class Order(Base):
         nullable=True,
     )
 
+    # When an operator last set the status by hand. The last change made in
+    # Anvero wins: an import does not undo it with a marketplace change that
+    # happened before it (DECISIONS.md). Null until someone sets one.
+    status_set_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True),
+        nullable=True,
+    )
+
     # Order details. Every one is optional: an order entered by hand may have
     # none, and a marketplace may leave any of them out. For an imported order
     # the marketplace owns all of them, and a re-import replaces them.
@@ -325,6 +333,12 @@ class OrderShipment(Base):
     # Null when nothing has been read, e.g. a carrier Allegro cannot track.
     tracking_status: Mapped[str | None] = mapped_column(String(32))
     tracking_updated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+    # typed in on the order in Anvero rather than read from the marketplace;
+    # an import keeps such a parcel while the marketplace does not list it
+    added_in_anvero: Mapped[bool] = mapped_column(
+        Boolean, default=False, server_default=false(), nullable=False
+    )
 
     order: Mapped["Order"] = relationship(back_populates="shipments")
 

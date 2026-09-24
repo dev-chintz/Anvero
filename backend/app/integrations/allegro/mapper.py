@@ -464,6 +464,7 @@ def map_checkout_form(checkout_form: dict[str, Any]) -> OrderCreate:
             total_amount=total_amount,
             currency=currency,
             ordered_at=map_ordered_at(checkout_form),
+            marketplace_updated_at=_moment(checkout_form.get("updatedAt")),
             **dict(map_details(checkout_form)),
         )
     except ValidationError as exc:

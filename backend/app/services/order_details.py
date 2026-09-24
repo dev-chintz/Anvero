@@ -78,6 +78,24 @@ def _replace_shipments(order: Order, details: OrderDetails) -> None:
             data["tracking_status"] = previous.tracking_status
             data["tracking_updated_at"] = previous.tracking_updated_at
         rows.append(OrderShipment(position=position, **data))
+    # a parcel entered in Anvero that the marketplace does not list (yet: it
+    # was held back by safe mode, or its sending failed) is kept, not lost
+    listed = {(row.carrier_id, row.waybill) for row in rows}
+    for kept in order.shipments:
+        if kept.added_in_anvero and (kept.carrier_id, kept.waybill) not in listed:
+            rows.append(
+                OrderShipment(
+                    position=len(rows),
+                    carrier_id=kept.carrier_id,
+                    carrier_name=kept.carrier_name,
+                    waybill=kept.waybill,
+                    shipped_at=kept.shipped_at,
+                    tracking_status=kept.tracking_status,
+                    tracking_updated_at=kept.tracking_updated_at,
+                    external_id=kept.external_id,
+                    added_in_anvero=True,
+                )
+            )
     order.shipments = rows
 
 
