@@ -20,7 +20,8 @@ The model will be deployed via migrations after framework selection, but a commo
 
 Migrations currently create `users`, `orders`, `order_items`,
 `order_addresses`, `order_shipments`, `billing_entries`,
-`order_status_history` and `integration_credentials`. `integration` and `customer` are still targets.
+`order_status_history`, `integration_credentials`, `message_threads` and
+`messages`. `integration` and `customer` are still targets.
 
 `orders` deviates from the target shape while there are no integrations to
 point at:
@@ -122,6 +123,37 @@ id, for the types that name one; indexed) and `offer_id`, `offer_name`. There
 is deliberately no foreign key to `orders`: an entry may be read before its
 order is, or belong to none (a subscription, an advertising fee). It is tied
 to an order by `(source, order_external_id)`.
+
+`message_threads` and `messages`: one buyer-seller conversation each, and its
+messages, read from a marketplace's Message Center (plan B2, `INTEGRATIONS.md`,
+"Buyer messages"). A thread is kept by `(source, external_id)`, like
+`billing_entries`; unlike an order's items, its messages are not wholly
+replaced on sync, only added to, since a message once sent is never edited or
+withdrawn on the marketplace's side either (matched by `(thread_id,
+external_id)`, so reading an overlapping page twice adds nothing).
+`interlocutor_login` is the buyer's own login, the only name a thread
+carries. `order_external_id` (nullable, indexed) is the marketplace's id of
+an order a message in the thread named, if any - not a foreign key, for the
+same reason `billing_entries.order_external_id` is not one: the order may
+not exist in Anvero, or the thread may name none. `last_message_at` and
+`last_message_text` are cached from the newest message so the inbox list
+needs no join; `last_message_at` is also what a sync compares against to
+decide whether a thread's messages need reading again. `read` mirrors the
+marketplace's own flag as of the last sync - Anvero never writes it back, so
+opening a thread here does not mark it read there. `aside` is local to
+Anvero only, never touched by a sync: an operator sets it to come back to a
+thread later, and the inbox excludes it by default.
+
+A message's `external_id` is null for a reply written in Anvero that safe
+mode held back or that the marketplace refused - the same idea as
+`order_shipments.external_id` before an import confirms it. `direction`
+(`IN` from the buyer, `OUT` from the seller) is not read from a field of its
+own on Allegro's side - none is confirmed to exist - but decided by
+comparing the message's author login to the connected seller's own
+(`integration_credentials.account_login`); see `INTEGRATIONS.md`, "Buyer
+messages". `created_in_anvero` marks a reply written here, as opposed to one
+read from the marketplace, which includes the seller's own past replies sent
+from its own panel.
 
 These columns hold buyers' personal data: names, addresses, phone numbers.
 It is never written to logs; mapping problems are logged by field name only.

@@ -42,10 +42,14 @@ _ERRORS = {"token_expired", "last_import_failed"}
 
 
 def _utc(value: datetime | None) -> datetime | None:
-    # SQLite returns stored timestamps without a zone; they are UTC
-    if value is None or value.tzinfo is not None:
+    # SQLite returns stored timestamps without a zone; they are UTC. PostgreSQL
+    # returns them in the session's zone, where adding days across a change of
+    # summer time would shift the wall clock by an hour, so bring them to UTC.
+    if value is None:
         return value
-    return value.replace(tzinfo=UTC)
+    if value.tzinfo is None:
+        return value.replace(tzinfo=UTC)
+    return value.astimezone(UTC)
 
 
 def _state(problems: list[str]) -> HealthState:

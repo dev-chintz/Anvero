@@ -277,6 +277,44 @@ class OrderRepository:
             .all()
         )
 
+    # defined before `list` below: a `-> list[...]` annotation on a method
+    # coming after one literally named `list` would try to subscript that
+    # method instead of the builtin, since a class body is its own namespace
+    def list_buyer_orders(self, order: Order, limit: int = 20) -> list[Order]:
+        """The same buyer's other orders, newest first.
+
+        The same buyer is the same email, or the same marketplace login on
+        the same marketplace (a login is only unique within one). An order
+        with neither to go on has no others.
+        """
+        same_buyer = [Order.customer_email == order.customer_email]
+        if order.customer_login:
+            same_buyer.append(
+                and_(Order.source == order.source, Order.customer_login == order.customer_login)
+            )
+        return list(
+            self.db.scalars(
+                select(Order)
+                .where(Order.id != order.id, or_(*same_buyer))
+                .order_by(*self._ordering(OrderSort.NEWEST))
+                .limit(limit)
+            )
+        )
+
+    def list_in_queue_with_items(self, queue: OrderQueue) -> list[Order]:
+        """Every order in a queue, with its items, most urgent first.
+
+        Unpaged: a queue is the day's work, tens of orders, not the history.
+        """
+        return list(
+            self.db.scalars(
+                select(Order)
+                .where(self._in_queue(queue))
+                .options(selectinload(Order.items))
+                .order_by(*self._ordering(OrderSort.AT_RISK))
+            )
+        )
+
     def _to_db_datetime(self, value: datetime) -> datetime:
         """Match the bind parameter to how the backend stores timestamps.
 
@@ -479,41 +517,6 @@ class OrderRepository:
                 Order.id,
             )
         return (Order.ordered_at.desc(), Order.created_at.desc(), Order.id)
-
-    def list_buyer_orders(self, order: Order, limit: int = 20) -> list[Order]:
-        """The same buyer's other orders, newest first.
-
-        The same buyer is the same email, or the same marketplace login on
-        the same marketplace (a login is only unique within one). An order
-        with neither to go on has no others.
-        """
-        same_buyer = [Order.customer_email == order.customer_email]
-        if order.customer_login:
-            same_buyer.append(
-                and_(Order.source == order.source, Order.customer_login == order.customer_login)
-            )
-        return list(
-            self.db.scalars(
-                select(Order)
-                .where(Order.id != order.id, or_(*same_buyer))
-                .order_by(*self._ordering(OrderSort.NEWEST))
-                .limit(limit)
-            )
-        )
-
-    def list_in_queue_with_items(self, queue: OrderQueue) -> list[Order]:
-        """Every order in a queue, with its items, most urgent first.
-
-        Unpaged: a queue is the day's work, tens of orders, not the history.
-        """
-        return list(
-            self.db.scalars(
-                select(Order)
-                .where(self._in_queue(queue))
-                .options(selectinload(Order.items))
-                .order_by(*self._ordering(OrderSort.AT_RISK))
-            )
-        )
 
     def _week_cutoff(self) -> datetime:
         return self._to_db_datetime(datetime.now(UTC) - timedelta(days=7))

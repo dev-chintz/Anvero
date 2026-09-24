@@ -24,6 +24,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ isDarkMode, onThemeToggle }) =
     { path: '/production', label: t('nav.production'), icon: '🛠️' },
     { path: '/labels', label: t('nav.labels'), icon: '🏷️' },
     { path: '/status', label: t('nav.status'), icon: '🩺' },
+
+    { path: '/inbox', label: t('nav.inbox'), icon: '✉️' },
     { path: '/settings', label: t('nav.settings'), icon: '⚙️' },
   ];
 

@@ -13,6 +13,7 @@ import { Dashboard } from './pages/Dashboard';
 import { LoginPage } from './pages/LoginPage';
 import { OrdersPage } from './pages/OrdersPage';
 import { ProductionPage } from './pages/ProductionPage';
+import { InboxPage } from './pages/InboxPage';
 import { Settings } from './pages/Settings';
 import { StatusPage } from './pages/StatusPage';
 import { LabelsPage } from './pages/LabelsPage';
@@ -122,6 +123,8 @@ export default function App() {
                 <Route path="/production" element={<ProductionPage />} />
                 <Route path="/labels" element={<LabelsPage />} />
                 <Route path="/status" element={<StatusPage />} />
+
+                <Route path="/inbox" element={<InboxPage />} />
                 <Route path="/settings" element={<Settings />} />
                 <Route
                   path="*"

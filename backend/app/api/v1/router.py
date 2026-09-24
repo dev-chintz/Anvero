@@ -6,6 +6,7 @@ from app.api.v1.endpoints import (
     health,
     integrations,
     marketplace_writes,
+    messages,
     orders,
     root,
     shipping,
@@ -23,3 +24,5 @@ router.include_router(integrations.router)
 router.include_router(marketplace_writes.router)
 router.include_router(app_status.router)
 router.include_router(shipping.router)
+
+router.include_router(messages.router)

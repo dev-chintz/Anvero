@@ -553,3 +553,72 @@ export const marketplaceWritesApi = {
 export type OrderChangeResult = OrderWithDetails & {
   marketplace_write?: MarketplaceWrite | null;
 };
+
+/** One message in a thread, read from the marketplace or sent from Anvero. */
+export interface ThreadMessage {
+  id: string;
+  direction: "IN" | "OUT";
+  author_login: string | null;
+  text: string;
+  sent_at: string;
+  /** A reply written in Anvero, as opposed to read from the marketplace. */
+  created_in_anvero: boolean;
+}
+
+/** One buyer-seller conversation on a marketplace's Message Center. */
+export interface MessageThread {
+  id: string;
+  source: OrderSource;
+  interlocutor_login: string | null;
+  /** The marketplace's own order id the thread names, if any. */
+  order_external_id: string | null;
+  last_message_at: string | null;
+  last_message_text: string | null;
+  /** The marketplace's own read flag, mirrored at the last sync. */
+  read: boolean;
+  /** Set aside by an operator to come back to later. */
+  aside: boolean;
+}
+
+export interface MessageThreadDetail extends MessageThread {
+  messages: ThreadMessage[];
+}
+
+export interface MessageSyncResult {
+  threads_synced: number;
+  messages_added: number;
+}
+
+export const messagesApi = {
+  threads(params: { aside?: boolean; unreadOnly?: boolean } = {}): Promise<MessageThread[]> {
+    const query = new URLSearchParams();
+    if (params.aside !== undefined) query.set("aside", String(params.aside));
+    if (params.unreadOnly) query.set("unread_only", "true");
+    const queryString = query.toString();
+    return request<MessageThread[]>(`/messages/threads${queryString ? `?${queryString}` : ""}`);
+  },
+
+  thread(threadId: string): Promise<MessageThreadDetail> {
+    return request<MessageThreadDetail>(`/messages/threads/${threadId}`);
+  },
+
+  setAside(threadId: string, aside: boolean): Promise<MessageThread> {
+    return request<MessageThread>(`/messages/threads/${threadId}/aside`, {
+      method: "PATCH",
+      body: JSON.stringify({ aside }),
+    });
+  },
+
+  reply(threadId: string, text: string): Promise<{ thread: MessageThreadDetail; marketplace_write: MarketplaceWrite }> {
+    return request(`/messages/threads/${threadId}/reply`, {
+      method: "POST",
+      body: JSON.stringify({ text }),
+    });
+  },
+
+  syncAllegro(): Promise<MessageSyncResult> {
+    return request<MessageSyncResult>("/integrations/allegro/messages/sync", {
+      method: "POST",
+    });
+  },
+};

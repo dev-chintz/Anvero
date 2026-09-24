@@ -43,7 +43,7 @@ folder, and one was restored from that copy into a scratch database as a test.
   remains the no-setup default for a fresh clone)
 - Health endpoint and first order model — done
 - Minimal order list interface — done
-- Automated tests for core flows — done (494 backend, 112 frontend passing
+- Automated tests for core flows — done (527 backend, 118 frontend passing
   across the suite as of 2026-09-21)
 
 ---
@@ -129,6 +129,10 @@ Labels through Wysyłam z Allegro (`INTEGRATIONS.md`) have never bought anything
 
 Billing entries (fees, `INTEGRATIONS.md`, "Fees") are likewise from the documentation and fakes only: not known whether the application may read them, or whether the history holds anything besides fees.
 
+Buyer messages (plan B2, `INTEGRATIONS.md`, "Buyer messages") have never talked to Allegro: built without reading its published OpenAPI specification, since this session's network egress could not reach `developer.allegro.pl`, and tested against fakes shaped by search-indexed excerpts of the documentation instead. Unconfirmed: the exact shape of one thread message, whether threads really sort newest-activity-first (the sync's early stop depends on it), and the messaging scope's real name. Safe mode has been on throughout, so nothing has reached a real buyer. Erli is not read: no messaging endpoint was found in its public API.
+
+One backend test failure was found while working on the above, unrelated to it: `tests/services/test_order_import_service.py::test_the_recorded_point_is_the_start_of_the_run_less_a_small_overlap` compares a naive and an aware datetime and only fails on SQLite (`TypeError: can't compare offset-naive and offset-aware datetimes`); the full suite passes on PostgreSQL (527, 2026-09-24, after merging B1/A7 and B2). A second, unrelated bug was found and fixed: `OrderRepository.list_buyer_orders` and `.list_in_queue_with_items`, added by plan A3, had a `-> list[Order]` return annotation evaluated *after* a method literally named `list` in the same class body, so Python resolved `list` to that method instead of the builtin and the whole backend failed to import (`TypeError: 'function' object is not subscriptable`) — moved both methods earlier in the file; no behaviour changed. Worth checking whether this broke every backend since plan A3 landed earlier the same day.
+
 What the sandbox did **not** cover: a cancelled order and the flag it sets,
 an order with several line items or without a pickup point, more than one
 page of orders, and production Allegro, which has its own application,
@@ -158,6 +162,12 @@ and a new `SECRET_KEY`. Only that one backend may run the scheduled import.
 of `ROADMAP.md`, modelled on AlleIntegrator. Its first stage (work queues,
 the "to make today" list, search) touches only Anvero's own data and can
 start before the NAS or production Allegro are done.
+
+**Also started 2026-09-24, ahead of that order:** plan B2, buyer messages —
+see "Current State" (`AI_START_HERE.md`) and "Not yet verified" above. Left:
+confirming the unverified fields against Allegro's real response or its
+published spec (this session could not reach `developer.allegro.pl`), and
+trying a reply on the Sandbox with safe mode off.
 
 Run the Allegro import against a real account, starting in the Allegro
 Sandbox. Agreed plan, in order:

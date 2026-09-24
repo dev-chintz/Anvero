@@ -6,6 +6,15 @@ All significant changes to the Anvero project.
 
 ## 2026-09-24
 
+### 🔀 B1/A7 and B2 brought together on main
+
+- The two branches each added migrations after `f5c3b8e1d726`, leaving two
+  heads; `643b765a4578` merges them (nothing else in it). Run
+  `alembic upgrade head` on each machine.
+- The status page's token expiry was an hour off on PostgreSQL across the
+  autumn change of summer time (it added the 90 days in the session's zone);
+  it is now computed in UTC.
+
 ### ✅ Stage B1 complete: no cash on delivery
 
 - The owner does not ship cash on delivery, so it will not be built; such an
@@ -55,6 +64,35 @@ All significant changes to the Anvero project.
 - `integration_credentials.token_issued_at` (migration `a3e7c5b9d142`), and
   the import scripts now note their outcome like the button does.
 - Stage A7 of the feature plan.
+
+### 📥 A unified inbox for buyer messages (started, plan B2)
+
+- `message_threads` and `messages` (migration `440a475bcd05`): one buyer
+  conversation each, from any marketplace, and its messages, kept whether
+  read from a marketplace or written in Anvero (`created_in_anvero`).
+- Allegro's Message Center read into it: `POST
+  /integrations/allegro/messages/sync` (a button, not yet scheduled) reads
+  threads and their messages, comparing each thread's activity and read flag
+  against what is stored so nothing already caught up is re-read.
+- `GET /messages/threads` (the inbox, newest activity first), `GET
+  /messages/threads/{id}` (one thread), `PATCH .../aside` (put a thread aside
+  or bring it back, local to Anvero), `POST .../reply` (through
+  `MarketplaceWriter`, so safe mode decides whether it really reaches the
+  buyer). An Inbox page: a thread list with an unread mark, a reply box, and
+  the aside filter.
+- Built without reading Allegro's published OpenAPI specification — this
+  session's network egress could not reach `developer.allegro.pl` — from its
+  Message Center announcement and search-indexed excerpts instead, flagged
+  unverified where more than one source does not agree
+  (`INTEGRATIONS.md`, "Buyer messages"). Erli is not read: no messaging
+  endpoint was found in its public API. Never sent for real: safe mode has
+  been on throughout.
+- Fixed in passing: `OrderRepository.list_buyer_orders` and
+  `.list_in_queue_with_items` (added by plan A3, the same day) sat after a
+  method literally named `list` in the same class, so their own `->
+  list[Order]` return annotations resolved `list` to that method instead of
+  the builtin and the backend failed to import at all. Moved both above it;
+  no behaviour changed.
 
 ### 📤 Status and tracking numbers sent to Allegro (through safe mode)
 
