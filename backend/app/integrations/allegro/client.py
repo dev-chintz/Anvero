@@ -634,13 +634,19 @@ class AllegroClient:
         """One page of disputes and claims in the given statuses, newest opened first.
 
         `GET /sale/issues` (scope `allegro:api:disputes`); the answer is
-        `{issues: [...]}`.
+        `{issues: [...]}`. Beta, like customer returns: every resource under
+        `/sale/issues` answers only to the beta header (`allegro/allegro-api`
+        issue #11711), confirmed 2026-09-24 after this call was first written
+        without it - untested against a real account either way, so this was
+        never seen to fail, but the wrong header there means a 406.
         """
         if not 1 <= limit <= MAX_PAGE_SIZE:
             raise ValueError(f"limit must be between 1 and {MAX_PAGE_SIZE}")
         params = [("status", status) for status in statuses]
         params += [("limit", str(limit)), ("offset", str(offset))]
-        payload = self._get_object("/sale/issues", "disputes and claims", params=params)
+        payload = self._get_object(
+            "/sale/issues", "disputes and claims", params=params, accept=BETA_ACCEPT_HEADER
+        )
         issues = payload.get("issues", [])
         if not isinstance(issues, list):
             raise IntegrationUnavailable("Allegro issues is not a list")

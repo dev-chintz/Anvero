@@ -622,7 +622,9 @@ its examples. Nothing here has run against a real account.
   `DISPATCHED`, `IN_TRANSIT`, `DELIVERED`, `FINISHED`, `FINISHED_APT`, `REJECTED`,
   `COMMISSION_REFUND_CLAIMED`, `COMMISSION_REFUNDED`, `WAREHOUSE_DELIVERED`,
   `WAREHOUSE_VERIFICATION`. **It has no deadline field.**
-- **Disputes and claims**, `GET /sale/issues` (scope `allegro:api:disputes`), newest
+- **Disputes and claims**, `GET /sale/issues` (scope `allegro:api:disputes`, also
+  beta: needs the same `Accept: application/vnd.allegro.beta.v1+json` as customer
+  returns - missing here until fixed 2026-09-24, see "Revisited" below), newest
   opened first, paged by `limit` and `offset`, filtered by `status`. An issue is a
   `DISPUTE` or a `CLAIM`; its state is `CLAIM_SUBMITTED`, `CLAIM_ACCEPTED`,
   `CLAIM_REJECTED`, `DISPUTE_ONGOING`, `DISPUTE_CLOSED` or `DISPUTE_UNRESOLVED`.
@@ -633,6 +635,44 @@ its examples. Nothing here has run against a real account.
   amount). A dispute has none of these; both carry `checkoutForm.id` (the order),
   `buyer.login` and `chat.lastMessage.status` (`NEW`, `SELLER_REPLIED`,
   `BUYER_REPLIED`, `ALLEGRO_ADVISOR_REPLIED`).
+
+**Revisited 2026-09-24, still without a real request** (same session as the
+Buyer messages revisit, with the same reach into `developer.allegro.pl` and
+`allegro/allegro-api`'s GitHub issues that the first pass at B4 did not need,
+since it had already read the published OpenAPI specification directly).
+Two things came of it:
+
+1. `GET /sale/issues` and every other resource under that path answer only
+   to the beta header (`allegro/allegro-api` issue #11711, the same
+   announcement that introduced `GET /sale/issues/{id}/chat`, `POST
+   /sale/issues/{id}/message`, `POST /sale/issues/{id}/status` and the
+   attachment endpoints below) - `client.py`'s `fetch_issues` sent the
+   public one instead, fixed 2026-09-24 (a test locked in the old, wrong
+   header; also fixed). Untested against a real account either way, so this
+   was never seen to fail, but the wrong header there means a 406, the same
+   way it would for customer returns.
+2. A real risk to the return deadline below, from three independent
+   sources, including a real integration's own mapping
+   (`commerce-link/marketplace-allegro`) agreeing with the schema already
+   confirmed by the specification: a customer return has no field of its
+   own for when the parcel reached the seller, only `createdAt` (the
+   declaration) and `status`. Separately, and confirmed by more than one of
+   Allegro's own help pages and its own announcement: **since 2026-09-01**
+   (this month, before this was revisited), Allegro automatically refunds a
+   return from the seller's own funds on the day after a **7-day** window
+   from when the seller *receives* the parcel back, if the seller has not
+   decided by then - not the 14-day, from-declaration figure below, which
+   is a citizen's-rights deadline for a different question (when the seller
+   must refund once decided). Read together: Allegro will act before this
+   queue's 14-day warning does, on returns whose transit back is short,
+   because the two clocks start at different moments and Allegro's is
+   shorter from a later start; both could land before or after the other,
+   depending on how long the parcel takes to arrive. Not changed here,
+   since Allegro's API gives no field to start a 7-day clock from and
+   guessing one (such as when this sync first sees a return turn
+   `DELIVERED`) would be a schema change to a queue built on "unverified
+   figures, flagged, not guessed silently" - an owner decision, and the
+   next thing to raise with them.
 
 What each asks of the seller, and by when (`app/services/after_sales.py`):
 
@@ -647,10 +687,15 @@ What each asks of the seller, and by when (`app/services/after_sales.py`):
 **Unverified, and to be confirmed by the first real read:** the 14 and 45 days are
 the owner's figures (from AlleIntegrator's rules) and the law's, not something
 Allegro's API states; they are counted from `createdAt`, the declaration, so they
-can only come early. Whether the 45 days start there is not known. Whether
+can only come early - see the 7-day automatic-refund clock above, which they do
+not account for. Whether the 45 days start there is not known. Whether
 Allegro Warehouse returns (`WAREHOUSE_*`) need the seller at all is not known, so
-they ask nothing. A dispute with no `lastMessage` status is treated as waiting.
-Whether the application carries the two scopes is not known: a `403` says so.
+they ask nothing; **narrowed 2026-09-24**, still not from a primary source but
+consistent across Allegro's own help pages: a One Fulfillment return is verified
+and its refund is settled by Allegro itself once the parcel reaches its
+warehouse, which fits "asks nothing" rather than contradicting it. A dispute
+with no `lastMessage` status is treated as waiting. Whether the application
+carries the two scopes is not known: a `403` says so.
 
 A sync reads returns back `ALLEGRO_AFTER_SALES_DAYS` (default 90) and as far as
 the oldest return still open here; every open dispute and claim however old; and
