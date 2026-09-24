@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useLocation, useSearchParams } from 'react-router-dom';
 import { ApiError, integrationsApi, ordersApi, type AllegroStatus } from '../api/client';
 import { OrderList } from '../components/OrderList';
+import { PAGE_SIZES } from '../components/Pagination';
 import type { OrderLinkState } from '../components/orderLinkState';
 import { AdvancedFilters, type Filters } from '../components/AdvancedFilters';
 import { useOrders } from '../hooks/useOrders';
@@ -13,6 +14,18 @@ import { describeWrite } from '../components/marketplaceWrite';
 import '../styles/OrdersPage.css';
 
 const DEFAULT_LIMIT = 20;
+
+// the number of orders a page holds is the operator's choice, kept in the browser
+const PAGE_SIZE_KEY = 'orders.pageSize';
+
+function storedPageSize(): number {
+  try {
+    const stored = Number(localStorage.getItem(PAGE_SIZE_KEY));
+    return (PAGE_SIZES as readonly number[]).includes(stored) ? stored : DEFAULT_LIMIT;
+  } catch {
+    return DEFAULT_LIMIT;
+  }
+}
 
 // how often the page asks whether an import has run by itself
 const STATUS_POLL_MS = 60_000;
@@ -32,7 +45,8 @@ export function OrdersPage({ addToast }: OrdersPageProps) {
   const { t, formatRelative } = useTranslation();
 
   const skip = Number(searchParams.get('skip') ?? 0);
-  const limit = Number(searchParams.get('limit') ?? DEFAULT_LIMIT);
+  // an address that names a size wins, so a shared link shows what was meant
+  const limit = Number(searchParams.get('limit') ?? storedPageSize());
   const source = (searchParams.get('source') as OrderSource) || undefined;
   const status = (searchParams.get('status') as OrderStatus) || undefined;
   const search = searchParams.get('search') || undefined;
@@ -201,6 +215,16 @@ export function OrdersPage({ addToast }: OrdersPageProps) {
       .catch((err: unknown) => {
         addToast?.(err instanceof ApiError ? err.message : t('orders.restoreFailed'), 'error');
       });
+  };
+
+  const handleLimitChange = (newLimit: number) => {
+    try {
+      localStorage.setItem(PAGE_SIZE_KEY, String(newLimit));
+    } catch {
+      // the choice still holds for this visit
+    }
+    // stays on the page holding the first order that was showing
+    updateParams({ limit: String(newLimit), skip: String(Math.floor(skip / newLimit) * newLimit) });
   };
 
   const updateParams = (updates: Record<string, string | undefined>) => {
@@ -384,6 +408,7 @@ export function OrdersPage({ addToast }: OrdersPageProps) {
         linkState={linkState}
         onDelete={handleDelete}
         onRestore={handleRestore}
+        onLimitChange={handleLimitChange}
       />
     </div>
   );

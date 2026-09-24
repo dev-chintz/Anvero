@@ -1,4 +1,4 @@
-﻿.app {
+.app {
   display: flex;
   min-height: 100vh;
   background: var(--color-bg);
@@ -7,9 +7,16 @@
 /* Main Content Area */
 .app-content {
   flex: 1;
+  /* a flex item does not shrink below its content unless told it may, and a wide
+     table inside would otherwise widen the page instead of scrolling */
+  min-width: 0;
   /* matches .sidebar.open's width in Sidebar.css */
   margin-left: 200px;
-  overflow-y: auto;
+  /* Not `overflow: auto`: that makes this the scroll container of anything
+     sticky inside it, and it is as tall as its content, so a bar meant to stay at
+     the bottom of the window (HorizontalScroll) would never leave the page's end.
+     `clip` keeps a wide page from widening the window without becoming one. */
+  overflow-x: clip;
   background: var(--color-bg);
 }
 

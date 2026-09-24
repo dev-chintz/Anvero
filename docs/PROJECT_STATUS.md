@@ -43,7 +43,7 @@ folder, and one was restored from that copy into a scratch database as a test.
   remains the no-setup default for a fresh clone)
 - Health endpoint and first order model — done
 - Minimal order list interface — done
-- Automated tests for core flows — done (677 backend, 204 frontend passing
+- Automated tests for core flows — done (688 backend, 238 frontend passing
   across the suite as of 2026-09-24)
 
 ---
@@ -158,6 +158,10 @@ The test label (`GET /labels/test-pdf`) was opened in the browser pane's PDF vie
 ---
 
 Deleting an order (`DECISIONS.md`, 2026-09-24, "soft") is covered by tests and its list view was opened in the browser (the "Deleted" chip, empty), but the trash button was not pressed on the real orders in the shared database, so the confirmation, the toast and a restore have not been seen end to end. Its migration `b8e3d5a7c246` was applied to the shared PostgreSQL on 2026-09-24: the other machines need `alembic upgrade head`.
+
+---
+
+The 2026-09-24 order-list work (`DECISIONS.md`, "Open orders are read again every import") was checked on the real orders: an import after the change stored parcels for all 12 open orders, the sticky scrollbar and the thumbnail preview were exercised in the browser (the hover by a simulated pointer event, the scroll by moving the bar). Not seen: the automatic import running on its own for a while (this machine's `.env`, which is not in Git, now has `ALLEGRO_IMPORT_INTERVAL_MINUTES=15`; a second backend on the same database must not set it, and the NAS deployment will need it set there instead), and the paging choices past the second page (there are only 48 orders).
 
 ---
 

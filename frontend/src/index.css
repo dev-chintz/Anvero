@@ -579,3 +579,85 @@ td {
   cursor: default;
   opacity: 0.6;
 }
+
+/* A wide table with its scrollbar at the bottom edge of the window
+   (HorizontalScroll.tsx): the table's own is hidden, and a second one, as wide as
+   the table, sticks to the window while the table is in view. */
+.hscroll-content {
+  scrollbar-width: none;
+}
+
+.hscroll-content::-webkit-scrollbar {
+  display: none;
+}
+
+.hscroll-bar {
+  position: sticky;
+  bottom: 0;
+  z-index: 5;
+  overflow-x: auto;
+  overflow-y: hidden;
+  background: var(--color-bg);
+  border-top: 1px solid var(--color-border);
+}
+
+.hscroll-bar[hidden] {
+  display: none;
+}
+
+.hscroll-bar > div {
+  height: 1px;
+}
+
+/* the page buttons, the field for a page and the size of a page */
+.pagination-jump {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.pagination-jump label,
+.pagination-size {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.pagination-jump input {
+  width: 4.5rem;
+  padding: 0.3rem 0.4rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-bg);
+  color: var(--color-text);
+  font: inherit;
+  text-align: center;
+}
+
+.pagination-size {
+  margin-left: auto;
+}
+
+.pagination-size select {
+  padding: 0.3rem 0.4rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-bg);
+  color: var(--color-text);
+  font: inherit;
+}
+
+/* The large picture shown while the pointer is over an item's thumbnail
+   (ItemThumb.tsx): drawn on the page, so no table can cut it off. */
+.thumb-preview {
+  position: fixed;
+  z-index: 3000;
+  width: 320px;
+  height: 320px;
+  object-fit: contain;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.35);
+  pointer-events: none;
+}

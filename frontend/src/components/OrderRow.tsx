@@ -11,6 +11,7 @@ import {
 import { translate, useTranslation } from "../i18n";
 import { carrierLabel } from "../types/order";
 import type { OrderLinkState } from "./orderLinkState";
+import { ItemThumb } from "./ItemThumb";
 import { TrackingLink } from "./TrackingLink";
 
 // name, then login (an Allegro account may have no name on file), then
@@ -103,7 +104,7 @@ export function OrderRow({
             {items.slice(0, ITEMS_SHOWN).map((item, index) => (
               <li key={index} title={item.sku ? `${item.name} (${item.sku})` : item.name}>
                 {item.image_url ? (
-                  <img src={item.image_url} alt="" loading="lazy" className="order-item-thumb" />
+                  <ItemThumb src={item.image_url} className="order-item-thumb" />
                 ) : (
                   // a plain box keeps the names aligned beside a picture, but is
                   // only worth its room when some item of the order has one

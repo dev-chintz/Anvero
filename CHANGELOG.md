@@ -6,6 +6,22 @@ All significant changes to the Anvero project.
 
 ## 2026-09-24
 
+### 📋 Order list: parcels and open orders refreshed, scrolling, thumbnails, paging
+
+- **Import**: every import now also reads again the orders that are not done
+  (seller status new, processing, ready, suspended), so their status and parcels
+  follow Allegro. **Parcels** are read for every order that is neither new nor
+  cancelled: a label bought in "Wysyłam z Allegro" gives the order a parcel while
+  Allegro still calls it in progress, and Anvero did not show 12 of them. The
+  import also runs by itself every 15 minutes on this machine.
+- The orders table has a **horizontal scrollbar at the bottom of the window**, in
+  reach from anywhere in the list; the page no longer has to be scrolled to its end.
+- **Hover on an item's thumbnail** (orders list and to-make list) shows a large
+  picture beside the pointer.
+- **Paging**: choose 20, 50, 100 or 200 orders a page (remembered), and type a
+  page number to go straight to it; First and Last page buttons.
+- 688 backend and 238 frontend tests passing.
+
 ### ✉️ Inbox: Polish letters fixed, and a search by nick
 
 - Buyer messages were shown with HTML entities (`zam&oacute;wienie`,

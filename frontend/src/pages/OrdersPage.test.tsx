@@ -436,3 +436,102 @@ describe("deleting from the order's page", () => {
     expect(screen.getByRole("button", { name: "Delete order" })).toBeEnabled();
   });
 });
+
+describe("how many orders a page holds", () => {
+  afterEach(() => localStorage.clear());
+
+  it("starts with 20, and asks for that many", async () => {
+    renderAt("/orders");
+
+    await waitFor(() =>
+      expect(ordersApi.list).toHaveBeenCalledWith(expect.objectContaining({ limit: 20, skip: 0 })),
+    );
+    expect(screen.getByRole("combobox", { name: "Per page" })).toHaveValue("20");
+  });
+
+  it("asks for the size chosen, and is remembered for the next visit", async () => {
+    renderAt("/orders");
+    fireEvent.change(await screen.findByRole("combobox", { name: "Per page" }), {
+      target: { value: "100" },
+    });
+
+    await waitFor(() =>
+      expect(ordersApi.list).toHaveBeenLastCalledWith(expect.objectContaining({ limit: 100 })),
+    );
+    expect(localStorage.getItem("orders.pageSize")).toBe("100");
+    expect(screen.getByRole("combobox", { name: "Per page" })).toHaveValue("100");
+  });
+
+  it("uses the size remembered from before", async () => {
+    localStorage.setItem("orders.pageSize", "50");
+
+    renderAt("/orders");
+
+    await waitFor(() =>
+      expect(ordersApi.list).toHaveBeenCalledWith(expect.objectContaining({ limit: 50 })),
+    );
+  });
+
+  it("lets a size in the address win over the one remembered", async () => {
+    localStorage.setItem("orders.pageSize", "50");
+
+    renderAt("/orders?limit=200");
+
+    await waitFor(() =>
+      expect(ordersApi.list).toHaveBeenCalledWith(expect.objectContaining({ limit: 200 })),
+    );
+  });
+
+  it("ignores a remembered size that is not one of the choices", async () => {
+    localStorage.setItem("orders.pageSize", "7");
+
+    renderAt("/orders");
+
+    await waitFor(() =>
+      expect(ordersApi.list).toHaveBeenCalledWith(expect.objectContaining({ limit: 20 })),
+    );
+  });
+
+  it("stays on the page holding the first order showing when the size changes", async () => {
+    vi.mocked(ordersApi.list).mockResolvedValue({ items: [makeOrder()], total: 400, skip: 0, limit: 20 });
+    renderAt("/orders?skip=60&limit=20");
+    fireEvent.change(await screen.findByRole("combobox", { name: "Per page" }), {
+      target: { value: "50" },
+    });
+
+    // the order at position 60 is on the second page of 50
+    await waitFor(() =>
+      expect(ordersApi.list).toHaveBeenLastCalledWith(
+        expect.objectContaining({ limit: 50, skip: 50 }),
+      ),
+    );
+  });
+});
+
+describe("going to a page of the list", () => {
+  it("goes straight to the page typed", async () => {
+    vi.mocked(ordersApi.list).mockResolvedValue({ items: [makeOrder()], total: 100, skip: 0, limit: 20 });
+    renderAt("/orders");
+    const field = await screen.findByRole("spinbutton", { name: "Go to page" });
+    expect(screen.getByText("of 5 (100 total)")).toBeInTheDocument();
+
+    fireEvent.change(field, { target: { value: "4" } });
+    fireEvent.submit(field.closest("form") as HTMLFormElement);
+
+    await waitFor(() =>
+      expect(ordersApi.list).toHaveBeenLastCalledWith(expect.objectContaining({ skip: 60 })),
+    );
+    expect(screen.getByTestId("where")).toHaveTextContent("skip=60");
+  });
+
+  it("goes to the last page from the last-page button", async () => {
+    vi.mocked(ordersApi.list).mockResolvedValue({ items: [makeOrder()], total: 100, skip: 0, limit: 20 });
+    renderAt("/orders");
+
+    fireEvent.click(await screen.findByRole("button", { name: "Last page" }));
+
+    await waitFor(() =>
+      expect(ordersApi.list).toHaveBeenLastCalledWith(expect.objectContaining({ skip: 80 })),
+    );
+  });
+});

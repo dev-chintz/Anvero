@@ -1,3 +1,4 @@
+import { ItemThumb } from '../components/ItemThumb';
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ApiError, ordersApi } from '../api/client';
@@ -82,7 +83,7 @@ export function ProductionPage() {
                         <td>
                           <div className="production-product">
                             {line.image_url ? (
-                              <img src={line.image_url} alt="" className="production-thumb" />
+                              <ItemThumb src={line.image_url} className="production-thumb" />
                             ) : (
                               <div className="production-thumb" aria-hidden="true" />
                             )}

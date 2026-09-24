@@ -1,6 +1,8 @@
 import type { Order, OrderStatus } from "../types/order";
 import { useTranslation } from "../i18n";
+import { HorizontalScroll } from "./HorizontalScroll";
 import { OrderRow } from "./OrderRow";
+import { Pagination } from "./Pagination";
 import type { OrderLinkState } from "./orderLinkState";
 
 interface OrderListProps {
@@ -18,6 +20,8 @@ interface OrderListProps {
   linkState?: OrderLinkState;
   onDelete?: (order: Order) => void;
   onRestore?: (order: Order) => void;
+  /** Offered beside the page buttons when given: how many orders a page holds. */
+  onLimitChange?: (limit: number) => void;
 }
 
 export function OrderList({
@@ -33,12 +37,9 @@ export function OrderList({
   linkState,
   onDelete,
   onRestore,
+  onLimitChange,
 }: OrderListProps) {
   const { t } = useTranslation();
-  const currentPage = Math.floor(skip / limit) + 1;
-  const totalPages = Math.max(1, Math.ceil(count / limit));
-  const canGoPrevious = skip > 0;
-  const canGoNext = skip + limit < count;
 
   return (
     <section aria-label={t("orders.regionLabel")}>
@@ -55,7 +56,7 @@ export function OrderList({
       )}
 
       {!loading && !error && orders.length > 0 && (
-        <div className="table-wrapper">
+        <HorizontalScroll>
           <table className="orders-table">
             <caption className="sr-only">{t("orders.caption")}</caption>
             <thead>
@@ -83,28 +84,16 @@ export function OrderList({
               ))}
             </tbody>
           </table>
-        </div>
+        </HorizontalScroll>
       )}
 
-      <nav className="pagination" aria-label={t("orders.pagination")}>
-        <button
-          type="button"
-          onClick={() => onPageChange(Math.max(0, skip - limit))}
-          disabled={!canGoPrevious}
-        >
-          {t("orders.previous")}
-        </button>
-        <span>
-          {t("orders.page", { page: currentPage, pages: totalPages, count })}
-        </span>
-        <button
-          type="button"
-          onClick={() => onPageChange(skip + limit)}
-          disabled={!canGoNext}
-        >
-          {t("orders.next")}
-        </button>
-      </nav>
+      <Pagination
+        skip={skip}
+        limit={limit}
+        count={count}
+        onPageChange={onPageChange}
+        onLimitChange={onLimitChange}
+      />
     </section>
   );
 }
