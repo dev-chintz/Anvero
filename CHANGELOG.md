@@ -6,6 +6,11 @@ All significant changes to the Anvero project.
 
 ## 2026-09-24
 
+### ✅ Stage B1 complete: no cash on delivery
+
+- The owner does not ship cash on delivery, so it will not be built; such an
+  order is refused a label with a message saying so.
+
 ### 🚚 Ordering a courier for the parcels
 
 - On the Labels page: choose parcels of one carrier and the day they are

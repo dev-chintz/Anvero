@@ -38,7 +38,8 @@ A7, the application status page, is done. Stage A is complete apart from
 A4's first real run and A6's first real send. B1, labels through "Wysyłam z
 Allegro", is built for one parcel per order, with printing many at once and
 ordering a courier on the Labels page, and never used for real; cash on
-delivery is left).
+delivery is not shipped, so B1 is complete in code. Next is B2, buyer
+messages).
 
 **Open task:** the first deployment to the NAS is prepared but not yet run; see "PICK UP HERE" in `PROJECT_STATUS.md` and `DEPLOYMENT.md`.
 

@@ -376,7 +376,7 @@ sent; a refused command is a `FAILED` write and no label. Otherwise it waits a
 few seconds for Allegro: the label comes back `CREATED` (and the waybill is
 added to the order, as `POST /orders/{id}/shipments` would), `FAILED`, or
 still `PENDING`, for `refresh` to settle. `409` when the label cannot be asked
-for: not an Allegro order, cash on delivery (not supported yet), no sender in
+for: not an Allegro order, cash on delivery (not shipped by the business), no sender in
 the settings, a label already `PENDING` or `CREATED` on the order (cancel it
 first), or no delivery method on Allegro's order; `502` when Allegro cannot be
 reached.

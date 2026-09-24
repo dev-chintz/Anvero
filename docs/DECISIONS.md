@@ -1011,3 +1011,11 @@ branch is unverified: only the SQLite path has been run.
 
 **Consequences:** The operator orders one pickup per carrier. A pickup ordered by mistake has to be cancelled on Allegro for now. Everything is from the documentation and fakes until the Sandbox run (`INTEGRATIONS.md`).
 
+## 2026-09-24 — No cash on delivery
+
+**Decision:** The business does not ship cash on delivery, so Anvero will not build it for labels: an order whose payment is cash on delivery is refused a label, with a message to check it on Allegro, and no bank account or amount handling is added. This replaces "refused for now" in the labels decision above.
+
+**Rationale:** The owner's answer on 2026-09-24. Building it would mean storing the seller's bank account and checking amounts for a case that should never occur.
+
+**Consequences:** Stage B1 is complete in code. If such an order ever arrives (the offer's settings allowing it by mistake), the refusal is the signal to fix the offer on Allegro.
+

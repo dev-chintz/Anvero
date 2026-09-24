@@ -460,8 +460,8 @@ of the shipment's carrier and waybill (both shapes the documentation suggests
 are read); whether Allegro already links the shipment to the order by itself,
 in which case step 4's tracking number may be refused as a duplicate, harmless
 but noted as a failed write; and the label's `Accept` header. Not built yet:
-cash on delivery (it needs the seller's bank account), insurance and several
-parcels per order. Unverified too: that one label
+insurance and several parcels per order. Cash on delivery will not be: the
+business does not ship it, and such an order is refused a label. Unverified too: that one label
 request takes many shipments and how Allegro lays several A6 labels out.
 
 ### Writing to Allegro

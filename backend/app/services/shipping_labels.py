@@ -173,7 +173,7 @@ class ShippingLabels:
         if order.source is not OrderSource.ALLEGRO:
             raise LabelRefused("Labels through Wysyłam z Allegro are for Allegro orders only")
         if order.payment_type == PaymentType.CASH_ON_DELIVERY:
-            raise LabelRefused("Cash on delivery is not supported yet; buy this label on Allegro")
+            raise LabelRefused("Cash on delivery is not supported: the business does not ship it")
         if any(label.status in _ACTIVE for label in self.for_order(order)):
             raise LabelRefused("The order already has a label; cancel it before buying another")
         sender = get_shipping_settings(self.db).sender
