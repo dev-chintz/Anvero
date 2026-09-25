@@ -1,0 +1,648 @@
+/* The order's own page (OrderDetail.tsx): a header, what needs attention, two columns of
+   cards, the rarely needed folded away, and the operator's own note at the foot. */
+
+/* the header: who it is, the usual next step, and where the order stands */
+.order-header {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+  margin-bottom: 1rem;
+}
+
+.order-header-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.order-header-line {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.order-header .order-page-title {
+  margin: 0;
+  font-size: 1.5rem;
+}
+
+.order-header-buyer {
+  font-size: 1.1rem;
+  color: var(--color-muted-strong);
+}
+
+.order-header-meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.4rem;
+  font-size: 0.9rem;
+}
+
+.order-header .mark-button {
+  padding: 0;
+  background: none;
+  border: none;
+  font-size: 1.3rem;
+  line-height: 1;
+  color: var(--color-muted);
+  cursor: pointer;
+}
+
+.order-header .mark-button:hover {
+  color: var(--color-heading);
+}
+
+.order-header .mark-star.is-on {
+  color: #f59e0b;
+}
+
+.order-header .mark-flag.is-on {
+  color: #dc2626;
+}
+
+.order-header .country-badge {
+  padding: 0 0.3rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  color: var(--color-muted-strong);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.order-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.order-next {
+  padding: 0.5rem 1rem;
+  background: var(--color-accent);
+  border: 1px solid var(--color-accent);
+  border-radius: var(--radius);
+  color: #fff;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+:root.dark .order-next {
+  color: #0b0b0b;
+}
+
+.order-next:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+/* the rarer actions, folded under a button */
+.order-menu {
+  position: relative;
+}
+
+.order-menu-button {
+  padding: 0.35rem 0.75rem;
+  background: none;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  color: var(--color-heading);
+  font: inherit;
+  font-size: 1.1rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.order-menu-button:hover {
+  background: var(--color-divider);
+}
+
+.order-menu-list {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 0.25rem);
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  min-width: 12rem;
+  padding: 0.35rem;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.18);
+}
+
+.order-menu-list button {
+  width: 100%;
+  text-align: left;
+}
+
+/* where the order stands on its usual road */
+.order-steps {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.order-step {
+  padding: 0.2rem 0.7rem;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  color: var(--color-muted);
+  font-size: 0.85rem;
+}
+
+.order-step.is-done {
+  color: var(--color-text);
+}
+
+.order-step.is-current {
+  background: color-mix(in srgb, var(--color-accent) 15%, transparent);
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+  font-weight: 600;
+}
+
+.order-step.is-cancelled {
+  background: transparent;
+  border-color: #dc2626;
+  color: #dc2626;
+}
+
+/* what needs a look: only what is there */
+.order-attention {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin: 0 0 1rem;
+  padding: 0;
+  list-style: none;
+}
+
+.attention-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.25rem 0.75rem;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  font: inherit;
+  font-size: 0.85rem;
+  text-decoration: none;
+}
+
+button.attention-chip {
+  cursor: pointer;
+}
+
+.attention-late {
+  background: #fef2f2;
+  border-color: #fecaca;
+  color: #b91c1c;
+}
+
+.attention-soon {
+  background: #fff7ed;
+  border-color: #fdba74;
+  color: #9a3412;
+}
+
+.attention-later {
+  background: var(--color-surface-alt);
+  border-color: var(--color-border);
+  color: var(--color-muted-strong);
+}
+
+.attention-info {
+  background: #eff6ff;
+  border-color: #bfdbfe;
+  color: #1d4ed8;
+}
+
+.attention-note {
+  background: #fefce8;
+  border-color: #fde047;
+  color: #854d0e;
+}
+
+:root.dark .attention-late {
+  background: #3b1212;
+  border-color: #b91c1c;
+  color: #fca5a5;
+}
+
+:root.dark .attention-soon {
+  background: #3b2412;
+  border-color: #9a3412;
+  color: #fdba74;
+}
+
+:root.dark .attention-info {
+  background: #1e3a5f;
+  border-color: #2563eb;
+  color: #bfdbfe;
+}
+
+:root.dark .attention-note {
+  background: #3f3405;
+  border-color: #a16207;
+  color: #fde68a;
+}
+
+/* the cards in two columns: what is done to the order on the left, its facts on the right */
+.order-columns {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 300px;
+  gap: 1rem;
+  align-items: start;
+}
+
+.order-main,
+.order-side {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  min-width: 0;
+}
+
+@media (max-width: 1000px) {
+  .order-columns {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.order-address-cards {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+@media (max-width: 640px) {
+  .order-address-cards {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.order-card-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.copy-button {
+  padding: 0.1rem 0.45rem;
+  background: none;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  color: var(--color-muted-strong);
+  font: inherit;
+  cursor: pointer;
+}
+
+.copy-button:hover {
+  background: var(--color-divider);
+}
+
+.fact-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.fact-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  margin: 0.75rem 0 0;
+}
+
+.fact-list > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  font-size: 0.9rem;
+}
+
+.fact-list dt {
+  color: var(--color-muted);
+}
+
+.fact-list dd {
+  margin: 0;
+  text-align: right;
+  overflow-wrap: anywhere;
+}
+
+.fact-list .dispatch-late {
+  color: #b91c1c;
+  font-weight: 600;
+}
+
+.fact-list .dispatch-soon {
+  color: #b45309;
+  font-weight: 600;
+}
+
+/* shipping: the parcels sent, then one way of making another at a time */
+.order-shipments-list {
+  margin: 0 0 0.5rem;
+  padding: 0;
+  list-style: none;
+}
+
+.shipping-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin: 0.75rem 0 0.5rem;
+}
+
+.shipping-tabs button {
+  padding: 0.3rem 0.8rem;
+  background: none;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  color: var(--color-muted-strong);
+  font: inherit;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.shipping-tabs button.is-on {
+  background: var(--color-surface-alt);
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+  font-weight: 600;
+}
+
+.shipping-panel {
+  margin-top: 0.5rem;
+}
+
+/* what is folded away */
+.order-more {
+  margin-top: 1rem;
+  padding-top: 0.25rem;
+  padding-bottom: 0.25rem;
+}
+
+.order-more-item {
+  padding: 0.6rem 0;
+  border-top: 1px solid var(--color-border);
+}
+
+.order-more-item:first-child {
+  border-top: none;
+}
+
+.order-more-item > summary {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  cursor: pointer;
+  list-style: none;
+}
+
+.order-more-item > summary::-webkit-details-marker {
+  display: none;
+}
+
+.order-more-item > summary::after {
+  content: "▾";
+  color: var(--color-muted);
+}
+
+.order-more-item[open] > summary::after {
+  content: "▴";
+}
+
+.order-more-summary {
+  margin-left: auto;
+  color: var(--color-muted);
+}
+
+.order-more-body {
+  padding-top: 0.75rem;
+}
+
+/* the operator's own note */
+.order-internal-note {
+  margin-top: 1rem;
+}
+
+.order-internal-note textarea {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 0.5rem;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  color: var(--color-text);
+  font: inherit;
+  resize: vertical;
+}
+
+.internal-note-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-top: 0.5rem;
+}
+
+/* ---- Colour: a grey canvas under white cards, each card's title band in its own tone ----
+   Everything on the order page was white on white, so the cards ran together. The page now
+   sits on a grey canvas; a card is white with a rounded edge, and its title is a band
+   tinted for what the card is (blue: the order itself, teal: sending it, green or red: the
+   money, amber: notes). */
+.order-page {
+  min-height: 100vh;
+  background: var(--color-canvas);
+}
+
+.order-page .order-card {
+  --band-bg: var(--color-surface-alt);
+  --band-fg: var(--color-muted-strong);
+  padding: 1rem;
+  overflow: hidden;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+}
+
+/* the title of a card is its band; in a card whose title shares a row with a button, the row is */
+.order-page .order-card > h2,
+.order-page .order-card > .order-card-head {
+  margin: -1rem -1rem 0.9rem;
+  padding: 0.55rem 1rem;
+  background: var(--band-bg);
+  color: var(--band-fg);
+}
+
+.order-page .order-card > h2 {
+  font-size: 0.95rem;
+}
+
+.order-page .order-card > .order-card-head {
+  align-items: center;
+}
+
+.order-page .order-card > .order-card-head > h2 {
+  margin: 0;
+  font-size: 0.95rem;
+  color: inherit;
+}
+
+.order-page .order-items,
+.order-page .order-facts,
+.order-page .order-buyer {
+  --band-bg: #e7f0fd;
+  --band-fg: #1e40af;
+}
+
+.order-page .order-shipping,
+.order-page .order-delivery,
+.order-page .order-invoice {
+  --band-bg: #d8efee;
+  --band-fg: #0b5559;
+}
+
+.order-page .order-payment {
+  --band-bg: var(--color-surface-alt);
+}
+
+.order-page .order-payment.payment-paid {
+  --band-bg: #dcfce7;
+  --band-fg: #166534;
+}
+
+.order-page .order-payment.payment-unpaid {
+  --band-bg: #fee2e2;
+  --band-fg: #b91c1c;
+}
+
+.order-page .after-sales-card.needs-action,
+.order-page .order-internal-note {
+  --band-bg: #fef3c7;
+  --band-fg: #854d0e;
+}
+
+:root.dark .order-page .order-items,
+:root.dark .order-page .order-facts,
+:root.dark .order-page .order-buyer {
+  --band-bg: #1e3a5f;
+  --band-fg: #bfdbfe;
+}
+
+:root.dark .order-page .order-shipping,
+:root.dark .order-page .order-delivery,
+:root.dark .order-page .order-invoice {
+  --band-bg: #0f3d3f;
+  --band-fg: #99e0dc;
+}
+
+:root.dark .order-page .order-payment.payment-paid {
+  --band-bg: #14532d;
+  --band-fg: #bbf7d0;
+}
+
+:root.dark .order-page .order-payment.payment-unpaid {
+  --band-bg: #450a0a;
+  --band-fg: #fca5a5;
+}
+
+:root.dark .order-page .after-sales-card.needs-action,
+:root.dark .order-page .order-internal-note {
+  --band-bg: #3f3405;
+  --band-fg: #fde68a;
+}
+
+/* the note is tinted through, so it reads as the operator's own scribble */
+.order-page .order-internal-note {
+  background: #fffbeb;
+  border-color: #fde68a;
+}
+
+:root.dark .order-page .order-internal-note {
+  background: #221c06;
+  border-color: #854d0e;
+}
+
+/* the header card has no band: it is the page's own title */
+.order-page .order-header {
+  padding: 1rem 1.25rem;
+}
+
+/* the steps: done in green, the present one solid, the rest quiet */
+.order-step.is-done {
+  background: #dcfce7;
+  border-color: #86efac;
+  color: #166534;
+}
+
+.order-step.is-current {
+  background: var(--color-accent);
+  border-color: var(--color-accent);
+  color: #fff;
+}
+
+:root.dark .order-step.is-done {
+  background: #14532d;
+  border-color: #166534;
+  color: #bbf7d0;
+}
+
+:root.dark .order-step.is-current {
+  color: #0b0b0b;
+}
+
+.order-step.is-cancelled {
+  background: #fee2e2;
+  border-color: #fca5a5;
+  color: #b91c1c;
+}
+
+/* the money: the amount is the card's headline */
+.order-payment .order-paid,
+.order-payment .order-unpaid {
+  margin: 0 0 0.25rem;
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+
+.order-payment .order-paid {
+  color: #166534;
+}
+
+.order-payment .order-unpaid {
+  color: #b91c1c;
+}
+
+:root.dark .order-payment .order-paid {
+  color: #86efac;
+}
+
+:root.dark .order-payment .order-unpaid {
+  color: #fca5a5;
+}
+
+/* the items: a grey head row, the total as the table's headline */
+.order-page .order-items thead th {
+  background: var(--color-surface-alt);
+}
+
+.order-page .order-items tfoot .order-items-total td,
+.order-page .order-items tfoot .order-items-total th {
+  font-size: 1.05rem;
+  color: var(--color-accent);
+}

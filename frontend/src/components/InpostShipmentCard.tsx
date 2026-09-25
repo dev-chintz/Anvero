@@ -16,6 +16,7 @@ import { describeWrite, type WriteTone } from "./marketplaceWrite";
 import { openPdf } from "./openPdf";
 import { TrackingLink } from "./TrackingLink";
 import "../styles/Shipping.css";
+import { CardShell } from "./CardShell";
 
 /** InPost's own status word in the interface's language; a word not known is shown as it came. */
 export function inpostStatusLabel(status: string): string {
@@ -38,6 +39,8 @@ interface InpostShipmentCardProps {
   order: OrderWithDetails;
   /** A parcel's number goes onto the order, so the order needs reloading. */
   onChanged: () => void;
+  /** Shown inside a tab of the shipping card: no frame and no heading of its own. */
+  embedded?: boolean;
 }
 
 /**
@@ -46,7 +49,7 @@ interface InpostShipmentCardProps {
  * Safe mode holds back what would be sent to InPost or to Allegro like any other
  * change, and says so.
  */
-export function InpostShipmentCard({ order, onChanged }: InpostShipmentCardProps) {
+export function InpostShipmentCard({ order, onChanged, embedded = false }: InpostShipmentCardProps) {
   const { t, formatDateTime } = useTranslation();
   const [shipments, setShipments] = useState<InpostShipment[] | null>(null);
   const [status, setStatus] = useState<InpostStatus | null>(null);
@@ -122,8 +125,7 @@ export function InpostShipmentCard({ order, onChanged }: InpostShipmentCardProps
   const configured = status?.configured ?? false;
 
   return (
-    <section className="order-card inpost-shipment" aria-label={t("inpost.cardTitle")}>
-      <h2>{t("inpost.cardTitle")}</h2>
+    <CardShell title={t("inpost.cardTitle")} className="inpost-shipment" embedded={embedded}>
 
       {shipments.length > 0 && (
         <ul className="label-list">
@@ -210,6 +212,6 @@ export function InpostShipmentCard({ order, onChanged }: InpostShipmentCardProps
           {note.text}
         </p>
       ))}
-    </section>
+    </CardShell>
   );
 }

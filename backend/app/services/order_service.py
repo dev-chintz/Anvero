@@ -140,6 +140,14 @@ class OrderService:
         """
         return self.repository.set_marks(self.get_order(order_id), starred, flagged)
 
+    def set_internal_note(self, order_id: uuid.UUID, note: str | None) -> Order:
+        """Write or clear the operator's own note on an order.
+
+        Raises:
+            HTTPException: 404 if no order exists with that id.
+        """
+        return self.repository.set_internal_note(self.get_order(order_id), note)
+
     def restore_order(self, order_id: uuid.UUID) -> Order:
         """Put a deleted order back in the lists. One in use is left as it is."""
         order = self.get_order(order_id)

@@ -2,40 +2,30 @@ import { useEffect, useState } from "react";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import { ApiError, marketplaceWritesApi, ordersApi, type MarketplaceWrite, type OrderChangeResult } from "../api/client";
 import type { OrderLinkState } from "./orderLinkState";
-import {
-  OrderStatus,
-  hasCancellationWarning,
-  marketplaceStatusDiffers,
-  marketplaceStatusText,
-} from "../types/order";
+import { OrderStatus, hasCancellationWarning } from "../types/order";
 import type { Order, OrderBilling, OrderStatusChange, OrderWithDetails } from "../types/order";
 import { translate, useTranslation } from "../i18n";
-import { AddShipmentForm } from "./AddShipmentForm";
 import { AfterSalesCard } from "./AfterSalesCard";
-import { BuyerOrdersCard } from "./BuyerOrdersCard";
 import { describeWrite } from "./marketplaceWrite";
-import { OrderWritesCard } from "./OrderWritesCard";
-import { OrderBillingCard } from "./OrderBillingCard";
-import { OrderDetailsPanel } from "./OrderDetailsPanel";
-import { InpostShipmentCard } from "./InpostShipmentCard";
-import { ShippingLabelCard } from "./ShippingLabelCard";
-import "../styles/OrderHistory.css";
-
-const STATUSES = Object.values(OrderStatus);
-
-const STATUS_ICON: Record<OrderStatus, string> = {
-  [OrderStatus.NEW]: "🆕",
-  [OrderStatus.CONFIRMED]: "🛠️",
-  [OrderStatus.READY_FOR_SHIPMENT]: "✅",
-  [OrderStatus.SHIPPED]: "🚚",
-  [OrderStatus.DELIVERED]: "📦",
-  [OrderStatus.CANCELLED]: "✖",
-};
+import {
+  OrderAddressCards,
+  OrderBuyerCard,
+  OrderItemsCard,
+  OrderPaymentCard,
+} from "./OrderDetailsPanel";
+import { OrderAttentionBar } from "./OrderAttentionBar";
+import { OrderFactsCard } from "./OrderFactsCard";
+import { OrderHeader } from "./OrderHeader";
+import { OrderInternalNote } from "./OrderInternalNote";
+import { OrderMoreSections } from "./OrderMoreSections";
+import { OrderNoteDialog, type OrderNoteKind } from "./OrderNoteDialog";
+import { OrderShippingCard } from "./OrderShippingCard";
+import "../styles/OrderPage.css";
 
 export function OrderDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { t, formatDateTime, formatMoney } = useTranslation();
+  const { t, formatDateTime } = useTranslation();
   const location = useLocation();
 
   const [order, setOrder] = useState<OrderWithDetails | null>(null);
@@ -51,6 +41,9 @@ export function OrderDetail() {
   const [writeNote, setWriteNote] = useState<{ text: string; tone: string } | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [markError, setMarkError] = useState<string | null>(null);
+  // the buyer's message or the seller's note being read in its window
+  const [openNote, setOpenNote] = useState<OrderNoteKind | null>(null);
 
   const loadWrites = (orderId: string) =>
     Promise.resolve()
@@ -68,6 +61,8 @@ export function OrderDetail() {
     // a note about the previous order's change does not belong to this one
     setWriteNote(null);
     setDeleteError(null);
+    setMarkError(null);
+    setOpenNote(null);
 
     ordersApi
       .get(id)
@@ -149,6 +144,24 @@ export function OrderDetail() {
     }
   };
 
+  // a star or a flag is saved at once and shown from the answer
+  const handleMarks = async (marks: { starred?: boolean; flagged?: boolean }) => {
+    if (!order) return;
+    setMarkError(null);
+    try {
+      const updated = await ordersApi.setMarks(order.id, marks);
+      // only what this request changed: a star and a flag pressed one after the other are
+      // two requests, and the older answer must not undo the newer press
+      const changed = {
+        ...(marks.starred !== undefined && { starred: updated.starred }),
+        ...(marks.flagged !== undefined && { flagged: updated.flagged }),
+      };
+      setOrder((current) => (current ? { ...current, ...changed } : current));
+    } catch (err: unknown) {
+      setMarkError(err instanceof ApiError ? err.message : translate("order.markFailed"));
+    }
+  };
+
   const isDeleted = !!order?.deleted_at;
 
   const handleStatusChange = async (nextStatus: OrderStatus) => {
@@ -172,6 +185,8 @@ export function OrderDetail() {
       setSaving(false);
     }
   };
+
+  const ready = !loading && !error && !notFound && !!order;
 
   return (
     <div className="order-page">
@@ -205,38 +220,19 @@ export function OrderDetail() {
           )}
         </nav>
 
-        {order && !loading && !notFound && (
-          <div className="order-page-heading">
-            <h1 className="order-page-title">{order.order_label}</h1>
-            {isDeleted ? (
-              <button
-                type="button"
-                className="order-restore"
-                onClick={() => changeDeleted("restore")}
-                disabled={deleting}
-              >
-                {t("order.restore")}
-              </button>
-            ) : (
-              <button
-                type="button"
-                className="order-delete"
-                onClick={() => changeDeleted("delete")}
-                disabled={deleting}
-              >
-                {deleting ? t("order.deleting") : t("order.delete")}
-              </button>
-            )}
-          </div>
-        )}
-
         {deleteError && (
           <p role="alert" className="error-message">
             {deleteError}
           </p>
         )}
 
-        {!loading && !error && !notFound && order && order.deleted_at && (
+        {markError && (
+          <p role="alert" className="error-message">
+            {markError}
+          </p>
+        )}
+
+        {ready && order.deleted_at && (
           <div role="status" className="warning-banner">
             {order.deleted_by
               ? t("order.deletedBanner", {
@@ -261,7 +257,7 @@ export function OrderDetail() {
           </p>
         )}
 
-        {!loading && !error && !notFound && order && hasCancellationWarning(order) && (
+        {ready && hasCancellationWarning(order) && (
           <div role="alert" className="warning-banner">
             <strong>{t("order.cancelledBannerTitle", { source: order.source })}</strong>{" "}
             {t("order.cancelledBannerBody", {
@@ -271,179 +267,85 @@ export function OrderDetail() {
           </div>
         )}
 
-        {!loading && !error && !notFound && order && (
-          <dl className="order-fields">
-            <div>
-              <dt>{t("order.number")}</dt>
-              <dd>{order.order_label}</dd>
-            </div>
-            <div>
-              <dt>{t("order.id")}</dt>
-              <dd>{order.id}</dd>
-            </div>
-            <div>
-              <dt>{t("order.externalId")}</dt>
-              <dd>{order.external_id}</dd>
-            </div>
-            <div>
-              <dt>{t("order.source")}</dt>
-              <dd>{order.source}</dd>
-            </div>
-            <div>
-              <dt>
-                <label htmlFor="order-status">{t("order.status")}</label>
-              </dt>
-              <dd>
-                <select
-                  id="order-status"
-                  value={order.status}
-                  disabled={saving || isDeleted}
-                  onChange={(e) =>
-                    handleStatusChange(e.target.value as OrderStatus)
-                  }
-                >
-                  {STATUSES.map((s) => (
-                    <option key={s} value={s}>
-                      {t(`status.${s}`)}
-                    </option>
-                  ))}
-                </select>
-                {saving && <span role="status">{t("order.saving")}</span>}
-                {saveError && (
-                  <span role="alert" className="error-message">
-                    {saveError}
-                  </span>
-                )}
-                {writeNote && (
-                  <p
-                    role={writeNote.tone === "error" ? "alert" : "status"}
-                    className={`write-note write-${writeNote.tone}`}
-                  >
-                    {writeNote.text}
-                  </p>
-                )}
-                {marketplaceStatusDiffers(order) && (
-                  <p className="field-note">
-                    {t("order.marketplaceNote", {
-                      source: order.source,
-                      reported: marketplaceStatusText(order),
-                      mapped: t(`status.${order.marketplace_status as OrderStatus}`),
-                    })}
-                  </p>
-                )}
-              </dd>
-            </div>
-            <div>
-              <dt>{t("order.customerEmail")}</dt>
-              <dd>{order.customer_email}</dd>
-            </div>
-            <div>
-              <dt>{t("order.totalAmount")}</dt>
-              <dd>
-                {formatMoney(order.total_amount, order.currency)}
-              </dd>
-            </div>
-            <div>
-              <dt>{t("order.orderedAt")}</dt>
-              <dd>{formatDateTime(order.ordered_at)}</dd>
-            </div>
-            <div>
-              <dt>{t("order.createdAt")}</dt>
-              <dd>{formatDateTime(order.created_at)}</dd>
-            </div>
-            <div>
-              <dt>{t("order.updatedAt")}</dt>
-              <dd>{formatDateTime(order.updated_at)}</dd>
-            </div>
-          </dl>
-        )}
+        {ready && (
+          <>
+            <OrderHeader
+              order={order}
+              saving={saving}
+              deleting={deleting}
+              isDeleted={isDeleted}
+              onNextStep={handleStatusChange}
+              onMarks={handleMarks}
+              onDelete={() => changeDeleted("delete")}
+              onRestore={() => changeDeleted("restore")}
+            />
 
-        {!loading && !error && !notFound && order && <AfterSalesCard orderId={order.id} />}
+            <OrderAttentionBar order={order} onOpenNote={setOpenNote} />
 
-        {!loading && !error && !notFound && order && <OrderDetailsPanel order={order} />}
+            <AfterSalesCard orderId={order.id} />
 
-        {!loading && !error && !notFound && order && !isDeleted && (
-          <ShippingLabelCard
-            order={order}
-            onChanged={() => {
-              ordersApi.get(order.id).then(setOrder).catch(() => undefined);
-              loadWrites(order.id);
-            }}
-          />
-        )}
+            <div className="order-columns">
+              <div className="order-main">
+                <OrderItemsCard order={order} />
+                <OrderAddressCards order={order} />
+                <OrderShippingCard
+                  key={order.id}
+                  order={order}
+                  isDeleted={isDeleted}
+                  onChanged={() => {
+                    ordersApi.get(order.id).then(setOrder).catch(() => undefined);
+                    loadWrites(order.id);
+                  }}
+                  onAdded={(result: OrderChangeResult) => {
+                    setOrder(result);
+                    loadWrites(result.id);
+                  }}
+                />
+              </div>
 
-        {!loading && !error && !notFound && order && !isDeleted && (
-          <InpostShipmentCard
-            order={order}
-            onChanged={() => {
-              ordersApi.get(order.id).then(setOrder).catch(() => undefined);
-              loadWrites(order.id);
-            }}
-          />
-        )}
+              <aside className="order-side">
+                <OrderPaymentCard order={order} />
+                <OrderFactsCard
+                  order={order}
+                  saving={saving}
+                  saveError={saveError}
+                  writeNote={writeNote}
+                  isDeleted={isDeleted}
+                  onStatusChange={handleStatusChange}
+                />
+                <OrderBuyerCard order={order} />
+              </aside>
+            </div>
 
-        {!loading && !error && !notFound && order && !isDeleted && (
-          <AddShipmentForm
-            orderId={order.id}
-            onAdded={(result: OrderChangeResult) => {
-              setOrder(result);
-              loadWrites(result.id);
-            }}
-          />
-        )}
+            <OrderMoreSections
+              order={order}
+              history={history}
+              billing={billing}
+              buyerOrders={buyerOrders}
+              writes={writes}
+            />
 
-        {!loading && !error && !notFound && order && <OrderWritesCard writes={writes} />}
-
-        {!loading && !error && !notFound && order && buyerOrders && (
-          <BuyerOrdersCard orders={buyerOrders} />
-        )}
-
-        {!loading && !error && !notFound && order && billing && (
-          <OrderBillingCard billing={billing} orderTotal={order.total_amount} />
-        )}
-
-        {!loading && !error && !notFound && order && (
-          <section className="status-history" aria-label={t("history.title")}>
-            <h2>{t("history.title")}</h2>
-            {history.length === 0 ? (
-              <p className="status-history-empty">
-                {t("history.empty", {
-                  status: t(`status.${order.status}`),
-                  date: formatDateTime(order.created_at),
-                })}
-              </p>
-            ) : (
-              <ol className="status-history-list">
-                {history.map((entry) => (
-                  <li key={entry.id} className="status-history-item">
-                    <span
-                      className={`status-history-icon badge-${entry.to_status.toLowerCase()}`}
-                      aria-hidden="true"
-                    >
-                      {STATUS_ICON[entry.to_status]}
-                    </span>
-                    <time dateTime={entry.changed_at}>
-                      {formatDateTime(entry.changed_at)}
-                    </time>
-                    <span className="status-history-move">
-                      <span className={`badge badge-${entry.from_status.toLowerCase()}`}>
-                        {t(`status.${entry.from_status}`)}
-                      </span>
-                      <span aria-hidden="true">→</span>
-                      <span className={`badge badge-${entry.to_status.toLowerCase()}`}>
-                        {t(`status.${entry.to_status}`)}
-                      </span>
-                    </span>
-                    {entry.changed_by && (
-                      <span className="status-history-author">{t("history.by", { user: entry.changed_by })}</span>
-                    )}
-                  </li>
-                ))}
-              </ol>
-            )}
-          </section>
+            <OrderInternalNote
+              key={order.id}
+              orderId={order.id}
+              note={order.internal_note ?? null}
+              onSaved={(saved) => setOrder({ ...order, internal_note: saved.internal_note })}
+            />
+          </>
         )}
       </section>
+
+      {ready && openNote && (
+        <OrderNoteDialog
+          kind={openNote}
+          orderId={order.id}
+          orderLabel={order.order_label}
+          text={openNote === "message" ? order.buyer_message : order.seller_note}
+          loading={false}
+          error={null}
+          onClose={() => setOpenNote(null)}
+        />
+      )}
     </div>
   );
 }

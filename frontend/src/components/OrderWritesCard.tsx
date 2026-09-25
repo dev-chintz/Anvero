@@ -1,13 +1,19 @@
 import { useTranslation } from "../i18n";
 import type { MarketplaceWrite } from "../api/client";
+import { CardShell } from "./CardShell";
 
 /** What Anvero sent to the marketplace about this order, or held back. */
-export function OrderWritesCard({ writes }: { writes: MarketplaceWrite[] }) {
+export function OrderWritesCard({
+  writes,
+  embedded = false,
+}: {
+  writes: MarketplaceWrite[];
+  embedded?: boolean;
+}) {
   const { t, formatDateTime } = useTranslation();
   if (writes.length === 0) return null;
   return (
-    <section className="order-card order-writes" aria-label={t("write.cardTitle")}>
-      <h2>{t("write.cardTitle")}</h2>
+    <CardShell title={t("write.cardTitle")} className="order-writes" embedded={embedded}>
       <ul>
         {writes.map((write) => (
           <li key={write.id} className={`outcome-${write.outcome.toLowerCase()}`}>
@@ -19,6 +25,6 @@ export function OrderWritesCard({ writes }: { writes: MarketplaceWrite[] }) {
           </li>
         ))}
       </ul>
-    </section>
+    </CardShell>
   );
 }

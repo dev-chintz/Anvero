@@ -43,7 +43,7 @@ folder, and one was restored from that copy into a scratch database as a test.
   remains the no-setup default for a fresh clone)
 - Health endpoint and first order model — done
 - Minimal order list interface — done
-- Automated tests for core flows — done (797 backend, 358 frontend passing
+- Automated tests for core flows — done (807 backend, 413 frontend passing
   across the suite as of 2026-09-25)
 
 ---
@@ -160,6 +160,10 @@ The test label (`GET /labels/test-pdf`) was opened in the browser pane's PDF vie
 ---
 
 Deleting an order (`DECISIONS.md`, 2026-09-24, "soft") is covered by tests and its list view was opened in the browser (the "Deleted" chip, empty), but the trash button was not pressed on the real orders in the shared database, so the confirmation, the toast and a restore have not been seen end to end. Its migration `b8e3d5a7c246` was applied to the shared PostgreSQL on 2026-09-24: the other machines need `alembic upgrade head`.
+
+---
+
+The 2026-09-25 order-page work (`DECISIONS.md`, "The order's page is laid out like BaseLinker's") was checked in the browser on a scratch SQLite database with sample data, at a phone-like width only (the pane was 374 px wide): the header with the next-step button, a real status step, the star and flag, the attention chips, the message window, the actions menu, the folded sections with their counts and the internal note saved. The two-column layout at desktop width was seen only in a shrunken screenshot, so its spacing has not been judged; the copy buttons, the Allegro and InPost tabs with real labels, and the page on the shared PostgreSQL were not opened. The migration `b6e2f9a1c473` has not been applied to the shared PostgreSQL.
 
 ---
 

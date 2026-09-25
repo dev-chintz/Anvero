@@ -19,6 +19,7 @@ from app.schemas.order import (
     OrderDetailRead,
     OrderListResponse,
     OrderMarksUpdate,
+    OrderNoteUpdate,
     OrderRead,
     OrderStats,
     OrderStatusHistoryRead,
@@ -168,6 +169,15 @@ def update_order_marks(order_id: uuid.UUID, payload: OrderMarksUpdate, db: Sessi
     return OrderDetailRead.from_order(
         service.set_marks(order_id, payload.starred, payload.flagged)
     )
+
+
+@router.patch("/{order_id}/note", response_model=OrderDetailRead)
+def update_order_note(order_id: uuid.UUID, payload: OrderNoteUpdate, db: Session = Depends(get_db)):
+    """Write the operator's own note on an order, or clear it (`{"note": null}` or an
+    empty text). It stays in Anvero: nothing is sent to a marketplace, and an import
+    never touches it. An order that is deleted can still be noted."""
+    service = OrderService(OrderRepository(db))
+    return OrderDetailRead.from_order(service.set_internal_note(order_id, payload.note))
 
 
 @router.delete("/{order_id}", response_model=OrderDetailRead)

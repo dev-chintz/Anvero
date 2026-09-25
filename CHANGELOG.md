@@ -6,6 +6,28 @@ All significant changes to the Anvero project.
 
 ## 2026-09-25
 
+### 🧾 The order page laid out like BaseLinker's
+
+- **Header card:** star, flag, number, buyer, channel, country, date, one button for the
+  **next step** of the usual road ("Oznacz jako ...") and a row of steps showing where the
+  order is; delete and restore moved under a "..." menu.
+- **"Do uwagi" bar** for a dispatch deadline, an unpaid order, the buyer's message, the
+  seller's note and the internal note; the message and the note open in a small window.
+- **Two columns:** items, addresses (with "copy") and one **shipping card** with tabs
+  (Allegro label, InPost, own number) on the left; payment, the order's facts (the status can
+  still be set to any value there) and the buyer on the right.
+- **Folded sections** with counts: status history, fees, the buyer's other orders, what
+  was sent to the marketplace, technical data (the UUID and technical dates are here now).
+- **An internal note** on the order, written in Anvero only, at the foot of the page
+  (new column `internal_note`, migration `b6e2f9a1c473`: other machines need
+  `alembic upgrade head`; `PATCH /orders/{id}/note`, `API.md`).
+- **Colour on the order page:** a grey canvas under white rounded cards, each card's title in a
+  band of its own tone (blue: the order, teal: shipping and addresses, green or red: payment,
+  amber: notes); the steps go green, teal and grey; the amount paid and the total are headlines.
+  Only this page for now.
+- A star and a flag pressed one after the other no longer undo each other: each answer sets
+  only the mark it changed (a race found while testing this page).
+
 ### 🆕 A "New" quick button
 
 - A **"Nowe" quick button** (with the number of new orders) between "Wszystkie" and

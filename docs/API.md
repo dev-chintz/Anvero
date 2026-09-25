@@ -456,6 +456,17 @@ with its details. The marks are Anvero's alone: nothing is sent to a marketplace
 can still be marked. `404` for an unknown id. Every order carries `starred` and
 `flagged` (`false` until set) in the list and in the detail.
 
+### The operator's note
+
+`PATCH /api/v1/orders/{id}/note` writes the operator's own note on an order. Body:
+`{"note": "Ring before sending"}`; `{"note": null}`, an empty text or one of only spaces
+takes the note away. At most 4000 characters (`422` beyond that); line breaks are kept.
+Returns the order with its details, where the note is `internal_note` (null when there
+is none). It is Anvero's alone: unlike `seller_note`, which is the marketplace's and
+read-only, it is never sent to a marketplace and no import touches it. It is in
+`GET /orders/{id}` only, not in the list. The status history and `updated_at` are
+untouched, and an order that is deleted can still be noted. `404` for an unknown id.
+
 ### Deleting an order
 
 `DELETE /api/v1/orders/{id}` takes an order out of the application without

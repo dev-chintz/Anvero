@@ -95,6 +95,14 @@ class OrderRepository:
         self.db.refresh(order)
         return order
 
+    def set_internal_note(self, order: Order, note: str | None) -> Order:
+        """Write the operator's own note, or take it away with None. Like the marks,
+        not a change to the order as the marketplace knows it, so `updated_at` stays."""
+        order.internal_note = note
+        self.db.commit()
+        self.db.refresh(order)
+        return order
+
     def restore(self, order: Order) -> Order:
         order.deleted_at = None
         order.deleted_by_user_id = None

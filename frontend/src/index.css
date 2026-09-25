@@ -7,6 +7,8 @@
   --color-border: #e5e7eb;
   --color-primary: #2563eb;
   --color-bg: #ffffff;
+  /* the backdrop of the order page, under its white cards */
+  --color-canvas: #eef0f3;
   --radius: 6px;
   --color-scheme: light;
 
@@ -39,6 +41,7 @@
   --color-border: #3d3d3d;
   --color-primary: #14b8a6;
   --color-bg: #1a1a1a;
+  --color-canvas: #0f0f0f;
   --color-scheme: dark;
 
   --color-accent: #14b8a6;
@@ -494,42 +497,6 @@ td {
   }
 }
 
-.order-detail dl.order-fields {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 0.75rem;
-  margin-top: 1rem;
-}
-
-.order-fields div {
-  padding: 0.5rem 0;
-  border-bottom: 1px solid var(--color-border);
-}
-
-.order-fields dt {
-  font-size: 0.8rem;
-  color: var(--color-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
-}
-
-.order-fields dd {
-  margin: 0.15rem 0 0;
-  font-size: 1rem;
-}
-
-@media (min-width: 640px) {
-  .order-detail dl.order-fields {
-    grid-template-columns: 1fr 1fr;
-  }
-}
-
-@media (min-width: 1100px) {
-  .order-detail dl.order-fields {
-    grid-template-columns: repeat(3, 1fr);
-  }
-}
-
 /* A tracking number that opens the carrier's page (TrackingLink.tsx): reads as
    a link, but keeps the size and weight of the text around it. */
 .tracking-link {
@@ -541,19 +508,6 @@ td {
 
 .tracking-link:hover {
   text-decoration-thickness: 2px;
-}
-
-/* The order page's own actions, beside its title (OrderDetail.tsx). */
-.order-page-heading {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-  margin-bottom: 0.5rem;
-}
-
-.order-page-heading .order-page-title {
-  margin: 0;
 }
 
 .order-delete,

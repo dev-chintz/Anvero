@@ -23,6 +23,7 @@ from app.schemas.types import UtcDateTime
 
 BUYER_MESSAGE_MAX_LENGTH = 4000
 SELLER_NOTE_MAX_LENGTH = 4000
+INTERNAL_NOTE_MAX_LENGTH = 4000
 
 
 def _text(max_length: int):
@@ -206,6 +207,18 @@ class OrderUpdate(BaseModel):
     status: OrderStatus
 
 
+class OrderNoteUpdate(BaseModel):
+    """The operator's own note on an order; null, or only spaces, takes it away."""
+
+    note: str | None = Field(default=None, max_length=INTERNAL_NOTE_MAX_LENGTH)
+
+    @model_validator(mode="after")
+    def _blank_is_no_note(self) -> "OrderNoteUpdate":
+        if self.note is not None and not self.note.strip():
+            self.note = None
+        return self
+
+
 class OrderMarksUpdate(BaseModel):
     """The operator's marks on an order; one left out stays as it is."""
 
@@ -271,6 +284,8 @@ class OrderDetailRead(OrderRead, OrderDetails):
 
     items: list[OrderItemRead] = Field(default_factory=list)
     shipments: list[ShipmentRead] = Field(default_factory=list)
+    # the operator's own note, written in Anvero; not in the list, and no marketplace has it
+    internal_note: str | None = None
 
     @classmethod
     def from_order(cls, order: Order) -> "OrderDetailRead":
@@ -317,6 +332,7 @@ class OrderDetailRead(OrderRead, OrderDetails):
             ),
             buyer_message=order.buyer_message,
             seller_note=order.seller_note,
+            internal_note=order.internal_note,
         )
 
 

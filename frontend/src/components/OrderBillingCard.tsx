@@ -1,5 +1,6 @@
 import { useTranslation } from "../i18n";
 import type { OrderBilling } from "../types/order";
+import { CardShell } from "./CardShell";
 
 // amounts arrive as decimal strings; whole cents keep the sums exact
 const toCents = (amount: string) => Math.round(Number(amount) * 100);
@@ -8,13 +9,20 @@ const toCents = (amount: string) => Math.round(Number(amount) * 100);
  * What the marketplace charged for one order, and its total taken off what
  * the buyer paid. Fees are negative in the data, so "after fees" is a sum.
  */
-export function OrderBillingCard({ billing, orderTotal }: { billing: OrderBilling; orderTotal: string }) {
+export function OrderBillingCard({
+  billing,
+  orderTotal,
+  embedded = false,
+}: {
+  billing: OrderBilling;
+  orderTotal: string;
+  embedded?: boolean;
+}) {
   const { t, formatMoney, formatDateTime } = useTranslation();
   const money = (cents: number) => formatMoney(cents / 100, billing.currency);
 
   return (
-    <section className="order-card order-billing" aria-label={t("billing.title")}>
-      <h2>{t("billing.title")}</h2>
+    <CardShell title={t("billing.title")} className="order-billing" embedded={embedded}>
       {billing.entries.length === 0 ? (
         <p className="order-muted">{t("billing.empty")}</p>
       ) : (
@@ -46,6 +54,6 @@ export function OrderBillingCard({ billing, orderTotal }: { billing: OrderBillin
           </table>
         </>
       )}
-    </section>
+    </CardShell>
   );
 }

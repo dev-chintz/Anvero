@@ -205,6 +205,10 @@ class Order(Base):
         Boolean, default=False, server_default=false(), nullable=False
     )
 
+    # The operator's own note on the order, written in Anvero and kept only here:
+    # unlike `seller_note` it is not the marketplace's, and no import touches it.
+    internal_note: Mapped[str | None] = mapped_column(Text)
+
     # Set when an operator deletes the order from the list. The row stays: the
     # marketplace's next import would bring a really deleted order back, and its
     # Anvero number is never reused. Every list, count and queue leaves a deleted

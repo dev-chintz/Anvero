@@ -25,6 +25,7 @@ vi.mock("../api/client", async () => {
       restore: vi.fn(),
       stats: vi.fn(),
       setMarks: vi.fn(),
+      setNote: vi.fn(),
     },
     integrationsApi: {
       allegroStatus: vi.fn(),
@@ -56,9 +57,9 @@ function makeOrder(overrides: Partial<Order> = {}): Order {
   };
 }
 
-function makeOrderDetails(overrides: Partial<Order> = {}): OrderWithDetails {
+function makeOrderDetails(overrides: Partial<OrderWithDetails> = {}): OrderWithDetails {
   return {
-    ...makeOrder(overrides),
+    ...makeOrder(overrides as Partial<Order>),
     customer: { login: null, first_name: null, last_name: null, company_name: null, phone: null },
     items: [],
     delivery: { method: null, cost: null, address: null, pickup_point: null },
@@ -66,6 +67,8 @@ function makeOrderDetails(overrides: Partial<Order> = {}): OrderWithDetails {
     invoice: { required: false, address: null },
     buyer_message: null,
     seller_note: null,
+    // what a test sets wins over these defaults, the nested details included
+    ...overrides,
   };
 }
 
@@ -378,6 +381,12 @@ describe("deleting an order", () => {
   });
 });
 
+/** The order page keeps its rarer actions under a menu: open it and pick one. */
+async function chooseFromMenu(name: string) {
+  fireEvent.click(await screen.findByRole("button", { name: "Actions" }));
+  fireEvent.click(screen.getByRole("menuitem", { name }));
+}
+
 describe("deleting from the order's page", () => {
   afterEach(() => vi.restoreAllMocks());
 
@@ -388,12 +397,14 @@ describe("deleting from the order's page", () => {
     );
     renderAt("/orders/order-1");
     // an order in use takes a tracking number
+    fireEvent.click(await screen.findByRole("tab", { name: "Own number" }));
     expect(await screen.findByLabelText("Tracking number")).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole("button", { name: "Delete order" }));
+    await chooseFromMenu("Delete order");
 
     expect(await screen.findByText(/Deleted .* by op@example.com/)).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Delete order" })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Actions" }));
+    expect(screen.queryByRole("menuitem", { name: "Delete order" })).not.toBeInTheDocument();
     // what would change it is out of reach until it is restored
     expect(screen.getByLabelText("Status")).toBeDisabled();
     expect(screen.queryByLabelText("Tracking number")).not.toBeInTheDocument();
@@ -407,10 +418,11 @@ describe("deleting from the order's page", () => {
     renderAt("/orders/order-1");
     expect(await screen.findByText(/^Deleted .* It is in no list/)).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole("button", { name: "Restore order" }));
+    await chooseFromMenu("Restore order");
 
     await waitFor(() => expect(ordersApi.restore).toHaveBeenCalledWith("order-1"));
-    expect(await screen.findByRole("button", { name: "Delete order" })).toBeInTheDocument();
+    fireEvent.click(await screen.findByRole("button", { name: "Actions" }));
+    expect(await screen.findByRole("menuitem", { name: "Delete order" })).toBeInTheDocument();
     expect(screen.queryByText(/It is in no list/)).not.toBeInTheDocument();
     expect(screen.getByLabelText("Status")).toBeEnabled();
   });
@@ -419,7 +431,7 @@ describe("deleting from the order's page", () => {
     vi.spyOn(window, "confirm").mockReturnValue(false);
     renderAt("/orders/order-1");
 
-    fireEvent.click(await screen.findByRole("button", { name: "Delete order" }));
+    await chooseFromMenu("Delete order");
 
     expect(ordersApi.delete).not.toHaveBeenCalled();
   });
@@ -432,10 +444,11 @@ describe("deleting from the order's page", () => {
     );
     renderAt("/orders/order-1");
 
-    fireEvent.click(await screen.findByRole("button", { name: "Delete order" }));
+    await chooseFromMenu("Delete order");
 
     expect(await screen.findByRole("alert")).toHaveTextContent("cancel the label first");
-    expect(screen.getByRole("button", { name: "Delete order" })).toBeEnabled();
+    fireEvent.click(screen.getByRole("button", { name: "Actions" }));
+    expect(screen.getByRole("menuitem", { name: "Delete order" })).toBeEnabled();
   });
 });
 
@@ -898,5 +911,175 @@ describe("reading the buyer's message and the seller's note from the list", () =
     await new Promise((resolve) => setTimeout(resolve, 20));
 
     expect(screen.queryByRole("dialog")).toBeNull();
+  });
+});
+
+
+describe("the order page's layout", () => {
+  afterEach(() => vi.restoreAllMocks());
+
+  it("takes the usual next step from the header, and shows where the order is after it", async () => {
+    vi.mocked(ordersApi.get).mockResolvedValue(makeOrderDetails({ status: OrderStatus.NEW }));
+    vi.mocked(ordersApi.updateStatus).mockResolvedValue(
+      makeOrderDetails({ status: OrderStatus.CONFIRMED }),
+    );
+    renderAt("/orders/order-1");
+
+    fireEvent.click(await screen.findByRole("button", { name: /Mark as in progress/ }));
+
+    await waitFor(() =>
+      expect(ordersApi.updateStatus).toHaveBeenCalledWith("order-1", OrderStatus.CONFIRMED),
+    );
+    // the button now offers the step after it
+    expect(await screen.findByRole("button", { name: /Mark as ready to ship/ })).toBeInTheDocument();
+    expect(screen.getByLabelText("Status")).toHaveValue(OrderStatus.CONFIRMED);
+  });
+
+  it("stars and flags from the header, each from the answer to its own request", async () => {
+    vi.mocked(ordersApi.setMarks).mockImplementation(
+      async (_id, marks) =>
+        makeOrderDetails({
+          starred: marks.starred ?? false,
+          flagged: marks.flagged ?? false,
+        }),
+    );
+    renderAt("/orders/order-1");
+
+    fireEvent.click(await screen.findByRole("button", { name: "Star order AN-000007" }));
+    expect(
+      await screen.findByRole("button", { name: "Take the star off order AN-000007" }),
+    ).toBeInTheDocument();
+    expect(ordersApi.setMarks).toHaveBeenCalledWith("order-1", { starred: true });
+
+    fireEvent.click(screen.getByRole("button", { name: "Flag order AN-000007" }));
+    expect(
+      await screen.findByRole("button", { name: "Take the flag off order AN-000007" }),
+    ).toBeInTheDocument();
+    // the star pressed before is still on
+    expect(screen.getByRole("button", { name: "Take the star off order AN-000007" })).toBeInTheDocument();
+  });
+
+  it("says when a mark cannot be saved", async () => {
+    vi.mocked(ordersApi.setMarks).mockRejectedValue(new ApiError(500, "The server is down"));
+    renderAt("/orders/order-1");
+
+    fireEvent.click(await screen.findByRole("button", { name: "Star order AN-000007" }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("The server is down");
+  });
+
+  it("opens the buyer's message from a chip, in a window, without a request", async () => {
+    vi.mocked(ordersApi.get).mockResolvedValue(
+      makeOrderDetails({ buyer_message: "Please pack it well", seller_note: "VIP" }),
+    );
+    renderAt("/orders/order-1");
+
+    fireEvent.click(await screen.findByRole("button", { name: /Message from the buyer/ }));
+
+    const dialog = await screen.findByRole("dialog", { name: "Message from the buyer, AN-000007" });
+    expect(within(dialog).getByText("Please pack it well")).toBeInTheDocument();
+    expect(ordersApi.get).toHaveBeenCalledTimes(1);
+
+    fireEvent.keyDown(document, { key: "Escape" });
+    expect(screen.queryByRole("dialog")).toBeNull();
+
+    fireEvent.click(screen.getByRole("button", { name: /Seller's note/ }));
+    expect(
+      within(await screen.findByRole("dialog", { name: "Seller's note, AN-000007" })).getByText("VIP"),
+    ).toBeInTheDocument();
+  });
+
+  it("has no attention bar for an ordinary order", async () => {
+    renderAt("/orders/order-1");
+    await screen.findByRole("heading", { name: "AN-000007" });
+
+    expect(screen.queryByRole("list", { name: "Needs attention" })).toBeNull();
+  });
+
+  it("puts the rarely needed under folded sections, the identifiers among them", async () => {
+    renderAt("/orders/order-1");
+    await screen.findByRole("heading", { name: "AN-000007" });
+
+    const more = screen.getByRole("region", { name: "More about the order" });
+    const sections = Array.from(more.querySelectorAll("details"));
+    expect(sections.every((section) => !section.open)).toBe(true);
+    expect(within(more).getByText("Technical data")).toBeInTheDocument();
+    expect(within(more).getByText("order-1")).toBeInTheDocument();
+  });
+
+  it("writes the internal note at the foot of the page, and keeps it", async () => {
+    vi.mocked(ordersApi.setNote).mockResolvedValue(
+      makeOrderDetails({ internal_note: "Ring before sending" }),
+    );
+    renderAt("/orders/order-1");
+
+    fireEvent.change(await screen.findByRole("textbox", { name: "Internal note" }), {
+      target: { value: "Ring before sending" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Save note" }));
+
+    await waitFor(() =>
+      expect(ordersApi.setNote).toHaveBeenCalledWith("order-1", "Ring before sending"),
+    );
+    // the order now has a note, and the bar above points to it
+    expect(await screen.findByRole("link", { name: /Internal note/ })).toHaveAttribute(
+      "href",
+      "#order-internal-note",
+    );
+  });
+
+  it("shows an order's own internal note, and a link to it above", async () => {
+    vi.mocked(ordersApi.get).mockResolvedValue(makeOrderDetails({ internal_note: "Regular buyer" }));
+    renderAt("/orders/order-1");
+
+    expect(await screen.findByRole("textbox", { name: "Internal note" })).toHaveValue("Regular buyer");
+    expect(screen.getByRole("link", { name: /Internal note/ })).toBeInTheDocument();
+  });
+
+  it("has one way to ship for an Erli order, without tabs, and three for an Allegro locker order", async () => {
+    vi.mocked(ordersApi.get).mockResolvedValue(makeOrderDetails({ source: OrderSource.ERLI }));
+    const { unmount } = renderAt("/orders/order-1");
+    expect(await screen.findByLabelText("Tracking number")).toBeInTheDocument();
+    expect(screen.queryByRole("tablist")).toBeNull();
+    unmount();
+
+    vi.mocked(ordersApi.get).mockResolvedValue({
+      ...makeOrderDetails({ source: OrderSource.ALLEGRO }),
+      delivery: {
+        method: "Allegro Paczkomaty InPost",
+        cost: null,
+        address: null,
+        pickup_point: { id: "WAW01A", name: "Paczkomat WAW01A", address: null },
+      },
+    });
+    renderAt("/orders/order-1");
+    const tabs = await screen.findByRole("tablist", { name: "Ways to ship" });
+    expect(within(tabs).getAllByRole("tab").map((tab) => tab.textContent)).toEqual([
+      "Allegro label",
+      "InPost",
+      "Own number",
+    ]);
+    expect(within(tabs).getByRole("tab", { name: "Allegro label" })).toHaveAttribute("aria-selected", "true");
+
+    fireEvent.click(within(tabs).getByRole("tab", { name: "Own number" }));
+    expect(await screen.findByLabelText("Tracking number")).toBeInTheDocument();
+    expect(within(tabs).getByRole("tab", { name: "Own number" })).toHaveAttribute("aria-selected", "true");
+  });
+
+  it("shows the parcels already sent, or says there are none", async () => {
+    renderAt("/orders/order-1");
+    expect(await screen.findByText("No parcel yet.")).toBeInTheDocument();
+  });
+
+  it("offers no way to ship a deleted order", async () => {
+    vi.mocked(ordersApi.get).mockResolvedValue(
+      makeOrderDetails({ deleted_at: "2026-09-24T18:00:00Z", deleted_by: null }),
+    );
+    renderAt("/orders/order-1");
+    await screen.findByRole("heading", { name: "AN-000007" });
+
+    expect(screen.queryByRole("tablist")).toBeNull();
+    expect(screen.queryByLabelText("Tracking number")).toBeNull();
+    expect(screen.queryByRole("button", { name: /Mark as/ })).toBeNull();
   });
 });

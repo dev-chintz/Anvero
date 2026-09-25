@@ -1,7 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { describe, expect, it, vi } from "vitest";
-import { OrderDetailsPanel } from "./OrderDetailsPanel";
+import { OrderShipmentsList } from "./OrderDetailsPanel";
 import { OrderRow } from "./OrderRow";
 import {
   OrderSource,
@@ -125,23 +125,27 @@ describe("the Shipping column", () => {
   });
 });
 
-describe("the shipments card", () => {
+describe("the list of parcels", () => {
   it("lists each parcel with its tracking", () => {
-    render(<OrderDetailsPanel order={order([shipment(), shipment({ id: "ship-2", waybill: "W2", tracking_status: "DELIVERED" })])} />);
+    render(
+      <OrderShipmentsList
+        shipments={[shipment(), shipment({ id: "ship-2", waybill: "W2", tracking_status: "DELIVERED" })]}
+      />,
+    );
 
-    const card = screen.getByRole("region", { name: "Shipments" });
-    expect(card).toHaveTextContent("Waybill 12345678910PL");
-    expect(card).toHaveTextContent("Waybill W2");
-    expect(card).toHaveTextContent("Delivered");
+    const list = screen.getByRole("list", { name: "Shipments" });
+    expect(list).toHaveTextContent("Waybill 12345678910PL");
+    expect(list).toHaveTextContent("Waybill W2");
+    expect(list).toHaveTextContent("Delivered");
   });
 
   it("links each waybill to its carrier's tracking page", () => {
     render(
-      <OrderDetailsPanel
-        order={order([
+      <OrderShipmentsList
+        shipments={[
           shipment({ carrier_id: "DPD", waybill: "D1" }),
           shipment({ id: "ship-2", carrier_id: "OTHER", carrier_name: "Local Courier", waybill: "L1" }),
-        ])}
+        ]}
       />,
     );
 
@@ -153,8 +157,8 @@ describe("the shipments card", () => {
   });
 
   it("is left out when nothing has been sent", () => {
-    render(<OrderDetailsPanel order={order([])} />);
+    render(<OrderShipmentsList shipments={[]} />);
 
-    expect(screen.queryByRole("region", { name: "Shipments" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("list", { name: "Shipments" })).not.toBeInTheDocument();
   });
 });

@@ -1529,3 +1529,94 @@ def test_the_list_carries_the_facts_its_icons_are_drawn_from():
     assert bare["invoice_required"] is False
     assert bare["has_buyer_message"] is False
     assert bare["has_seller_note"] is False
+
+
+# --- the operator's own note ---------------------------------------------------------
+
+
+def test_writing_a_note_needs_a_login():
+    some_id = "00000000-0000-0000-0000-000000000000"
+
+    assert anonymous.patch(f"/api/v1/orders/{some_id}/note", json={"note": "x"}).status_code == 401
+
+
+def test_an_order_starts_without_a_note():
+    order = _create(external_id="NOTE-NONE")
+
+    assert client.get(f"/api/v1/orders/{order['id']}").json()["internal_note"] is None
+
+
+def test_a_note_can_be_written_changed_and_taken_away():
+    order = _create(external_id="NOTE-WRITE")
+
+    written = client.patch(f"/api/v1/orders/{order['id']}/note", json={"note": "Ring before sending"})
+    assert written.status_code == 200
+    assert written.json()["internal_note"] == "Ring before sending"
+
+    changed = client.patch(f"/api/v1/orders/{order['id']}/note", json={"note": "Ring after packing"})
+    assert changed.json()["internal_note"] == "Ring after packing"
+    assert client.get(f"/api/v1/orders/{order['id']}").json()["internal_note"] == "Ring after packing"
+
+    cleared = client.patch(f"/api/v1/orders/{order['id']}/note", json={"note": None})
+    assert cleared.json()["internal_note"] is None
+
+
+def test_a_note_of_only_spaces_is_no_note():
+    order = _create(external_id="NOTE-BLANK")
+    client.patch(f"/api/v1/orders/{order['id']}/note", json={"note": "something"})
+
+    blank = client.patch(f"/api/v1/orders/{order['id']}/note", json={"note": "   \n "})
+
+    assert blank.json()["internal_note"] is None
+
+
+def test_a_note_keeps_its_line_breaks():
+    order = _create(external_id="NOTE-LINES")
+
+    written = client.patch(f"/api/v1/orders/{order['id']}/note", json={"note": "one\ntwo"})
+
+    assert written.json()["internal_note"] == "one\ntwo"
+
+
+def test_a_note_too_long_is_refused():
+    order = _create(external_id="NOTE-LONG")
+
+    response = client.patch(f"/api/v1/orders/{order['id']}/note", json={"note": "x" * 4001})
+
+    assert response.status_code == 422
+    assert client.get(f"/api/v1/orders/{order['id']}").json()["internal_note"] is None
+
+
+def test_noting_an_unknown_order_is_404():
+    some_id = "00000000-0000-0000-0000-000000000000"
+
+    assert client.patch(f"/api/v1/orders/{some_id}/note", json={"note": "x"}).status_code == 404
+
+
+def test_a_note_does_not_touch_the_status_the_history_or_the_marketplace_note():
+    order = _create(**_details_payload(external_id="NOTE-QUIET"))
+
+    client.patch(f"/api/v1/orders/{order['id']}/note", json={"note": "mine"})
+
+    detail = client.get(f"/api/v1/orders/{order['id']}").json()
+    assert detail["status"] == "NEW"
+    assert detail["seller_note"] == "Regular customer, ship first"
+    assert detail["internal_note"] == "mine"
+    assert client.get(f"/api/v1/orders/{order['id']}/history").json() == []
+
+
+def test_the_list_does_not_carry_the_note():
+    order = _create(external_id="NOTE-LIST")
+    client.patch(f"/api/v1/orders/{order['id']}/note", json={"note": "mine"})
+
+    assert "internal_note" not in _listed(search="NOTE-LIST")["items"][0]
+
+
+def test_a_deleted_order_can_still_be_noted():
+    order = _create(external_id="NOTE-DELETED")
+    client.delete(f"/api/v1/orders/{order['id']}")
+
+    response = client.patch(f"/api/v1/orders/{order['id']}/note", json={"note": "why it went"})
+
+    assert response.status_code == 200
+    assert response.json()["internal_note"] == "why it went"

@@ -14,6 +14,7 @@ import { describeWrite, type WriteTone } from "./marketplaceWrite";
 import { openPdf } from "./openPdf";
 import { TrackingLink } from "./TrackingLink";
 import "../styles/Shipping.css";
+import { CardShell } from "./CardShell";
 
 const EMPTY_PACKAGE: PackageSize = { length_cm: "", width_cm: "", height_cm: "", weight_kg: "" };
 const FIELDS: (keyof PackageSize)[] = ["length_cm", "width_cm", "height_cm", "weight_kg"];
@@ -22,6 +23,8 @@ interface ShippingLabelCardProps {
   order: OrderWithDetails;
   /** Buying puts the waybill on the order, so the order needs reloading. */
   onChanged: () => void;
+  /** Shown inside a tab of the shipping card: no frame and no heading of its own. */
+  embedded?: boolean;
 }
 
 /**
@@ -29,7 +32,7 @@ interface ShippingLabelCardProps {
  * A6 label. Buying costs money, so it asks first, and safe mode holds it back
  * like any other change sent to Allegro.
  */
-export function ShippingLabelCard({ order, onChanged }: ShippingLabelCardProps) {
+export function ShippingLabelCard({ order, onChanged, embedded = false }: ShippingLabelCardProps) {
   const { t, formatDateTime } = useTranslation();
   const [labels, setLabels] = useState<ShippingLabel[] | null>(null);
   const [settings, setSettings] = useState<ShippingSettings | null>(null);
@@ -133,8 +136,7 @@ export function ShippingLabelCard({ order, onChanged }: ShippingLabelCardProps) 
   const complete = FIELDS.every((field) => Number(pkg[field]) > 0);
 
   return (
-    <section className="order-card shipping-label" aria-label={t("label.title")}>
-      <h2>{t("label.title")}</h2>
+    <CardShell title={t("label.title")} className="shipping-label" embedded={embedded}>
 
       {labels.length > 0 && (
         <ul className="label-list">
@@ -236,7 +238,7 @@ export function ShippingLabelCard({ order, onChanged }: ShippingLabelCardProps) 
           {note.text}
         </p>
       )}
-    </section>
+    </CardShell>
   );
 }
 

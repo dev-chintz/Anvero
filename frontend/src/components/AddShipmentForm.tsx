@@ -10,13 +10,15 @@ const CARRIERS = ["INPOST", "DPD", "DHL", "POCZTA_POLSKA", "UPS", "GLS", "FEDEX"
 interface AddShipmentFormProps {
   orderId: string;
   onAdded: (result: OrderChangeResult) => void;
+  /** Shown inside a tab of the shipping card: no frame and no heading of its own. */
+  embedded?: boolean;
 }
 
 /**
  * A tracking number typed in on an order. Stored in Anvero, and for an
  * Allegro order sent there too, unless safe mode holds it back.
  */
-export function AddShipmentForm({ orderId, onAdded }: AddShipmentFormProps) {
+export function AddShipmentForm({ orderId, onAdded, embedded = false }: AddShipmentFormProps) {
   const { t } = useTranslation();
   const [carrier, setCarrier] = useState("INPOST");
   const [carrierName, setCarrierName] = useState("");
@@ -49,8 +51,12 @@ export function AddShipmentForm({ orderId, onAdded }: AddShipmentFormProps) {
   };
 
   return (
-    <form className="order-card add-shipment" onSubmit={submit} aria-label={t("shipment.title")}>
-      <h2>{t("shipment.title")}</h2>
+    <form
+      className={embedded ? "add-shipment" : "order-card add-shipment"}
+      onSubmit={submit}
+      aria-label={t("shipment.title")}
+    >
+      {!embedded && <h2>{t("shipment.title")}</h2>}
       <div className="add-shipment-fields">
         <label>
           {t("shipment.carrier")}

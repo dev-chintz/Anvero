@@ -1,6 +1,7 @@
 import { Link, useLocation } from "react-router-dom";
 import { useTranslation } from "../i18n";
 import type { Order } from "../types/order";
+import { CardShell } from "./CardShell";
 
 // what GET /orders/{id}/buyer-orders returns at most
 const BUYER_ORDERS_LIMIT = 20;
@@ -9,15 +10,14 @@ const BUYER_ORDERS_LIMIT = 20;
  * The same buyer's other orders, on an order's page: a regular customer, or
  * a second order that could go in the same parcel.
  */
-export function BuyerOrdersCard({ orders }: { orders: Order[] }) {
+export function BuyerOrdersCard({ orders, embedded = false }: { orders: Order[]; embedded?: boolean }) {
   const { t, tc, formatDateTime, formatMoney } = useTranslation();
   // opening one of them shows it on this same page, and "back to orders"
   // should still go wherever it would have from this one
   const location = useLocation();
 
   return (
-    <section className="order-card buyer-orders" aria-label={t("buyerOrders.title")}>
-      <h2>{t("buyerOrders.title")}</h2>
+    <CardShell title={t("buyerOrders.title")} className="buyer-orders" embedded={embedded}>
       {orders.length === 0 ? (
         <p className="order-muted">{t("buyerOrders.none")}</p>
       ) : (
@@ -48,6 +48,6 @@ export function BuyerOrdersCard({ orders }: { orders: Order[] }) {
           </table>
         </>
       )}
-    </section>
+    </CardShell>
   );
 }

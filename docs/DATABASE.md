@@ -85,6 +85,7 @@ Columns on `orders`, one per order:
 | `invoice_required` | the buyer asked for an invoice |
 | `deleted_at`, `deleted_by_user_id` | set when an operator deletes the order from the list (`DELETE /orders/{id}`); the row is kept, every list, figure and queue leaves it out, and an import does not touch it. Null while the order is in use. `deleted_by_user_id` is `SET NULL` when the account goes. Added by `b8e3d5a7c246` |
 | `starred`, `flagged` | the operator's own marks for finding an order again, both `false` for every order until set (`PATCH /orders/{id}/marks`); Anvero's alone, no marketplace has them and an import never touches them. Added by `a4d7c1e9b352` |
+| `internal_note` | the operator's own note on the order, written in Anvero (`PATCH /orders/{id}/note`) and never sent anywhere; unlike `seller_note` no marketplace has it and an import does not touch it. Null when there is none. Added by `b6e2f9a1c473` |
 | `status_changed_at` | when the status last changed, by an operator or an import (set wherever a row is added to `order_status_history`); null for an order that has kept its first status, which the list then counts from `ordered_at`. Filled from the history's latest change for existing orders. Added by `a4d7c1e9b352` |
 
 `payment_type` is a plain string column validated by the application, not a

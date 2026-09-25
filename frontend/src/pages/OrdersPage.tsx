@@ -287,8 +287,13 @@ export function OrdersPage({ addToast }: OrdersPageProps) {
   const handleMarksChange = (order: Order, marks: { starred?: boolean; flagged?: boolean }) => {
     ordersApi
       .setMarks(order.id, marks)
+      // only what this request changed: a star and a flag pressed one after the other are
+      // two requests, and the older answer must not undo the newer press
       .then((updated) =>
-        patchOrder(order.id, { starred: updated.starred, flagged: updated.flagged }),
+        patchOrder(order.id, {
+          ...(marks.starred !== undefined && { starred: updated.starred }),
+          ...(marks.flagged !== undefined && { flagged: updated.flagged }),
+        }),
       )
       .catch((err: unknown) => {
         addToast?.(err instanceof ApiError ? err.message : t('orders.markFailed'), 'error');

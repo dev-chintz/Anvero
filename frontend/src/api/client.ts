@@ -315,6 +315,14 @@ export const ordersApi = {
     });
   },
 
+  /** Write the operator's own note on an order (Anvero's alone), or clear it with an empty text. */
+  setNote(orderId: string, note: string | null): Promise<OrderWithDetails> {
+    return request<OrderWithDetails>(`/orders/${orderId}/note`, {
+      method: "PATCH",
+      body: JSON.stringify({ note }),
+    });
+  },
+
   /** Star or flag an order, or take the mark off; a mark left out stays as it is. */
   setMarks(
     orderId: string,

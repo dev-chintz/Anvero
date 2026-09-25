@@ -1136,6 +1136,49 @@ branch is unverified: only the SQLite path has been run.
 
 **Consequences:** Whether Allegro's pages read the number from the address is not confirmed (allegro.pl answers no automated request, so it could not be tried, and only one search result named the parameter, for One's page); if they do not, the link still lands on the page that asks for the number. Anvero's own status for these parcels comes from Allegro's tracking API and is unaffected.
 
+## 2026-09-25 — The order's page is laid out like BaseLinker's: what matters first, the rest folded
+
+**Decided (owner, 2026-09-25, after a mockup):** the order page was one long column of
+cards of equal weight, led by a list of eleven fields (a UUID and three technical dates
+among them). It is now:
+
+- **A header card:** star and flag, the order number, the buyer, the channel, the country,
+  when it was placed, one button for the **usual next step** (New, In progress, Ready to
+  ship, Shipped, Delivered: "Mark as ..."), the rare actions (delete, restore) under a
+  "..." menu, and a row of steps showing where the order stands. Any other status,
+  cancelled included, is still set from the Status field of the "Order" card. The button
+  takes one step at a time (the first of the two versions in the mockup); the steps are
+  not clickable.
+- **A bar of what needs attention**, only when there is something: a dispatch deadline
+  (late, or under a day away), an unpaid order, the buyer's message and the seller's note
+  (each opens in the same small window as in the list, from the order already loaded), the
+  internal note (a link to the foot of the page). An ordinary order has no bar.
+- **Two columns:** items, the delivery and invoice addresses (each with a copy button), and
+  shipping on the left; payment (a green mark once paid), the order's facts and the buyer
+  on the right. Below 1000 px one column.
+- **One shipping card** instead of three: the parcels sent, and one way of making another
+  at a time in tabs, shown only where they can apply (a label bought through Allegro for an
+  Allegro order, InPost for a locker order, a tracking number typed in always); with only one
+  way there are no tabs. The existing cards are embedded, not copied (`CardShell`).
+- **Folded sections**, all closed at first, with a count or a figure beside each name:
+  status history, marketplace fees, the buyer's other orders, what was sent to the
+  marketplace, technical data (the identifiers and the technical dates).
+- **An internal note**, a new field written in Anvero only (`internal_note`,
+  `PATCH /orders/{id}/note`), at the foot of the page for now: the owner will decide later
+  whether it stays there or moves up.
+
+**Colour (owner chose variant C of four mockups, 2026-09-25):** the page sits on a grey
+canvas (`--color-canvas`) under white, rounded cards, and every card's title is a band tinted
+for what the card is: blue for the order itself (items, facts, buyer), teal for sending it
+(shipping, delivery, invoice), green or red for the money (paid or not; plain when unknown or
+paid later), amber for the notes and for a return waiting on the seller. The steps run green
+for done, solid teal for now, grey for what is left; the payment amount and the order total are
+headlines. Only the order page: the list and the other pages stay as they were until the owner
+has judged this one. No shadows: the cards are told apart by the canvas and their bands.
+
+**Not done:** the buyer's message thread on the order (Allegro's public thread schema does
+not name the order, `INTEGRATIONS.md`), clickable steps, an "actions" menu with more in it.
+
 ## 2026-09-25 — Integrations are a page of their own; the theme and the language are chosen in Settings only
 
 **Decided (owner, 2026-09-25):** the bottom of the menu carried a theme button and a
