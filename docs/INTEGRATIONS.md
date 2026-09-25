@@ -177,15 +177,24 @@ and pages through all of it, 100 orders at a time:
 
 ### Imports that run by themselves
 
-With `ALLEGRO_IMPORT_INTERVAL_MINUTES` set above 0 the backend runs the same
-sync (as the button does) every that many minutes, starting one interval after
-it starts. It is off by default, and should be on for **exactly one** backend
-per database: the lock that keeps two imports from running at once lives in
-one process, and Allegro rotates the refresh token on every use, so two
-backends importing on their own would race for it. A run skips quietly when
-no account is connected. Every import, by button or schedule, records when it
-finished, what it stored or the error, and the orders page shows it and
-reloads its list when a new one appears.
+The backend runs the same sync as the button by itself, for Allegro and for Erli,
+and reads the Allegro Message Center too, every N minutes: **15 by default, one
+interval for every channel**. An operator changes it in Integrations ("Automatyczna
+aktualizacja"; 0 switches it off, otherwise 5 to 1440), and it is kept in
+`app_settings` (`import_interval_minutes`), so it takes effect within half a minute
+and without a restart; `ALLEGRO_IMPORT_INTERVAL_MINUTES` is only the default when
+none was saved. The first run is one interval after start, or, when the last import
+(by anyone) is older than that, a minute after start.
+
+Allegro rotates the refresh token on every use, so two backends importing on their
+own would race for it. Backends that share a database therefore **take turns**:
+the one holding the lease (`app_settings` row `scheduler_lease`, renewed every half
+minute) runs the schedule, the others wait and show "run by another computer" on the
+status page, and one takes over when the lease has not been renewed for two minutes
+or was given up on a clean stop. A run skips quietly when its channel is not
+connected. Every import, by button or schedule, records when it finished, what it
+stored or the error, and the orders page shows it and reloads its list when a new
+one appears.
 
 ### Refresh token rotation
 
@@ -405,7 +414,8 @@ and the order's total less them.
   only for orders sent (see "Shipments and tracking"). Nothing is written back to
   Allegro through the import.
 - An import runs when someone starts it (the button or the script), or by itself
-  every `ALLEGRO_IMPORT_INTERVAL_MINUTES` on the one backend that has it set.
+  every N minutes (Integrations; 15 by default) on the one backend that holds the
+  schedule's lease.
 - An order bought more than the first window ago, and changed since, arrives as
   a new order the first time it is seen, because `updatedAt` cannot tell "new
   to Anvero" from "new to Allegro".
@@ -612,12 +622,10 @@ found — see "Erli" below), starting a new thread from Anvero, attachments,
 marking a thread read back to Allegro (reading it here does not mark it read
 there), and disputes.
 
-**Reading on a schedule.** With `ALLEGRO_MESSAGE_SYNC_INTERVAL_MINUTES` set above
-0 the backend reads the Message Center by itself every that many minutes,
-starting one interval after it starts (the same sync as the button, on its own
-schedule beside the order import's). Off by default, and for **exactly one**
-backend per database for the same reason as the order import: it takes the same
-lock and refreshes the same rotating token. A run skips quietly when no account
+**Reading on a schedule.** The backend reads the Message Center by itself at the
+same interval as the order imports (Integrations, 15 minutes by default; the same
+sync as the button, its own loop beside the imports'), and by the same lease, for
+the same reason: it takes the same lock and refreshes the same rotating token. A run skips quietly when no account
 is connected or when an import is running; a failed run is logged and the next
 one tries again. The outcome of a sync is not stored (unlike an order import's):
 the Status page shows only whether the schedule is running here, when it is due
@@ -704,9 +712,9 @@ the documentation until a real import confirms it.
    domain without naming it.
 3. "Import now" on the same card, or from `backend/`:
    `.\.venv\Scripts\python.exe scripts\import_erli.py` (`--days N` for a
-   backfill). There is no schedule for Erli yet; the card and the status page
-   (Status in the sidebar) show how the last import ended, whichever way it
-   was started.
+   backfill). Erli is imported by itself at the shared interval too (Integrations);
+   the card and the status page (Status in the sidebar) show how the last import
+   ended, whichever way it was started.
 
 The key is a plain bearer token and does not rotate. Anvero stores only its
 SHA-256 fingerprint, on an `ERLI` row of `integration_credentials` that holds

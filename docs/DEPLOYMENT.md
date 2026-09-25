@@ -45,11 +45,12 @@ settings come from the container's environment.
    `{"status":"ok",...}`; the login page opens at `http://NAS_ADDRESS:8080`;
    the accounts are the ones already in the shared database. The backend's log
    (Container Station, the container's Logs) should say
-   `Allegro imports scheduled every 15 minutes`.
-6. **Turn the schedule off everywhere else.** Only this backend may set
-   `ALLEGRO_IMPORT_INTERVAL_MINUTES`. Laptops leave it out of `backend/.env`;
-   the database and the Allegro token are shared, and two backends importing on
-   their own would invalidate each other's token (`INTEGRATIONS.md`).
+   `Imports scheduled every 15 minutes unless Integrations says otherwise`.
+6. **Laptops need no change.** Backends sharing the database take turns at the
+   schedule (one holds a lease), so a laptop's backend waits while the NAS one runs it
+   and takes over only when the NAS has been silent for two minutes. To keep a
+   laptop from ever taking over, set `SCHEDULER_ENABLED=false` in its `backend/.env`
+   (`INTEGRATIONS.md`). The interval is set in Integrations, not in a file.
 
 ## Updating
 

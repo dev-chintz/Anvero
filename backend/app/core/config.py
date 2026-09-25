@@ -103,15 +103,14 @@ class Settings(BaseSettings):
     # how far back the very first import reaches; after that only what changed
     # since the last successful one is fetched
     allegro_initial_import_days: int = Field(default=7, ge=1, le=365)
-    # minutes between imports the backend starts by itself; 0 switches that
-    # off. Off by default because Allegro rotates the refresh token on every
-    # use and the lock that prevents two imports at once lives in one process:
-    # switch it on for exactly one running backend per database.
-    allegro_import_interval_minutes: int = Field(default=0, ge=0, le=1440)
-    # The same for reading the Message Center into the inbox; it shares the
-    # import's lock, so the same rule holds: on for exactly one backend per
-    # database. Off by default.
-    allegro_message_sync_interval_minutes: int = Field(default=0, ge=0, le=1440)
+    # Minutes between the imports (Allegro and Erli) and the reading of buyer
+    # messages that the backend starts by itself; 0 switches them off. This is
+    # only the default: the interval an operator saves in Integrations is kept
+    # in the database and wins (app.services.schedule). Any number of backends
+    # may share a database: they take turns, one holding a lease at a time.
+    allegro_import_interval_minutes: int = Field(default=15, ge=0, le=1440)
+    # false keeps this process from running any schedule at all (the test suite)
+    scheduler_enabled: bool = True
 
     # How far back returns, claims and disputes are read: a return or a closed
     # claim older than this is not fetched. Everything still open is, however old.

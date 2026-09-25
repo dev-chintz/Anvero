@@ -426,26 +426,6 @@ select.status-select {
   gap: 0.2rem;
 }
 
-/* the buyer's login, right under Anvero's number: what an operator knows a buyer by */
-.orders-table .order-cell-login {
-  color: var(--color-heading);
-  font-size: 0.9rem;
-  font-weight: 600;
-  max-width: 180px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.orders-table .order-cell-buyer {
-  color: var(--color-muted);
-  font-size: 0.8rem;
-  max-width: 180px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
 /* A dash where an order has nothing to show: no items, no shipment. */
 .orders-table .cell-placeholder {
   color: var(--color-muted);
@@ -455,8 +435,7 @@ select.status-select {
    name runs to two lines and is cut after that; the full one and the SKU are
    in the title. */
 .orders-table .items-cell {
-  width: 220px;
-  max-width: 220px;
+  max-width: 340px;
 }
 
 .order-items-short {
@@ -478,8 +457,8 @@ select.status-select {
 .order-item-thumb,
 .orders-table .item-thumb-placeholder {
   flex-shrink: 0;
-  width: 32px;
-  height: 32px;
+  width: 28px;
+  height: 28px;
   border-radius: var(--radius);
 }
 

@@ -79,14 +79,27 @@ describe("the application status page", () => {
     expect(within(allegro).queryByRole("link", { name: /Integrations/ })).not.toBeInTheDocument();
   });
 
-  it("says Erli is not set up and has no schedule yet", async () => {
+  it("says Erli is not set up and has no schedule", async () => {
     vi.mocked(statusApi.get).mockResolvedValue(status());
     renderPage();
 
     const erli = await screen.findByRole("region", { name: "Erli" });
     expect(within(erli).getByText("Not set up")).toHaveClass("health-off");
     expect(within(erli).getByText("None yet")).toBeInTheDocument();
-    expect(within(erli).getByText(/imports run from the script only/)).toBeInTheDocument();
+    expect(within(erli).getByText("None: not set up")).toBeInTheDocument();
+  });
+
+  it("says a schedule that another computer runs is not stopped, but waiting its turn", async () => {
+    const base = status();
+    vi.mocked(statusApi.get).mockResolvedValue(
+      status({
+        allegro: { ...base.allegro, schedule: { ...base.allegro.schedule, running: false, standby: true, next_run_at: null } },
+      }),
+    );
+    renderPage();
+
+    const allegro = await screen.findByRole("region", { name: "Allegro" });
+    expect(within(allegro).getByText("Every 15 min, run by another computer")).toBeInTheDocument();
   });
 
   it("words each problem, shows the import error and links to Integrations", async () => {

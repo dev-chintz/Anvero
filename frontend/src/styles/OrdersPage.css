@@ -2,7 +2,7 @@
   padding: 0;
 }
 
-.orders-page .allegro-import {
+.orders-page .import-bar {
   display: flex;
   flex-direction: column;
   align-items: flex-end;
@@ -10,7 +10,7 @@
   text-align: right;
 }
 
-.orders-page .allegro-import-button {
+.orders-page .import-bar-button {
   padding: 0.5rem 1rem;
   border: none;
   border-radius: var(--radius-md);
@@ -23,46 +23,51 @@
   white-space: nowrap;
 }
 
-.orders-page .allegro-import-button:hover:not(:disabled) {
+.orders-page .import-bar-button:hover:not(:disabled) {
   background: #0a5c60;
 }
 
-.orders-page .allegro-import-button:disabled {
+.orders-page .import-bar-button:disabled {
   opacity: 0.5;
   cursor: not-allowed;
 }
 
-:root.dark .orders-page .allegro-import-button {
+:root.dark .orders-page .import-bar-button {
   color: #1a1a1a;
 }
 
-:root.dark .orders-page .allegro-import-button:hover:not(:disabled) {
+:root.dark .orders-page .import-bar-button:hover:not(:disabled) {
   background: #0f9384;
 }
 
-.orders-page .allegro-import-hint {
+.orders-page .import-bar-hint {
   margin: 0;
   font-size: 0.8rem;
   color: var(--color-muted);
-  max-width: 220px;
+  max-width: 340px;
 }
 
-:root.dark .orders-page .allegro-import-hint {
+:root.dark .orders-page .import-bar-hint {
   color: var(--color-muted);
 }
 
+/* the page's gutter is a margin: some of its children are cards, and a card's own padding must stay */
 .orders-page > :not(.page-header) {
-  padding: 0 2rem 2rem 2rem;
+  margin: 0 2rem 1.25rem;
+}
+
+.orders-page > :last-child {
+  margin-bottom: 2rem;
 }
 
 @media (max-width: 768px) {
-  .orders-page .allegro-import {
+  .orders-page .import-bar {
     align-items: flex-start;
     text-align: left;
   }
 
   .orders-page > :not(.page-header) {
-    padding: 1rem 1rem 2rem 1rem;
+    margin: 0 1rem 1rem;
   }
 }
 
@@ -356,4 +361,145 @@
 
 .orders-table button.row-icon:hover {
   filter: brightness(0.85);
+}
+
+/* ---- The list is compact: a row is two lines, and a lot of orders fit on the screen (OrderRow.tsx) ---- */
+.orders-table th {
+  padding: 0.45rem 0.6rem;
+}
+
+.orders-table td {
+  padding: 0.35rem 0.6rem;
+  vertical-align: middle;
+}
+
+/* the second, quieter line of a cell */
+.orders-table .cell-sub {
+  display: block;
+  color: var(--color-muted);
+  font-size: 0.75rem;
+  line-height: 1.25;
+}
+
+.orders-table .order-cell {
+  gap: 0.1rem;
+}
+
+/* the buyer: the name on top with where the order came from at its right, the nick under it */
+.orders-table .buyer-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  min-width: 9rem;
+  max-width: 15rem;
+}
+
+.orders-table .buyer-line {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+.orders-table .buyer-name {
+  overflow: hidden;
+  color: var(--color-heading);
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.orders-table .buyer-nick {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* the marketplace as one coloured letter */
+.orders-table .source-mark {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 1.1rem;
+  height: 1.1rem;
+  border-radius: 4px;
+  color: #fff;
+  font-size: 0.7rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.orders-table .source-allegro {
+  background: #ff5a00;
+}
+
+.orders-table .source-erli {
+  background: #0ea5e9;
+}
+
+/* the first item on one line, and how many more under it */
+.orders-table .order-item-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.orders-table .order-item-line {
+  display: flex;
+  gap: 0.35rem;
+  min-width: 0;
+}
+
+.orders-table .order-item-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.orders-table .amount-cell {
+  display: flex;
+  flex-direction: column;
+}
+
+.orders-table .amount {
+  font-weight: 600;
+}
+
+/* the status, and under it the icons and how long it has been so, on one line */
+.orders-table .status-cell {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.1rem;
+}
+
+.orders-table .row-icons {
+  display: flex;
+  flex-basis: auto;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  font-size: 0.8rem;
+  line-height: 1.15;
+}
+
+.orders-table .status-since {
+  flex-basis: auto;
+}
+
+.orders-table .shipping-cell .dispatch-by {
+  margin-top: 0;
+  font-size: 0.75rem;
+}
+
+.orders-table .actions-cell {
+  width: 2rem;
+  padding-left: 0;
+  text-align: right;
+}
+
+.orders-table .actions-cell .row-action {
+  display: inline-block;
+  margin-top: 0;
 }

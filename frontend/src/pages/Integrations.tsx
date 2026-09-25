@@ -1,6 +1,7 @@
 import { useSearchParams } from 'react-router-dom';
 import { AllegroSettings } from '../components/AllegroSettings';
 import { ErliSettings } from '../components/ErliSettings';
+import { ImportScheduleSettings } from '../components/ImportScheduleSettings';
 import { InpostSettings } from '../components/InpostSettings';
 import { ShippingSettingsForm } from '../components/ShippingSettingsForm';
 import {
@@ -41,6 +42,8 @@ export const Integrations: React.FC = () => {
           <p className="subtitle">{t('integrations.subtitle')}</p>
         </div>
       </header>
+
+      <ImportScheduleSettings />
 
       <div className="integration-tiles" role="tablist" aria-label={t('integrations.tilesLabel')}>
         {INTEGRATION_IDS.map((id) => {

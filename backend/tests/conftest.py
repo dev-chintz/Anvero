@@ -46,6 +46,11 @@ os.environ["BUSINESS_TIMEZONE"] = "Europe/Warsaw"
 # suite independent of whatever a developer's .env holds.
 os.environ["SECRET_KEY"] = "test-suite-signing-key-not-used-anywhere-else-0123456789"
 
+# No test starts the backend's own schedule (and a developer's .env must not
+# change what the app does when a test starts it).
+os.environ["SCHEDULER_ENABLED"] = "false"
+os.environ["ALLEGRO_IMPORT_INTERVAL_MINUTES"] = "15"
+
 # Never let a test reach the real Allegro API with a developer's credentials.
 # A refresh there rotates the token: the replacement would be stored in the
 # test database and the developer's real one would stop working a minute

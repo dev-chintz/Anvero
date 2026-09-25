@@ -52,6 +52,8 @@ are days in the business timezone, `BUSINESS_TIMEZONE`, default
 | `PUT` | `/api/v1/integrations/erli/settings` | save the Erli API key once Erli has accepted it; rate limited to 10 per minute per IP |
 | `DELETE` | `/api/v1/integrations/erli/settings` | forget the key entered in Integrations; the one in `backend/.env`, if any, applies again |
 | `POST` | `/api/v1/integrations/erli/import` | run an Erli import; rate limited to 6 per minute per IP |
+| `GET` | `/api/v1/integrations/schedule` | how often the backend imports and reads messages by itself, for every channel |
+| `PUT` | `/api/v1/integrations/schedule` | set that interval: `{"interval_minutes": 15}`; 0 is off, otherwise 5 to 1440 |
 | `GET` | `/api/v1/integrations/inpost` | the InPost connection's state (environment, organization, last characters of the token, default size), never the token |
 | `PUT` | `/api/v1/integrations/inpost/settings` | save token, organization and environment once InPost has accepted them; rate limited to 10 per minute per IP |
 | `PUT` | `/api/v1/integrations/inpost/template` | change only the default parcel size |
@@ -105,7 +107,14 @@ The `last_import_*` fields say how the last import ended, whether the button or
 the schedule ran it: when, what it stored, or the error if it failed (then
 created and updated are null). All are null before the first import and after
 the account is connected again. `auto_import_interval_minutes` is how often
-the backend imports by itself; 0 means it does not.
+the backend imports by itself (the interval from `/integrations/schedule`); 0
+means it does not. The Erli status carries the same field.
+
+`GET /integrations/schedule` answers `{"interval_minutes": 15}`: the interval
+saved in Integrations, else the environment's default (15). `PUT` saves it (`422`
+for anything but 0 or 5 to 1440); the backend's loop reads it every half minute,
+so a change needs no restart. It is one interval for Allegro orders, Erli orders
+and Allegro messages.
 
 `configured` means ready to import (credentials and a token); `connected` that
 a seller account has been connected; `application_complete` that client id,
@@ -288,7 +297,7 @@ Allegro, so allowing unlimited retries would let a client hammer a third
 party through this API. Only one import may run at a time, since Allegro
 rotates the refresh token on every use and two imports refreshing it at once
 would race; a second request while one is in flight gets `409` immediately
-rather than queueing. Scheduled imports (`ALLEGRO_IMPORT_INTERVAL_MINUTES`) go
+rather than queueing. Scheduled imports (`GET /integrations/schedule`) go
 through the same lock and leave the same note of how they ended.
 
 Error responses:
@@ -629,9 +638,9 @@ and never rotates a token (`DECISIONS.md`).
    "account_login": "seller_login",
    "token_issued_at": "...Z", "token_expires_at": "...Z",
    "last_import": {"at": "...Z", "created": 2, "updated": 7, "error": null},
-   "schedule": {"interval_minutes": 15, "running": true, "started_at": "...Z",
-                "next_run_at": "...Z", "last_run_at": null},
-   "message_schedule": {"interval_minutes": 5, "running": true,
+   "schedule": {"interval_minutes": 15, "running": true, "standby": false,
+                "started_at": "...Z", "next_run_at": "...Z", "last_run_at": null},
+   "message_schedule": {"interval_minutes": 15, "running": true, "standby": false,
                 "started_at": "...Z", "next_run_at": "...Z", "last_run_at": null}},
  "erli": {"state": "off", "problems": [], "configured": false,
    "last_import": {"at": null, "created": null, "updated": null, "error": null},
@@ -651,8 +660,8 @@ as codes the interface words:
 | `token_expired` | error | the refresh token has lapsed: connect the account again |
 | `last_import_failed` | error | the last import ended in an error, in `last_import.error` |
 | `import_overdue` | warning | the schedule runs, but no import finished for three intervals |
-| `schedule_stopped` | warning | `ALLEGRO_IMPORT_INTERVAL_MINUTES` is set, but the schedule is not running in this backend |
-| `message_schedule_stopped` | warning | `ALLEGRO_MESSAGE_SYNC_INTERVAL_MINUTES` is set, but its schedule is not running in this backend |
+| `schedule_stopped` | warning | an interval is set, but the schedule is not running in this backend (and no other backend holds it) |
+| `message_schedule_stopped` | warning | the same for reading buyer messages |
 
 `token_expires_at` is `token_issued_at` plus Allegro's three months (taken as
 90 days); every import issues a new token, so it only nears when nothing
@@ -660,7 +669,9 @@ imports. `last_import` is the last import by any route: the button, the
 schedule or either script. `schedule` is this backend's own: another backend
 importing on the same database is not seen here, though its imports show in
 `last_import`. It lives in memory, so `last_run_at` is null until the first
-scheduled run after a start. Erli has no schedule yet: `schedule` is null.
+scheduled run after a start. `standby` is true when another backend holds the
+schedule's lease: this one is waiting its turn, which is not a problem. Erli has
+a `schedule` of its own (the same interval) once a key is set; null before.
 
 ## Labels through Wysyłam z Allegro
 

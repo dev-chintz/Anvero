@@ -1,7 +1,6 @@
 """Running an import by hand or on a schedule: one at a time, and every run
 leaves a note of how it ended."""
 
-import asyncio
 from dataclasses import dataclass
 
 import pytest
@@ -9,7 +8,7 @@ import pytest
 from app.integrations.base import IntegrationAuthError, IntegrationNotConfigured
 from app.models.integration import IntegrationCredential
 from app.services import allegro_settings, allegro_sync
-from app.services.allegro_sync import ImportAlreadyRunning, run_import, scheduler
+from app.services.allegro_sync import ImportAlreadyRunning, run_import
 
 
 @dataclass
@@ -93,54 +92,3 @@ def test_the_lock_is_released_after_a_failed_run(session):
 
     assert allegro_sync.import_lock.acquire(blocking=False)
     allegro_sync.import_lock.release()
-
-
-def test_the_scheduler_does_nothing_when_the_interval_is_zero():
-    # would hang the test if it looped
-    asyncio.run(asyncio.wait_for(scheduler(0), timeout=1))
-
-
-def test_the_scheduler_runs_an_import_each_interval(monkeypatch):
-    calls = []
-    real_sleep = asyncio.sleep
-
-    async def fast_sleep(_seconds):
-        if len(calls) >= 2:
-            raise asyncio.CancelledError
-        await real_sleep(0)
-
-    monkeypatch.setattr(allegro_sync.asyncio, "sleep", fast_sleep)
-    monkeypatch.setattr(allegro_sync, "_scheduled_run", lambda: calls.append(1))
-
-    with pytest.raises(asyncio.CancelledError):
-        asyncio.run(scheduler(5))
-
-    assert len(calls) == 2
-
-
-def test_the_scheduler_reports_itself_running_and_then_stopped(monkeypatch):
-    state = allegro_sync.ScheduleState()
-    monkeypatch.setattr(allegro_sync, "schedule_state", state)
-    seen = []
-    real_sleep = asyncio.sleep
-
-    async def fast_sleep(_seconds):
-        if seen:
-            raise asyncio.CancelledError
-        await real_sleep(0)
-
-    def run():
-        seen.append((state.running, state.interval_minutes, state.next_run_at))
-
-    monkeypatch.setattr(allegro_sync.asyncio, "sleep", fast_sleep)
-    monkeypatch.setattr(allegro_sync, "_scheduled_run", run)
-
-    with pytest.raises(asyncio.CancelledError):
-        asyncio.run(scheduler(5))
-
-    # while it ran: alive, and not "due" during the run itself
-    assert seen == [(True, 5, None)]
-    assert state.started_at is not None
-    assert state.last_run_at is not None
-    assert state.running is False
-    assert state.next_run_at is None

@@ -1,6 +1,5 @@
 """Syncing Allegro's Message Center: what gets read again, and what does not."""
 
-import asyncio
 from datetime import UTC, datetime
 
 import pytest
@@ -193,35 +192,3 @@ def test_a_scheduled_run_never_raises(monkeypatch, error):
     message_sync._scheduled_message_run()
 
     assert session.closed
-
-
-def test_the_message_scheduler_does_nothing_when_the_interval_is_zero():
-    # would hang the test if it looped
-    asyncio.run(asyncio.wait_for(message_sync.message_scheduler(0), timeout=1))
-
-
-def test_the_message_scheduler_syncs_each_interval_on_its_own_state(monkeypatch):
-    state = allegro_sync.ScheduleState()
-    order_state = allegro_sync.ScheduleState()
-    monkeypatch.setattr(message_sync, "message_schedule_state", state)
-    monkeypatch.setattr(allegro_sync, "schedule_state", order_state)
-    calls = []
-    real_sleep = asyncio.sleep
-
-    async def fast_sleep(_seconds):
-        if len(calls) >= 2:
-            raise asyncio.CancelledError
-        await real_sleep(0)
-
-    monkeypatch.setattr(allegro_sync.asyncio, "sleep", fast_sleep)
-    monkeypatch.setattr(message_sync, "_scheduled_message_run", lambda: calls.append(1))
-
-    with pytest.raises(asyncio.CancelledError):
-        asyncio.run(message_sync.message_scheduler(7))
-
-    assert len(calls) == 2
-    assert state.interval_minutes == 7
-    assert state.running is False
-    assert state.last_run_at is not None
-    # the order import's own schedule is untouched
-    assert order_state.interval_minutes == 0

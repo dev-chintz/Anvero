@@ -62,8 +62,8 @@ those, and that belongs with item 3.
 an import pages through everything, the first reaching back seven days and
 every later one fetching only what is new or changed since the last that
 finished (`DECISIONS.md`). And a schedule, done 2026-09-21
-(`ALLEGRO_IMPORT_INTERVAL_MINUTES`, off by default, on for one backend per
-database), with the outcome of the last import shown on the orders page.
+(every 15 minutes by default, for Allegro and Erli, set in Integrations; backends
+sharing a database take turns), with the outcome of the last import shown on the orders page.
 What remains is, if `updatedAt` filtering ever proves too coarse, the order
 event journal, and running the backend somewhere that stays up (item 3): a
 schedule only runs while the process does.

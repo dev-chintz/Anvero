@@ -19,7 +19,6 @@ def _no_schedules_configured(monkeypatch):
     from the machine's own `.env`: these tests start from none, and the ones about
     a schedule set it themselves."""
     monkeypatch.setattr(settings, "allegro_import_interval_minutes", 0)
-    monkeypatch.setattr(settings, "allegro_message_sync_interval_minutes", 0)
 
 
 def _application(session):
@@ -162,9 +161,46 @@ def test_a_schedule_configured_but_not_running_here_is_flagged(session, monkeypa
 
     health = _allegro(session)
 
-    assert health.problems == ["schedule_stopped"]
+    # one interval serves both loops, so both are missing
+    assert health.problems == ["schedule_stopped", "message_schedule_stopped"]
     assert health.schedule.interval_minutes == 15
     assert health.schedule.running is False
+
+
+def test_a_schedule_waiting_for_another_backend_is_not_a_problem(session, monkeypatch):
+    monkeypatch.setattr(settings, "allegro_import_interval_minutes", 15)
+    _application(session)
+    _credential(session, token_issued_at=NOW, last_import_at=NOW)
+    waiting = ScheduleState(interval_minutes=15, standby=True)
+
+    health = app_status.allegro_health(session, NOW, waiting, ScheduleState(standby=True))
+
+    assert health.problems == []
+    assert health.schedule.standby is True
+
+
+def test_the_interval_saved_in_integrations_is_the_one_reported(session):
+    from app.services.schedule import set_interval
+
+    _application(session)
+    _credential(session, token_issued_at=NOW, last_import_at=NOW)
+    set_interval(session, 30, None)
+
+    health = app_status.allegro_health(session, NOW, ScheduleState(), ScheduleState())
+
+    assert health.schedule.interval_minutes == 30
+    assert health.message_schedule.interval_minutes == 30
+
+
+def test_erli_with_a_key_reports_its_schedule(session, monkeypatch):
+    monkeypatch.setattr(settings, "erli_api_key", "key")
+    monkeypatch.setattr(settings, "allegro_import_interval_minutes", 15)
+    _credential(session, provider=erli_import.PROVIDER, last_import_at=NOW)
+
+    health = app_status.erli_health(session)
+
+    assert health.schedule is not None
+    assert health.schedule.interval_minutes == 15
 
 
 def test_erli_without_a_key_is_off(session, monkeypatch):
@@ -219,13 +255,13 @@ def test_the_message_schedule_is_reported_beside_the_import_schedule(session):
 
 
 def test_a_message_schedule_configured_but_not_running_here_is_flagged(session, monkeypatch):
-    monkeypatch.setattr(settings, "allegro_message_sync_interval_minutes", 5)
+    monkeypatch.setattr(settings, "allegro_import_interval_minutes", 5)
     _application(session)
     _credential(session, token_issued_at=NOW, last_import_at=NOW)
 
     health = app_status.allegro_health(session, NOW, ScheduleState(), ScheduleState())
 
-    assert health.problems == ["message_schedule_stopped"]
+    assert "message_schedule_stopped" in health.problems
     assert health.message_schedule.interval_minutes == 5
 
 

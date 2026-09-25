@@ -5,16 +5,14 @@ lock and both leave a note of how they ended for Settings and the orders page
 to show.
 """
 
-import asyncio
 import logging
 import threading
 from collections.abc import Callable
 from dataclasses import dataclass
-from datetime import UTC, datetime, timedelta
+from datetime import datetime
 
 from sqlalchemy.orm import Session
 
-from app.core.config import settings
 from app.db.session import SessionLocal
 from app.integrations.base import IntegrationError
 from app.services import allegro_settings
@@ -55,6 +53,9 @@ class ScheduleState:
     # when the last scheduled run finished, whatever it did (it may have
     # skipped: no account connected, or another import was running)
     last_run_at: datetime | None = None
+    # another backend holds the schedule's lease, so this one is waiting its
+    # turn rather than stopped
+    standby: bool = False
 
 
 schedule_state = ScheduleState()
@@ -100,36 +101,3 @@ def _scheduled_run() -> None:
         logger.exception("Scheduled Allegro import failed")
     finally:
         db.close()
-
-
-async def run_schedule(
-    state: ScheduleState, minutes: int, job: Callable[[], None], what: str
-) -> None:
-    """Run `job` every `minutes` minutes until cancelled, keeping `state` up to
-    date; the first run is one interval after start, so restarting the backend
-    does not trigger one. Does nothing when `minutes` is 0.
-
-    The job is blocking (HTTP and database), so it runs in a worker thread.
-    """
-    if minutes <= 0:
-        return
-    logger.info("%s scheduled every %d minutes", what, minutes)
-    state.interval_minutes = minutes
-    state.running = True
-    state.started_at = datetime.now(UTC)
-    try:
-        while True:
-            state.next_run_at = datetime.now(UTC) + timedelta(minutes=minutes)
-            await asyncio.sleep(minutes * 60)
-            state.next_run_at = None
-            await asyncio.to_thread(job)
-            state.last_run_at = datetime.now(UTC)
-    finally:
-        state.running = False
-        state.next_run_at = None
-
-
-async def scheduler(interval_minutes: int | None = None) -> None:
-    """Import orders every `interval` minutes until cancelled."""
-    minutes = settings.allegro_import_interval_minutes if interval_minutes is None else interval_minutes
-    await run_schedule(schedule_state, minutes, lambda: _scheduled_run(), "Allegro imports")

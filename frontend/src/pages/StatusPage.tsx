@@ -357,6 +357,8 @@ function ScheduleRow({
   let text: string;
   if (value === null) {
     text = t('appStatus.scheduleNone');
+  } else if (value.standby) {
+    text = t('appStatus.scheduleStandby', { minutes: value.interval_minutes });
   } else if (value.running) {
     text = value.next_run_at
       ? t('appStatus.scheduleRunning', {

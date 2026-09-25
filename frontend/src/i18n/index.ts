@@ -85,6 +85,16 @@ export function formatDateTime(value: string | number | Date): string {
   return toDate(value).toLocaleString(locales[current]);
 }
 
+/** A date and time without the year and the seconds ("25.09, 12:14"), for a crowded list. */
+export function formatShortDateTime(value: string | number | Date): string {
+  return toDate(value).toLocaleString(locales[current], {
+    day: "2-digit",
+    month: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
 /** "3 minutes ago", "yesterday", "just now": how long ago something happened. */
 export function formatRelative(value: string | number | Date): string {
   const seconds = Math.round((toDate(value).getTime() - Date.now()) / 1000);
@@ -138,6 +148,7 @@ export function useTranslation() {
     tc: translateCount,
     formatDate,
     formatDateTime,
+    formatShortDateTime,
     formatRelative,
     formatNumber,
     formatMoney,

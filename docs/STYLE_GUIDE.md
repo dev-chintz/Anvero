@@ -79,6 +79,10 @@ differ still can:
 
 ## Patterns for a list and for a status
 
+- A long list is **compact**: a row is two lines (a value and, under it, a quieter `.cell-sub` line), so as
+  many rows as possible are on the screen; what does not fit is folded into a count ("+3 more") with the whole
+  in a tooltip. Where something came from is one coloured letter with its name on hover, not a word.
+
 - A list that is worked through (the inbox) is grouped by day under small capital headings with a count,
   and a row that needs someone says so with a **chip** (`inbox-chip-amber` up to a day, `-red` after), not with
   colour alone. Something that goes with the row (an order) is a blue chip.

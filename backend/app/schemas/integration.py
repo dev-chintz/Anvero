@@ -78,6 +78,23 @@ class ErliStatus(BaseModel):
     last_import_updated: int | None = None
     # set when the last import failed
     last_import_error: str | None = None
+    # minutes between imports the backend runs by itself; 0 means it does not
+    auto_import_interval_minutes: int = 0
+
+
+class ImportSchedule(BaseModel):
+    """How often the backend imports and reads messages by itself, for every channel."""
+
+    # 0 switches it off; otherwise 5 to 1440
+    interval_minutes: int = Field(ge=0, le=1440)
+
+    @field_validator("interval_minutes")
+    @classmethod
+    def _not_too_often(cls, value: int) -> int:
+        # Allegro limits how often it may be asked
+        if 0 < value < 5:
+            raise ValueError("The interval is 0 (off) or at least 5 minutes")
+        return value
 
 
 class ErliSettingsRequest(BaseModel):

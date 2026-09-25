@@ -160,3 +160,8 @@
   font-size: 0.8rem;
   font-weight: 500;
 }
+
+/* the interval field: a few digits wide */
+.schedule-input {
+  width: 5.5rem;
+}

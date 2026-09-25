@@ -13,7 +13,6 @@ from dataclasses import dataclass
 
 from sqlalchemy.orm import Session
 
-from app.core.config import settings
 from app.db.session import SessionLocal
 from app.integrations.allegro.messaging import AllegroMessagingAdapter
 from app.integrations.base import IntegrationError
@@ -28,7 +27,6 @@ from app.services.allegro_sync import (
     ImportAlreadyRunning,
     ScheduleState,
     import_lock,
-    run_schedule,
 )
 
 logger = logging.getLogger(__name__)
@@ -135,16 +133,3 @@ def _scheduled_message_run() -> None:
         logger.exception("Scheduled message sync failed")
     finally:
         db.close()
-
-
-async def message_scheduler(interval_minutes: int | None = None) -> None:
-    """Read the Message Center every `interval` minutes until cancelled."""
-    minutes = (
-        settings.allegro_message_sync_interval_minutes
-        if interval_minutes is None
-        else interval_minutes
-    )
-    await run_schedule(
-        message_schedule_state, minutes, lambda: _scheduled_message_run(), "Allegro message syncs"
-    )
-

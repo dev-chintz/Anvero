@@ -1,7 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy.orm import Session
 
-from app.core.config import settings
 from app.core.rate_limit import limiter
 from app.core.security import get_current_user
 from app.db.session import get_db
@@ -27,6 +26,7 @@ from app.schemas.integration import (
     AllegroStatus,
     ErliSettingsRequest,
     ErliStatus,
+    ImportSchedule,
 )
 from app.schemas.message import MessageSyncResult
 from app.services import allegro_settings, erli_import, erli_settings
@@ -38,6 +38,7 @@ from app.services.allegro_import import (
 from app.services.allegro_sync import ImportAlreadyRunning, import_lock, run_import
 from app.services.erli_import import build_erli_import_service
 from app.services.message_sync import run_message_sync
+from app.services.schedule import get_interval, set_interval
 
 # Every endpoint here requires a logged-in user, same as the orders router.
 router = APIRouter(
@@ -66,7 +67,7 @@ def _status(db: Session) -> AllegroStatus:
         last_import_created=credential.last_import_created if credential else None,
         last_import_updated=credential.last_import_updated if credential else None,
         last_import_error=credential.last_import_error if credential else None,
-        auto_import_interval_minutes=settings.allegro_import_interval_minutes,
+        auto_import_interval_minutes=get_interval(db),
     )
 
 
@@ -201,6 +202,7 @@ def _erli_status(db: Session) -> ErliStatus:
         last_import_created=credential.last_import_created if credential else None,
         last_import_updated=credential.last_import_updated if credential else None,
         last_import_error=credential.last_import_error if credential else None,
+        auto_import_interval_minutes=get_interval(db),
     )
 
 
@@ -322,3 +324,19 @@ def sync_allegro_after_sales(request: Request, db: Session = Depends(get_db)):
     except IntegrationError as exc:
         raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=str(exc)) from exc
 
+
+
+@router.get("/schedule", response_model=ImportSchedule)
+def get_import_schedule(db: Session = Depends(get_db)):
+    return ImportSchedule(interval_minutes=get_interval(db))
+
+
+@router.put("/schedule", response_model=ImportSchedule)
+def put_import_schedule(
+    body: ImportSchedule,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Set how often orders are imported and messages read by themselves, for
+    every channel; 0 switches it off. Takes effect within half a minute."""
+    return ImportSchedule(interval_minutes=set_interval(db, body.interval_minutes, current_user.id))

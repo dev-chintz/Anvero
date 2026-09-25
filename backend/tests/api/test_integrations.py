@@ -267,3 +267,41 @@ def test_the_suite_never_sees_a_developers_real_allegro_credentials():
 
     assert response.status_code == 200
     assert response.json()["configured"] is False
+
+
+def test_the_import_interval_is_15_minutes_until_one_is_saved():
+    response = client.get("/api/v1/integrations/schedule")
+
+    assert response.status_code == 200
+    assert response.json() == {"interval_minutes": 15}
+
+
+def test_an_interval_can_be_saved_and_is_reported_by_every_channels_status():
+    saved = client.put("/api/v1/integrations/schedule", json={"interval_minutes": 30})
+
+    assert saved.status_code == 200
+    assert saved.json() == {"interval_minutes": 30}
+    assert client.get("/api/v1/integrations/schedule").json() == {"interval_minutes": 30}
+    assert client.get("/api/v1/integrations/allegro").json()["auto_import_interval_minutes"] == 30
+    assert client.get("/api/v1/integrations/erli").json()["auto_import_interval_minutes"] == 30
+    # put it back for the tests after this one
+    client.put("/api/v1/integrations/schedule", json={"interval_minutes": 15})
+
+
+def test_zero_switches_the_schedule_off():
+    client.put("/api/v1/integrations/schedule", json={"interval_minutes": 0})
+
+    assert client.get("/api/v1/integrations/schedule").json() == {"interval_minutes": 0}
+    client.put("/api/v1/integrations/schedule", json={"interval_minutes": 15})
+
+
+def test_an_interval_under_five_minutes_or_beyond_a_day_is_refused():
+    for minutes in (1, 4, 1441, -1):
+        response = client.put("/api/v1/integrations/schedule", json={"interval_minutes": minutes})
+        assert response.status_code == 422, minutes
+
+
+def test_the_schedule_refuses_an_anonymous_request():
+    assert anonymous.get("/api/v1/integrations/schedule").status_code == 401
+    put = anonymous.put("/api/v1/integrations/schedule", json={"interval_minutes": 15})
+    assert put.status_code == 401

@@ -100,12 +100,14 @@ export function OrderList({
                   </th>
                 )}
                 <th scope="col">{t("orders.col.order")}</th>
+                <th scope="col">{t("orders.col.buyer")}</th>
                 <th scope="col">{t("orders.col.items")}</th>
-                <th scope="col">{t("orders.col.payment")}</th>
+                <th scope="col">{t("orders.col.amount")}</th>
                 <th scope="col">{t("orders.col.status")}</th>
                 <th scope="col">{t("orders.col.shipping")}</th>
-                <th scope="col">{t("orders.col.amount")}</th>
-                <th scope="col">{t("orders.col.ordered")}</th>
+                <th scope="col" className="actions-cell">
+                  <span className="sr-only">{t("orders.col.actions")}</span>
+                </th>
               </tr>
             </thead>
             <tbody>

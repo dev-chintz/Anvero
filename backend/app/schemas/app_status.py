@@ -14,6 +14,8 @@ class ScheduleStatus(BaseModel):
 
     interval_minutes: int
     running: bool
+    # another backend holds the schedule's lease; this one takes over if it stops
+    standby: bool = False
     started_at: UtcDateTime | None = None
     next_run_at: UtcDateTime | None = None
     last_run_at: UtcDateTime | None = None
@@ -52,7 +54,7 @@ class ErliHealth(BaseModel):
     # an API key is set; Erli's key does not expire
     configured: bool
     last_import: LastImport
-    # there is no schedule for Erli yet: imports run from the script only
+    # null while no key is set: there is nothing to import
     schedule: ScheduleStatus | None
 
 

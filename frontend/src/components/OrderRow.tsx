@@ -16,15 +16,15 @@ import { ItemThumb } from "./ItemThumb";
 import type { OrderNoteKind } from "./OrderNoteDialog";
 import { TrackingLink } from "./TrackingLink";
 
-// the name, when the marketplace gave one; the login is shown on its own line
+// the name, when the marketplace gave one
 function buyerName(order: Order): string {
   return [order.customer_first_name, order.customer_last_name].filter(Boolean).join(" ");
 }
 
-// under the login: the name, or, with neither a name nor a login, the email so
+// what the buyer is called at the top of their cell: the name, else the login, else the email so
 // the cell is never blank
-function buyerDetail(order: Order): string {
-  return buyerName(order) || (order.customer_login ? "" : order.customer_email);
+function buyerTitle(order: Order): string {
+  return buyerName(order) || order.customer_login || order.customer_email;
 }
 
 // payment_type/provider are already on the list row (see types/order.ts);
@@ -44,15 +44,16 @@ const STATUS_CLASS: Record<OrderStatus, string> = {
   [OrderStatus.CANCELLED]: "badge badge-cancelled",
 };
 
-const SOURCE_CLASS: Record<OrderSource, string> = {
-  [OrderSource.ALLEGRO]: "badge badge-allegro",
-  [OrderSource.ERLI]: "badge badge-erli",
+// where the order came from, as one coloured letter; the full name is its tooltip
+const SOURCE_MARK: Record<OrderSource, { letter: string; className: string }> = {
+  [OrderSource.ALLEGRO]: { letter: "A", className: "source-mark source-allegro" },
+  [OrderSource.ERLI]: { letter: "E", className: "source-mark source-erli" },
 };
 
 const ALL_STATUSES = Object.values(OrderStatus);
 
-// how many items a row lists before "and N more"; the rest are on the order's page
-const ITEMS_SHOWN = 3;
+// how many items a row lists before "and N more"; the rest are in its tooltip and on the order page
+const ITEMS_SHOWN = 1;
 
 interface OrderRowProps {
   order: Order;
@@ -86,12 +87,19 @@ export function OrderRow({
   onMarksChange,
   onOpenNote,
 }: OrderRowProps) {
-  const { t, tc, formatDateTime, formatRelative, formatMoney, trackingLabel, countryName } =
-    useTranslation();
+  const {
+    t,
+    tc,
+    formatDateTime,
+    formatShortDateTime,
+    formatRelative,
+    formatMoney,
+    trackingLabel,
+    countryName,
+  } = useTranslation();
   const shipments = order.shipments ?? [];
   const items = order.items ?? [];
   const hasPicture = items.some((item) => item.image_url);
-  const formattedDate = formatDateTime(order.ordered_at);
   const urgency = dispatchUrgency(order);
   const payment = paymentState(order);
   const statusSince = order.status_changed_at ?? order.ordered_at;
@@ -114,6 +122,14 @@ export function OrderRow({
         {symbol}
       </span>
     );
+
+  const mark = SOURCE_MARK[order.source];
+  // the nick goes under the name; with no name it is the title already
+  const buyerSub = buyerName(order) ? order.customer_login : "";
+  // every item, for the tooltip of the cell that shows only the first
+  const allItems = items
+    .map((item) => `${item.quantity}× ${item.name}${item.sku ? ` (${item.sku})` : ""}`)
+    .join("\n");
 
   return (
     <tr className={selected ? "row-selected" : undefined}>
@@ -181,17 +197,26 @@ export function OrderRow({
               </span>
             )}
           </div>
-          {order.customer_login && (
-            <span className="order-cell-login" title={order.customer_login}>
-              {order.customer_login}
+          <span className="cell-sub" title={formatDateTime(order.ordered_at)}>
+            {formatShortDateTime(order.ordered_at)}
+          </span>
+        </div>
+      </td>
+      <td>
+        <div className="buyer-cell">
+          <div className="buyer-line">
+            <span className="buyer-name" title={buyerTitle(order)}>
+              {buyerTitle(order)}
+            </span>
+            <span className={mark.className} title={order.source} aria-label={order.source}>
+              {mark.letter}
+            </span>
+          </div>
+          {buyerSub && (
+            <span className="cell-sub buyer-nick" title={buyerSub}>
+              {buyerSub}
             </span>
           )}
-          {buyerDetail(order) && (
-            <span className="order-cell-buyer" title={buyerDetail(order)}>
-              {buyerDetail(order)}
-            </span>
-          )}
-          <span className={SOURCE_CLASS[order.source]}>{order.source}</span>
         </div>
       </td>
       {items.length === 0 ? (
@@ -199,7 +224,7 @@ export function OrderRow({
           —
         </td>
       ) : (
-        <td className="items-cell">
+        <td className="items-cell" title={allItems}>
           <ul className="order-items-short">
             {items.slice(0, ITEMS_SHOWN).map((item, index) => (
               <li key={index} title={item.sku ? `${item.name} (${item.sku})` : item.name}>
@@ -210,17 +235,28 @@ export function OrderRow({
                   // only worth its room when some item of the order has one
                   hasPicture && <span className="item-thumb-placeholder" aria-hidden="true" />
                 )}
-                <span className="order-item-quantity">{item.quantity}×</span>
-                <span className="order-item-name">{item.name}</span>
+                <span className="order-item-text">
+                  <span className="order-item-line">
+                    <span className="order-item-quantity">{item.quantity}×</span>
+                    <span className="order-item-name">{item.name}</span>
+                  </span>
+                  {items.length > ITEMS_SHOWN && (
+                    <span className="cell-sub order-items-more">
+                      {tc("orders.moreItems", items.length - ITEMS_SHOWN)}
+                    </span>
+                  )}
+                </span>
               </li>
             ))}
-            {items.length > ITEMS_SHOWN && (
-              <li className="order-items-more">{tc("orders.moreItems", items.length - ITEMS_SHOWN)}</li>
-            )}
           </ul>
         </td>
       )}
-      <td>{paymentSummary(order)}</td>
+      <td>
+        <div className="amount-cell">
+          <b className="amount">{formatMoney(order.total_amount, order.currency)}</b>
+          <span className="cell-sub">{paymentSummary(order)}</span>
+        </div>
+      </td>
       <td>
         <div className="status-cell">
           <select
@@ -270,13 +306,13 @@ export function OrderRow({
             )}
             {order.has_buyer_message && noteIcon("message", "💬", t("orders.icon.message"))}
             {order.has_seller_note && noteIcon("note", "📝", t("orders.icon.note"))}
+            <span
+              className="status-since"
+              title={t("orders.inStatusSince", { when: formatDateTime(statusSince) })}
+            >
+              {formatRelative(statusSince)}
+            </span>
           </div>
-          <span
-            className="status-since"
-            title={t("orders.inStatusSince", { when: formatDateTime(statusSince) })}
-          >
-            {formatRelative(statusSince)}
-          </span>
           {hasCancellationWarning(order) && (
             <span className="badge badge-warning">
               {t("orders.cancelledOn", { source: order.source })}
@@ -292,13 +328,13 @@ export function OrderRow({
           )}
         </div>
       </td>
-      {shipments.length === 0 ? (
-        <td className="cell-placeholder" aria-label={t("orders.shippingNotTracked")}>
-          —
-        </td>
-      ) : (
-        <td className="shipping-cell">
-          {shipments.map((shipment) => (
+      <td className="shipping-cell">
+        {shipments.length === 0 ? (
+          <span className="cell-placeholder" aria-label={t("orders.shippingNotTracked")}>
+            —
+          </span>
+        ) : (
+          shipments.map((shipment) => (
             <div
               key={shipment.id}
               title={t("orders.shipmentTitle", {
@@ -320,21 +356,17 @@ export function OrderRow({
                 </span>
               )}
             </div>
-          ))}
-        </td>
-      )}
-      <td>
-        {formatMoney(order.total_amount, order.currency)}
-      </td>
-      <td>
-        {formattedDate}
+          ))
+        )}
         {urgency && order.dispatch_by && (
-          <div className={`dispatch-by dispatch-${urgency}`}>
+          <div className={`dispatch-by dispatch-${urgency}`} title={formatDateTime(order.dispatch_by)}>
             {t(urgency === "late" ? "orders.dispatchOverdue" : "orders.dispatchBy", {
-              when: formatDateTime(order.dispatch_by),
+              when: formatShortDateTime(order.dispatch_by),
             })}
           </div>
         )}
+      </td>
+      <td className="actions-cell">
         {order.deleted_at
           ? onRestore && (
               <button

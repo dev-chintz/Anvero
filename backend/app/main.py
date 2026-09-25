@@ -11,8 +11,7 @@ from app.api.v1.router import router as api_router
 from app.core.config import ensure_secret_key, settings
 from app.core.logging import setup_logging
 from app.core.rate_limit import limiter
-from app.services.allegro_sync import scheduler
-from app.services.message_sync import message_scheduler
+from app.services.schedule import default_jobs, run_jobs
 
 setup_logging()
 
@@ -23,9 +22,9 @@ ensure_secret_key(settings.secret_key)
 
 @asynccontextmanager
 async def lifespan(_: FastAPI) -> AsyncIterator[None]:
-    # imports and message syncs the backend starts by itself; each is a no-op
-    # unless its interval is set
-    tasks = [asyncio.create_task(scheduler()), asyncio.create_task(message_scheduler())]
+    # the imports and message syncs the backend starts by itself; the interval
+    # is read from the database on every round (services/schedule.py)
+    tasks = [asyncio.create_task(run_jobs(default_jobs()))] if settings.scheduler_enabled else []
     try:
         yield
     finally:

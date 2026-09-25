@@ -227,9 +227,28 @@ export interface ErliStatus {
   last_import_updated: number | null;
   /** Set when the last import failed. */
   last_import_error: string | null;
+  /** Minutes between imports the backend runs by itself; 0 when it does not. */
+  auto_import_interval_minutes?: number;
+}
+
+/** How often the backend imports orders and reads messages by itself, for every channel. */
+export interface ImportSchedule {
+  /** 0 is off; otherwise 5 to 1440. */
+  interval_minutes: number;
 }
 
 export const integrationsApi = {
+  importSchedule(): Promise<ImportSchedule> {
+    return request<ImportSchedule>("/integrations/schedule");
+  },
+
+  saveImportSchedule(intervalMinutes: number): Promise<ImportSchedule> {
+    return request<ImportSchedule>("/integrations/schedule", {
+      method: "PUT",
+      body: JSON.stringify({ interval_minutes: intervalMinutes }),
+    });
+  },
+
   erliStatus(): Promise<ErliStatus> {
     return request<ErliStatus>("/integrations/erli");
   },
@@ -388,6 +407,8 @@ export type HealthState = "off" | "ok" | "warning" | "error";
 export interface ScheduleStatus {
   interval_minutes: number;
   running: boolean;
+  /** Another backend holds the schedule; this one takes over if it stops. */
+  standby?: boolean;
   started_at: string | null;
   next_run_at: string | null;
   last_run_at: string | null;

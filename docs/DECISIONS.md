@@ -1136,6 +1136,45 @@ branch is unverified: only the SQLite path has been run.
 
 **Consequences:** Whether Allegro's pages read the number from the address is not confirmed (allegro.pl answers no automated request, so it could not be tried, and only one search result named the parameter, for One's page); if they do not, the link still lands on the page that asks for the number. Anvero's own status for these parcels comes from Allegro's tracking API and is unaffected.
 
+## 2026-09-25 — One import button, an automatic update every 15 minutes for every channel, and a compact order list
+
+**Decided (owner, 2026-09-25):** the owner found that automatic updates did not run, that the import button
+covered only Allegro, and that the order list was too spread out to see many orders at once. They chose
+variant A of three mockups for the list and "one button for all" for the import. Now:
+
+- **Why nothing updated by itself:** the schedule was off unless `ALLEGRO_IMPORT_INTERVAL_MINUTES` was set in
+  a machine's own `.env`, on the one backend meant to have it (the NAS, not deployed yet); this machine's had
+  none. Erli had no schedule at all. This supersedes "off by default, on for exactly one backend" above.
+- **One interval for every channel, 15 minutes by default,** kept in `app_settings`
+  (`import_interval_minutes`), set in Integrations ("Automatyczna aktualizacja", `GET/PUT
+  /integrations/schedule`; 0 is off, otherwise 5 to 1440, since Allegro limits how often it may be asked). It
+  drives the Allegro orders import, the new Erli orders import and the Allegro message reading, in one loop
+  (`services/schedule.py`) that reads the interval every half minute, so a change needs no restart and a
+  shorter interval applies at once. The two per-channel environment intervals became one default,
+  `ALLEGRO_IMPORT_INTERVAL_MINUTES` (15); `ALLEGRO_MESSAGE_SYNC_INTERVAL_MINUTES` is gone (ignored if still in a
+  `.env`).
+- **Backends take turns instead of "exactly one".** With the schedule on by default, a laptop and the NAS
+  would both import and Allegro's rotating token would be raced for. A lease, one `app_settings` row
+  (`scheduler_lease`) renewed every half minute and taken with a conditional write, lets one backend run the
+  jobs; the others wait (`standby` on the status page, not a problem) and one takes over after two minutes of
+  silence, or at once when the holder stops cleanly. `SCHEDULER_ENABLED=false` keeps a process out of it (the
+  test suite uses it). A backend that was off, and finds the last import (by anyone) older than the interval,
+  catches up a minute after it starts; otherwise its first run is one interval after the last import.
+- **One import button** on the order list imports from every connected channel, one after the other (the
+  backend runs one import at a time), says what each brought, and goes on to Erli if Allegro fails; under it,
+  each channel's last import and "automatically every N min". The list reloads when an import of either
+  channel finishes by itself.
+- **The order list is compact** (mockup A): a row is two lines, about 53px instead of about 135px. Columns:
+  order (marks, number, country; its date under it), buyer (the name, the nick under it, and the source as one
+  coloured letter, A for Allegro and E for Erli), items (the first, with a thumbnail, and "+N more" with all in
+  the tooltip), amount (with the payment method under it), status (with the icons and time in status under it),
+  shipping (with the dispatch deadline under it) and the delete button. The payment and date columns are gone.
+
+**Not done / limits:** the Erli import has still never run against a real Erli. The first run of the schedule
+on this machine is unseen until fifteen minutes have passed (it was verified on a scratch database that the loop
+starts, holds the lease and reports its next run). Reading messages on a schedule is now on by default too; it
+only reads. An interval saved in Integrations lives in the shared database and so applies to every machine.
+
 ## 2026-09-25 — Inbox by day with waiting times, Status as a summary, tiles and a timeline
 
 **Decided (owner, 2026-09-25, from mockups W2 for the Inbox and S1+S3 for Status):** the Inbox was a plain

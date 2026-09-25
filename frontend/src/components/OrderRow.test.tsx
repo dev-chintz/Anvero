@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { describe, expect, it, vi } from "vitest";
 import { OrderRow } from "./OrderRow";
@@ -124,7 +124,7 @@ describe("OrderRow", () => {
       ...overrides,
     });
 
-    it("lists what was bought with its quantity, and the picture when there is one", () => {
+    it("shows the first item with its quantity and its picture, and counts the rest", () => {
       const { container } = renderRow(
         makeOrder({
           items: [
@@ -136,37 +136,47 @@ describe("OrderRow", () => {
 
       expect(screen.getByText("2×")).toBeInTheDocument();
       expect(screen.getByText("Wooden sign")).toBeInTheDocument();
-      expect(screen.getByText("Macrame base")).toBeInTheDocument();
-      // the picture only for the item that has one; the other gets a plain box
+      expect(screen.queryByText("Macrame base")).not.toBeInTheDocument();
+      expect(screen.getByText("+1 more item")).toBeInTheDocument();
       expect(container.querySelectorAll("img.order-item-thumb")).toHaveLength(1);
       expect(container.querySelector("img")).toHaveAttribute("src", "https://img.example/sign.jpg");
-      expect(container.querySelectorAll(".item-thumb-placeholder")).toHaveLength(1);
-      // the full name and SKU on hover
+      // the full name and SKU of the item shown, on hover
       expect(screen.getByText("Wooden sign").closest("li")).toHaveAttribute(
         "title",
         "Wooden sign (D1727)",
       );
     });
 
-    it("leaves out the empty picture box when no item of the order has a picture", () => {
-      const { container } = renderRow(makeOrder({ items: [item("A"), item("B")] }));
+    it("lists every item, with its quantity and SKU, in the tooltip of the cell", () => {
+      const { container } = renderRow(
+        makeOrder({ items: [item("Wooden sign", 2, { sku: "D1727" }), item("Macrame base")] }),
+      );
 
-      expect(container.querySelectorAll("img, .item-thumb-placeholder")).toHaveLength(0);
-      expect(screen.getByText("A")).toBeInTheDocument();
+      expect(container.querySelector("td.items-cell")).toHaveAttribute(
+        "title",
+        "2× Wooden sign (D1727)\n1× Macrame base",
+      );
     });
 
-    it("lists three items and counts the rest", () => {
+    it("leaves out the empty picture box when no item of the order has a picture", () => {
+      const { container } = renderRow(makeOrder({ items: [item("Alpha"), item("Beta")] }));
+
+      expect(container.querySelectorAll("img, .item-thumb-placeholder")).toHaveLength(0);
+      expect(screen.getByText("Alpha")).toBeInTheDocument();
+    });
+
+    it("counts the items it does not show", () => {
       renderRow(
         makeOrder({ items: ["A", "B", "C", "D", "E"].map((name) => item(`Item ${name}`)) }),
       );
 
-      expect(screen.getByText("Item C")).toBeInTheDocument();
-      expect(screen.queryByText("Item D")).not.toBeInTheDocument();
-      expect(screen.getByText("+2 more items")).toBeInTheDocument();
+      expect(screen.getByText("Item A")).toBeInTheDocument();
+      expect(screen.queryByText("Item B")).not.toBeInTheDocument();
+      expect(screen.getByText("+4 more items")).toBeInTheDocument();
     });
 
-    it("does not mention more when everything fits", () => {
-      renderRow(makeOrder({ items: [item("A"), item("B"), item("C")] }));
+    it("does not mention more when there is only one", () => {
+      renderRow(makeOrder({ items: [item("Alpha")] }));
 
       expect(screen.queryByText(/more item/)).not.toBeInTheDocument();
     });
@@ -251,7 +261,7 @@ describe("OrderRow", () => {
     renderRow(makeOrder({ customer_email: "a-fairly-long-buyer-address@example.com" }));
 
     const cell = screen.getByText("a-fairly-long-buyer-address@example.com");
-    expect(cell).toHaveClass("order-cell-buyer");
+    expect(cell).toHaveClass("buyer-name");
     expect(cell).toHaveAttribute("title", "a-fairly-long-buyer-address@example.com");
   });
 });
@@ -307,13 +317,11 @@ describe("deleting from the row", () => {
   });
 });
 
-describe("the buyer in the order cell", () => {
-  const cellText = () =>
-    Array.from(
-      screen.getByRole("link", { name: "AN-000042" }).closest(".order-cell")?.children ?? [],
-    ).map((child) => child.textContent);
+describe("the buyer cell", () => {
+  const buyerCell = () => screen.getByText(/.+/, { selector: ".buyer-name" }).closest(".buyer-cell") as HTMLElement;
+  const cellText = () => Array.from(buyerCell().querySelectorAll(".buyer-name, .buyer-nick, .source-mark")).map((n) => n.textContent);
 
-  it("puts the login right under the number, before the name", () => {
+  it("puts the name first, the nick under it, and where the order came from at the right", () => {
     renderRow(
       makeOrder({
         customer_login: "kupujaca_ola",
@@ -322,27 +330,57 @@ describe("the buyer in the order cell", () => {
       }),
     );
 
-    expect(cellText()).toEqual(["AN-000042", "kupujaca_ola", "Aleksandra Nowak", "ALLEGRO"]);
-    expect(screen.getByText("kupujaca_ola")).toHaveClass("order-cell-login");
+    expect(cellText()).toEqual(["Aleksandra Nowak", "A", "kupujaca_ola"]);
+    expect(screen.getByText("kupujaca_ola")).toHaveClass("buyer-nick");
   });
 
   it("shows only the login when there is no name, and does not repeat it", () => {
     renderRow(makeOrder({ customer_login: "kupujaca_ola" }));
 
-    expect(cellText()).toEqual(["AN-000042", "kupujaca_ola", "ALLEGRO"]);
+    expect(cellText()).toEqual(["kupujaca_ola", "A"]);
     expect(screen.queryByText("buyer@example.com")).not.toBeInTheDocument();
   });
 
-  it("shows the name without a login line when the marketplace gives no login", () => {
+  it("shows the name without a nick line when the marketplace gives no login", () => {
     renderRow(makeOrder({ customer_first_name: "Jan", customer_last_name: "Kowalski" }));
 
-    expect(cellText()).toEqual(["AN-000042", "Jan Kowalski", "ALLEGRO"]);
+    expect(cellText()).toEqual(["Jan Kowalski", "A"]);
   });
 
   it("shows the email when there is neither a login nor a name, so the cell is never bare", () => {
     renderRow(makeOrder());
 
-    expect(cellText()).toEqual(["AN-000042", "buyer@example.com", "ALLEGRO"]);
+    expect(cellText()).toEqual(["buyer@example.com", "A"]);
+  });
+
+  it("marks Allegro with an orange A and Erli with a blue E, and names them on hover", () => {
+    const { rerender } = renderRow(makeOrder({ source: OrderSource.ALLEGRO }));
+    expect(screen.getByLabelText("ALLEGRO")).toHaveTextContent("A");
+    expect(screen.getByLabelText("ALLEGRO")).toHaveClass("source-allegro");
+    expect(screen.getByTitle("ALLEGRO")).toBe(screen.getByLabelText("ALLEGRO"));
+
+    rerender(
+      <MemoryRouter>
+        <table>
+          <tbody>
+            <OrderRow order={makeOrder({ source: OrderSource.ERLI })} onStatusChange={vi.fn()} updating={false} />
+          </tbody>
+        </table>
+      </MemoryRouter>,
+    );
+    expect(screen.getByLabelText("ERLI")).toHaveTextContent("E");
+    expect(screen.getByLabelText("ERLI")).toHaveClass("source-erli");
+  });
+});
+
+describe("the order cell", () => {
+  it("has the number and, under it, when the order was placed, in short", () => {
+    const { container } = renderRow(makeOrder());
+
+    const cell = container.querySelector(".order-cell") as HTMLElement;
+    expect(within(cell).getByRole("link", { name: "AN-000042" })).toBeInTheDocument();
+    expect(cell.querySelector(".cell-sub")).toHaveTextContent(/^\d{2}\/\d{2}, \d{2}:\d{2}$/);
+    expect(cell.querySelector(".cell-sub")?.getAttribute("title")).toMatch(/\d{4}/);
   });
 });
 

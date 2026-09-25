@@ -28,6 +28,7 @@ from app.services import allegro_settings, erli_import, erli_settings
 from app.services.allegro_sync import ScheduleState, schedule_state
 from app.services.marketplace_writes import safe_mode_on
 from app.services.message_sync import message_schedule_state
+from app.services.schedule import erli_schedule_state, get_interval
 
 # Allegro's refresh token lives three months from its issue; every import
 # issues a new one, so it runs out only when nothing imports for that long
@@ -73,6 +74,7 @@ def _schedule(state: ScheduleState, configured_minutes: int) -> ScheduleStatus:
     return ScheduleStatus(
         interval_minutes=state.interval_minutes or configured_minutes,
         running=state.running,
+        standby=state.standby,
         started_at=state.started_at,
         next_run_at=state.next_run_at,
         last_run_at=state.last_run_at,
@@ -88,10 +90,10 @@ def allegro_health(
     application = allegro_settings.resolve_application(db)
     credential = IntegrationCredentialRepository(db).get(allegro_settings.PROVIDER)
     connected = credential is not None or bool(application.seed_refresh_token)
-    schedule = _schedule(state, settings.allegro_import_interval_minutes)
+    schedule = _schedule(state, get_interval(db))
     message_schedule = _schedule(
         message_state if message_state is not None else message_schedule_state,
-        settings.allegro_message_sync_interval_minutes,
+        get_interval(db),
     )
     last_import = _last_import(credential)
 
@@ -126,10 +128,10 @@ def allegro_health(
         problems.append("last_import_failed")
     if connected and last_import.at is None:
         problems.append("never_imported")
-    if schedule.interval_minutes and not schedule.running:
+    if schedule.interval_minutes and not schedule.running and not schedule.standby:
         # configured to import by itself, but the loop is not alive here
         problems.append("schedule_stopped")
-    if message_schedule.interval_minutes and not message_schedule.running:
+    if message_schedule.interval_minutes and not message_schedule.running and not message_schedule.standby:
         # the same for reading buyer messages: set, but the loop is not alive here
         problems.append("message_schedule_stopped")
     if schedule.running and connected:
@@ -164,12 +166,16 @@ def erli_health(db: Session) -> ErliHealth:
         problems.append("last_import_failed")
     if configured and last_import.at is None:
         problems.append("never_imported")
+    schedule = _schedule(erli_schedule_state, get_interval(db)) if configured else None
+    if schedule and schedule.interval_minutes and not schedule.running and not schedule.standby:
+        # set to import by itself, but the loop is not alive here
+        problems.append("schedule_stopped")
     return ErliHealth(
         state=_state(problems) if configured else "off",
         problems=problems,
         configured=configured,
         last_import=last_import,
-        schedule=None,
+        schedule=schedule,
     )
 
 

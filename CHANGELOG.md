@@ -6,6 +6,19 @@ All significant changes to the Anvero project.
 
 ## 2026-09-25
 
+### ⏱ Automatic updates, one import button, a compact order list
+
+- **Automatic update every 15 minutes** for Allegro and Erli orders and Allegro messages, by default. The interval
+  is set in Integrations ("Automatyczna aktualizacja", 0 = off) and applies within half a minute. Several backends
+  on one database take turns (a lease), so a laptop and the NAS do not race for Allegro's token.
+- **One "Importuj zamówienia" button** imports from every connected channel and says what each brought; under it,
+  each channel's last import.
+- **The order list is about 2.5 times denser:** two lines a row, the buyer's name first with the nick under it and
+  the source as a coloured A or E, the first item with "+N more", amount and payment together, the dispatch
+  deadline under the shipping.
+- Fixed: the search field on the order list touched its card's edge (the page's side gutter was applied as padding
+  to the card).
+
 ### 💬 Inbox by day, Status as a summary
 
 - **Wiadomości:** tabs with counts, conversations grouped by day, "czeka 16 godz." chips on unread ones
