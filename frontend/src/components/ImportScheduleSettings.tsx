@@ -68,35 +68,30 @@ export function ImportScheduleSettings() {
   };
 
   return (
-    <section className="settings-section card tone-blue" aria-label={t('integrations.schedule.title')}>
-      <h2>{t('integrations.schedule.title')}</h2>
-      <form className="setting-row" onSubmit={save}>
-        <div className="setting-row-text">
-          <b>{t('integrations.schedule.label')}</b>
-          <p className="setting-row-help">{t('integrations.schedule.help')}</p>
-        </div>
-        <div className="setting-row-control">
-          <input
-            type="number"
-            className="schedule-input"
-            aria-label={t('integrations.schedule.title')}
-            min={0}
-            max={MAX_MINUTES}
-            value={text}
-            disabled={saved === null}
-            onChange={(e) => {
-              setText(e.target.value);
-              setNote(null);
-            }}
-          />
-          <span>{t('integrations.schedule.unit')}</span>
-          <button type="submit" disabled={!changed || saving}>
-            {t('integrations.schedule.save')}
-          </button>
-        </div>
+    <section className="schedule-strip card" aria-label={t('integrations.schedule.title')}>
+      <form onSubmit={save}>
+        <b>{t('integrations.schedule.title')}</b>
+        <span className="schedule-strip-lead">{t('integrations.schedule.lead')}</span>
+        <input
+          type="number"
+          className="schedule-input"
+          aria-label={t('integrations.schedule.title')}
+          min={0}
+          max={MAX_MINUTES}
+          value={text}
+          disabled={saved === null}
+          onChange={(e) => {
+            setText(e.target.value);
+            setNote(null);
+          }}
+        />
+        <span>{t('integrations.schedule.unit')}</span>
+        <button type="submit" disabled={!changed || saving}>
+          {t('integrations.schedule.save')}
+        </button>
       </form>
       {note && (
-        <p role={note.error ? 'alert' : 'status'} className={note.error ? 'error-message' : 'subtitle'}>
+        <p role={note.error ? 'alert' : 'status'} className={note.error ? 'error-message' : 'schedule-strip-note'}>
           {note.text}
         </p>
       )}

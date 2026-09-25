@@ -77,6 +77,12 @@ differ still can:
   grey when not) on a tile or in a band, not as a paragraph further down.
 - Many things that each need a form are **tiles** with the chosen one opened below, not a long column of forms.
 
+## Colour of a channel
+
+Allegro, Erli and InPost each have a colour (`--channel-allegro|erli|inpost`, with `-bg`/`-fg` for a tinted band and
+values for dark mode); the sender uses the accent. Use it as a small mark (a lettered square, a bar across a tile) or
+a band with the tone classes `tone-allegro|erli|inpost|sender`, not as a fill for large areas or for text.
+
 ## Patterns for a list and for a status
 
 - A long list is **compact**: a row is two lines (a value and, under it, a quieter `.cell-sub` line), so as

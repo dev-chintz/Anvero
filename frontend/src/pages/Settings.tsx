@@ -37,6 +37,7 @@ export const Settings: React.FC<SettingsProps> = ({ isDarkMode, onThemeToggle })
         </div>
       </header>
 
+      <div className="settings-grid">
       <section className="settings-section card tone-blue" aria-label={t('settings.appearanceCard')}>
         <h2>{t('settings.appearanceCard')}</h2>
         <SettingRow title={t('settings.theme')} help={t('settings.themeHelp')}>
@@ -67,7 +68,10 @@ export const Settings: React.FC<SettingsProps> = ({ isDarkMode, onThemeToggle })
         </SettingRow>
       </section>
 
-      <section className="settings-section card tone-blue" aria-label={t('safeMode.title')}>
+      <section
+        className={`settings-section card ${safeMode && !safeMode.enabled ? 'tone-amber' : 'tone-green'}`}
+        aria-label={t('safeMode.title')}
+      >
         <div className="card-head">
           <h2>{t('safeMode.title')}</h2>
           {safeMode && (
@@ -79,6 +83,7 @@ export const Settings: React.FC<SettingsProps> = ({ isDarkMode, onThemeToggle })
         </div>
         <SafeModeSettings />
       </section>
+      </div>
     </div>
   );
 };

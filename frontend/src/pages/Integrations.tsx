@@ -33,6 +33,10 @@ export const Integrations: React.FC = () => {
   const title = (id: IntegrationId) =>
     id === 'sender' ? t('settings.shippingCard') : t(`integrations.name.${id}`);
   const chosen = summaries[selected];
+  // the tile's own name; the panel's title is the longer one for the sender
+  const name = (id: IntegrationId) => t(`integrations.name.${id}`);
+  const stateLabel = (id: IntegrationId, level: 'ok' | 'none' | 'todo') =>
+    t(id === 'sender' && level === 'ok' ? 'integrations.state.set' : `integrations.state.${level}`);
 
   return (
     <div className="settings-page integrations-page">
@@ -56,17 +60,20 @@ export const Integrations: React.FC = () => {
               id={`integration-tab-${id}`}
               aria-selected={id === selected}
               aria-controls="integration-panel"
-              className={`integration-tile${id === selected ? ' is-selected' : ''}`}
+              className={`integration-tile channel-${id}${id === selected ? ' is-selected' : ''}`}
               onClick={() => setSearchParams({ integration: id }, { replace: true })}
             >
-              <span className="integration-tile-name">
-                <span
-                  className={`status-dot${summary?.ok ? ' is-ok' : ''}`}
-                  aria-hidden="true"
-                />
-                {t(`integrations.name.${id}`)}
+              <span className="integration-tile-head">
+                <span className="channel-avatar" aria-hidden="true">
+                  {name(id).charAt(0).toUpperCase()}
+                </span>
+                <span className="integration-tile-name">{name(id)}</span>
+                {summary && (
+                  <span className={`state-pill is-${summary.level}`}>{stateLabel(id, summary.level)}</span>
+                )}
               </span>
               <span className="integration-tile-summary">{summary?.text ?? '…'}</span>
+              {summary?.detail && <span className="integration-tile-summary">{summary.detail}</span>}
             </button>
           );
         })}
@@ -74,7 +81,7 @@ export const Integrations: React.FC = () => {
 
       <section
         id="integration-panel"
-        className="settings-section card tone-teal"
+        className={`settings-section card tone-${selected}`}
         role="tabpanel"
         aria-labelledby={`integration-tab-${selected}`}
       >

@@ -50,6 +50,26 @@
 }
 
 /* ---- Tones: what a band, and a chip, is telling you by its colour ---- */
+.tone-allegro {
+  --band-bg: var(--channel-allegro-bg);
+  --band-fg: var(--channel-allegro-fg);
+}
+
+.tone-erli {
+  --band-bg: var(--channel-erli-bg);
+  --band-fg: var(--channel-erli-fg);
+}
+
+.tone-inpost {
+  --band-bg: var(--channel-inpost-bg);
+  --band-fg: var(--channel-inpost-fg);
+}
+
+.tone-sender {
+  --band-bg: var(--tone-teal-bg);
+  --band-fg: var(--tone-teal-fg);
+}
+
 .tone-blue {
   --band-bg: var(--tone-blue-bg);
   --band-fg: var(--tone-blue-fg);
@@ -181,4 +201,13 @@
   align-items: center;
   gap: 0.4rem;
   font-weight: 600;
+}
+
+/* a state in a band's corner: on its own pill, so it reads on any tone */
+.card-head .state-chip {
+  padding: 0.05rem 0.6rem;
+  background: var(--color-bg);
+  border-radius: 999px;
+  color: var(--color-text);
+  font-size: 0.8rem;
 }

@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, within } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { Settings } from "./Settings";
@@ -63,6 +63,24 @@ describe("Settings page", () => {
     renderIt();
 
     expect(within(screen.getByRole("region", { name: "Safe mode" })).getByText("Off")).toBeInTheDocument();
+  });
+
+  it("makes the safe mode card green while it is on and amber when it is off", () => {
+    renderIt();
+    expect(screen.getByRole("region", { name: "Safe mode" })).toHaveClass("tone-green");
+    cleanup();
+
+    safeMode.value = { enabled: false };
+    renderIt();
+    expect(screen.getByRole("region", { name: "Safe mode" })).toHaveClass("tone-amber");
+  });
+
+  it("puts the two cards side by side, in one grid across the page", () => {
+    renderIt();
+
+    const grid = document.querySelector(".settings-grid") as HTMLElement;
+    expect(within(grid).getByRole("region", { name: "Appearance and language" })).toBeInTheDocument();
+    expect(within(grid).getByRole("region", { name: "Safe mode" })).toBeInTheDocument();
   });
 
   it("says nothing of it until the server has answered", () => {

@@ -117,12 +117,68 @@ describe("Integrations page", () => {
     expect(tile(/Sender/)).toHaveTextContent("Jan Kowalski, Warszawa");
   });
 
-  it("marks what is set up with a green dot and what is not with a grey one", async () => {
+  it("says in a pill how each stands: connected in green, none in grey, something to fill in in amber", async () => {
+    vi.mocked(shippingApi.settings).mockResolvedValue({ sender: null, default_package: null });
     renderIt();
     await waitFor(() => expect(tile(/InPost/)).toHaveTextContent("Not connected"));
 
-    expect(tile(/Allegro/).querySelector(".status-dot")).toHaveClass("is-ok");
-    expect(tile(/InPost/).querySelector(".status-dot")).not.toHaveClass("is-ok");
+    const pill = (name: RegExp) => tile(name).querySelector(".state-pill") as HTMLElement;
+    await waitFor(() => expect(pill(/Allegro/)).toHaveTextContent("Connected"));
+    expect(pill(/Allegro/)).toHaveClass("is-ok");
+    expect(pill(/InPost/)).toHaveTextContent("None");
+    expect(pill(/InPost/)).toHaveClass("is-none");
+    expect(pill(/Sender/)).toHaveTextContent("Finish setup");
+    expect(pill(/Sender/)).toHaveClass("is-todo");
+  });
+
+  it("calls a sender that is set up set, not connected", async () => {
+    renderIt();
+
+    await waitFor(() => expect(tile(/Sender/)).toHaveTextContent("Jan Kowalski, Warszawa"));
+    expect(tile(/Sender/).querySelector(".state-pill")).toHaveTextContent("Set");
+  });
+
+  it("gives each tile the colour of its channel, and a letter to mark it", () => {
+    renderIt();
+
+    expect(tile(/Allegro/)).toHaveClass("channel-allegro");
+    expect(tile(/Erli/)).toHaveClass("channel-erli");
+    expect(tile(/InPost/)).toHaveClass("channel-inpost");
+    expect(tile(/Sender/)).toHaveClass("channel-sender");
+    expect(tile(/Allegro/).querySelector(".channel-avatar")).toHaveTextContent("A");
+    expect(tile(/Sender/).querySelector(".channel-avatar")).toHaveTextContent("S");
+  });
+
+  it("puts the last import on a second line for the channels that import, and what the others are for", async () => {
+    vi.mocked(integrationsApi.erliStatus).mockResolvedValue({
+      configured: true,
+      source: "settings",
+      key_hint: "lyLu",
+      last_import_at: new Date(Date.now() - 18 * 60_000).toISOString(),
+      last_import_created: 2,
+      last_import_updated: 0,
+      last_import_error: null,
+    });
+    renderIt();
+
+    await waitFor(() => expect(tile(/Erli/)).toHaveTextContent("import 18 minutes ago · 2 new"));
+    expect(tile(/Allegro/)).toHaveTextContent("no import yet");
+    expect(tile(/InPost/)).toHaveTextContent("locker parcels and labels");
+    expect(tile(/Sender/)).toHaveTextContent("address and default parcel");
+  });
+
+  it("tints the panel with the colour of the channel chosen", () => {
+    renderIt("/integrations?integration=erli");
+
+    expect(screen.getByRole("tabpanel")).toHaveClass("tone-erli");
+  });
+
+  it("has the update interval above the tiles", () => {
+    renderIt();
+
+    const strip = screen.getByRole("region", { name: "Automatic updates" });
+    const tiles = screen.getByRole("tablist");
+    expect(strip.compareDocumentPosition(tiles) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 
   it("says an application is saved when there is no seller account yet", async () => {

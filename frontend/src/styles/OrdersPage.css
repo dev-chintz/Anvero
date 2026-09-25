@@ -432,11 +432,11 @@
 }
 
 .orders-table .source-allegro {
-  background: #ff5a00;
+  background: var(--channel-allegro);
 }
 
 .orders-table .source-erli {
-  background: #0ea5e9;
+  background: var(--channel-erli);
 }
 
 /* the first item on one line, and how many more under it */

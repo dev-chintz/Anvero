@@ -1136,6 +1136,26 @@ branch is unverified: only the SQLite path has been run.
 
 **Consequences:** Whether Allegro's pages read the number from the address is not confirmed (allegro.pl answers no automated request, so it could not be tried, and only one search result named the parameter, for One's page); if they do not, the link still lands on the page that asks for the number. Anvero's own status for these parcels comes from Allegro's tracking API and is unaffected.
 
+## 2026-09-25 — Settings and Integrations across the page, with the channels in their own colours
+
+**Decided (owner, 2026-09-25, from mockups: Integrations A, Settings S1; channel colours kept):** the two pages
+were the only ones set in a centred column, apart from the rest of the application, and were plain white. Now:
+
+- **Across the whole width, left-aligned, like every other page.** The 960/1100px centred column is gone.
+- **Integrations:** a blue strip for the update interval (one line: "… every [15] min", Save at the right); then a
+  tile for each integration with a bar across its top in the channel's colour, a lettered mark, a pill for how it
+  stands (Connected green, None grey, Finish setup amber; the sender's is "Set" once it is) and two lines: how it
+  stands, and when it last imported or what it is for. The chosen tile has a border in its colour, and opens its
+  settings in a card below whose band is tinted the same.
+- **The channel colours** are tokens, `--channel-allegro|erli|inpost` (with `-bg` and `-fg` for a band, and
+  values for dark mode) and the tone classes `tone-allegro|erli|inpost|sender` (`theme.css`); Allegro orange,
+  Erli blue, InPost yellow, the sender in the accent colour. The order list's A and E marks use the same tokens.
+  These colours are the brands' own, taken from memory, not checked against their guidelines.
+- **Settings:** the two cards side by side (one column when narrow): appearance and language (blue band) and the
+  safe mode (green band while it is on, amber when it is off, its state in a pill in the band).
+
+Not done: the safe mode is still switched with its button and confirmation, not a slide switch as in the mockup.
+
 ## 2026-09-25 — The to-make list by day, with products ticked off
 
 **Decided (owner, 2026-09-25, from mockups A and B combined, ticks in the database, per product):** the

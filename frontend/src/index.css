@@ -33,6 +33,16 @@
   /* the tones a card's title band or a chip can take (docs/STYLE_GUIDE.md): blue for the
      thing itself, teal for sending it, green and red for money, amber for notes */
   --tone-blue-bg: #e7f0fd;
+  /* the marketplaces and carriers, each in its own colour: a mark, and a tinted band */
+  --channel-allegro: #ff5a00;
+  --channel-allegro-bg: #ffe9dc;
+  --channel-allegro-fg: #8a3200;
+  --channel-erli: #0ea5e9;
+  --channel-erli-bg: #dff2fc;
+  --channel-erli-fg: #0a4a6b;
+  --channel-inpost: #f5c400;
+  --channel-inpost-bg: #fff4c2;
+  --channel-inpost-fg: #6b5500;
   --tone-blue-fg: #1e40af;
   --tone-teal-bg: #d8efee;
   --tone-teal-fg: #0b5559;
@@ -67,6 +77,12 @@
   --color-muted-strong: #d1d5db;
 
   --tone-blue-bg: #1e3a5f;
+  --channel-allegro-bg: #4a2510;
+  --channel-allegro-fg: #ffb98a;
+  --channel-erli-bg: #0f3a52;
+  --channel-erli-fg: #8fd3f5;
+  --channel-inpost-bg: #4a3f0a;
+  --channel-inpost-fg: #ffe27a;
   --tone-blue-fg: #bfdbfe;
   --tone-teal-bg: #0f3d3f;
   --tone-teal-fg: #99e0dc;

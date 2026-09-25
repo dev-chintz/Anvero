@@ -6,6 +6,14 @@ All significant changes to the Anvero project.
 
 ## 2026-09-25
 
+### 🎨 Settings and Integrations across the page, with colour
+
+- Both pages use the whole width, like the rest, instead of a centred column.
+- **Integracje:** the update interval in a blue strip; a tile for each channel with a bar in its colour (Allegro
+  orange, Erli blue, InPost yellow, sender teal), a state pill and the last import; the chosen one opens below with
+  a band in the same colour.
+- **Ustawienia:** the two cards side by side; the safe mode card is green while on, amber when off.
+
 ### ✅ "Do wykonania" by day, with products ticked off
 
 - Products are grouped by the day the orders must go out (past due, today, tomorrow, later days, no deadline), each
