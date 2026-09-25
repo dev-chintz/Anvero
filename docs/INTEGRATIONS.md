@@ -770,6 +770,15 @@ moves, exactly as for Allegro.
   `vendor` become a shipment, its `status` the tracking code.
 - Erli's order has no dispatch deadline, so Erli orders are never "late".
 
+### Parcels and labels
+
+Not built. Erli's API makes parcels for its own delivery methods (`POST
+/shipping/parcels/`, the label link from `POST /shipping/parcels/_search`,
+cancelling with `DELETE /shipping/parcels/{id}`), with the same key as the import.
+Read from its specification on 2026-09-25; the details and the proposed use are in
+`ROADMAP.md`, "Shipping and labels: analysis and proposed plan". Today Erli's labels
+are printed from Erli's panel.
+
 ### Buyer messages
 
 Not built. Erli's published API description (`erli.pl/svc/shop-api/doc/`)
@@ -786,6 +795,14 @@ Built 2026-09-25 from InPost's ShipX documentation and tested on fakes only:
 shipment and print its label, one order or many, without the Manager Paczek. Parcels
 made in the Manager Paczek cannot be listed or printed through ShipX, so the tracking
 numbers that come from there stay as they are; Anvero makes its own.
+
+**Do not use it for Allegro orders before the shipping analysis is settled**
+(`ROADMAP.md`, "Shipping and labels: analysis and proposed plan", 2026-09-25). It
+makes `inpost_locker_standard` shipments with no link to the Allegro transaction, so
+a Smart order's parcel would probably be paid from the InPost account's balance
+instead of being settled by Allegro. Allegro's InPost lockers can go through Wysyłam
+z Allegro instead (the ShipX token entered in Allegro's settings, `sendingAtPoint`),
+and Erli's through Erli's own parcel API.
 
 **Setting it up.** In the Manager Paczek: My account > API, a token and the
 organization number. In Integrations, "Shipping" > InPost: token, organization number,

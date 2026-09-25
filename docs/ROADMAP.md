@@ -326,6 +326,9 @@ In this order (the owner chose queues before any write to Allegro):
    return, replying in a dispute, applying for the commission back), all through
    safe mode.
 5. **Own courier contract** (InPost ShipX first) for exceptions and Erli.
+   Built 2026-09-25, never run. The shipping analysis below (2026-09-25)
+   found it is probably not needed in this form: see "Shipping and labels:
+   analysis and proposed plan".
 
 ### C — Later, when daily use asks for it
 
@@ -420,5 +423,117 @@ specification. Each of these is listed under "Not yet verified" in
 
 - More than one Allegro account? AlleIntegrator handles several; Anvero, one.
 - Will anyone besides the owner log in? Roles and a change log depend on it.
-- Which label printer: an ordinary A4/A6 one, or a thermal one (ZPL)?
+- ~~Which label printer?~~ A thermal Xprinter on the home network, the same
+  network as the NAS (answered 2026-09-25; model and label size still to be
+  given, see the shipping analysis below).
 - Which invoicing program is used or preferred?
+
+## Shipping and labels: analysis and proposed plan (2026-09-25)
+
+A reconnaissance, not a decision: nothing below is built, and the owner will
+refine it later. It records how the business ships today, what the
+marketplaces' APIs offer, and the order of work proposed from that.
+
+### How the business ships (the owner's answers, 2026-09-25)
+
+- **Allegro, InPost:** parcel lockers only, handled today in InPost's Manager
+  Paczek. Smart orders cost nothing; parcels without Smart are paid from the
+  InPost account's prepaid balance.
+- **Allegro, other carriers:** through Wysyłam z Allegro (One, ORLEN, DPD,
+  DHL). Of the 45 parcels in the database on 2026-09-25: 30 InPost, 10 Allegro
+  Delivery, 5 One.
+- **Erli:** Erli's standard delivery methods; the label is printed from Erli's
+  panel.
+- **Printer:** a thermal Xprinter on the home network, the same one as the NAS.
+  Anvero runs on the NAS, so it should print straight to the printer, with no
+  print dialog.
+- **Parcel size:** by default everything fits InPost size A (8 × 38 × 64 cm).
+- **No courier comes:** parcels are taken to lockers and pickup points. Courier
+  pickups and handover protocols are not needed.
+
+### What the APIs offer
+
+- **Wysyłam z Allegro covers InPost too.** With a ShipX token from the Manager
+  Paczek entered in Allegro's Wysyłam z Allegro settings ("Integracja z
+  InPost"), `POST /shipment-management/shipments/create-commands` makes InPost
+  locker parcels, with `additionalServices: ["sendingAtPoint"]` for dropping
+  them at a locker. Allegro then settles Smart as it does for the Manager
+  Paczek. Labels come as `PDF` (A4 or A6) or `ZPL`. `POST
+  /shipment-management/protocol` gives a handover document, not needed here.
+  `GET /shipment-management/delivery-services` is deprecated in favour of
+  `GET /shipment-management/delivery-proposals/{orderId}`.
+- **The direct ShipX path built on 2026-09-25 is a cost risk for Allegro
+  orders.** It makes `inpost_locker_standard` shipments on the seller's own
+  InPost account with no link to the Allegro transaction, so a Smart order's
+  parcel would probably be paid from the prepaid balance. Safe mode has held it
+  back, so nothing has been made. It also takes Erli's InPost orders, which
+  Erli can ship itself (below).
+- **Erli has its own parcel API** (the same API key as the import, specification
+  at `erli.pl/svc/shop-api/doc/swagger.json`): `POST /shipping/parcels/` makes
+  up to 100 parcels at once (`orderId`, `dimensions` in mm and grams,
+  `shipping.typeId` such as `erliPaczkomat`, `erliOrlenPaczkaS`,
+  `erliDPDPickup5kg`, `erliDHLPunktyOdbioru5kg`, Pocztex; the receiver is taken
+  from the order when not given; `postingPointId` defaults to the method's
+  default posting point). The label is not in the answer: `POST
+  /shipping/parcels/_search` by order number returns the parcel with
+  `shipping.waybills[]`, links to the label (format not stated), and
+  `waybillExpiration`. `DELETE /shipping/parcels/{id}` cancels. `erliPro` marks
+  a parcel with Erli Pro free delivery. Erli fills in the tracking number
+  itself; the seller does not send one. `GET /shipping/postingPoints` lists the
+  posting points.
+- **Xprinter:** its label models print TSPL natively and emulate ZPL (and EPL,
+  DPL), and a networked one normally takes raw data on port 9100.
+
+### Proposed way of working
+
+1. The Labels page lists orders ready to ship in two groups: **Allegro** (InPost,
+   One, ORLEN, DPD, DHL, all through Wysyłam z Allegro) and **Erli** (through
+   Erli's parcel API).
+2. The default parcel is InPost size A with a weight from Settings, changeable
+   on the order.
+3. "Create and print selected": Anvero makes the shipments, waits for their
+   numbers, and sends the labels to the Xprinter in the order of the list.
+4. The tracking number lands on the order (Allegro's shipment is linked to the
+   order; Erli fills its own in). Whether the order becomes "shipped" at
+   printing or by hand is the owner's choice.
+5. Parcels are dropped at lockers or points: courier pickup and protocols are
+   hidden in the interface.
+6. Each label can be printed again or cancelled.
+
+**Printing:** the backend on the NAS sends the label to `printer-IP:9100`. The
+dependable route for every source (Erli's labels are probably PDF only) is PDF
+→ an image at 203 dpi → TSPL `BITMAP` → port 9100, with one Python library
+(`pypdfium2`, wheels with no system packages, so it fits the Docker image).
+For Allegro, `labelFormat: ZPL` passed straight through is the alternative if
+the printer's ZPL emulation prints it right. A "Printer" section in Settings:
+address, port, label size, language, and a test print using the existing
+sample label (`GET /labels/test-pdf`).
+
+### Proposed order of work
+
+| Stage | What | Why |
+| --- | --- | --- |
+| 0 | Try Wysyłam z Allegro on the Sandbox: one InPost parcel with `sendingAtPoint`, one One or ORLEN; the `shipments` scopes; how Smart and non-Smart InPost parcels are billed | Everything else rests on it |
+| 1 | Network printing to the Xprinter, with a test print | Costs nothing, proves the printer first |
+| 2 | Wysyłam z Allegro: InPost dropped at a point, size A by default, automatic printing, "create and print" in bulk | Most of the parcels |
+| 3 | Erli parcels through `/shipping/parcels` | The second channel |
+| 4 | Switch the direct ShipX path off for Allegro orders (or remove it) and correct `INTEGRATIONS.md` | Not paying for Smart parcels |
+| 5 | Conveniences: status after printing, several parcels per order, perhaps labels made automatically | Later |
+
+### Still to be answered
+
+- The Xprinter's exact model and the label size (usually 100 × 150 mm).
+- Is the ShipX token already entered in the account's Wysyłam z Allegro
+  settings, or does InPost go only through the Manager Paczek's own Allegro
+  integration?
+- Through Wysyłam z Allegro, is a non-Smart InPost parcel taken from the InPost
+  balance or invoiced by Allegro?
+- Does the Erli shop have Erli Pro?
+- Should printing a label set the order to "shipped", or only a click?
+- Which Erli posting point is the default, and in what format Erli's label
+  links answer.
+
+Sources: Allegro's Wysyłam z Allegro tutorial on `developer.allegro.pl`;
+`allegro/allegro-api` issues #10157 (ShipX token in Wysyłam z Allegro) and #599
+(InPost transaction id); Erli's `swagger.json` read on 2026-09-25; Xprinter's
+product pages (XP-420B).

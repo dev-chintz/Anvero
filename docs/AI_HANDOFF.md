@@ -85,6 +85,11 @@ the owner needs, at the NAS: access for it to pull the images (public packages
 or a `read:packages` token), the LAN address and password for `DATABASE_URL`,
 and a new `SECRET_KEY`. Only that one backend may run the scheduled import.
 
+**Shipping (2026-09-25):** a reconnaissance of labels and printing, with the
+owner's answers on how they ship and a proposed order of work, is in
+`ROADMAP.md`, "Shipping and labels: analysis and proposed plan". The owner will
+refine it before anything is built; its open questions come first.
+
 1. See "Next Milestone" in PROJECT_STATUS.md for the agreed order: the SQL
    logging fix is done; next is the Allegro Sandbox, then production.
    `scripts/authorize_allegro.py` for the one-time authorization exists; the

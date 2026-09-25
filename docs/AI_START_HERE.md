@@ -47,6 +47,8 @@ Allegro's published specification and never run against a real account).
 
 **InPost (2026-09-25):** parcel locker shipments and their labels can be made through InPost's ShipX API, in bulk from the Labels page and on the order (`INTEGRATIONS.md`, "InPost"); built from the documentation, never run against InPost, and waiting for the owner's sandbox token and organization number, which they enter in Integrations.
 
+**Shipping analysis (2026-09-25):** how the business ships and a proposed plan for labels (Allegro's InPost through Wysyłam z Allegro, Erli's own parcel API, printing from the NAS straight to the networked Xprinter) are in `ROADMAP.md`, "Shipping and labels: analysis and proposed plan". Not decided and not built; the owner will refine it. It found that the direct InPost path above would probably pay for Smart parcels from the InPost balance, so it should not be used for Allegro orders.
+
 **Open task:** the first deployment to the NAS is prepared but not yet run; see "PICK UP HERE" in `PROJECT_STATUS.md` and `DEPLOYMENT.md`.
 
 Backend and frontend both run. See PROJECT_STATUS.md for the sprint-by-sprint
