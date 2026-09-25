@@ -5,9 +5,18 @@ many", with each product's orders beside it so a finished piece can go to the
 most urgent one.
 """
 
+from datetime import UTC, datetime, timedelta
+
+from sqlalchemy import delete, select
+from sqlalchemy.orm import Session
+
 from app.core.order_number import format_order_number
 from app.models.order import Order, OrderItem
+from app.models.production_check import ProductionCheck
 from app.schemas.order import ProductionLine, ProductionList, ProductionOrder
+
+# a tick nobody touched for this long is dropped: the product is long gone from the list
+CHECK_KEEP = timedelta(days=90)
 
 
 def product_key(item: OrderItem) -> str:
@@ -64,3 +73,44 @@ def build_production_list(orders: list[Order]) -> ProductionList:
                 )
             )
     return ProductionList(lines=list(lines.values()), order_count=len(orders))
+
+
+def mark_done(db: Session, production: ProductionList) -> ProductionList:
+    """Say which lines of `production` have been made.
+
+    A line is made when it was ticked for at least as many as it asks for now;
+    an order that came in after the tick, and raised the number, brings it back.
+    """
+    if not production.lines:
+        return production
+    ticked = {
+        check.key: check.quantity for check in db.scalars(select(ProductionCheck)).all()
+    }
+    for line in production.lines:
+        line.done = ticked.get(line.key, 0) >= line.quantity
+    return production
+
+
+def set_check(
+    db: Session, key: str, quantity: int, done: bool, user_id: int | None
+) -> ProductionCheck | None:
+    """Tick `key` off for `quantity`, or take the tick away; returns the tick, or
+    None once it is taken away."""
+    # a tick that nobody has touched for months is for a product that has left the list
+    db.execute(
+        delete(ProductionCheck).where(ProductionCheck.checked_at < datetime.now(UTC) - CHECK_KEEP)
+    )
+    check = db.get(ProductionCheck, key)
+    if not done:
+        if check is not None:
+            db.delete(check)
+        db.commit()
+        return None
+    if check is None:
+        check = ProductionCheck(key=key)
+        db.add(check)
+    check.quantity = quantity
+    check.checked_by_user_id = user_id
+    check.checked_at = datetime.now(UTC)
+    db.commit()
+    return check

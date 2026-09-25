@@ -1,11 +1,11 @@
-import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { MemoryRouter, useLocation } from "react-router-dom";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { OrderSource, OrderStatus, type ProductionList } from "../types/order";
 
 vi.mock("../api/client", async () => {
   const actual = await vi.importActual<typeof import("../api/client")>("../api/client");
-  return { ...actual, ordersApi: { production: vi.fn() } };
+  return { ...actual, ordersApi: { production: vi.fn(), setProductionDone: vi.fn() } };
 });
 
 const { ordersApi } = await import("../api/client");
@@ -22,6 +22,7 @@ const LIST: ProductionList = {
       image_url: null,
       quantity: 3,
       dispatch_by: "2020-01-01T10:00:00Z",
+      done: false,
       orders: [
         {
           id: "order-1",
@@ -49,6 +50,7 @@ const LIST: ProductionList = {
       image_url: null,
       quantity: 1,
       dispatch_by: null,
+      done: false,
       orders: [
         {
           id: "order-2",
@@ -77,36 +79,45 @@ function renderPage(path = "/production") {
   );
 }
 
-afterEach(() => vi.clearAllMocks());
+// the rows of products (each group's table has a hidden row of column heads besides)
+const productRows = async () => (await screen.findAllByRole("row")).filter((row) => within(row).queryByRole("checkbox"));
+
+afterEach(() => {
+  vi.clearAllMocks();
+  localStorage.clear();
+});
 
 describe("the to-make list", () => {
   it("shows each product with how many to make, in the order given", async () => {
     vi.mocked(ordersApi.production).mockResolvedValue(LIST);
     renderPage();
 
-    const rows = (await screen.findAllByRole("row")).slice(1);
-    expect(rows.map((row) => within(row).getAllByRole("cell")[1].textContent)).toEqual(["3", "1"]);
+    const rows = await productRows();
+    expect(rows.map((row) => within(row).getAllByRole("cell")[2].textContent)).toEqual(["3", "1"]);
     expect(within(rows[0]).getByText("Mug")).toBeInTheDocument();
     expect(within(rows[0]).getByText("MUG")).toBeInTheDocument();
-    expect(screen.getByText("2 products · 4 pieces · for 2 orders")).toBeInTheDocument();
+  });
+
+  it("says how much is made, of what there is, and for how many orders", async () => {
+    vi.mocked(ordersApi.production).mockResolvedValue(LIST);
+    renderPage();
+    await productRows();
+
+    expect(screen.getByText("Products made").previousElementSibling).toHaveTextContent("0 / 2");
+    expect(screen.getByText("Pieces made").previousElementSibling).toHaveTextContent("0 / 4");
+    expect(document.querySelector(".production-metrics > div:last-child b")).toHaveTextContent("2");
+    expect(screen.getByRole("progressbar")).toHaveAttribute("aria-valuenow", "0");
+    expect(screen.getByRole("progressbar")).toHaveAttribute("aria-valuemax", "4");
   });
 
   it("links each order to its details, closing back to this list", async () => {
     vi.mocked(ordersApi.production).mockResolvedValue(LIST);
     renderPage();
 
-    const rows = (await screen.findAllByRole("row")).slice(1);
+    const rows = await productRows();
     const link = within(rows[0]).getByRole("link", { name: "AN-000002" });
     expect(link).toHaveAttribute("href", "/orders/order-2");
     expect(within(rows[0]).getByText("×2")).toBeInTheDocument();
-  });
-
-  it("marks a line whose deadline has passed", async () => {
-    vi.mocked(ordersApi.production).mockResolvedValue(LIST);
-    renderPage();
-
-    const rows = (await screen.findAllByRole("row")).slice(1);
-    expect(within(rows[0]).getByText(/2020/)).toHaveClass("dispatch-late");
   });
 
   it("says so when there is nothing to make", async () => {
@@ -114,6 +125,126 @@ describe("the to-make list", () => {
     renderPage();
 
     expect(await screen.findByText(/Nothing to make/)).toBeInTheDocument();
+  });
+});
+
+describe("the days the orders must go out", () => {
+  it("puts what is past due in a group of its own, red, with when it was due, and what has no deadline last", async () => {
+    vi.mocked(ordersApi.production).mockResolvedValue(LIST);
+    renderPage();
+
+    const late = await screen.findByRole("region", { name: "Overdue" });
+    expect(late).toHaveClass("tone-red");
+    expect(within(late).getByText("Mug")).toBeInTheDocument();
+    expect(within(late).getByText(/was due/)).toHaveClass("dispatch-late");
+    const none = screen.getByRole("region", { name: "No deadline" });
+    expect(within(none).getByText("Spoon")).toBeInTheDocument();
+    const regions = screen.getAllByRole("region").map((region) => region.getAttribute("aria-label"));
+    expect(regions.indexOf("Overdue")).toBeLessThan(regions.indexOf("No deadline"));
+  });
+
+  it("names today and tomorrow, and shows each group how much of it is made", async () => {
+    const soon = new Date();
+    soon.setHours(23, 59, 0, 0);
+    const later = new Date(soon);
+    later.setDate(later.getDate() + 1);
+    vi.mocked(ordersApi.production).mockResolvedValue({
+      order_count: 1,
+      lines: [
+        { ...LIST.lines[0], key: "a", name: "Today's", dispatch_by: soon.toISOString(), done: true },
+        { ...LIST.lines[0], key: "b", name: "Tomorrow's", dispatch_by: later.toISOString(), quantity: 5 },
+      ],
+    });
+    renderPage();
+
+    const today = await screen.findByRole("region", { name: /^Today, / });
+    expect(today).toHaveClass("tone-green");
+    expect(within(today).getByText(/all made · 1\/1 made · 3\/3 pcs/)).toBeInTheDocument();
+    const tomorrow = screen.getByRole("region", { name: /^Tomorrow, / });
+    expect(tomorrow).toHaveClass("tone-blue");
+    expect(within(tomorrow).getByText("0/1 made · 0/5 pcs")).toBeInTheDocument();
+  });
+});
+
+describe("ticking products off", () => {
+  it("ticks a product off at once and tells the server how many were asked for", async () => {
+    vi.mocked(ordersApi.production).mockResolvedValue(LIST);
+    vi.mocked(ordersApi.setProductionDone).mockResolvedValue({ key: "sku:MUG", done: true, quantity: 3 });
+    renderPage();
+    const [mug] = await productRows();
+
+    fireEvent.click(within(mug).getByRole("checkbox", { name: "Mark as made: Mug" }));
+
+    expect(ordersApi.setProductionDone).toHaveBeenCalledWith("sku:MUG", 3, true);
+    expect(within(mug).getByRole("checkbox")).toBeChecked();
+    expect(mug).toHaveClass("is-done");
+    expect(screen.getByText("Pieces made").previousElementSibling).toHaveTextContent("3 / 4");
+    expect(screen.getByText(/all made · 1\/1 made · 3\/3 pcs/)).toBeInTheDocument();
+  });
+
+  it("takes the tick away again", async () => {
+    vi.mocked(ordersApi.production).mockResolvedValue({
+      ...LIST,
+      lines: [{ ...LIST.lines[0], done: true }, LIST.lines[1]],
+    });
+    vi.mocked(ordersApi.setProductionDone).mockResolvedValue({ key: "sku:MUG", done: false, quantity: 3 });
+    renderPage();
+    const [mug] = await productRows();
+    expect(within(mug).getByRole("checkbox")).toBeChecked();
+
+    fireEvent.click(within(mug).getByRole("checkbox"));
+
+    expect(ordersApi.setProductionDone).toHaveBeenCalledWith("sku:MUG", 3, false);
+    expect(within(mug).getByRole("checkbox")).not.toBeChecked();
+  });
+
+  it("ticks with a click anywhere on the row, but not on a link", async () => {
+    vi.mocked(ordersApi.production).mockResolvedValue(LIST);
+    vi.mocked(ordersApi.setProductionDone).mockResolvedValue({ key: "sku:MUG", done: true, quantity: 3 });
+    renderPage();
+    const [mug] = await productRows();
+
+    fireEvent.click(within(mug).getByRole("link", { name: "AN-000001" }));
+    expect(ordersApi.setProductionDone).not.toHaveBeenCalled();
+
+    fireEvent.click(within(mug).getByText("Mug"));
+    expect(ordersApi.setProductionDone).toHaveBeenCalledTimes(1);
+  });
+
+  it("undoes the tick and says so when it could not be saved", async () => {
+    vi.mocked(ordersApi.production).mockResolvedValue(LIST);
+    vi.mocked(ordersApi.setProductionDone).mockRejectedValue(new Error("down"));
+    renderPage();
+    const [mug] = await productRows();
+
+    fireEvent.click(within(mug).getByRole("checkbox"));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("Could not save the tick");
+    await waitFor(() => expect(within(mug).getByRole("checkbox")).not.toBeChecked());
+  });
+
+  it("hides what is made when asked, and remembers the choice", async () => {
+    vi.mocked(ordersApi.production).mockResolvedValue({
+      ...LIST,
+      lines: [{ ...LIST.lines[0], done: true }, LIST.lines[1]],
+    });
+    const { unmount } = renderPage();
+    await productRows();
+    expect(screen.getByText("Mug")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("checkbox", { name: "Hide made" }));
+
+    expect(screen.queryByText("Mug")).not.toBeInTheDocument();
+    expect(screen.getByText("Spoon")).toBeInTheDocument();
+    // the group still says it is done
+    expect(screen.getByRole("region", { name: "Overdue" })).toHaveTextContent("all made");
+
+    unmount();
+    renderPage();
+    await screen.findByText("Spoon");
+    expect(screen.queryByText("Mug")).not.toBeInTheDocument();
+    expect(screen.getByRole("checkbox", { name: "Hide made" })).toBeChecked();
+    await act(async () => undefined);
   });
 });
 
@@ -220,7 +351,7 @@ describe("narrowing the to-make list", () => {
   it("closes an order opened from here back to the list as it was narrowed", async () => {
     vi.mocked(ordersApi.production).mockResolvedValue(LIST);
     renderPage("/production?status=CONFIRMED&search=ola");
-    const rows = (await screen.findAllByRole("row")).slice(1);
+    const rows = await productRows();
 
     fireEvent.click(within(rows[0]).getByRole("link", { name: "AN-000002" }));
 

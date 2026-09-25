@@ -1620,3 +1620,126 @@ def test_a_deleted_order_can_still_be_noted():
 
     assert response.status_code == 200
     assert response.json()["internal_note"] == "why it went"
+
+
+# --- ticking products off the to-make list -----------------------------------
+
+
+def _tick(key, quantity, done=True):
+    return client.put(
+        "/api/v1/orders/production/checks", json={"key": key, "quantity": quantity, "done": done}
+    )
+
+
+def _made_line(prefix):
+    (line,) = _production_lines(prefix)
+    return line
+
+
+def test_a_product_on_the_list_is_not_made_until_it_is_ticked_off():
+    _to_make(
+        "tick-1",
+        [{"name": "TICK Mug", "sku": "TICK-MUG", "quantity": 2, "unit_price": "1.00"}],
+    )
+
+    assert _made_line("TICK ")["done"] is False
+
+
+def test_ticking_a_product_off_shows_on_the_list_and_can_be_undone():
+    _to_make(
+        "tick-2",
+        [{"name": "TICK2 Plate", "sku": "TICK2-PLATE", "quantity": 2, "unit_price": "1.00"}],
+    )
+
+    ticked = _tick("sku:TICK2-PLATE", 2)
+
+    assert ticked.status_code == 200
+    assert ticked.json() == {"key": "sku:TICK2-PLATE", "done": True, "quantity": 2}
+    assert _made_line("TICK2 ")["done"] is True
+
+    untick = _tick("sku:TICK2-PLATE", 2, done=False)
+
+    assert untick.json()["done"] is False
+    assert _made_line("TICK2 ")["done"] is False
+
+
+def test_an_order_that_raises_the_number_after_the_tick_brings_the_product_back():
+    item = {"name": "TICK3 Cup", "sku": "TICK3-CUP", "quantity": 2, "unit_price": "1.00"}
+    _to_make("tick-3a", [item])
+    _tick("sku:TICK3-CUP", 2)
+    assert _made_line("TICK3 ")["done"] is True
+
+    _to_make("tick-3b", [{**item, "quantity": 1}])
+
+    line = _made_line("TICK3 ")
+    assert line["quantity"] == 3
+    assert line["done"] is False
+
+
+def test_a_tick_for_more_than_the_list_asks_still_counts():
+    _to_make(
+        "tick-4",
+        [{"name": "TICK4 Bowl", "sku": "TICK4-BOWL", "quantity": 1, "unit_price": "1.00"}],
+    )
+
+    _tick("sku:TICK4-BOWL", 5)
+
+    assert _made_line("TICK4 ")["done"] is True
+
+
+def test_ticking_twice_keeps_one_tick_at_the_latest_quantity():
+    _to_make(
+        "tick-5",
+        [{"name": "TICK5 Vase", "sku": "TICK5-VASE", "quantity": 4, "unit_price": "1.00"}],
+    )
+    _tick("sku:TICK5-VASE", 2)
+
+    again = _tick("sku:TICK5-VASE", 4)
+
+    assert again.json()["quantity"] == 4
+    assert _made_line("TICK5 ")["done"] is True
+
+
+def test_taking_away_a_tick_that_was_never_made_is_not_an_error():
+    assert _tick("sku:NEVER-TICKED", 1, done=False).status_code == 200
+
+
+def test_a_tick_needs_a_key_and_a_positive_quantity():
+    assert _tick("", 1).status_code == 422
+    assert _tick("sku:X", 0).status_code == 422
+    assert _tick("sku:" + "x" * 600, 1).status_code == 422
+    assert (
+        client.put("/api/v1/orders/production/checks", json={"key": "sku:X", "quantity": 1}).status_code
+        == 422
+    )
+
+
+def test_ticks_can_be_made_only_when_logged_in():
+    response = anonymous.put(
+        "/api/v1/orders/production/checks", json={"key": "sku:X", "quantity": 1, "done": True}
+    )
+
+    assert response.status_code == 401
+
+
+def test_a_tick_nobody_has_touched_for_months_is_dropped_the_next_time_one_is_made():
+    from app.models.production_check import ProductionCheck
+
+    db = TestingSessionLocal()
+    try:
+        db.add(
+            ProductionCheck(
+                key="sku:LONG-GONE", quantity=1, checked_at=datetime.now(UTC) - timedelta(days=120)
+            )
+        )
+        db.commit()
+    finally:
+        db.close()
+
+    _tick("sku:ANYTHING-ELSE", 1)
+
+    db = TestingSessionLocal()
+    try:
+        assert db.get(ProductionCheck, "sku:LONG-GONE") is None
+    finally:
+        db.close()

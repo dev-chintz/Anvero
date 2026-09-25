@@ -1,3 +1,6 @@
+/* The to-make list: figures and a bar for how much is made, then a card for each day the orders must go
+   out, its products ticked off as they are made (ProductionPage.tsx). */
+
 .production-page .print-button {
   padding: 0.5rem 1rem;
   border: 1px solid var(--color-accent);
@@ -9,111 +12,26 @@
 }
 
 .production-body {
-  padding: 1.5rem 2rem 2rem;
+  padding: 1rem 2rem 2rem;
 }
 
-.production-summary {
-  margin: 0 0 1rem;
-  color: var(--color-muted-strong);
-}
-
-.production-table {
-  width: 100%;
-  border-collapse: collapse;
-}
-
-.production-table th,
-.production-table td {
-  padding: 0.75rem;
-  border-bottom: 1px solid var(--color-divider);
-  text-align: left;
-  vertical-align: top;
-}
-
-
-.production-table .col-quantity {
-  text-align: right;
-  width: 5rem;
-}
-
-.production-quantity {
-  font-size: 1.4rem;
-  font-weight: 700;
-}
-
-.production-product {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-}
-
-.production-thumb {
-  width: 48px;
-  height: 48px;
-  flex-shrink: 0;
-  border-radius: var(--radius-md);
-  background: var(--color-divider);
-  object-fit: cover;
-}
-
-.production-name {
-  font-weight: 600;
-}
-
-.production-sku {
-  font-size: 0.8rem;
-  color: var(--color-muted);
-  font-family: monospace;
-}
-
-.production-orders {
-  margin: 0;
-  padding: 0;
-  list-style: none;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.25rem 0.75rem;
-}
-
-.production-order-quantity {
-  color: var(--color-muted);
-}
-
-@media (max-width: 768px) {
-  .production-body {
-    padding: 1rem;
-  }
-}
-
-/* on paper: just the list, with nothing to click */
-@media print {
-  .sidebar,
-  .production-page .print-button {
-    display: none !important;
-  }
-
-  .production-page .page-header {
-    background: none;
-    padding: 0 0 1rem;
-  }
-
-  .production-body {
-    padding: 0;
-  }
-
-  .production-table tr {
-    break-inside: avoid;
-  }
-}
-
-/* Narrowing the list to a status or to some orders (ProductionPage.tsx) */
+/* ---- Narrowing the list to a status or to some orders, and hiding what is made ---- */
 .production-filters {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  justify-content: space-between;
-  gap: 0.75rem;
+  gap: 0.75rem 1rem;
   margin-bottom: 1rem;
+}
+
+.production-hide {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-left: auto;
+  color: var(--color-muted-strong);
+  font-size: 0.85rem;
+  cursor: pointer;
 }
 
 .production-search {
@@ -141,8 +59,249 @@
   padding: 0.25rem 0.4rem;
 }
 
+/* ---- How much is made ---- */
+.production-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.production-metrics > div {
+  padding: 0.6rem 0.9rem;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+}
+
+.production-metrics b {
+  display: block;
+  color: var(--color-heading);
+  font-size: 1.3rem;
+  font-weight: 700;
+}
+
+.production-metrics span {
+  color: var(--color-muted-strong);
+  font-size: 0.8rem;
+}
+
+.production-progress {
+  height: 6px;
+  margin-bottom: 1.25rem;
+  overflow: hidden;
+  background: var(--color-divider);
+  border-radius: 3px;
+}
+
+.production-progress i {
+  display: block;
+  height: 100%;
+  background: var(--color-accent);
+  transition: width 0.2s;
+}
+
+/* ---- A card for each day ---- */
+.production-group.card {
+  margin-bottom: 1rem;
+  padding: 0;
+}
+
+.production-group.card > .card-head {
+  margin: 0;
+  padding: 0.55rem 1rem;
+}
+
+.production-group-progress {
+  font-size: 0.8rem;
+  font-weight: 400;
+}
+
+.production-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.production-table th,
+.production-table td {
+  padding: 0.45rem 0.75rem;
+  border-bottom: 1px solid var(--color-divider);
+  text-align: left;
+  vertical-align: middle;
+  white-space: normal;
+}
+
+.production-table tbody tr:last-child > td {
+  border-bottom: none;
+}
+
+.production-table tbody tr {
+  cursor: pointer;
+}
+
+.production-table tbody tr:hover {
+  background: var(--color-surface-alt);
+}
+
+.production-table .col-check {
+  width: 2rem;
+  padding-right: 0;
+  text-align: center;
+}
+
+.production-table .col-quantity {
+  width: 4.5rem;
+  text-align: right;
+}
+
+.production-quantity {
+  display: inline-block;
+  min-width: 2.2rem;
+  padding: 0.1rem 0.5rem;
+  background: var(--tone-blue-bg);
+  border-radius: 8px;
+  color: var(--tone-blue-fg);
+  font-size: 1.05rem;
+  font-weight: 700;
+  text-align: center;
+}
+
+.production-product {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.production-thumb {
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+  border-radius: var(--radius-md);
+  background: var(--color-divider);
+  object-fit: cover;
+}
+
+.production-text {
+  min-width: 0;
+}
+
+.production-name {
+  font-weight: 600;
+}
+
+.production-sku {
+  font-size: 0.75rem;
+  color: var(--color-muted);
+  font-family: monospace;
+}
+
+.production-orders {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 0.5rem;
+}
+
+.production-orders li {
+  padding: 0 0.45rem;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  font-size: 0.8rem;
+}
+
+.production-order-quantity {
+  color: var(--color-muted);
+}
+
+/* a product that is made: struck through and quiet, its tick filled */
+.production-table tr.is-done .production-name {
+  color: var(--color-muted);
+  text-decoration: line-through;
+}
+
+.production-table tr.is-done .production-thumb {
+  opacity: 0.5;
+}
+
+.production-table tr.is-done .production-quantity {
+  background: var(--color-divider);
+  color: var(--color-muted);
+}
+
+@media (max-width: 768px) {
+  .production-body {
+    padding: 1rem;
+  }
+
+  .production-metrics {
+    gap: 0.5rem;
+  }
+
+  .production-metrics > div {
+    padding: 0.5rem 0.6rem;
+  }
+
+  .production-metrics b {
+    font-size: 1.05rem;
+  }
+
+  /* a row is a small grid: the tick, the product, the number, and the orders under the product */
+  .production-table,
+  .production-table tbody {
+    display: block;
+  }
+
+  .production-table tr {
+    display: grid;
+    grid-template-columns: 2rem minmax(0, 1fr) auto;
+    align-items: center;
+    padding: 0.4rem 0.5rem;
+    border-bottom: 1px solid var(--color-divider);
+  }
+
+  .production-table tbody tr:last-child {
+    border-bottom: none;
+  }
+
+  .production-table td,
+  .production-table tbody tr:last-child > td {
+    padding: 0.2rem 0.25rem;
+    border: none;
+  }
+
+  .production-table td:nth-child(4) {
+    grid-column: 2 / -1;
+  }
+}
+
+/* on paper: just the list, with nothing to click; the boxes print, ticked or empty, to tick with a pen */
 @media print {
+  .sidebar,
+  .production-page .print-button,
   .production-filters {
+    display: none !important;
+  }
+
+  .production-page .page-header {
+    background: none;
+    padding: 0 0 1rem;
+  }
+
+  .production-body {
+    padding: 0;
+  }
+
+  .production-progress {
     display: none;
+  }
+
+  .production-group {
+    break-inside: avoid-page;
+  }
+
+  .production-table tr {
+    break-inside: avoid;
   }
 }

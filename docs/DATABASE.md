@@ -253,6 +253,14 @@ as text), `carrier_id`, `ready_date` (a date), `proposal_id` and
 Its parcels are the `shipping_labels` pointing at it; a refused pickup lets
 go of them.
 
+`production_checks` (added by `c7a1e4d9b258`) holds the products on the to-make
+list that have been made: `key` (the product's key on the list, `sku:...`,
+`offer:...` or `name:...`; the primary key), `quantity` (how many the list asked for
+when it was ticked), `checked_at` (indexed; ticks older than 90 days are deleted when
+another is made) and `checked_by_user_id` (`SET NULL` when the account goes). A product
+counts as made while the list asks for no more than `quantity`. It is by product, not
+by order, because the list is.
+
 `app_settings` also holds `shipping_sender` and `shipping_default_package`,
 each a JSON object (`API.md`, "Labels through Wysyłam z Allegro").
 

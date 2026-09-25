@@ -14,7 +14,8 @@ are days in the business timezone, `BUSINESS_TIMEZONE`, default
 | `GET` | `/api/v1/health` | service status |
 | `GET` | `/api/v1/orders` | order list with filters |
 | `GET` | `/api/v1/orders/stats` | aggregate figures for the dashboard |
-| `GET` | `/api/v1/orders/production` | the to-make queue by product: what to make and how many |
+| `GET` | `/api/v1/orders/production` | the to-make queue by product: what to make and how many, and which are made |
+| `PUT` | `/api/v1/orders/production/checks` | tick a product on that list off as made, or take the tick away |
 | `GET` | `/api/v1/orders/{id}` | one order with its details: items, buyer, delivery, payment, invoice |
 | `DELETE` | `/api/v1/orders/{id}` | take the order out of every list; it is kept, and an import leaves it alone |
 | `POST` | `/api/v1/orders/{id}/restore` | put a deleted order back |
@@ -578,7 +579,7 @@ order is never in the list.
   "lines": [
     {
       "key": "sku:MUG-350", "sku": "MUG-350", "offer_id": "123", "name": "Mug",
-      "image_url": null, "quantity": 3, "dispatch_by": "...Z",
+      "image_url": null, "quantity": 3, "dispatch_by": "...Z", "done": false,
       "orders": [
         {"id": "...", "order_label": "AN-000012", "source": "ALLEGRO", "status": "NEW", "quantity": 1, "dispatch_by": "...Z"},
         {"id": "...", "order_label": "AN-000015", "source": "ERLI", "status": "CONFIRMED", "quantity": 2, "dispatch_by": null}
@@ -596,6 +597,26 @@ counted. Lines come in the order their product is first needed: `dispatch_by`
 is the earliest among the line's orders, lines without any deadline come last,
 oldest order first; each line's `orders` are in the same order. `order_count`
 counts the queue's orders, including any without items.
+
+`done` says the line is made: it was ticked off (below) for at least as many as it
+asks for now, so an order that arrives later and raises `quantity` brings it back.
+
+## `PUT /api/v1/orders/production/checks`
+
+Tick a product on the to-make list off as made, or take the tick away. Kept in the
+database, so it shows on every computer and to everyone.
+
+```json
+{"key": "sku:MUG-350", "quantity": 3, "done": true}
+```
+
+`key` is a line's `key` (1 to 512 characters), `quantity` is how many the list asks
+for as it stands on the screen (at least 1), `done` false takes the tick away (also
+when there was none). Answers `{"key": "sku:MUG-350", "done": true, "quantity": 3}`.
+`422` for an empty or longer key, or a quantity under 1. A tick nobody has touched
+for 90 days is dropped whenever another is made. A product ticked in a narrowed view
+(a status or a search) is ticked for that view's quantity only, so the whole list may
+still show it as not made.
 
 ## Safe mode: `GET` and `PUT /api/v1/settings/safe-mode`
 

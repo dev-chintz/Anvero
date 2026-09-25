@@ -85,6 +85,15 @@ export function formatDateTime(value: string | number | Date): string {
   return toDate(value).toLocaleString(locales[current]);
 }
 
+/** A day without its year ("25.09"), with the weekday before it when asked ("Sat, 26.09"). */
+export function formatDayShort(value: string | number | Date, withWeekday = false): string {
+  return toDate(value).toLocaleDateString(locales[current], {
+    ...(withWeekday ? { weekday: "short" as const } : {}),
+    day: "2-digit",
+    month: "2-digit",
+  });
+}
+
 /** A date and time without the year and the seconds ("25.09, 12:14"), for a crowded list. */
 export function formatShortDateTime(value: string | number | Date): string {
   return toDate(value).toLocaleString(locales[current], {
@@ -149,6 +158,7 @@ export function useTranslation() {
     formatDate,
     formatDateTime,
     formatShortDateTime,
+    formatDayShort,
     formatRelative,
     formatNumber,
     formatMoney,

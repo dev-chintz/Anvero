@@ -6,6 +6,14 @@ All significant changes to the Anvero project.
 
 ## 2026-09-25
 
+### ✅ "Do wykonania" by day, with products ticked off
+
+- Products are grouped by the day the orders must go out (past due, today, tomorrow, later days, no deadline), each
+  group saying how much of it is made and turning green when all is.
+- Each product can be ticked off when it is made (click the row); the tick is kept in the database for everyone.
+  Figures and a bar show how much is made; "Ukryj zrobione" shortens the list. An order that raises a product's
+  quantity after the tick brings it back. New table `production_checks` (run `alembic upgrade head`).
+
 ### ⏱ Automatic updates, one import button, a compact order list
 
 - **Automatic update every 15 minutes** for Allegro and Erli orders and Allegro messages, by default. The interval

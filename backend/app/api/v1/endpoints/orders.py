@@ -24,12 +24,14 @@ from app.schemas.order import (
     OrderStats,
     OrderStatusHistoryRead,
     OrderUpdate,
+    ProductionCheckRead,
+    ProductionCheckRequest,
     ProductionList,
     ShipmentAdd,
 )
 from app.services.order_service import OrderService
 from app.services.order_writes import ALLEGRO_CARRIERS, OrderWrites
-from app.services.production import build_production_list
+from app.services.production import build_production_list, mark_done, set_check
 from app.services.shipping_labels import ShippingLabels
 
 # Every order endpoint requires a logged-in user. Set on the router rather
@@ -99,10 +101,28 @@ def get_production_list(
     (`AN-000041, AN-000043`) and an order matching any of them counts.
     """
     terms = re.split(r"[;,\n]", search) if search else []
-    return build_production_list(
-        OrderRepository(db).list_in_queue_with_items(
-            OrderQueue.TO_MAKE, status=status, search_terms=terms
-        )
+    return mark_done(
+        db,
+        build_production_list(
+            OrderRepository(db).list_in_queue_with_items(
+                OrderQueue.TO_MAKE, status=status, search_terms=terms
+            )
+        ),
+    )
+
+
+@router.put("/production/checks", response_model=ProductionCheckRead)
+def put_production_check(
+    body: ProductionCheckRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Tick a product on the list off as made (for `quantity`, as the list asks for it
+    now), or take the tick away with `done: false`. Kept for everyone who uses the
+    database, so it shows on every computer."""
+    check = set_check(db, body.key, body.quantity, body.done, current_user.id)
+    return ProductionCheckRead(
+        key=body.key, done=check is not None, quantity=check.quantity if check else body.quantity
     )
 
 

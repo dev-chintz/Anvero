@@ -187,6 +187,8 @@ export interface ProductionLine {
   dispatch_by: string | null;
   /** Most urgent first. */
   orders: ProductionOrder[];
+  /** Made: ticked off, for at least as many as the line asks for now. */
+  done: boolean;
 }
 
 /** `GET /orders/production`: the to-make queue, by product, most urgent first. */

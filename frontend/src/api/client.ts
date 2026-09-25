@@ -387,6 +387,18 @@ export const ordersApi = {
     return request<ProductionList>(`/orders/production${queryString ? `?${queryString}` : ""}`);
   },
 
+  /** Tick a product on the to-make list off as made, for `quantity` as the list asks for it now, or take the tick away. */
+  setProductionDone(
+    key: string,
+    quantity: number,
+    done: boolean,
+  ): Promise<{ key: string; done: boolean; quantity: number }> {
+    return request("/orders/production/checks", {
+      method: "PUT",
+      body: JSON.stringify({ key, quantity, done }),
+    });
+  },
+
   stats(): Promise<OrderStats> {
     return request<OrderStats>("/orders/stats");
   },

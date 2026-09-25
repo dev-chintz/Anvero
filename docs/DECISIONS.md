@@ -1136,6 +1136,32 @@ branch is unverified: only the SQLite path has been run.
 
 **Consequences:** Whether Allegro's pages read the number from the address is not confirmed (allegro.pl answers no automated request, so it could not be tried, and only one search result named the parameter, for One's page); if they do not, the link still lands on the page that asks for the number. Anvero's own status for these parcels comes from Allegro's tracking API and is unaffected.
 
+## 2026-09-25 — The to-make list by day, with products ticked off
+
+**Decided (owner, 2026-09-25, from mockups A and B combined, ticks in the database, per product):** the
+"Do wykonania" page was one long table with the same deadline (with seconds) in every row and no way to
+say what had been made. Now:
+
+- **Groups by the day of the deadline**, in local time: past due (red), today (amber), tomorrow, each later day
+  by its weekday and date, and no deadline last. A line goes by the earliest deadline among its orders, as it
+  already did, so a product needed on two days is under the earlier. A late line says when it was due.
+  Each group's band says how much of it is made (`1/4 made · 10/29 pcs`) and turns green when all is.
+- **Ticking a product off** (the whole row is clickable, or its box): `PUT /orders/production/checks`, kept in
+  the new table `production_checks` by the product's key, so it shows on every computer and to everyone; the
+  tick shows at once and is undone with a message if it could not be saved. Figures for products and pieces
+  made, of all there are, and a bar, sit above; "Hide made" (kept in the browser) shortens the list.
+- **A tick is for a quantity.** A product counts as made while the list asks for no more than the quantity it
+  was ticked for, so an order that arrives later and raises the number brings it back. Ticked in a narrowed
+  view (a status, a search) it is ticked for that view's quantity only. Ticks older than 90 days are deleted
+  whenever another is made. The tick is per product, not per order: taking a finished piece to the most
+  urgent order is still the operator's call.
+- **On paper** the page prints as it is, the boxes empty or ticked, to tick with a pen; the filters and the
+  bar do not print. The deadline column is gone (the group says it); the layout folds to small grids under
+  768px.
+
+Not done: the list does not refresh by itself, so a tick made on another computer shows after a reload or a
+change of filter; no history of who made what (`checked_by_user_id` is kept, and not shown).
+
 ## 2026-09-25 — One import button, an automatic update every 15 minutes for every channel, and a compact order list
 
 **Decided (owner, 2026-09-25):** the owner found that automatic updates did not run, that the import button

@@ -432,12 +432,29 @@ class ProductionLine(BaseModel):
     # the earliest dispatch deadline among its orders
     dispatch_by: UtcDateTime | None
     orders: list[ProductionOrder]
+    # made: ticked off, for at least as many as the line asks for now
+    done: bool = False
 
 
 class ProductionList(BaseModel):
     lines: list[ProductionLine]
     # orders in the to-make queue, including any without items
     order_count: int
+
+
+class ProductionCheckRequest(BaseModel):
+    """Tick a product on the to-make list off, or take the tick away."""
+
+    key: str = Field(min_length=1, max_length=512)
+    # how many the list asks for, as it stands on the screen
+    quantity: int = Field(ge=1, le=1_000_000)
+    done: bool
+
+
+class ProductionCheckRead(BaseModel):
+    key: str
+    done: bool
+    quantity: int
 
 
 class OrderQueueCounts(BaseModel):
