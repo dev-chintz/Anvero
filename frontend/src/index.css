@@ -1,15 +1,15 @@
 :root {
-  --color-text: #1a1a2e;
+  --color-text: #111827;
   /* the menu's two widths; the page beside it makes room for whichever is showing */
   --sidebar-width-open: 200px;
   --sidebar-width-closed: 70px;
-  --color-muted: #6b7280;
-  --color-border: #e5e7eb;
+  --color-muted: #4b5563;
+  --color-border: #d5d9e0;
   --color-primary: #2563eb;
   --color-bg: #ffffff;
   /* the backdrop of the order page, under its white cards */
   --color-canvas: #eef0f3;
-  --radius: 6px;
+  --radius: 8px;
   --color-scheme: light;
 
   /*
@@ -23,12 +23,25 @@
    * own token rather than being merged into a close-but-different one.
    */
   --radius-md: 0.5rem;
-  --radius-lg: 0.75rem;
+  --radius-lg: 0.625rem;
   --color-accent: #0d7377;
-  --color-surface-alt: #f8f9fa;
-  --color-divider: #e9ecef;
-  --color-heading: #212529;
-  --color-muted-strong: #495057;
+  --color-surface-alt: #f3f5f7;
+  --color-divider: #e5e7eb;
+  --color-heading: #030712;
+  --color-muted-strong: #374151;
+
+  /* the tones a card's title band or a chip can take (docs/STYLE_GUIDE.md): blue for the
+     thing itself, teal for sending it, green and red for money, amber for notes */
+  --tone-blue-bg: #e7f0fd;
+  --tone-blue-fg: #1e40af;
+  --tone-teal-bg: #d8efee;
+  --tone-teal-fg: #0b5559;
+  --tone-green-bg: #dcfce7;
+  --tone-green-fg: #166534;
+  --tone-red-bg: #fee2e2;
+  --tone-red-fg: #b91c1c;
+  --tone-amber-bg: #fef3c7;
+  --tone-amber-fg: #854d0e;
   --color-success: #22c55e;
   --color-error: #ef4444;
   --color-warning: #f59e0b;
@@ -36,8 +49,8 @@
 }
 
 :root.dark {
-  --color-text: #e0e0e0;
-  --color-muted: #999;
+  --color-text: #f3f4f6;
+  --color-muted: #b6bdc9;
   --color-border: #3d3d3d;
   --color-primary: #14b8a6;
   --color-bg: #1a1a1a;
@@ -50,8 +63,19 @@
      Sidebar's, which uses #333 instead and keeps its own explicit override
      for that reason (see Sidebar.css) */
   --color-divider: var(--color-border);
-  --color-heading: var(--color-text);
-  --color-muted-strong: #b0b0b0;
+  --color-heading: #ffffff;
+  --color-muted-strong: #d1d5db;
+
+  --tone-blue-bg: #1e3a5f;
+  --tone-blue-fg: #bfdbfe;
+  --tone-teal-bg: #0f3d3f;
+  --tone-teal-fg: #99e0dc;
+  --tone-green-bg: #14532d;
+  --tone-green-fg: #bbf7d0;
+  --tone-red-bg: #450a0a;
+  --tone-red-fg: #fca5a5;
+  --tone-amber-bg: #3f3405;
+  --tone-amber-fg: #fde68a;
 }
 
 * {
@@ -66,9 +90,106 @@ body {
   margin: 0;
   font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   color: var(--color-text);
-  background: var(--color-bg);
-  line-height: 1.5;
+  font-size: 0.875rem;
+  background: var(--color-canvas);
+  line-height: 1.45;
   transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+/* ---- Controls: one look for every button, field and dropdown (docs/STYLE_GUIDE.md) ----
+   Written with :where(), which has no weight of its own, so a rule that gives one control
+   its own colour or size still wins, and the rest all look alike. */
+:where(button, select, input, textarea) {
+  font: inherit;
+  color: inherit;
+}
+
+:where(button) {
+  padding: 0.4rem 0.9rem;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  color: var(--color-text);
+  font-weight: 500;
+  cursor: pointer;
+}
+
+:where(button:hover:not(:disabled)) {
+  background: var(--color-surface-alt);
+}
+
+:where(button:disabled) {
+  opacity: 0.55;
+  cursor: default;
+}
+
+/* the one action a form is for */
+:where(button[type="submit"]) {
+  background: var(--color-accent);
+  border-color: var(--color-accent);
+  color: #fff;
+  font-weight: 600;
+}
+
+:where(button[type="submit"]:hover:not(:disabled)) {
+  background: var(--color-accent);
+  filter: brightness(0.92);
+}
+
+:where(:root.dark button[type="submit"]) {
+  color: #0b0b0b;
+}
+
+:where(input:not([type="checkbox"], [type="radio"], [type="range"], [type="file"], [type="color"]), textarea) {
+  padding: 0.4rem 0.7rem;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  color: var(--color-text);
+}
+
+:where(input[type="checkbox"], input[type="radio"]) {
+  accent-color: var(--color-accent);
+}
+
+:where(select) {
+  appearance: none;
+  -webkit-appearance: none;
+  padding: 0.4rem 2rem 0.4rem 0.7rem;
+  background-color: var(--color-bg);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.5l5 5 5-5' fill='none' stroke='%23374151' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.7rem center;
+  background-size: 12px 8px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  color: var(--color-text);
+  cursor: pointer;
+}
+
+:where(:root.dark select) {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.5l5 5 5-5' fill='none' stroke='%23d1d5db' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+}
+
+:where(select:disabled) {
+  opacity: 0.6;
+  cursor: default;
+}
+
+:where(input, select, textarea)::placeholder {
+  color: var(--color-muted);
+  opacity: 0.8;
+}
+
+:where(input, select, textarea):focus-visible {
+  outline: none;
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-accent) 25%, transparent);
+}
+
+:where(button, a, summary):focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
 }
 
 .sr-only {
@@ -144,6 +265,16 @@ table {
   background: var(--color-bg);
 }
 
+/* a table's head row is a grey strip of small capitals, like a card's labels */
+thead th {
+  background: var(--color-surface-alt);
+  color: var(--color-muted-strong);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
 th,
 td {
   text-align: left;
@@ -186,6 +317,16 @@ td {
 
 .status-select option {
   color: #fff;
+}
+
+select.status-select {
+  appearance: none;
+  -webkit-appearance: none;
+  padding-right: 1.4rem;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.5l5 5 5-5' fill='none' stroke='%23ffffff' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.45rem center;
+  background-size: 9px 6px;
 }
 
 .status-select:disabled {
@@ -485,10 +626,12 @@ td {
 }
 
 /* padded like the other pages; capped so a very wide screen does not stretch
-   the fields into unreadable lines */
+   the fields into unreadable lines, and centred so what is left over is shared by
+   both sides instead of all lying to the right */
 .order-detail {
   padding: 2rem;
-  max-width: 1400px;
+  max-width: 1500px;
+  margin: 0 auto;
 }
 
 @media (max-width: 768px) {

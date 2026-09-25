@@ -167,3 +167,42 @@ describe("ErliSettings", () => {
     expect(await screen.findByText(/Brak klucza API|No API key set/)).toBeInTheDocument();
   });
 });
+
+describe("ErliSettings telling the page it changed", () => {
+  afterEach(() => {
+    vi.clearAllMocks();
+    vi.restoreAllMocks();
+  });
+
+  it("says nothing when it only reads its state on opening", async () => {
+    vi.mocked(integrationsApi.erliStatus).mockResolvedValue(status());
+    const onChanged = vi.fn();
+    render(
+      <MemoryRouter>
+        <ErliSettings onChanged={onChanged} />
+      </MemoryRouter>,
+    );
+
+    await screen.findByLabelText(/Klucz API|API key/);
+
+    expect(onChanged).not.toHaveBeenCalled();
+  });
+
+  it("says so once a key is saved", async () => {
+    vi.mocked(integrationsApi.erliStatus).mockResolvedValue(status());
+    vi.mocked(integrationsApi.saveErliKey).mockResolvedValue(
+      status({ configured: true, source: "settings", key_hint: "…abcd" }),
+    );
+    const onChanged = vi.fn();
+    render(
+      <MemoryRouter>
+        <ErliSettings onChanged={onChanged} />
+      </MemoryRouter>,
+    );
+    fireEvent.change(await screen.findByLabelText(/Klucz API|API key/), { target: { value: "secret-abcd" } });
+
+    fireEvent.click(screen.getByRole("button", { name: /Zapisz i sprawdź|Save and check/ }));
+
+    await waitFor(() => expect(onChanged).toHaveBeenCalledTimes(1));
+  });
+});

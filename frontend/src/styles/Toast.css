@@ -68,7 +68,7 @@
 .toast-close {
   background: none;
   border: none;
-  color: #6c757d;
+  color: var(--color-muted);
   font-size: 1.5rem;
   cursor: pointer;
   padding: 0;

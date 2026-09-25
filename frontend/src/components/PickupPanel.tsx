@@ -75,7 +75,7 @@ export function PickupPanel({ labelIds, onOrdered, onClose }: PickupPanelProps) 
   };
 
   return (
-    <section className="pickup-panel" aria-label={t("pickup.title")}>
+    <section className="pickup-panel card tone-teal" aria-label={t("pickup.title")}>
       <h2>{tc("pickup.heading", labelIds.length)}</h2>
       <div className="pickup-row">
         <label>

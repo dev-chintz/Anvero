@@ -1,29 +1,5 @@
-.labels-page .page-header {
-  background: var(--color-surface-alt);
-  padding: 2rem;
-  border-bottom: 1px solid var(--color-divider);
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 1.5rem;
-  flex-wrap: wrap;
-}
-
-.labels-page .page-header h1 {
-  margin: 0 0 0.5rem 0;
-  font-size: 2rem;
-  color: var(--color-heading);
-  font-weight: 600;
-}
-
-.labels-page .page-header .subtitle {
-  margin: 0;
-  color: var(--color-muted);
-  font-size: 0.95rem;
-}
-
 .labels-page .print-button {
-  padding: 0.6rem 1.2rem;
+  padding: 0.5rem 1rem;
   border: 1px solid var(--color-accent);
   border-radius: var(--radius-md);
   background: var(--color-accent);
@@ -62,18 +38,13 @@
   vertical-align: top;
 }
 
-.labels-table th {
-  font-size: 0.8rem;
-  text-transform: uppercase;
-  color: var(--color-muted);
-}
 
 .labels-table .col-check {
   width: 2rem;
 }
 
 .labels-table tr.selected td {
-  background: var(--color-surface-alt);
+  background-color: var(--color-surface-alt);
 }
 
 .labels-muted {
@@ -82,10 +53,6 @@
 }
 
 @media (max-width: 768px) {
-  .labels-page .page-header {
-    padding: 1.5rem 1rem;
-  }
-
   .labels-body {
     padding: 1rem;
   }
@@ -102,26 +69,10 @@
   color: var(--color-accent);
 }
 
-.labels-filter select {
-  padding: 0.35rem 0.5rem;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  background: var(--color-bg);
-  color: var(--color-text);
-}
+
 
 .pickup-panel {
   margin-bottom: 1.25rem;
-  padding: 1rem 1.25rem;
-  border: 1px solid var(--color-accent);
-  border-radius: var(--radius-lg);
-  background: var(--color-surface-alt);
-}
-
-.pickup-panel h2 {
-  margin: 0 0 0.75rem;
-  font-size: 1.1rem;
-  color: var(--color-heading);
 }
 
 .pickup-row {
@@ -139,13 +90,7 @@
   color: var(--color-muted-strong);
 }
 
-.pickup-panel input[type="date"] {
-  padding: 0.45rem 0.6rem;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  background: var(--color-bg);
-  color: var(--color-text);
-}
+
 
 .pickup-panel button {
   padding: 0.5rem 1rem;
@@ -209,28 +154,6 @@
   overflow-wrap: anywhere;
 }
 
-.labels-tabs {
-  display: flex;
-  gap: 0.25rem;
-  padding: 0 2rem;
-  border-bottom: 1px solid var(--color-divider);
-}
-
-.labels-tabs button {
-  padding: 0.6rem 1rem;
-  border: none;
-  border-bottom: 2px solid transparent;
-  background: none;
-  color: var(--color-muted-strong);
-  font-weight: 600;
-  cursor: pointer;
-}
-
-.labels-tabs button.active {
-  color: var(--color-accent);
-  border-bottom-color: var(--color-accent);
-}
-
 .inpost-labels section {
   margin-bottom: 2rem;
 }
@@ -275,7 +198,15 @@
 }
 
 @media (max-width: 768px) {
+}
+
+/* the tabs line up with the page's body (their look is shared, theme.css) */
+.labels-tabs {
+  padding: 0 2rem 1rem;
+}
+
+@media (max-width: 768px) {
   .labels-tabs {
-    padding: 0 1rem;
+    padding: 0 1rem 0.75rem;
   }
 }

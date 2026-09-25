@@ -1,79 +1,89 @@
+import { useSearchParams } from 'react-router-dom';
 import { AllegroSettings } from '../components/AllegroSettings';
 import { ErliSettings } from '../components/ErliSettings';
 import { InpostSettings } from '../components/InpostSettings';
-import { SettingsLayout, type SettingsNavGroup } from '../components/SettingsLayout';
 import { ShippingSettingsForm } from '../components/ShippingSettingsForm';
+import {
+  INTEGRATION_IDS,
+  useIntegrationSummaries,
+  type IntegrationId,
+} from '../hooks/useIntegrationSummaries';
 import { useTranslation } from '../i18n';
 import '../styles/SettingsPage.css';
 
-// the order here is the order on the page, so the menu reads top to bottom
-const GROUPS: SettingsNavGroup[] = [
-  {
-    id: 'settings-channels',
-    title: 'settings.groupChannels',
-    items: [
-      { id: 'settings-allegro', label: 'Allegro' },
-      { id: 'settings-erli', label: 'Erli' },
-    ],
-  },
-  {
-    id: 'settings-shipping',
-    title: 'settings.groupShipping',
-    items: [
-      { id: 'settings-shipping-form', label: 'settings.shippingCard' },
-      { id: 'settings-inpost', label: 'InPost' },
-    ],
-  },
-];
+function isIntegration(value: string | null): value is IntegrationId {
+  return (INTEGRATION_IDS as readonly string[]).includes(value ?? '');
+}
 
-/** Everything that connects Anvero to a marketplace or a carrier: accounts, keys, sender, parcels. */
+/**
+ * Everything that connects Anvero to a marketplace or a carrier: accounts, keys, sender, parcels.
+ *
+ * A tile for each with how it stands, so the state of all of them is seen at once; the one chosen
+ * (and remembered in the address) opens its settings below.
+ */
 export const Integrations: React.FC = () => {
   const { t } = useTranslation();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const { summaries, reload } = useIntegrationSummaries();
+
+  const requested = searchParams.get('integration');
+  const selected: IntegrationId = isIntegration(requested) ? requested : INTEGRATION_IDS[0];
+
+  const title = (id: IntegrationId) =>
+    id === 'sender' ? t('settings.shippingCard') : t(`integrations.name.${id}`);
+  const chosen = summaries[selected];
 
   return (
-    <SettingsLayout
-      title={t('integrations.title')}
-      subtitle={t('integrations.subtitle')}
-      navLabel={t('integrations.navLabel')}
-      groups={GROUPS}
-    >
-      <section id="settings-channels" className="settings-group" aria-labelledby="settings-channels-title">
-        <h2 id="settings-channels-title" className="settings-group-title">
-          {t('settings.groupChannels')}
-        </h2>
-        <p className="subtitle">{t('settings.groupChannelsHelp')}</p>
-        <div className="settings-grid">
-          <section id="settings-allegro" className="settings-section" aria-label="Allegro">
-            <h3>Allegro</h3>
-            <AllegroSettings />
-          </section>
-          <section id="settings-erli" className="settings-section" aria-label="Erli">
-            <h3>Erli</h3>
-            <ErliSettings />
-          </section>
+    <div className="settings-page integrations-page">
+      <header className="page-header">
+        <div className="page-header-text">
+          <h1>{t('integrations.title')}</h1>
+          <p className="subtitle">{t('integrations.subtitle')}</p>
         </div>
-      </section>
+      </header>
 
-      <section id="settings-shipping" className="settings-group" aria-labelledby="settings-shipping-title">
-        <h2 id="settings-shipping-title" className="settings-group-title">
-          {t('settings.groupShipping')}
-        </h2>
-        <p className="subtitle">{t('settings.groupShippingHelp')}</p>
-        <div className="settings-grid">
-          <section
-            id="settings-shipping-form"
-            className="settings-section settings-section-wide"
-            aria-label={t('settings.shippingCard')}
-          >
-            <h3>{t('settings.shippingCard')}</h3>
-            <ShippingSettingsForm />
-          </section>
-          <section id="settings-inpost" className="settings-section" aria-label="InPost">
-            <h3>InPost</h3>
-            <InpostSettings />
-          </section>
+      <div className="integration-tiles" role="tablist" aria-label={t('integrations.tilesLabel')}>
+        {INTEGRATION_IDS.map((id) => {
+          const summary = summaries[id];
+          return (
+            <button
+              key={id}
+              type="button"
+              role="tab"
+              id={`integration-tab-${id}`}
+              aria-selected={id === selected}
+              aria-controls="integration-panel"
+              className={`integration-tile${id === selected ? ' is-selected' : ''}`}
+              onClick={() => setSearchParams({ integration: id }, { replace: true })}
+            >
+              <span className="integration-tile-name">
+                <span
+                  className={`status-dot${summary?.ok ? ' is-ok' : ''}`}
+                  aria-hidden="true"
+                />
+                {t(`integrations.name.${id}`)}
+              </span>
+              <span className="integration-tile-summary">{summary?.text ?? '…'}</span>
+            </button>
+          );
+        })}
+      </div>
+
+      <section
+        id="integration-panel"
+        className="settings-section card tone-teal"
+        role="tabpanel"
+        aria-labelledby={`integration-tab-${selected}`}
+      >
+        <div className="card-head">
+          <h2>{title(selected)}</h2>
+          {chosen && <span className="integration-panel-state">{chosen.text}</span>}
         </div>
+        {selected === 'allegro' && <AllegroSettings onChanged={reload} />}
+        {selected === 'erli' && <ErliSettings onChanged={reload} />}
+        {selected === 'inpost' && <InpostSettings onChanged={reload} />}
+        {selected === 'sender' && <ShippingSettingsForm onChanged={reload} />}
       </section>
-    </SettingsLayout>
+    </div>
   );
 };

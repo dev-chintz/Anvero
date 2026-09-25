@@ -119,7 +119,7 @@ export const Dashboard: React.FC = () => {
       </section>
 
       <section className="charts-section">
-        <div className="chart-card">
+        <div className="chart-card card tone-blue">
           <h2>{t('dashboard.ordersByStatus')}</h2>
           <div className="status-breakdown">
             {Object.entries(stats.by_status).map(([status, count]) => (
@@ -139,7 +139,7 @@ export const Dashboard: React.FC = () => {
           </div>
         </div>
 
-        <div className="chart-card">
+        <div className="chart-card card tone-blue">
           <h2>{t('dashboard.ordersBySource')}</h2>
           <div className="source-breakdown">
             {Object.entries(stats.by_source).map(([source, count]) => {
@@ -164,7 +164,7 @@ export const Dashboard: React.FC = () => {
         </div>
       </section>
 
-      <section className="recent-orders">
+      <section className="recent-orders card tone-blue">
         <h2>{t('dashboard.recentOrders')}</h2>
         <div className="recent-orders-list">
           {recentOrders.map((order: Order) => (

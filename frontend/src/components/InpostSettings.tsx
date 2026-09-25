@@ -9,6 +9,7 @@ import {
 import { translate, useTranslation } from "../i18n";
 import type { MessageKey } from "../i18n/messages";
 import "../styles/InpostSettings.css";
+import { useAfterChange } from "../hooks/useAfterChange";
 
 export const INPOST_TEMPLATES: InpostTemplate[] = ["small", "medium", "large"];
 
@@ -26,9 +27,15 @@ type Note = { text: string; error: boolean };
  * come back. The backend saves nothing until InPost has accepted the token and
  * the organization, so a wrong pair is refused here and not at the first parcel.
  */
-export function InpostSettings() {
+interface InpostSettingsProps {
+  /** Told when what the card shows has changed (saved or forgotten), so a summary elsewhere can follow. */
+  onChanged?: () => void;
+}
+
+export function InpostSettings({ onChanged }: InpostSettingsProps = {}) {
   const { t } = useTranslation();
   const [status, setStatus] = useState<InpostStatus | null>(null);
+  useAfterChange(status, onChanged);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [token, setToken] = useState("");
   const [organizationId, setOrganizationId] = useState("");

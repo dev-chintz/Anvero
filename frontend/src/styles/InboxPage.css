@@ -1,190 +1,290 @@
-.inbox-page .page-header {
-  background: var(--color-surface-alt);
-  padding: 2rem;
-  border-bottom: 1px solid var(--color-divider);
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 1.5rem;
-  flex-wrap: wrap;
-}
-
-.inbox-page .page-header h1 {
-  margin: 0 0 0.5rem 0;
-  font-size: 2rem;
-  color: var(--color-heading);
-  font-weight: 600;
-}
-
-.inbox-page .page-header .subtitle {
-  margin: 0;
-  color: var(--color-muted);
-  font-size: 0.95rem;
-}
+/* The inbox: a list of conversations grouped by day, and the open one beside it. */
 
 .inbox-page .print-button {
-  padding: 0.6rem 1.2rem;
-  border: 1px solid var(--color-accent);
-  border-radius: var(--radius-md);
-  background: var(--color-bg);
+  padding: 0.5rem 1rem;
+  border-color: var(--color-accent);
   color: var(--color-accent);
   font-weight: 600;
-  cursor: pointer;
-}
-
-.inbox-page .print-button:disabled {
-  opacity: 0.6;
-  cursor: default;
 }
 
 .inbox-body {
   display: grid;
-  grid-template-columns: 22rem 1fr;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 1rem;
   align-items: start;
+  margin: 0 2rem 2rem;
 }
 
-.inbox-list-pane {
-  border-right: 1px solid var(--color-divider);
-  padding: 1rem;
+/* with a conversation open the list narrows to a column beside it */
+.inbox-body.has-thread {
+  grid-template-columns: 24rem minmax(0, 1fr);
 }
 
-.inbox-filters {
+.inbox-list.card {
+  padding: 0;
+}
+
+.inbox-toolbar {
   display: flex;
+  flex-wrap: wrap;
+  align-items: center;
   gap: 0.5rem;
-  margin-bottom: 1rem;
+  padding: 0.75rem 1rem;
 }
 
-.inbox-filters button {
-  flex: 1;
-  padding: 0.5rem;
-  border: 1px solid var(--color-divider);
-  border-radius: var(--radius-md);
-  background: var(--color-bg);
+.inbox-search {
+  position: relative;
+  min-width: 14rem;
+  margin-left: auto;
+}
+
+.inbox-has-thread .inbox-search,
+.has-thread .inbox-search {
+  margin-left: 0;
+  flex: 1 1 100%;
+}
+
+.inbox-search input {
+  width: 100%;
+  padding-right: 2rem;
+}
+
+.inbox-search-clear {
+  position: absolute;
+  top: 50%;
+  right: 0.4rem;
+  transform: translateY(-50%);
+  padding: 0.25rem 0.4rem;
+  background: none;
+  border: none;
+  color: var(--color-muted);
+}
+
+.inbox-search-summary {
+  margin: 0;
+  color: var(--color-muted);
+  font-size: 0.85rem;
+}
+
+.inbox-tab-count {
+  margin-left: 0.4rem;
+  font-weight: 700;
+  opacity: 0.85;
+}
+
+.inbox-note {
+  margin: 0;
+  padding: 0 1rem 1rem;
+}
+
+.inbox-empty {
+  color: var(--color-muted);
+}
+
+/* ---- Groups by day ---- */
+.inbox-group-head {
+  display: flex;
+  justify-content: space-between;
+  margin: 0;
+  padding: 0.3rem 1rem;
+  background: var(--color-surface-alt);
+  border-top: 1px solid var(--color-divider);
   color: var(--color-muted-strong);
-  cursor: pointer;
-}
-
-.inbox-filters button.active {
-  border-color: var(--color-accent);
-  color: var(--color-accent);
-  font-weight: 600;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
 }
 
 .inbox-thread-list {
-  list-style: none;
   margin: 0;
   padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
+  list-style: none;
 }
 
-.inbox-thread-item {
-  width: 100%;
-  text-align: left;
-  padding: 0.75rem;
-  border: 1px solid var(--color-divider);
-  border-radius: var(--radius-md);
-  background: var(--color-bg);
-  cursor: pointer;
-}
-
-.inbox-thread-item.selected {
-  border-color: var(--color-accent);
-}
-
-.inbox-thread-item.unread .inbox-thread-buyer {
-  font-weight: 700;
-}
-
-.inbox-thread-item-top {
+/* ---- A conversation on a row ---- */
+.inbox-row {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  justify-content: space-between;
+  gap: 0.75rem;
+  width: 100%;
+  padding: 0.6rem 1rem;
+  text-align: left;
+  background: transparent;
+  border: none;
+  border-top: 1px solid var(--color-divider);
+  border-radius: 0;
+  font-weight: 400;
 }
 
-.inbox-source-badge {
-  font-size: 0.7rem;
-  text-transform: uppercase;
-  color: var(--color-muted);
-  border: 1px solid var(--color-divider);
-  border-radius: var(--radius-sm, 4px);
-  padding: 0.1rem 0.4rem;
+.inbox-row:hover {
+  background: var(--color-surface-alt);
+}
+
+.inbox-row.selected {
+  background: var(--tone-blue-bg);
+}
+
+.inbox-row-main {
+  display: flex;
+  flex: 1;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.1rem 0.6rem;
+  min-width: 0;
+}
+
+.inbox-row-who {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.2rem 0.45rem;
+  min-width: 0;
+  max-width: 100%;
 }
 
 .inbox-thread-buyer {
-  flex: 1;
+  max-width: 14rem;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.inbox-row.unread .inbox-thread-buyer {
+  font-weight: 700;
+}
+
+.inbox-unread-dot,
+.inbox-dot-space {
+  width: 0.5rem;
+  height: 0.5rem;
+  flex-shrink: 0;
+  border-radius: 50%;
 }
 
 .inbox-unread-dot {
-  width: 0.5rem;
-  height: 0.5rem;
-  border-radius: 50%;
   background: var(--color-accent);
-  flex-shrink: 0;
+}
+
+.inbox-source {
+  color: var(--color-muted);
+  font-size: 0.7rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
 }
 
 .inbox-thread-excerpt {
-  margin: 0.4rem 0;
-  color: var(--color-muted-strong);
-  font-size: 0.9rem;
+  flex: 1 1 12rem;
+  min-width: 0;
   overflow: hidden;
+  color: var(--color-muted);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.inbox-thread-item-bottom {
-  display: flex;
-  justify-content: space-between;
-  font-size: 0.75rem;
+.inbox-row-when {
+  flex-shrink: 0;
+}
+
+.inbox-when {
   color: var(--color-muted);
+  font-size: 0.8rem;
 }
 
-.inbox-empty,
-.inbox-select-hint {
-  color: var(--color-muted);
-}
-
-.inbox-detail-pane {
-  padding: 1rem 1.5rem;
-}
-
-.inbox-thread-detail {
-  display: flex;
+/* with a conversation open, a row is two lines: who, then what */
+.has-thread .inbox-row-main {
   flex-direction: column;
+  align-items: flex-start;
 }
 
-.inbox-thread-detail-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding-bottom: 0.75rem;
-  border-bottom: 1px solid var(--color-divider);
+.has-thread .inbox-thread-excerpt {
+  flex: none;
+  width: 100%;
+  padding-left: 0.95rem;
 }
 
-.inbox-thread-detail-header > div {
-  display: flex;
+.inbox-chip {
+  display: inline-block;
+  padding: 0.05rem 0.55rem;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.inbox-chip-amber {
+  background: var(--tone-amber-bg);
+  color: var(--tone-amber-fg);
+}
+
+.inbox-chip-red {
+  background: var(--tone-red-bg);
+  color: var(--tone-red-fg);
+}
+
+.inbox-chip-blue {
+  background: var(--tone-blue-bg);
+  color: var(--tone-blue-fg);
+}
+
+.inbox-aside-tag {
+  padding: 0 0.4rem;
+  border: 1px solid var(--color-divider);
+  border-radius: 999px;
+  color: var(--color-muted);
+  font-size: 0.7rem;
+}
+
+/* ---- The open conversation ---- */
+.inbox-detail-title {
+  display: inline-flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 0.5rem;
 }
 
+.inbox-detail .card-head {
+  flex-wrap: wrap;
+  gap: 0.4rem 0.75rem;
+}
+
+.inbox-detail-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-left: auto;
+}
+
+.inbox-order-link {
+  font-weight: 600;
+  color: inherit;
+  text-decoration: underline;
+}
+
+.inbox-detail-actions button {
+  padding: 0.15rem 0.7rem;
+  font-size: 0.8rem;
+}
+
+.inbox-close {
+  padding: 0.15rem 0.5rem;
+}
+
 .inbox-message-list {
-  max-height: 24rem;
-  overflow-y: auto;
-  padding: 1rem 0;
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: 0.6rem;
+  max-height: 26rem;
+  overflow-y: auto;
+  padding-bottom: 1rem;
 }
 
 .inbox-message {
-  max-width: 70%;
-  padding: 0.6rem 0.9rem;
-  border-radius: var(--radius-md);
+  max-width: 75%;
+  padding: 0.55rem 0.85rem;
   background: var(--color-surface-alt);
+  border-radius: var(--radius-md);
 }
 
 .inbox-message-IN {
@@ -193,16 +293,22 @@
 
 .inbox-message-OUT {
   align-self: flex-end;
-  background: color-mix(in srgb, var(--color-accent) 15%, var(--color-surface-alt));
+  background: var(--tone-teal-bg);
+  color: var(--tone-teal-fg);
 }
 
 .inbox-message-meta {
   display: flex;
   justify-content: space-between;
   gap: 1rem;
-  font-size: 0.7rem;
-  color: var(--color-muted);
   margin-bottom: 0.2rem;
+  color: var(--color-muted);
+  font-size: 0.7rem;
+}
+
+.inbox-message-OUT .inbox-message-meta {
+  color: inherit;
+  opacity: 0.8;
 }
 
 .inbox-message p {
@@ -214,98 +320,28 @@
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
-  border-top: 1px solid var(--color-divider);
   padding-top: 0.75rem;
+  border-top: 1px solid var(--color-divider);
 }
 
 .inbox-reply-form textarea {
   resize: vertical;
-  padding: 0.6rem;
-  border: 1px solid var(--color-divider);
-  border-radius: var(--radius-md);
-  background: var(--color-bg);
-  color: inherit;
-  font: inherit;
 }
 
 .inbox-reply-form button {
   align-self: flex-end;
-  padding: 0.5rem 1.2rem;
-  border: none;
-  border-radius: var(--radius-md);
-  background: var(--color-accent);
-  color: var(--color-bg);
-  font-weight: 600;
-  cursor: pointer;
-}
-
-.inbox-reply-form button:disabled {
-  opacity: 0.6;
-  cursor: default;
 }
 
 .inbox-reply-status {
   margin: 0;
-  font-size: 0.85rem;
   color: var(--color-muted-strong);
+  font-size: 0.85rem;
 }
 
 @media (max-width: 900px) {
-  .inbox-body {
-    grid-template-columns: 1fr;
+  .inbox-body,
+  .inbox-body.has-thread {
+    grid-template-columns: minmax(0, 1fr);
+    margin: 0 1rem 1.5rem;
   }
-
-  .inbox-list-pane {
-    border-right: none;
-    border-bottom: 1px solid var(--color-divider);
-  }
-}
-
-/* Searching the inbox (InboxPage.tsx): a box above the tabs, which a search replaces. */
-.inbox-search {
-  position: relative;
-  margin-bottom: 0.75rem;
-}
-
-.inbox-search input {
-  width: 100%;
-  box-sizing: border-box;
-  padding: 0.5rem 2rem 0.5rem 0.75rem;
-  border: 1px solid var(--color-divider);
-  border-radius: var(--radius-md);
-  background: var(--color-bg);
-  color: var(--color-text);
-  font: inherit;
-}
-
-.inbox-search input:focus {
-  outline: 2px solid var(--color-accent);
-  outline-offset: 0;
-}
-
-.inbox-search-clear {
-  position: absolute;
-  top: 50%;
-  right: 0.4rem;
-  transform: translateY(-50%);
-  border: none;
-  background: none;
-  color: var(--color-muted);
-  cursor: pointer;
-  padding: 0.25rem 0.4rem;
-}
-
-.inbox-search-summary {
-  margin: 0 0 0.75rem;
-  color: var(--color-muted);
-  font-size: 0.85rem;
-}
-
-.inbox-aside-tag {
-  margin-left: auto;
-  padding: 0 0.4rem;
-  border: 1px solid var(--color-divider);
-  border-radius: 999px;
-  color: var(--color-muted);
-  font-size: 0.7rem;
 }

@@ -103,7 +103,7 @@ export const AdvancedFilters: React.FC<AdvancedFiltersProps> = ({
   const hasActiveFilters = hasAnyFilter(filters);
 
   return (
-    <div className="advanced-filters">
+    <div className="advanced-filters card">
       <div className="filters-header">
         <div className="search-bar">
           <input

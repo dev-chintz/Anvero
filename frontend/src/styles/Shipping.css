@@ -37,13 +37,7 @@
 }
 
 .shipping-settings input {
-  padding: 0.55rem 0.7rem;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  font-size: 0.95rem;
   font-weight: 400;
-  background: var(--color-bg);
-  color: var(--color-text);
 }
 
 .shipping-settings > button {
@@ -133,11 +127,4 @@
   cursor: not-allowed;
 }
 
-.shipping-label input {
-  padding: 0.45rem 0.6rem;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  font-size: 0.95rem;
-  background: var(--color-bg);
-  color: var(--color-text);
-}
+

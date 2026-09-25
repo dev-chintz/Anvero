@@ -6,6 +6,42 @@ All significant changes to the Anvero project.
 
 ## 2026-09-25
 
+### 💬 Inbox by day, Status as a summary
+
+- **Wiadomości:** tabs with counts, conversations grouped by day, "czeka 16 godz." chips on unread ones
+  (amber, red after a day), an order chip, and the open conversation as a card with a link to its order.
+- **Stan aplikacji:** one bar that says whether all is well or what is not, a tile for each of Allegro, Erli and
+  Anvero with the detail folded away, and a timeline of the last imports and changes sent or held back.
+
+### 🗂 Settings on rows, Integrations as tiles
+
+- **Settings:** no side menu; a card "Wygląd i język" with each setting on a row, and the safe mode card whose
+  heading says whether it is on, its log folded away with a count. The subtitle is under the title now.
+- **Integrations:** a tile for Allegro, Erli, InPost and the sender, each with a dot and how it stands, and the
+  chosen one opens below; the choice is in the address (`?integration=erli`). A card that saves something updates
+  its tile. Replaces the menu of sections and the long single column.
+
+### 🎨 One look for the whole application
+
+- The order page's style is now the application's: a grey canvas under white rounded cards with
+  tinted title bands, 14px text in a darker ink, small labels in bold capitals. The Dashboard, the
+  order list and its filters, To make, Labels, Returns, Status, Inbox, Settings, Integrations and the
+  login page were brought to it, in the light and the dark mode.
+- **Buttons, fields and dropdowns look the same everywhere.** Every page had styled its own; they are
+  defined once now. The dropdown that stood out from the buttons and tables has its own arrow and the
+  same border and radius as the fields.
+- **Tabs and quick filters are one style** (pills, the chosen one filled), and every table is a card
+  with a grey head strip of small capitals.
+- New: `docs/STYLE_GUIDE.md` (the rules a new page follows) and `frontend/src/styles/theme.css`.
+
+### 🔤 Firmer, smaller type on the order page
+
+- On a wide screen the order page is centred (up to 1500px) instead of lying against the left edge.
+- The order page is set at 14px instead of 16px, in a darker ink (a darker grey for the
+  secondary text too, which had washed out beside the coloured bands); the small labels are
+  capitals in semibold, the values beside them medium or semibold, titles bold, names and
+  the first line of an address semibold. Only this page, like the colour.
+
 ### 🧾 The order page laid out like BaseLinker's
 
 - **Header card:** star, flag, number, buyer, channel, country, date, one button for the

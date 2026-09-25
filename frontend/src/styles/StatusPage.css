@@ -1,94 +1,142 @@
-.status-page .page-header {
-  background: var(--color-surface-alt);
-  padding: 2rem;
-  border-bottom: 1px solid var(--color-divider);
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 1.5rem;
-  flex-wrap: wrap;
-}
-
-.status-page .page-header h1 {
-  margin: 0 0 0.5rem 0;
-  font-size: 2rem;
-  color: var(--color-heading);
-  font-weight: 600;
-}
-
-.status-page .page-header .subtitle {
-  margin: 0;
-  color: var(--color-muted);
-  font-size: 0.95rem;
-}
+/* The status page: one bar for the state of everything, a tile for each part, a timeline of what happened last. */
 
 .status-page .refresh-button {
-  padding: 0.6rem 1.2rem;
-  border: 1px solid var(--color-accent);
-  border-radius: var(--radius-md);
-  background: var(--color-bg);
+  padding: 0.5rem 1rem;
+  border-color: var(--color-accent);
   color: var(--color-accent);
   font-weight: 600;
-  cursor: pointer;
-}
-
-.status-page .refresh-button:disabled {
-  opacity: 0.6;
-  cursor: default;
 }
 
 .status-body {
-  padding: 1.5rem 2rem 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 0 2rem 2rem;
+}
+
+/* ---- The bar: green when all is well, amber or red with what is wrong, grey when nothing is set up ---- */
+.status-summary {
+  padding: 0.75rem 1rem;
+  border: 1px solid transparent;
+  border-radius: 10px;
+}
+
+.status-summary.is-ok {
+  background: var(--tone-green-bg);
+  border-color: color-mix(in srgb, var(--tone-green-fg) 30%, var(--tone-green-bg));
+  color: var(--tone-green-fg);
+}
+
+.status-summary.is-warning {
+  background: var(--tone-amber-bg);
+  border-color: color-mix(in srgb, var(--tone-amber-fg) 30%, var(--tone-amber-bg));
+  color: var(--tone-amber-fg);
+}
+
+.status-summary.is-error {
+  background: var(--tone-red-bg);
+  border-color: color-mix(in srgb, var(--tone-red-fg) 30%, var(--tone-red-bg));
+  color: var(--tone-red-fg);
+}
+
+.status-summary.is-off {
+  background: var(--color-surface-alt);
+  border-color: var(--color-border);
+  color: var(--color-muted-strong);
+}
+
+.status-summary-title {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0;
+}
+
+.status-summary-title strong {
+  font-size: 1rem;
 }
 
 .status-checked {
-  margin: 0 0 1rem;
-  color: var(--color-muted);
-  font-size: 0.9rem;
+  margin-left: auto;
+  font-size: 0.8rem;
+  opacity: 0.85;
 }
 
+.status-summary-list {
+  margin: 0.5rem 0 0;
+  padding-left: 1.5rem;
+}
+
+.status-summary-list li + li {
+  margin-top: 0.2rem;
+}
+
+.status-summary-list a {
+  color: inherit;
+  font-weight: 700;
+}
+
+/* ---- A tile for each part ---- */
 .status-cards {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
-  gap: 1.25rem;
+  grid-template-columns: repeat(auto-fit, minmax(min(280px, 100%), 1fr));
+  gap: 1rem;
   align-items: start;
 }
 
-.status-card {
-  border: 1px solid var(--color-divider);
-  border-radius: var(--radius-lg);
-  padding: 1.25rem 1.5rem;
-  background: var(--color-bg);
+.status-tile.card {
+  border-width: 1px;
 }
 
-.status-card h2 {
+.status-tile.is-warning {
+  border-color: var(--color-warning);
+}
+
+.status-tile.is-error {
+  border-color: var(--color-error);
+}
+
+.status-tile-title {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 1rem;
-  margin: 0 0 1rem;
-  font-size: 1.2rem;
+  gap: 0.75rem;
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
   color: var(--color-heading);
 }
 
+.status-tile-name {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.status-tile-summary {
+  margin: 0.2rem 0 0.5rem;
+  color: var(--color-muted);
+}
+
 .health-badge {
-  font-size: 0.8rem;
-  font-weight: 600;
-  padding: 0.2rem 0.6rem;
-  border-radius: 999px;
+  padding: 0.1rem 0.6rem;
   border: 1px solid currentColor;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
 }
 
 .health-ok {
-  color: var(--color-success);
+  color: var(--tone-green-fg);
 }
 
 .health-warning {
-  color: var(--color-warning);
+  color: var(--tone-amber-fg);
 }
 
 .health-error {
-  color: var(--color-error);
+  color: var(--tone-red-fg);
 }
 
 .health-off {
@@ -96,7 +144,7 @@
 }
 
 .status-problems {
-  margin: 0 0 1rem;
+  margin: 0 0 0.75rem;
   padding-left: 1.2rem;
   color: var(--color-muted-strong);
 }
@@ -105,15 +153,16 @@
   margin-top: 0.25rem;
 }
 
-.status-card dl {
+.status-tile dl,
+.status-more dl {
   margin: 0;
 }
 
 .status-row {
   display: grid;
-  grid-template-columns: minmax(6rem, 38%) minmax(0, 1fr);
+  grid-template-columns: minmax(6rem, 40%) minmax(0, 1fr);
   gap: 0.75rem;
-  padding: 0.5rem 0;
+  padding: 0.45rem 0;
   border-top: 1px solid var(--color-divider);
 }
 
@@ -123,21 +172,114 @@
 
 .status-row dd {
   margin: 0;
-  color: var(--color-text);
   overflow-wrap: anywhere;
+  color: var(--color-text);
+  font-weight: 600;
 }
 
 .status-import-error {
   display: block;
   margin-top: 0.25rem;
   color: var(--color-error);
-  font-size: 0.9rem;
+  font-size: 0.85rem;
+  font-weight: 400;
   overflow-wrap: anywhere;
+}
+
+.status-more {
+  margin-top: 0.4rem;
+  border-top: 1px solid var(--color-divider);
+}
+
+.status-more > summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.5rem 0 0.2rem;
+  color: var(--color-muted-strong);
+  font-size: 0.85rem;
+  cursor: pointer;
+  list-style: none;
+}
+
+.status-more > summary::-webkit-details-marker {
+  display: none;
+}
+
+.status-more > summary::after {
+  content: "▾";
+}
+
+.status-more[open] > summary::after {
+  content: "▴";
 }
 
 .status-settings-link {
   display: inline-block;
-  margin-top: 0.75rem;
+  margin-top: 0.6rem;
   color: var(--color-accent);
   font-weight: 600;
+}
+
+/* ---- The timeline ---- */
+.status-timeline {
+  margin: 0;
+  padding: 0 0 0 0.9rem;
+  list-style: none;
+  border-left: 2px solid var(--color-border);
+}
+
+.status-timeline li {
+  position: relative;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 0 1rem;
+  padding: 0.35rem 0;
+}
+
+.status-timeline li::before {
+  content: "";
+  position: absolute;
+  top: 0.75rem;
+  left: -1.3rem;
+  width: 0.55rem;
+  height: 0.55rem;
+  border-radius: 50%;
+  background: var(--color-accent);
+}
+
+.status-timeline li.is-hold::before {
+  background: var(--color-warning);
+}
+
+.status-timeline li.is-bad::before {
+  background: var(--color-error);
+}
+
+.status-event-detail {
+  color: var(--color-muted);
+}
+
+.status-event-text {
+  flex: 1 1 14rem;
+  min-width: 0;
+}
+
+.status-timeline time {
+  flex-shrink: 0;
+  margin-left: auto;
+  color: var(--color-muted);
+  font-size: 0.8rem;
+}
+
+@media (max-width: 768px) {
+  .status-body {
+    padding: 0 1rem 1.5rem;
+  }
+
+  .status-checked {
+    margin-left: 0;
+    flex-basis: 100%;
+  }
 }

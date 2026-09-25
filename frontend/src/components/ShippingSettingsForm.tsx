@@ -3,6 +3,7 @@ import { ApiError, shippingApi, type PackageSize, type ShippingSender } from "..
 import { translate, useTranslation } from "../i18n";
 import type { MessageKey } from "../i18n/messages";
 import "../styles/Shipping.css";
+import { useAfterChange } from "../hooks/useAfterChange";
 
 const EMPTY_SENDER: ShippingSender = {
   name: "",
@@ -28,8 +29,15 @@ const SENDER_FIELDS: [keyof ShippingSender, MessageKey, string][] = [
 const PACKAGE_FIELDS: (keyof PackageSize)[] = ["length_cm", "width_cm", "height_cm", "weight_kg"];
 
 /** The sender printed on labels, and the parcel size offered on each order. */
-export function ShippingSettingsForm() {
+interface ShippingSettingsFormProps {
+  /** Told when a save has gone through, so a summary elsewhere can follow. */
+  onChanged?: () => void;
+}
+
+export function ShippingSettingsForm({ onChanged }: ShippingSettingsFormProps = {}) {
   const { t } = useTranslation();
+  const [saves, setSaves] = useState(0);
+  useAfterChange(saves === 0 ? null : saves, onChanged);
   const [sender, setSender] = useState<ShippingSender>(EMPTY_SENDER);
   const [pkg, setPkg] = useState<PackageSize>(EMPTY_PACKAGE);
   const [loaded, setLoaded] = useState(false);
@@ -58,6 +66,7 @@ export function ShippingSettingsForm() {
         default_package: hasPackage ? pkg : null,
       });
       setNote({ text: t("shippingSettings.saved"), tone: "success" });
+      setSaves((count) => count + 1);
     } catch (err) {
       setNote({
         text: err instanceof ApiError ? err.message : t("shippingSettings.saveFailed"),

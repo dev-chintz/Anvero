@@ -1136,6 +1136,74 @@ branch is unverified: only the SQLite path has been run.
 
 **Consequences:** Whether Allegro's pages read the number from the address is not confirmed (allegro.pl answers no automated request, so it could not be tried, and only one search result named the parameter, for One's page); if they do not, the link still lands on the page that asks for the number. Anvero's own status for these parcels comes from Allegro's tracking API and is unaffected.
 
+## 2026-09-25 — Inbox by day with waiting times, Status as a summary, tiles and a timeline
+
+**Decided (owner, 2026-09-25, from mockups W2 for the Inbox and S1+S3 for Status):** the Inbox was a plain
+list with a big empty pane and the Status page a wall of rows with no answer to "is anything wrong?". Now:
+
+- **Inbox:** the tabs carry how many each holds (the other tab's count is one extra request, and the page
+  carries on without it if that fails); conversations are grouped Today / Yesterday / Older by calendar day; an
+  **unread** conversation shows how long it has waited (amber under a day, red after); one with an order has a
+  blue chip; the open conversation is a card beside the list (the list narrows to two lines a row) whose head
+  has the buyer, the wait, a link to the order (`/orders?search=<the marketplace's number>`), Put aside and close.
+- **Status:** one bar (the worst state of the marketplaces that are set up; ones that are off are ignored) listing
+  what needs attention with a link to Integrations; a tile each for Allegro, Erli and Anvero with the rest under
+  "Details"; a timeline of the last imports, the last reading of messages and the last five changes sent or
+  held back (`GET /marketplace-writes?limit=5`, and the page goes on without it if that fails).
+
+**Limits, deliberately:** the waiting time is shown only for unread conversations, because the list does not say
+who wrote last and `read` is mirrored from the marketplace (opening a thread in Anvero does not change it). The
+timeline is a recent picture, not a history: only each source's last import is stored. The backend is unchanged.
+
+## 2026-09-25 — Settings on rows, Integrations as tiles
+
+**Decided (owner, 2026-09-25, from three mockups each):** the two pages had a menu of sections beside
+their cards that repeated what the page already showed, a subtitle stranded at the right edge, and cards of
+very unequal height (two tiny ones beside a tall one; Allegro's long form beside a cut-off Erli card). Now:
+
+- **Settings (mockup A):** one centred column, no menu. A card "Appearance and language" with each setting
+  on a row (what it is and what it does on the left, its control on the right), and the safe mode card,
+  its heading carrying whether it is on and its log folded away with the number of entries.
+- **Integrations (mockup C):** a tile for each integration (Allegro, Erli, InPost, Sender and parcel), each
+  with a dot and a line of how it stands ("Connected as swift_hands · Production", "API key set (…lyLu)",
+  "Not connected"), so all four are seen at once; the chosen tile opens its settings in a panel below.
+  The choice is kept in the address (`/integrations?integration=erli`), so it can be linked to and survives a
+  reload. The tiles are read from each integration's own endpoint and fail on their own; a settings card that
+  saves something tells the page (`onChanged`), which reads the tiles again. Only the chosen card is mounted,
+  so unsaved typing in another is lost when switching.
+- `SettingsLayout` and its menu are gone. The page header keeps its subtitle under its title.
+
+Not done: the InPost status is not in `GET /status`, so the tiles ask its endpoint directly; a tile does not
+show the last import.
+
+## 2026-09-25 — One look for the whole application: the order page's style, everywhere
+
+**Decided (owner, 2026-09-25):** the colour and the type chosen for the order page (grey canvas, white
+rounded cards with tinted title bands, 14px text in a dark ink, small labels in bold capitals) are the
+style of the **whole** application, and every page is brought to it. The owner also pointed out that the
+dropdown looked unlike the buttons and tables: every page had styled its own buttons, fields and
+dropdowns, so no two matched. Now:
+
+- **The values are shared.** Colours, radii and the 14px base are tokens in `index.css`
+  (`--color-canvas`, `--tone-*`, radius 8px / card 10px), each with its dark value set once; the
+  card, its band, the tones, page titles, tables in a card and the pill tabs are in the new `theme.css`,
+  loaded after every page's stylesheet. `docs/STYLE_GUIDE.md` says all of it, and is what a new page follows.
+- **Controls are defined once**, with `:where()` so a page can still differ on purpose: an outlined
+  button (the filled accent one is `type="submit"`), one field, and one dropdown with its own arrow (the
+  browser's is switched off, which is why a page's `select` rule must not write `background:`). The
+  per-page rules that restyled inputs, selects and their focus were deleted (about a dozen stylesheets).
+- **Every page is on the canvas:** the page header is the same on every page (title on the canvas, 1.5rem
+  bold); the Dashboard's figures, charts and recent orders, the Status page, the filters panel, the
+  settings and integration cards, the label pick-up panel, the inbox and every table are cards; their bands
+  are toned (blue: the thing itself, teal: shipping and integrations, green, amber or red for how a part of
+  the application is doing).
+- **Tabs are one style:** pills with the chosen one filled, replacing three different tab looks.
+- **A card's title row** may be a `card-head` when it holds a button.
+
+**Not done:** the menu's own look (it keeps its light grey and its width), the login page's card is only
+moved onto the canvas, and no page was reworked in structure. This supersedes "the order page only" in
+the colour and type notes below.
+
 ## 2026-09-25 — The order's page is laid out like BaseLinker's: what matters first, the rest folded
 
 **Decided (owner, 2026-09-25, after a mockup):** the order page was one long column of
@@ -1176,6 +1244,13 @@ for done, solid teal for now, grey for what is left; the payment amount and the 
 headlines. Only the order page: the list and the other pages stay as they were until the owner
 has judged this one. No shadows: the cards are told apart by the canvas and their bands.
 
+**Type (owner, 2026-09-25: "more distinct, maybe a little smaller"):** the order page is 14px
+(the rest of the application stays at 16px) and sets `--color-text`, `--color-muted` and their
+kin darker inside `.order-page` only, so nothing else moves. Small labels are capitals, bold,
+letter-spaced; values are semibold; the page's title is 1.5rem bold. Controls inherit the
+page's font instead of the browser's smaller default. All of it is in the last block of
+`OrderPage.css`, so it can be tuned in one place.
+
 **Not done:** the buyer's message thread on the order (Allegro's public thread schema does
 not name the order, `INTEGRATIONS.md`), clickable steps, an "actions" menu with more in it.
 
@@ -1187,7 +1262,7 @@ Settings, and everything about Allegro, Erli, InPost and the shipping details fo
 moves from Settings to a new **Integrations** page (`/integrations`). Settings keeps the
 safe mode, the appearance and the language: the safe mode guards writes to every
 marketplace, so it belongs to the application, not to one integration. Both pages are one
-component, `SettingsLayout` (the menu of sections and the cards), given different groups.
+component, `SettingsLayout` (the menu of sections and the cards), given different groups (since replaced, see "Settings on rows, Integrations as tiles").
 The message keys keep their `settings.group...` names, and the cards their `settings-...`
 ids, so nothing that linked to them broke. The sender and default parcel count as an
 integration: they are only used for labels bought through Wysyłam z Allegro.

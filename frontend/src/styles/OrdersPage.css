@@ -2,34 +2,6 @@
   padding: 0;
 }
 
-.orders-page .page-header {
-  background: var(--color-surface-alt);
-  padding: 2rem;
-  border-bottom: 1px solid var(--color-divider);
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 1.5rem;
-  flex-wrap: wrap;
-}
-
-.orders-page .page-header h1 {
-  margin: 0 0 0.5rem 0;
-  font-size: 2rem;
-  color: var(--color-heading);
-  font-weight: 600;
-}
-
-.orders-page .page-header .subtitle {
-  margin: 0;
-  color: #6c757d;
-  font-size: 0.95rem;
-}
-
-:root.dark .orders-page .page-header .subtitle {
-  color: var(--color-muted);
-}
-
 .orders-page .allegro-import {
   display: flex;
   flex-direction: column;
@@ -39,7 +11,7 @@
 }
 
 .orders-page .allegro-import-button {
-  padding: 0.6rem 1.2rem;
+  padding: 0.5rem 1rem;
   border: none;
   border-radius: var(--radius-md);
   background: var(--color-accent);
@@ -71,7 +43,7 @@
 .orders-page .allegro-import-hint {
   margin: 0;
   font-size: 0.8rem;
-  color: #6c757d;
+  color: var(--color-muted);
   max-width: 220px;
 }
 
@@ -84,12 +56,6 @@
 }
 
 @media (max-width: 768px) {
-  .orders-page .page-header {
-    padding: 1.5rem;
-    flex-direction: column;
-    align-items: stretch;
-  }
-
   .orders-page .allegro-import {
     align-items: flex-start;
     text-align: left;
@@ -202,13 +168,7 @@
   color: var(--color-muted);
 }
 
-.orders-page .queue-sort select {
-  padding: 0.35rem 0.5rem;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  background: var(--color-bg);
-  color: var(--color-text);
-}
+
 
 /* the dispatch deadline under the order date */
 .dispatch-by {
@@ -269,7 +229,7 @@
 }
 
 .orders-table tr.row-selected {
-  background: var(--color-surface-alt);
+  background-color: var(--color-surface-alt);
 }
 
 .orders-page .bulk-bar {
@@ -292,7 +252,7 @@
   padding: 0.25rem 0.6rem;
   border: 1px solid var(--color-border);
   border-radius: var(--radius);
-  background: var(--color-bg);
+  background-color: var(--color-bg);
   color: var(--color-text);
   font: inherit;
   font-size: 0.85rem;

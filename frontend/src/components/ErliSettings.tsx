@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { ApiError, integrationsApi, type ErliStatus } from "../api/client";
 import { translate, useTranslation } from "../i18n";
 import "../styles/ErliSettings.css";
+import { useAfterChange } from "../hooks/useAfterChange";
 
 function messageOf(err: unknown, fallback: string): string {
   return err instanceof ApiError ? err.message : fallback;
@@ -17,9 +18,15 @@ type Note = { text: string; error: boolean };
  * come back. The backend saves it only after Erli has accepted it, so a
  * mistyped key is refused here rather than failing at the next import.
  */
-export function ErliSettings() {
+interface ErliSettingsProps {
+  /** Told when what the card shows has changed (a key saved or forgotten), so a summary elsewhere can follow. */
+  onChanged?: () => void;
+}
+
+export function ErliSettings({ onChanged }: ErliSettingsProps = {}) {
   const { t, formatDateTime } = useTranslation();
   const [status, setStatus] = useState<ErliStatus | null>(null);
+  useAfterChange(status, onChanged);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [apiKey, setApiKey] = useState("");
   const [saving, setSaving] = useState(false);

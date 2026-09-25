@@ -22,6 +22,7 @@ Read the following files in order:
 8. MVP.md
 9. DECISIONS.md
 10. INTEGRATIONS.md
+11. STYLE_GUIDE.md (before writing any interface: the one look every page shares)
 
 ---
 
@@ -60,7 +61,7 @@ breakdown; the short version:
   history.
 - Allegro adapter, import script, an import endpoint and a button, one
   import at a time.
-- 807 backend and 413 frontend tests passing.
+- 807 backend and 478 frontend tests passing.
 - The order opens as a page of its own with back and next/previous arrows, the
   list shows each order's items, the menu shows what waits, and a new interface
   language is a dictionary file and one line (`DECISIONS.md`, 2026-09-24).

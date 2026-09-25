@@ -367,24 +367,6 @@ button.attention-chip {
   margin: 0.75rem 0 0.5rem;
 }
 
-.shipping-tabs button {
-  padding: 0.3rem 0.8rem;
-  background: none;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius);
-  color: var(--color-muted-strong);
-  font: inherit;
-  font-size: 0.9rem;
-  cursor: pointer;
-}
-
-.shipping-tabs button.is-on {
-  background: var(--color-surface-alt);
-  border-color: var(--color-accent);
-  color: var(--color-accent);
-  font-weight: 600;
-}
-
 .shipping-panel {
   margin-top: 0.5rem;
 }
@@ -460,134 +442,55 @@ button.attention-chip {
   margin-top: 0.5rem;
 }
 
-/* ---- Colour: a grey canvas under white cards, each card's title band in its own tone ----
-   Everything on the order page was white on white, so the cards ran together. The page now
-   sits on a grey canvas; a card is white with a rounded edge, and its title is a band
-   tinted for what the card is (blue: the order itself, teal: sending it, green or red: the
-   money, amber: notes). */
-.order-page {
-  min-height: 100vh;
-  background: var(--color-canvas);
+/* ---- Colour: which tone each card of the order page takes ----
+   The card and its band are in theme.css; a card's tone says what it is: blue for the order
+   itself, teal for sending it, green or red for the money, amber for notes. */
+.order-items,
+.order-facts,
+.order-buyer {
+  --band-bg: var(--tone-blue-bg);
+  --band-fg: var(--tone-blue-fg);
 }
 
-.order-page .order-card {
-  --band-bg: var(--color-surface-alt);
-  --band-fg: var(--color-muted-strong);
-  padding: 1rem;
-  overflow: hidden;
-  background: var(--color-bg);
-  border: 1px solid var(--color-border);
-  border-radius: 10px;
+.order-shipping,
+.order-delivery,
+.order-invoice {
+  --band-bg: var(--tone-teal-bg);
+  --band-fg: var(--tone-teal-fg);
 }
 
-/* the title of a card is its band; in a card whose title shares a row with a button, the row is */
-.order-page .order-card > h2,
-.order-page .order-card > .order-card-head {
-  margin: -1rem -1rem 0.9rem;
-  padding: 0.55rem 1rem;
-  background: var(--band-bg);
-  color: var(--band-fg);
+.order-payment.payment-paid {
+  --band-bg: var(--tone-green-bg);
+  --band-fg: var(--tone-green-fg);
 }
 
-.order-page .order-card > h2 {
-  font-size: 0.95rem;
+.order-payment.payment-unpaid {
+  --band-bg: var(--tone-red-bg);
+  --band-fg: var(--tone-red-fg);
 }
 
-.order-page .order-card > .order-card-head {
-  align-items: center;
-}
-
-.order-page .order-card > .order-card-head > h2 {
-  margin: 0;
-  font-size: 0.95rem;
-  color: inherit;
-}
-
-.order-page .order-items,
-.order-page .order-facts,
-.order-page .order-buyer {
-  --band-bg: #e7f0fd;
-  --band-fg: #1e40af;
-}
-
-.order-page .order-shipping,
-.order-page .order-delivery,
-.order-page .order-invoice {
-  --band-bg: #d8efee;
-  --band-fg: #0b5559;
-}
-
-.order-page .order-payment {
-  --band-bg: var(--color-surface-alt);
-}
-
-.order-page .order-payment.payment-paid {
-  --band-bg: #dcfce7;
-  --band-fg: #166534;
-}
-
-.order-page .order-payment.payment-unpaid {
-  --band-bg: #fee2e2;
-  --band-fg: #b91c1c;
-}
-
-.order-page .after-sales-card.needs-action,
-.order-page .order-internal-note {
-  --band-bg: #fef3c7;
-  --band-fg: #854d0e;
-}
-
-:root.dark .order-page .order-items,
-:root.dark .order-page .order-facts,
-:root.dark .order-page .order-buyer {
-  --band-bg: #1e3a5f;
-  --band-fg: #bfdbfe;
-}
-
-:root.dark .order-page .order-shipping,
-:root.dark .order-page .order-delivery,
-:root.dark .order-page .order-invoice {
-  --band-bg: #0f3d3f;
-  --band-fg: #99e0dc;
-}
-
-:root.dark .order-page .order-payment.payment-paid {
-  --band-bg: #14532d;
-  --band-fg: #bbf7d0;
-}
-
-:root.dark .order-page .order-payment.payment-unpaid {
-  --band-bg: #450a0a;
-  --band-fg: #fca5a5;
-}
-
-:root.dark .order-page .after-sales-card.needs-action,
-:root.dark .order-page .order-internal-note {
-  --band-bg: #3f3405;
-  --band-fg: #fde68a;
+.after-sales-card.needs-action,
+.order-internal-note {
+  --band-bg: var(--tone-amber-bg);
+  --band-fg: var(--tone-amber-fg);
 }
 
 /* the note is tinted through, so it reads as the operator's own scribble */
-.order-page .order-internal-note {
-  background: #fffbeb;
-  border-color: #fde68a;
-}
-
-:root.dark .order-page .order-internal-note {
-  background: #221c06;
-  border-color: #854d0e;
+.order-internal-note {
+  background: color-mix(in srgb, var(--tone-amber-bg) 45%, var(--color-bg));
+  border-color: color-mix(in srgb, var(--tone-amber-fg) 35%, var(--color-bg));
 }
 
 /* the header card has no band: it is the page's own title */
-.order-page .order-header {
+.order-header {
   padding: 1rem 1.25rem;
 }
 
 /* the steps: done in green, the present one solid, the rest quiet */
 .order-step.is-done {
-  background: #dcfce7;
-  border-color: #86efac;
-  color: #166534;
+  background: var(--tone-green-bg);
+  border-color: color-mix(in srgb, var(--tone-green-fg) 35%, var(--tone-green-bg));
+  color: var(--tone-green-fg);
 }
 
 .order-step.is-current {
@@ -596,20 +499,14 @@ button.attention-chip {
   color: #fff;
 }
 
-:root.dark .order-step.is-done {
-  background: #14532d;
-  border-color: #166534;
-  color: #bbf7d0;
-}
-
 :root.dark .order-step.is-current {
   color: #0b0b0b;
 }
 
 .order-step.is-cancelled {
-  background: #fee2e2;
-  border-color: #fca5a5;
-  color: #b91c1c;
+  background: var(--tone-red-bg);
+  border-color: color-mix(in srgb, var(--tone-red-fg) 35%, var(--tone-red-bg));
+  color: var(--tone-red-fg);
 }
 
 /* the money: the amount is the card's headline */
@@ -621,28 +518,129 @@ button.attention-chip {
 }
 
 .order-payment .order-paid {
-  color: #166534;
+  color: var(--tone-green-fg);
 }
 
 .order-payment .order-unpaid {
-  color: #b91c1c;
+  color: var(--tone-red-fg);
 }
 
-:root.dark .order-payment .order-paid {
-  color: #86efac;
-}
-
-:root.dark .order-payment .order-unpaid {
-  color: #fca5a5;
-}
-
-/* the items: a grey head row, the total as the table's headline */
-.order-page .order-items thead th {
-  background: var(--color-surface-alt);
-}
-
-.order-page .order-items tfoot .order-items-total td,
-.order-page .order-items tfoot .order-items-total th {
+/* the items: the total is the table's headline */
+.order-items tfoot .order-items-total td,
+.order-items tfoot .order-items-total th {
   font-size: 1.05rem;
   color: var(--color-accent);
+}
+
+/* ---- Type (the shared values are in index.css; this is what the order page adds) ----
+   Small labels are capitals in semibold, values are medium or semibold, titles bold, so what is
+   what reads at a glance. */
+/* the page's title and who it is for */
+.order-header .order-page-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--color-heading);
+}
+
+.order-header-buyer {
+  font-size: 1.05rem;
+  font-weight: 500;
+  color: var(--color-muted-strong);
+}
+
+.order-header-meta {
+  font-size: 0.8rem;
+}
+
+.order-step {
+  font-size: 0.78rem;
+  font-weight: 500;
+}
+
+.order-step.is-current {
+  font-weight: 700;
+}
+
+.attention-chip {
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.order-next {
+  font-weight: 700;
+}
+
+/* a card's title band */
+.order-page .order-card > h2,
+.order-page .order-card > .order-card-head > h2 {
+  font-size: 0.9rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+
+/* the small labels: capitals, semibold, in a dark grey */
+.order-page .order-card h3,
+.order-page .fact-list dt,
+.order-page .fact-row label,
+.order-page .order-items th {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--color-muted-strong);
+}
+
+.order-page .order-items tfoot th {
+  text-transform: none;
+  letter-spacing: 0;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+/* the values: firmer than the running text */
+.order-page .fact-list dd {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.order-page .fact-list dd[title] {
+  cursor: help;
+}
+
+.order-page .order-items table {
+  font-size: 0.875rem;
+}
+
+.order-page .item-name-cell > span {
+  font-weight: 600;
+}
+
+.order-page .order-item-sku {
+  font-size: 0.72rem;
+  font-weight: 400;
+  color: var(--color-muted);
+}
+
+.order-page .order-items td.numeric {
+  font-weight: 600;
+}
+
+/* the first line of a name or an address is the one to read */
+.order-page .order-buyer p:first-of-type,
+.order-page .order-address span:first-child {
+  font-weight: 600;
+}
+
+.order-page .order-more-item > summary {
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.order-page .order-more-summary {
+  font-weight: 500;
+}
+
+.order-page .order-muted {
+  color: var(--color-muted);
 }

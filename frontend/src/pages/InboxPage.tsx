@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import {
   ApiError,
   messagesApi,
@@ -6,6 +7,7 @@ import {
   type MessageThreadDetail,
 } from '../api/client';
 import { useTranslation } from '../i18n';
+import { groupThreads, waitingHours, waitingTone } from './inbox/groupThreads';
 import '../styles/InboxPage.css';
 
 type Filter = 'active' | 'aside';
@@ -13,10 +15,16 @@ type Filter = 'active' | 'aside';
 // how long after the last key the search starts, so a nick is not looked up per letter
 const SEARCH_DELAY_MS = 300;
 
+interface Counts {
+  active: number | null;
+  aside: number | null;
+}
+
 export function InboxPage() {
-  const { t, formatRelative, formatDateTime } = useTranslation();
+  const { t, tc, formatRelative, formatDateTime } = useTranslation();
   const [filter, setFilter] = useState<Filter>('active');
   const [threads, setThreads] = useState<MessageThread[] | null>(null);
+  const [counts, setCounts] = useState<Counts>({ active: null, aside: null });
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [thread, setThread] = useState<MessageThreadDetail | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -31,6 +39,18 @@ export function InboxPage() {
     const timer = setTimeout(() => setSearched(query.trim()), SEARCH_DELAY_MS);
     return () => clearTimeout(timer);
   }, [query]);
+
+  // how many each tab holds, so both are known while only one is listed
+  const loadCounts = () =>
+    Promise.all([messagesApi.threads({ aside: false }), messagesApi.threads({ aside: true })])
+      .then(([active, aside]) => setCounts({ active: active.length, aside: aside.length }))
+      // the tabs simply show no figure; the list says what is wrong
+      .catch(() => undefined);
+
+  useEffect(() => {
+    loadCounts();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // A search looks through every thread, set aside or not, so the tabs do not
   // apply to it; without one the tab decides what is listed.
@@ -48,7 +68,10 @@ export function InboxPage() {
     setThreads(null);
     fetchThreads()
       .then((next) => {
-        if (!cancelled) setThreads(next);
+        if (cancelled) return;
+        setThreads(next);
+        // what a tab lists is what it holds
+        if (!searching) setCounts((current) => ({ ...current, [filter]: next.length }));
       })
       .catch((err: unknown) => {
         if (!cancelled) setError(err instanceof ApiError ? err.message : t('error.network'));
@@ -81,6 +104,7 @@ export function InboxPage() {
     try {
       await messagesApi.syncAllegro();
       loadThreads();
+      loadCounts();
       if (selectedId) messagesApi.thread(selectedId).then(setThread);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : t('error.network'));
@@ -98,8 +122,36 @@ export function InboxPage() {
         ? (prev ?? []).map((item) => (item.id === updated.id ? updated : item))
         : (prev ?? []).filter((item) => item.id !== updated.id),
     );
+    // one fewer in the tab it left, one more in the tab it joined
+    setCounts((current) => {
+      const step = updated.aside ? 1 : -1;
+      return {
+        active: current.active === null ? null : Math.max(0, current.active - step),
+        aside: current.aside === null ? null : Math.max(0, current.aside + step),
+      };
+    });
     if (thread?.id === updated.id) setThread({ ...thread, aside: updated.aside });
   };
+
+  // the thread as the list has it: what the detail was opened from (whether it was unread, and since when)
+  const listed = threads?.find((item) => item.id === selectedId) ?? null;
+  const groups = threads ? groupThreads(threads) : [];
+  const now = new Date();
+
+  const waitingChip = (item: MessageThread) => {
+    const hours = waitingHours(item, now);
+    if (hours === null) return null;
+    return (
+      <span className={`inbox-chip inbox-chip-${waitingTone(hours)}`}>
+        {hours < 24
+          ? tc('inbox.waiting.hours', Math.max(1, hours))
+          : tc('inbox.waiting.days', Math.floor(hours / 24))}
+      </span>
+    );
+  };
+
+  const tabCount = (count: number | null) =>
+    count === null ? null : <span className="inbox-tab-count">{count}</span>;
 
   return (
     <div className="inbox-page">
@@ -119,61 +171,65 @@ export function InboxPage() {
         </p>
       )}
 
-      <div className="inbox-body">
-        <div className="inbox-list-pane">
-          <div className="inbox-search">
-            <input
-              type="search"
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              placeholder={t('inbox.search')}
-              aria-label={t('inbox.search')}
-              maxLength={100}
-            />
-            {query && (
-              <button
-                type="button"
-                className="inbox-search-clear"
-                onClick={() => {
-                  setQuery('');
-                  setSearched('');
-                }}
-                aria-label={t('inbox.searchClear')}
-                title={t('inbox.searchClear')}
-              >
-                ✕
-              </button>
+      <div className={`inbox-body${thread ? ' has-thread' : ''}`}>
+        <section className="inbox-list card" aria-label={t('inbox.title')}>
+          <div className="inbox-toolbar">
+            {searching ? (
+              threads && <p className="inbox-search-summary">{t('inbox.searchResults', { count: threads.length })}</p>
+            ) : (
+              <div className="inbox-filters" role="tablist">
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={filter === 'active'}
+                  className={filter === 'active' ? 'active' : ''}
+                  onClick={() => setFilter('active')}
+                >
+                  {t('inbox.filter.active')}
+                  {tabCount(counts.active)}
+                </button>
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={filter === 'aside'}
+                  className={filter === 'aside' ? 'active' : ''}
+                  onClick={() => setFilter('aside')}
+                >
+                  {t('inbox.filter.aside')}
+                  {tabCount(counts.aside)}
+                </button>
+              </div>
             )}
+
+            <div className="inbox-search">
+              <input
+                type="search"
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                placeholder={t('inbox.search')}
+                aria-label={t('inbox.search')}
+                maxLength={100}
+              />
+              {query && (
+                <button
+                  type="button"
+                  className="inbox-search-clear"
+                  onClick={() => {
+                    setQuery('');
+                    setSearched('');
+                  }}
+                  aria-label={t('inbox.searchClear')}
+                  title={t('inbox.searchClear')}
+                >
+                  ✕
+                </button>
+              )}
+            </div>
           </div>
 
-          {searching ? (
-            threads && <p className="inbox-search-summary">{t('inbox.searchResults', { count: threads.length })}</p>
-          ) : (
-            <div className="inbox-filters" role="tablist">
-              <button
-                type="button"
-                role="tab"
-                aria-selected={filter === 'active'}
-                className={filter === 'active' ? 'active' : ''}
-                onClick={() => setFilter('active')}
-              >
-                {t('inbox.filter.active')}
-              </button>
-              <button
-                type="button"
-                role="tab"
-                aria-selected={filter === 'aside'}
-                className={filter === 'aside' ? 'active' : ''}
-                onClick={() => setFilter('aside')}
-              >
-                {t('inbox.filter.aside')}
-              </button>
-            </div>
-          )}
-
-          {!threads && <p role="status">{t('orders.loading')}</p>}
+          {!threads && <p role="status" className="inbox-note">{t('orders.loading')}</p>}
           {threads && threads.length === 0 && (
-            <p role="status" className="inbox-empty">
+            <p role="status" className="inbox-note inbox-empty">
               {searching
                 ? t('inbox.searchEmpty', { query: searched })
                 : filter === 'aside'
@@ -182,45 +238,64 @@ export function InboxPage() {
             </p>
           )}
 
-          <ul className="inbox-thread-list">
-            {threads?.map((item) => (
-              <li key={item.id}>
-                <button
-                  type="button"
-                  className={`inbox-thread-item ${item.id === selectedId ? 'selected' : ''} ${!item.read ? 'unread' : ''}`}
-                  onClick={() => setSelectedId(item.id)}
-                >
-                  <div className="inbox-thread-item-top">
-                    <span className="inbox-source-badge">{item.source}</span>
-                    <span className="inbox-thread-buyer">{item.interlocutor_login ?? '—'}</span>
-                    {searching && item.aside && (
-                      <span className="inbox-aside-tag">{t('inbox.filter.aside')}</span>
-                    )}
-                    {!item.read && <span className="inbox-unread-dot" aria-hidden="true" />}
-                  </div>
-                  <p className="inbox-thread-excerpt">{item.last_message_text ?? ''}</p>
-                  <div className="inbox-thread-item-bottom">
-                    <span>{item.order_external_id ? t('inbox.order', { order: item.order_external_id }) : t('inbox.noOrder')}</span>
-                    {item.last_message_at && <span>{formatRelative(item.last_message_at)}</span>}
-                  </div>
-                </button>
-              </li>
-            ))}
-          </ul>
-        </div>
+          {groups.map((group) => (
+            <div key={group.key} className="inbox-group">
+              <p className="inbox-group-head">
+                <span>{t(`inbox.group.${group.key}`)}</span>
+                <span>{group.threads.length}</span>
+              </p>
+              <ul className="inbox-thread-list">
+                {group.threads.map((item) => (
+                  <li key={item.id}>
+                    <button
+                      type="button"
+                      className={`inbox-row${item.id === selectedId ? ' selected' : ''}${!item.read ? ' unread' : ''}`}
+                      onClick={() => setSelectedId(item.id)}
+                    >
+                      <span className="inbox-row-main">
+                        <span className="inbox-row-who">
+                          <span className={item.read ? 'inbox-dot-space' : 'inbox-unread-dot'} aria-hidden="true" />
+                          <span className="inbox-thread-buyer">{item.interlocutor_login ?? '—'}</span>
+                          <span className="inbox-source">{item.source}</span>
+                          {item.order_external_id && (
+                            <span
+                              className="inbox-chip inbox-chip-blue"
+                              title={t('inbox.order', { order: item.order_external_id })}
+                            >
+                              {t('inbox.hasOrder')}
+                            </span>
+                          )}
+                          {searching && item.aside && (
+                            <span className="inbox-aside-tag">{t('inbox.filter.aside')}</span>
+                          )}
+                        </span>
+                        <span className="inbox-thread-excerpt">{item.last_message_text ?? ''}</span>
+                      </span>
+                      <span className="inbox-row-when">
+                        {waitingChip(item) ??
+                          (item.last_message_at && (
+                            <span className="inbox-when">{formatRelative(item.last_message_at)}</span>
+                          ))}
+                      </span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </section>
 
-        <div className="inbox-detail-pane">
-          {!thread && <p role="status" className="inbox-select-hint">{t('inbox.selectThread')}</p>}
-          {thread && (
-            <ThreadDetail
-              thread={thread}
-              onThreadChange={setThread}
-              onAsideToggle={() => toggleAside(thread)}
-              formatDateTime={formatDateTime}
-              t={t}
-            />
-          )}
-        </div>
+        {thread && (
+          <ThreadDetail
+            thread={thread}
+            waiting={listed ? waitingChip(listed) : null}
+            onThreadChange={setThread}
+            onAsideToggle={() => toggleAside(thread)}
+            onClose={() => setSelectedId(null)}
+            formatDateTime={formatDateTime}
+            t={t}
+          />
+        )}
       </div>
     </div>
   );
@@ -228,13 +303,24 @@ export function InboxPage() {
 
 interface ThreadDetailProps {
   thread: MessageThreadDetail;
+  /** How long the buyer has been waiting, as a chip, when the list knows. */
+  waiting: React.ReactNode;
   onThreadChange: (thread: MessageThreadDetail) => void;
   onAsideToggle: () => void;
+  onClose: () => void;
   formatDateTime: ReturnType<typeof useTranslation>['formatDateTime'];
   t: ReturnType<typeof useTranslation>['t'];
 }
 
-function ThreadDetail({ thread, onThreadChange, onAsideToggle, formatDateTime, t }: ThreadDetailProps) {
+function ThreadDetail({
+  thread,
+  waiting,
+  onThreadChange,
+  onAsideToggle,
+  onClose,
+  formatDateTime,
+  t,
+}: ThreadDetailProps) {
   const [draft, setDraft] = useState('');
   const [sending, setSending] = useState(false);
   const [status, setStatus] = useState<string | null>(null);
@@ -265,15 +351,26 @@ function ThreadDetail({ thread, onThreadChange, onAsideToggle, formatDateTime, t
   const canReply = thread.source === 'ALLEGRO';
 
   return (
-    <div className="inbox-thread-detail">
-      <div className="inbox-thread-detail-header">
-        <div>
+    <section className="inbox-detail card tone-blue" aria-label={t('inbox.conversation')}>
+      <div className="card-head">
+        <span className="inbox-detail-title">
           <strong>{thread.interlocutor_login ?? '—'}</strong>
-          <span className="inbox-source-badge">{thread.source}</span>
-        </div>
-        <button type="button" className="print-button" onClick={onAsideToggle}>
-          {thread.aside ? t('inbox.bringBack') : t('inbox.putAside')}
-        </button>
+          <span className="inbox-source">{thread.source}</span>
+          {waiting}
+        </span>
+        <span className="inbox-detail-actions">
+          {thread.order_external_id && (
+            <Link to={`/orders?search=${encodeURIComponent(thread.order_external_id)}`} className="inbox-order-link">
+              {t('inbox.openOrder')}
+            </Link>
+          )}
+          <button type="button" onClick={onAsideToggle}>
+            {thread.aside ? t('inbox.bringBack') : t('inbox.putAside')}
+          </button>
+          <button type="button" className="inbox-close" onClick={onClose} aria-label={t('inbox.close')} title={t('inbox.close')}>
+            ✕
+          </button>
+        </span>
       </div>
 
       <div className="inbox-message-list">
@@ -305,6 +402,6 @@ function ThreadDetail({ thread, onThreadChange, onAsideToggle, formatDateTime, t
       ) : (
         <p role="status" className="inbox-reply-status">{t('inbox.erliUnsupported')}</p>
       )}
-    </div>
+    </section>
   );
 }

@@ -1,0 +1,184 @@
+/* The look the whole application shares (docs/STYLE_GUIDE.md). The values (colours, radii,
+   type size) are in index.css; this file is the parts built from them: the card, its title
+   band and the tones a band or a chip can take. Loaded after every page's own stylesheet
+   (main.tsx), so a card looks like a card wherever it is. */
+
+/* ---- The card: white on the grey canvas, rounded, its title a tinted band ---- */
+:where(.card, .order-card) {
+  /* the default band, grey; :where() has no weight, so any tone class overrides it */
+  --band-bg: var(--color-surface-alt);
+  --band-fg: var(--color-muted-strong);
+}
+
+.card,
+.order-card {
+  min-width: 0;
+  padding: 1rem;
+  overflow: hidden;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+}
+
+/* the title of a card is its band; where the title shares a row with a button, the row is */
+:is(.card, .order-card) > :is(h2, h3):first-child,
+:is(.card, .order-card) > :is(.card-head, .order-card-head) {
+  margin: -1rem -1rem 0.9rem;
+  padding: 0.55rem 1rem;
+  background: var(--band-bg);
+  color: var(--band-fg);
+  font-size: 0.9rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  text-transform: none;
+}
+
+:is(.card, .order-card) > :is(.card-head, .order-card-head) {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+:is(.card, .order-card) > :is(.card-head, .order-card-head) > :is(h2, h3) {
+  margin: 0;
+  color: inherit;
+  font-size: 0.9rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  text-transform: none;
+}
+
+/* ---- Tones: what a band, and a chip, is telling you by its colour ---- */
+.tone-blue {
+  --band-bg: var(--tone-blue-bg);
+  --band-fg: var(--tone-blue-fg);
+}
+
+.tone-teal {
+  --band-bg: var(--tone-teal-bg);
+  --band-fg: var(--tone-teal-fg);
+}
+
+.tone-green {
+  --band-bg: var(--tone-green-bg);
+  --band-fg: var(--tone-green-fg);
+}
+
+.tone-red {
+  --band-bg: var(--tone-red-bg);
+  --band-fg: var(--tone-red-fg);
+}
+
+.tone-amber {
+  --band-bg: var(--tone-amber-bg);
+  --band-fg: var(--tone-amber-fg);
+}
+
+/* a card that is a note is tinted right through */
+.card.tone-amber {
+  background: color-mix(in srgb, var(--tone-amber-bg) 45%, var(--color-bg));
+  border-color: color-mix(in srgb, var(--tone-amber-fg) 35%, var(--color-bg));
+}
+
+/* ---- Page titles: one size and weight on every page ---- */
+.page-header h1,
+.dashboard-header h1 {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--color-heading);
+}
+
+.page-header .subtitle,
+.dashboard-header .subtitle {
+  margin: 0.35rem 0 0;
+  font-size: 0.875rem;
+  color: var(--color-muted);
+}
+
+/* ---- Small labels, as on the order page: capitals, semibold, dark grey ---- */
+.label-caps {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--color-muted-strong);
+}
+
+/* ---- Tables: in a card of their own, the head row a grey strip (index.css), no rule under the last row ---- */
+.table-wrapper,
+.after-sales-table-wrap {
+  overflow-x: auto;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+}
+
+.table-wrapper tbody tr:last-child > :is(td, th),
+.after-sales-table-wrap tbody tr:last-child > :is(td, th) {
+  border-bottom: none;
+}
+
+/* ---- Tabs: one look. Pills, the chosen one filled with the accent (as the queues above the order list) ---- */
+:is(.labels-tabs, .after-sales-tabs, .shipping-tabs, .inbox-filters) {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+:is(.labels-tabs, .after-sales-tabs, .shipping-tabs, .inbox-filters) button {
+  padding: 0.35rem 0.9rem;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  color: var(--color-text);
+  font-weight: 500;
+}
+
+:is(.labels-tabs, .after-sales-tabs, .shipping-tabs, .inbox-filters) button:hover {
+  border-color: var(--color-accent);
+}
+
+:is(.labels-tabs, .after-sales-tabs, .shipping-tabs, .inbox-filters) button:is(.active, .is-on) {
+  background: var(--color-accent);
+  border-color: var(--color-accent);
+  color: #fff;
+  font-weight: 600;
+}
+
+:root.dark :is(.labels-tabs, .after-sales-tabs, .shipping-tabs, .inbox-filters) button:is(.active, .is-on) {
+  color: #0b0b0b;
+}
+
+/* ---- The dot that says whether something is set up, on, or fine ---- */
+.status-dot {
+  display: inline-block;
+  width: 0.6rem;
+  height: 0.6rem;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: #9ca3af;
+}
+
+.status-dot.is-ok,
+.status-dot-ok,
+.state-chip.is-on .status-dot {
+  background: var(--color-success);
+}
+
+.status-dot-warning {
+  background: var(--color-warning);
+}
+
+.status-dot-error,
+.state-chip.is-off .status-dot {
+  background: var(--color-error);
+}
+
+.state-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-weight: 600;
+}

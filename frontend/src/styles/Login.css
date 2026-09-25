@@ -4,7 +4,7 @@
   align-items: center;
   justify-content: center;
   padding: 1rem;
-  background: var(--color-bg);
+  background: var(--color-canvas);
 }
 
 .login-card {
@@ -15,12 +15,8 @@
   gap: 0.5rem;
   padding: 2rem;
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
-  background: #fff;
-}
-
-:root.dark .login-card {
-  background: var(--color-surface-alt);
+  border-radius: 10px;
+  background: var(--color-bg);
 }
 
 .login-brand {
@@ -42,24 +38,7 @@
   margin-top: 0.5rem;
 }
 
-.login-card input {
-  padding: 0.65rem 0.75rem;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  font-size: 1rem;
-  background: var(--color-bg);
-  color: var(--color-text);
-}
 
-.login-card input:focus {
-  /* deliberately not var(--color-accent): unlike everywhere else this teal
-     uses, there was never a dark-mode override here, so it has always
-     stayed the same color in both themes rather than switching to
-     --color-accent's dark value */
-  outline: none;
-  border-color: #0d7377;
-  box-shadow: 0 0 0 3px rgba(13, 115, 119, 0.15);
-}
 
 .login-submit {
   margin-top: 1.25rem;

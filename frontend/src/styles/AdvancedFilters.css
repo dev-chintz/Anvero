@@ -1,9 +1,9 @@
-.advanced-filters {
-  background: var(--color-surface-alt);
-  padding: 1.5rem;
-  border-radius: var(--radius-lg);
-  border: 1px solid var(--color-divider);
-  margin-bottom: 1.5rem;
+/* The search and filter panel above the order list. It is a card; its fields and buttons take
+   the shared look (index.css), so only what is particular to it is here. */
+
+.advanced-filters.card {
+  margin-bottom: 1.25rem;
+  padding: 1.25rem;
 }
 
 /* Filters Header */
@@ -20,77 +20,45 @@
 
 .search-input {
   width: 100%;
-  padding: 0.75rem 1rem;
-  border: 1px solid #dee2e6;
-  border-radius: var(--radius-md);
-  font-size: 0.95rem;
-  background: white;
-  color: var(--color-heading);
-  transition: border-color 0.2s, box-shadow 0.2s;
-}
-
-:root.dark .search-input {
-  background: #1e1e1e;
-  border-color: var(--color-border);
-}
-
-.search-input:focus {
-  outline: none;
-  /* no dark-mode override for the focus border exists, so it stays this
-     teal in both themes rather than switching to --color-accent's dark
-     value */
-  border-color: #0d7377;
-  box-shadow: 0 0 0 3px rgba(13, 115, 119, 0.1);
-}
-
-:root.dark .search-input:focus {
-  box-shadow: 0 0 0 3px rgba(20, 184, 166, 0.2);
+  padding: 0.6rem 0.9rem;
 }
 
 .filters-toggle {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  padding: 0.75rem 1.25rem;
+  padding: 0.6rem 1.1rem;
   background: var(--color-accent);
-  color: white;
-  border: none;
-  border-radius: var(--radius-md);
-  font-size: 0.95rem;
+  border-color: var(--color-accent);
+  color: #fff;
   font-weight: 600;
-  cursor: pointer;
-  transition: background 0.2s, transform 0.2s;
   white-space: nowrap;
 }
 
-.filters-toggle:hover {
-  background: #0a5a5d;
-  transform: translateY(-2px);
+:root.dark .filters-toggle {
+  color: #0b0b0b;
 }
 
-:root.dark .filters-toggle:hover {
-  background: #0d9488;
+.filters-toggle:hover {
+  background: var(--color-accent);
+  filter: brightness(0.92);
 }
 
 .filters-toggle .badge {
   display: inline-block;
   background: rgba(255, 255, 255, 0.3);
-  padding: 0.2rem 0.6rem;
+  padding: 0.1rem 0.55rem;
   border-radius: 1rem;
-  font-size: 0.75rem;
+  font-size: 0.72rem;
   font-weight: 600;
 }
 
 /* Filters Panel */
 .filters-panel {
-  margin-top: 1.5rem;
-  padding-top: 1.5rem;
-  border-top: 1px solid #dee2e6;
+  margin-top: 1.25rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--color-divider);
   animation: slideDown 0.2s ease-out;
-}
-
-:root.dark .filters-panel {
-  border-top-color: var(--color-border);
 }
 
 @keyframes slideDown {
@@ -108,64 +76,41 @@
 .filters-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 1.5rem;
+  gap: 1.25rem;
   margin-bottom: 1rem;
 }
 
 .filter-group {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: 0.4rem;
 }
 
 .filter-group label {
-  font-size: 0.85rem;
-  font-weight: 600;
+  font-size: 0.7rem;
+  font-weight: 700;
   color: var(--color-muted-strong);
   text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.filter-select,
-.filter-input {
-  padding: 0.75rem;
-  border: 1px solid #dee2e6;
-  border-radius: var(--radius-md);
-  font-size: 0.95rem;
-  background: white;
-  color: var(--color-heading);
-  transition: border-color 0.2s;
-}
-
-:root.dark .filter-select,
-:root.dark .filter-input {
-  background: #1e1e1e;
-  border-color: var(--color-border);
-}
-
-.filter-select:focus,
-.filter-input:focus {
-  outline: none;
-  border-color: var(--color-accent);
+  letter-spacing: 0.05em;
 }
 
 /* Clear Filters Button */
 .clear-filters-btn {
   display: block;
   margin-left: auto;
-  padding: 0.5rem 1rem;
-  background: #dc2626;
-  color: white;
-  border: none;
-  border-radius: var(--radius-md);
-  font-size: 0.9rem;
+  background: var(--tone-red-fg);
+  border-color: var(--tone-red-fg);
+  color: #fff;
   font-weight: 600;
-  cursor: pointer;
-  transition: background 0.2s;
 }
 
 .clear-filters-btn:hover {
-  background: #b91c1c;
+  background: var(--tone-red-fg);
+  filter: brightness(0.9);
+}
+
+:root.dark .clear-filters-btn {
+  color: #0b0b0b;
 }
 
 /* Responsive */

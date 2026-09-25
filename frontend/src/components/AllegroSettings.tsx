@@ -8,6 +8,7 @@ import {
 } from "../api/client";
 import { translate, useTranslation } from "../i18n";
 import "../styles/AllegroSettings.css";
+import { useAfterChange } from "../hooks/useAfterChange";
 
 const ENVIRONMENTS: AllegroEnvironment[] = ["sandbox", "production"];
 
@@ -23,9 +24,15 @@ function messageOf(err: unknown, fallback: string): string {
  * their own logged-in browser, and this page polls until the token arrives.
  * The client secret is write-only: it is sent when typed and never shown again.
  */
-export function AllegroSettings() {
+interface AllegroSettingsProps {
+  /** Told when what the card shows has changed (a save, a connection), so a summary elsewhere can follow. */
+  onChanged?: () => void;
+}
+
+export function AllegroSettings({ onChanged }: AllegroSettingsProps = {}) {
   const { t } = useTranslation();
   const [status, setStatus] = useState<AllegroStatus | null>(null);
+  useAfterChange(status, onChanged);
   const [loadError, setLoadError] = useState<string | null>(null);
 
   const [clientId, setClientId] = useState("");

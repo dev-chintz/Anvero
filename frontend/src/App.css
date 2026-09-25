@@ -1,7 +1,7 @@
 .app {
   display: flex;
   min-height: 100vh;
-  background: var(--color-bg);
+  background: var(--color-canvas);
 }
 
 /* Main Content Area */
@@ -18,39 +18,22 @@
      the bottom of the window (HorizontalScroll) would never leave the page's end.
      `clip` keeps a wide page from widening the window without becoming one. */
   overflow-x: clip;
-  background: var(--color-bg);
+  background: var(--color-canvas);
 }
 
 .app.sidebar-collapsed .app-content {
   margin-left: var(--sidebar-width-closed);
 }
 
-/* Page Header */
+/* Page Header: the title on the canvas, with what the page offers to the right; the size and weight of
+   the title are in theme.css, so every page has the same */
 .page-header {
-  padding: 2rem;
-  border-bottom: 1px solid var(--color-divider);
-}
-
-.page-header h1 {
-  margin: 0;
-  font-size: 2rem;
-  color: var(--color-heading);
-  font-weight: 600;
-}
-
-.page-header .subtitle {
-  margin: 0.5rem 0 0 0;
-  color: #6c757d;
-  font-size: 0.95rem;
-}
-
-:root.dark .app .page-header .subtitle {
-  color: var(--color-muted);
-}
-
-/* Settings Page */
-.settings-page {
-  padding: 2rem;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+  padding: 1.5rem 2rem 1rem;
 }
 
 /* the layout of the Settings page itself is in styles/SettingsPage.css */
@@ -75,7 +58,7 @@
 .page-not-found p {
   margin: 1rem 0 0 0;
   font-size: 1.1rem;
-  color: #6c757d;
+  color: var(--color-muted);
 }
 
 :root.dark .app .page-not-found p {
@@ -91,16 +74,11 @@
   }
 
   .page-header {
-    padding: 1.5rem;
+    flex-direction: column;
+    align-items: stretch;
+    padding: 1.25rem 1rem 0.75rem;
   }
 
-  .page-header h1 {
-    font-size: 1.5rem;
-  }
-
-  .settings-page {
-    padding: 1rem;
-  }
 }
 
 /* safe mode: the reminder above every page, and its switch in Settings */
@@ -123,28 +101,14 @@
   color: #a7f3d0;
 }
 
-.safe-mode-state {
-  font-weight: 600;
-  margin: 0 0 0.5rem;
-}
-
 .safe-mode-state.is-off {
   color: var(--color-error);
-}
-
-.safe-mode-settings button {
-  margin-top: 0.5rem;
 }
 
 .safe-mode-settings .danger-button {
   background: var(--color-error);
   border-color: var(--color-error);
   color: #fff;
-}
-
-.safe-mode-settings h3 {
-  margin: 1.5rem 0 0.5rem;
-  font-size: 1rem;
 }
 
 .safe-mode-log {

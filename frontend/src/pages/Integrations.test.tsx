@@ -1,82 +1,235 @@
-import { fireEvent, render, screen, within } from "@testing-library/react";
-import { MemoryRouter } from "react-router-dom";
-import { describe, expect, it, vi } from "vitest";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { MemoryRouter, useLocation } from "react-router-dom";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { Integrations } from "./Integrations";
 
-// each card has its own tests; here only the page's structure matters
-vi.mock("../components/AllegroSettings", () => ({ AllegroSettings: () => <p>allegro-card</p> }));
+// each card has its own tests; here the page's structure matters, and what it says of each
+const changed = vi.hoisted(() => ({ callbacks: {} as Record<string, () => void> }));
+vi.mock("../components/AllegroSettings", () => ({
+  AllegroSettings: ({ onChanged }: { onChanged?: () => void }) => {
+    changed.callbacks.allegro = onChanged ?? (() => undefined);
+    return <p>allegro-card</p>;
+  },
+}));
 vi.mock("../components/ErliSettings", () => ({ ErliSettings: () => <p>erli-card</p> }));
 vi.mock("../components/InpostSettings", () => ({ InpostSettings: () => <p>inpost-card</p> }));
 vi.mock("../components/ShippingSettingsForm", () => ({
   ShippingSettingsForm: () => <p>shipping-card</p>,
 }));
-// the application's own settings are on their own page: none of them may turn up here
-vi.mock("../components/SafeModeSettings", () => ({ SafeModeSettings: () => <p>safe-card</p> }));
 
-function renderIt() {
+vi.mock("../api/client", async () => {
+  const actual = await vi.importActual<typeof import("../api/client")>("../api/client");
+  return {
+    ...actual,
+    integrationsApi: { allegroStatus: vi.fn(), erliStatus: vi.fn() },
+    inpostApi: { status: vi.fn() },
+    shippingApi: { settings: vi.fn() },
+  };
+});
+
+const { integrationsApi, inpostApi, shippingApi } = await import("../api/client");
+
+function Where() {
+  const location = useLocation();
+  return <p data-testid="where">{`${location.pathname}${location.search}`}</p>;
+}
+
+function renderIt(entry = "/integrations") {
   return render(
-    <MemoryRouter>
+    <MemoryRouter initialEntries={[entry]}>
+      <Where />
       <Integrations />
     </MemoryRouter>,
   );
 }
 
+const tile = (name: RegExp) => screen.getByRole("tab", { name });
+
+beforeEach(() => {
+  changed.callbacks = {};
+  vi.mocked(integrationsApi.allegroStatus).mockResolvedValue({
+    configured: true,
+    connected: true,
+    application_complete: true,
+    client_id: "id",
+    user_agent: "agent",
+    environment: "production",
+    source: "settings",
+    account_login: "swift_hands",
+  });
+  vi.mocked(integrationsApi.erliStatus).mockResolvedValue({
+    configured: true,
+    source: "settings",
+    key_hint: "lyLu",
+    last_import_at: null,
+    last_import_created: null,
+    last_import_updated: null,
+    last_import_error: null,
+  });
+  vi.mocked(inpostApi.status).mockResolvedValue({
+    configured: false,
+    environment: "sandbox",
+    organization_id: null,
+    token_hint: null,
+    default_template: "small",
+  });
+  vi.mocked(shippingApi.settings).mockResolvedValue({
+    sender: {
+      name: "Jan Kowalski",
+      company: null,
+      street: "Prosta 1",
+      postal_code: "00-001",
+      city: "Warszawa",
+      country_code: "PL",
+      email: "a@b.pl",
+      phone: "600",
+    },
+    default_package: null,
+  });
+});
+
 describe("Integrations page", () => {
-  it("is titled as the page of integrations", () => {
+  it("has its title and a subtitle under it, in one header", () => {
     renderIt();
 
-    expect(screen.getByRole("heading", { level: 1, name: "Integrations" })).toBeInTheDocument();
+    const header = screen.getByRole("heading", { level: 1, name: "Integrations" }).closest("header");
+    expect(header).toHaveTextContent("Marketplaces and carriers Anvero is connected to");
   });
 
-  it("puts every marketplace, including Erli, under sales channels", () => {
+  it("has a tile for each integration, in order", () => {
     renderIt();
 
-    const channels = screen.getByRole("region", { name: /Kanały sprzedaży|Sales channels/ });
-    expect(within(channels).getByText("allegro-card")).toBeInTheDocument();
-    expect(within(channels).getByText("erli-card")).toBeInTheDocument();
-  });
-
-  it("puts the sender, the parcel and InPost under shipping", () => {
-    renderIt();
-
-    const shipping = screen.getByRole("region", { name: /^(Wysyłka|Shipping)$/ });
-    expect(within(shipping).getByText("shipping-card")).toBeInTheDocument();
-    expect(within(shipping).getByText("inpost-card")).toBeInTheDocument();
-  });
-
-  it("has none of the application's own settings", () => {
-    renderIt();
-
-    expect(screen.queryByText("safe-card")).toBeNull();
-    expect(screen.queryByRole("combobox")).toBeNull();
-  });
-
-  it("has a menu with a link to every card, in page order", () => {
-    renderIt();
-
-    const menu = screen.getByRole("navigation", { name: /Sekcje integracji|Integration sections/ });
-    const targets = within(menu)
-      .getAllByRole("link")
-      .map((link) => link.getAttribute("href"));
-
-    expect(targets).toEqual([
-      "#settings-allegro",
-      "#settings-erli",
-      "#settings-shipping-form",
-      "#settings-inpost",
+    const tabs = within(screen.getByRole("tablist", { name: "Choose an integration" })).getAllByRole("tab");
+    expect(tabs.map((tab) => tab.querySelector(".integration-tile-name")?.textContent)).toEqual([
+      "Allegro",
+      "Erli",
+      "InPost",
+      "Sender and parcel",
     ]);
-    for (const target of targets) {
-      expect(document.getElementById(target!.slice(1))).not.toBeNull();
+  });
+
+  it("says on each tile how that integration stands", async () => {
+    renderIt();
+
+    await waitFor(() => expect(tile(/Allegro/)).toHaveTextContent("Connected as swift_hands · Production"));
+    expect(tile(/Erli/)).toHaveTextContent("API key set (…lyLu)");
+    expect(tile(/InPost/)).toHaveTextContent("Not connected");
+    expect(tile(/Sender/)).toHaveTextContent("Jan Kowalski, Warszawa");
+  });
+
+  it("marks what is set up with a green dot and what is not with a grey one", async () => {
+    renderIt();
+    await waitFor(() => expect(tile(/InPost/)).toHaveTextContent("Not connected"));
+
+    expect(tile(/Allegro/).querySelector(".status-dot")).toHaveClass("is-ok");
+    expect(tile(/InPost/).querySelector(".status-dot")).not.toHaveClass("is-ok");
+  });
+
+  it("says an application is saved when there is no seller account yet", async () => {
+    vi.mocked(integrationsApi.allegroStatus).mockResolvedValue({
+      configured: false,
+      connected: false,
+      application_complete: true,
+      client_id: "id",
+      user_agent: "agent",
+      environment: "sandbox",
+      source: "settings",
+      account_login: null,
+    });
+    renderIt();
+
+    await waitFor(() =>
+      expect(tile(/Allegro/)).toHaveTextContent("Application saved, no seller account"),
+    );
+  });
+
+  it("says when an integration is not set up at all, and when one could not be read", async () => {
+    vi.mocked(shippingApi.settings).mockResolvedValue({ sender: null, default_package: null });
+    vi.mocked(integrationsApi.erliStatus).mockRejectedValue(new Error("down"));
+    renderIt();
+
+    await waitFor(() => expect(tile(/Sender/)).toHaveTextContent("Not set"));
+    expect(tile(/Erli/)).toHaveTextContent("Could not be read");
+    // the others are not held up by it
+    expect(tile(/Allegro/)).toHaveTextContent("swift_hands");
+  });
+
+  it("opens Allegro first, and only its settings", () => {
+    renderIt();
+
+    expect(tile(/Allegro/)).toHaveAttribute("aria-selected", "true");
+    const panel = screen.getByRole("tabpanel");
+    expect(within(panel).getByText("allegro-card")).toBeInTheDocument();
+    for (const other of ["erli-card", "inpost-card", "shipping-card"]) {
+      expect(screen.queryByText(other)).toBeNull();
     }
   });
 
-  it("marks the clicked section as the current one", () => {
+  it("opens the settings of the tile chosen, and remembers the choice in the address", () => {
     renderIt();
-    const menu = screen.getByRole("navigation", { name: /Sekcje integracji|Integration sections/ });
 
-    fireEvent.click(within(menu).getByRole("link", { name: "Erli" }));
+    fireEvent.click(tile(/Erli/));
 
-    expect(within(menu).getByRole("link", { name: "Erli" })).toHaveAttribute("aria-current", "true");
-    expect(within(menu).getByRole("link", { name: "Allegro" })).not.toHaveAttribute("aria-current");
+    expect(tile(/Erli/)).toHaveAttribute("aria-selected", "true");
+    expect(tile(/Allegro/)).toHaveAttribute("aria-selected", "false");
+    expect(within(screen.getByRole("tabpanel")).getByText("erli-card")).toBeInTheDocument();
+    expect(screen.queryByText("allegro-card")).toBeNull();
+    expect(screen.getByTestId("where")).toHaveTextContent("/integrations?integration=erli");
+  });
+
+  it("opens the one the address names", () => {
+    renderIt("/integrations?integration=inpost");
+
+    expect(tile(/InPost/)).toHaveAttribute("aria-selected", "true");
+    expect(within(screen.getByRole("tabpanel")).getByText("inpost-card")).toBeInTheDocument();
+  });
+
+  it("opens the sender and parcel form under its longer name", () => {
+    renderIt("/integrations?integration=sender");
+
+    const panel = screen.getByRole("tabpanel");
+    expect(within(panel).getByRole("heading", { name: "Sender and default parcel" })).toBeInTheDocument();
+    expect(within(panel).getByText("shipping-card")).toBeInTheDocument();
+  });
+
+  it("opens Allegro for an address that names nothing it knows", () => {
+    renderIt("/integrations?integration=nonsense");
+
+    expect(tile(/Allegro/)).toHaveAttribute("aria-selected", "true");
+  });
+
+  it("repeats the state of the chosen one in the head of its panel", async () => {
+    renderIt("/integrations?integration=erli");
+
+    const panel = screen.getByRole("tabpanel");
+    await waitFor(() => expect(panel).toHaveTextContent("API key set (…lyLu)"));
+  });
+
+  it("reads every tile again when a card says it has changed something", async () => {
+    renderIt();
+    await waitFor(() => expect(tile(/Allegro/)).toHaveTextContent("swift_hands"));
+    expect(integrationsApi.allegroStatus).toHaveBeenCalledTimes(1);
+    vi.mocked(integrationsApi.allegroStatus).mockResolvedValue({
+      configured: false,
+      connected: false,
+      application_complete: false,
+      client_id: null,
+      user_agent: null,
+      environment: "production",
+      source: "settings",
+      account_login: null,
+    });
+
+    changed.callbacks.allegro();
+
+    await waitFor(() => expect(tile(/Allegro/)).toHaveTextContent("Not connected"));
+    expect(integrationsApi.allegroStatus).toHaveBeenCalledTimes(2);
+  });
+
+  it("has no menu of sections and none of the application's own settings", () => {
+    renderIt();
+
+    expect(screen.queryByRole("navigation")).toBeNull();
+    expect(screen.queryByRole("combobox")).toBeNull();
   });
 });
