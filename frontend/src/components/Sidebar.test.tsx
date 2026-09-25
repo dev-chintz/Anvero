@@ -36,7 +36,7 @@ function stats(queues: Record<string, number>) {
 function renderSidebar() {
   return render(
     <MemoryRouter initialEntries={["/dashboard"]}>
-      <Sidebar isDarkMode={false} onThemeToggle={() => undefined} />
+      <Sidebar isOpen onToggle={() => undefined} />
     </MemoryRouter>,
   );
 }
@@ -133,14 +133,179 @@ describe("the menu's badges", () => {
   });
 });
 
-describe("the language button", () => {
-  it("offers the language after the current one", () => {
+describe("the footer of the menu", () => {
+  it("has no button for the theme or the language: those are in Settings", () => {
     renderSidebar();
 
-    expect(screen.getByRole("button", { name: "Switch language" })).toHaveTextContent("PL");
+    expect(screen.queryByRole("button", { name: "Switch language" })).toBeNull();
+    expect(screen.queryByRole("button", { name: /light mode|dark mode/i })).toBeNull();
+    expect(document.querySelector(".theme-toggle.language-toggle")).toBeNull();
+  });
 
-    fireEvent.click(screen.getByRole("button", { name: "Switch language" }));
+  it("keeps who is logged in and the way to log out", () => {
+    renderSidebar();
 
-    expect(screen.getByRole("button", { name: /Zmień język/ })).toHaveTextContent("EN");
+    expect(screen.getByText("operator@example.com")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Log out" })).toBeInTheDocument();
+  });
+
+  it("still lets a folded menu log out", () => {
+    render(
+      <MemoryRouter>
+        <Sidebar isOpen={false} onToggle={() => undefined} />
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByRole("button", { name: "Log out" })).toBeInTheDocument();
+  });
+});
+
+describe("the menu's sections", () => {
+  it("has Integrations, before Settings, leading to their own page", () => {
+    renderSidebar();
+
+    const links = within(screen.getByRole("navigation"))
+      .getAllByRole("link")
+      .map((link) => link.getAttribute("href"));
+
+    expect(links).toContain("/integrations");
+    expect(links.indexOf("/integrations")).toBeLessThan(links.indexOf("/settings"));
+    expect(screen.getByRole("link", { name: /Integrations/ })).toHaveAttribute(
+      "href",
+      "/integrations",
+    );
+  });
+});
+
+describe("the statuses and channels under Orders", () => {
+  function renderAt(entry: string, props: { isOpen?: boolean; onToggle?: () => void } = {}) {
+    return render(
+      <MemoryRouter initialEntries={[entry]}>
+        <Sidebar
+          isOpen={props.isOpen ?? true}
+          onToggle={props.onToggle ?? (() => undefined)}
+        />
+      </MemoryRouter>,
+    );
+  }
+
+  beforeEach(() => {
+    vi.mocked(ordersApi.stats).mockResolvedValue({
+      ...stats({}),
+      by_status: { NEW: 3, CONFIRMED: 6 },
+      by_source: { ALLEGRO: 8, ERLI: 1 },
+    });
+  });
+
+  const subMenu = () => screen.getByRole("list", { name: "Orders by status and channel" });
+
+  it("are listed with how many orders each holds, on an orders page", async () => {
+    renderAt("/orders");
+
+    await waitFor(() =>
+      expect(within(subMenu()).getByRole("link", { name: /In progress/ })).toHaveTextContent("6"),
+    );
+    expect(within(subMenu()).getByRole("link", { name: /New/ })).toHaveTextContent("3");
+    expect(within(subMenu()).getByRole("link", { name: /ALLEGRO/ })).toHaveTextContent("8");
+    expect(within(subMenu()).getByRole("link", { name: /ERLI/ })).toHaveTextContent("1");
+  });
+
+  it("show a zero for one nothing is in, once the figures are known", async () => {
+    renderAt("/orders");
+
+    await waitFor(() =>
+      expect(within(subMenu()).getByRole("link", { name: /Delivered/ })).toHaveTextContent("0"),
+    );
+  });
+
+  it("lead to the list narrowed to them", async () => {
+    renderAt("/orders");
+
+    expect(within(subMenu()).getByRole("link", { name: /In progress/ })).toHaveAttribute(
+      "href",
+      "/orders?status=CONFIRMED",
+    );
+    expect(within(subMenu()).getByRole("link", { name: /ERLI/ })).toHaveAttribute(
+      "href",
+      "/orders?source=ERLI",
+    );
+    await waitFor(() => expect(ordersApi.stats).toHaveBeenCalled());
+  });
+
+  it("show which one the list is narrowed to", async () => {
+    renderAt("/orders?status=CONFIRMED");
+
+    const current = within(subMenu()).getByRole("link", { name: /In progress/ });
+    expect(current).toHaveAttribute("aria-current", "page");
+    expect(within(subMenu()).getByRole("link", { name: /New/ })).not.toHaveAttribute("aria-current");
+    await waitFor(() => expect(ordersApi.stats).toHaveBeenCalled());
+  });
+
+  it("are not there on other pages", async () => {
+    renderAt("/dashboard");
+
+    expect(screen.queryByRole("list", { name: "Orders by status and channel" })).not.toBeInTheDocument();
+    await waitFor(() => expect(ordersApi.stats).toHaveBeenCalled());
+  });
+
+  it("are not there while the menu is folded to icons", async () => {
+    renderAt("/orders", { isOpen: false });
+
+    expect(screen.queryByRole("list", { name: "Orders by status and channel" })).not.toBeInTheDocument();
+    await waitFor(() => expect(ordersApi.stats).toHaveBeenCalled());
+  });
+});
+
+describe("folding the menu", () => {
+  it("asks the layout to fold it, and says which way it will go", () => {
+    const onToggle = vi.fn();
+    const { rerender } = render(
+      <MemoryRouter>
+        <Sidebar isOpen onToggle={onToggle} />
+      </MemoryRouter>,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Collapse" }));
+    expect(onToggle).toHaveBeenCalledTimes(1);
+
+    rerender(
+      <MemoryRouter>
+        <Sidebar
+          isOpen={false}
+          onToggle={onToggle}
+        />
+      </MemoryRouter>,
+    );
+    expect(screen.getByRole("button", { name: "Expand" })).toBeInTheDocument();
+    expect(document.querySelector(".sidebar")).toHaveClass("closed");
+  });
+
+  it("folds itself after a link on a narrow window, where it lies over the page", () => {
+    const onToggle = vi.fn();
+    window.matchMedia = vi.fn().mockReturnValue({ matches: true }) as unknown as typeof window.matchMedia;
+    render(
+      <MemoryRouter>
+        <Sidebar isOpen onToggle={onToggle} />
+      </MemoryRouter>,
+    );
+
+    fireEvent.click(within(screen.getByRole("navigation")).getByRole("link", { name: /Settings/ }));
+
+    expect(onToggle).toHaveBeenCalledTimes(1);
+    // @ts-expect-error jsdom has none by default; put it back as it was
+    delete window.matchMedia;
+  });
+
+  it("stays open after a link on a wide window, where it sits beside the page", () => {
+    const onToggle = vi.fn();
+    render(
+      <MemoryRouter>
+        <Sidebar isOpen onToggle={onToggle} />
+      </MemoryRouter>,
+    );
+
+    fireEvent.click(within(screen.getByRole("navigation")).getByRole("link", { name: /Settings/ }));
+
+    expect(onToggle).not.toHaveBeenCalled();
   });
 });

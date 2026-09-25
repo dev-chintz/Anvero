@@ -1,5 +1,8 @@
 :root {
   --color-text: #1a1a2e;
+  /* the menu's two widths; the page beside it makes room for whichever is showing */
+  --sidebar-width-open: 200px;
+  --sidebar-width-closed: 70px;
   --color-muted: #6b7280;
   --color-border: #e5e7eb;
   --color-primary: #2563eb;

@@ -186,10 +186,10 @@ describe("InpostLabelsPanel", () => {
     await waitFor(() => expect(inpostApi.labels).toHaveBeenCalledTimes(2));
   });
 
-  it("points to Settings when InPost is not connected", async () => {
+  it("points to Integrations when InPost is not connected", async () => {
     vi.mocked(inpostApi.status).mockResolvedValue({ ...connected, configured: false });
     renderPanel();
 
-    expect(await screen.findByRole("link", { name: /Ustawienia|Settings/ })).toHaveAttribute("href", "/settings");
+    expect(await screen.findByRole("link", { name: /Integracje|Integrations/ })).toHaveAttribute("href", "/integrations");
   });
 });

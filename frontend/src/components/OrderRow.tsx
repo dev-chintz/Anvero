@@ -7,11 +7,13 @@ import {
   hasCancellationWarning,
   marketplaceStatusDiffers,
   marketplaceStatusText,
+  paymentState,
 } from "../types/order";
 import { translate, useTranslation } from "../i18n";
 import { carrierLabel } from "../types/order";
 import type { OrderLinkState } from "./orderLinkState";
 import { ItemThumb } from "./ItemThumb";
+import type { OrderNoteKind } from "./OrderNoteDialog";
 import { TrackingLink } from "./TrackingLink";
 
 // the name, when the marketplace gave one; the login is shown on its own line
@@ -63,6 +65,13 @@ interface OrderRowProps {
   onDelete?: (order: Order) => void;
   /** Bring a deleted order back; shown on a deleted order instead of the delete button. */
   onRestore?: (order: Order) => void;
+  /** With this the row has a checkbox, ticked when `selected`. */
+  onSelectChange?: (orderId: string, selected: boolean) => void;
+  selected?: boolean;
+  /** With this the row has a star and a flag that set or take off the operator's marks. */
+  onMarksChange?: (order: Order, marks: { starred?: boolean; flagged?: boolean }) => void;
+  /** With this the message and note icons open their text (the page fetches and shows it). */
+  onOpenNote?: (order: Order, kind: OrderNoteKind) => void;
 }
 
 export function OrderRow({
@@ -72,27 +81,106 @@ export function OrderRow({
   linkState,
   onDelete,
   onRestore,
+  onSelectChange,
+  selected = false,
+  onMarksChange,
+  onOpenNote,
 }: OrderRowProps) {
-  const { t, tc, formatDateTime, formatMoney, trackingLabel } = useTranslation();
+  const { t, tc, formatDateTime, formatRelative, formatMoney, trackingLabel, countryName } =
+    useTranslation();
   const shipments = order.shipments ?? [];
   const items = order.items ?? [];
   const hasPicture = items.some((item) => item.image_url);
   const formattedDate = formatDateTime(order.ordered_at);
   const urgency = dispatchUrgency(order);
+  const payment = paymentState(order);
+  const statusSince = order.status_changed_at ?? order.ordered_at;
+
+  // the buyer's message and the seller's note: a button that opens the text where the
+  // list can show it, otherwise just a sign that there is one
+  const noteIcon = (kind: OrderNoteKind, symbol: string, label: string) =>
+    onOpenNote ? (
+      <button
+        type="button"
+        className="row-icon"
+        title={label}
+        aria-label={label}
+        onClick={() => onOpenNote(order, kind)}
+      >
+        {symbol}
+      </button>
+    ) : (
+      <span className="row-icon" title={label} role="img" aria-label={label}>
+        {symbol}
+      </span>
+    );
 
   return (
-    <tr>
+    <tr className={selected ? "row-selected" : undefined}>
+      {onSelectChange && (
+        <td className="select-cell">
+          <input
+            type="checkbox"
+            checked={selected}
+            onChange={(e) => onSelectChange(order.id, e.target.checked)}
+            aria-label={t("orders.select", { order: order.order_label })}
+          />
+        </td>
+      )}
       <td>
         <div className="order-cell">
-          {/* the marketplace's own id is on the order's page; here it is what the link's tooltip says */}
-          <Link
-            to={`/orders/${order.id}`}
-            state={linkState}
-            className="order-link"
-            title={order.external_id}
-          >
-            {order.order_label}
-          </Link>
+          <div className="order-cell-head">
+            {onMarksChange && (
+              <>
+                <button
+                  type="button"
+                  className={`mark-button mark-star${order.starred ? " is-on" : ""}`}
+                  onClick={() => onMarksChange(order, { starred: !order.starred })}
+                  aria-pressed={!!order.starred}
+                  aria-label={t(order.starred ? "orders.unstarFor" : "orders.starFor", {
+                    order: order.order_label,
+                  })}
+                  title={t(order.starred ? "orders.unstarFor" : "orders.starFor", {
+                    order: order.order_label,
+                  })}
+                >
+                  {order.starred ? "★" : "☆"}
+                </button>
+                <button
+                  type="button"
+                  className={`mark-button mark-flag${order.flagged ? " is-on" : ""}`}
+                  onClick={() => onMarksChange(order, { flagged: !order.flagged })}
+                  aria-pressed={!!order.flagged}
+                  aria-label={t(order.flagged ? "orders.unflagFor" : "orders.flagFor", {
+                    order: order.order_label,
+                  })}
+                  title={t(order.flagged ? "orders.unflagFor" : "orders.flagFor", {
+                    order: order.order_label,
+                  })}
+                >
+                  {order.flagged ? "🚩" : "⚑"}
+                </button>
+              </>
+            )}
+            {/* the marketplace's own id is on the order's page; here it is what the link's tooltip says */}
+            <Link
+              to={`/orders/${order.id}`}
+              state={linkState}
+              className="order-link"
+              title={order.external_id}
+            >
+              {order.order_label}
+            </Link>
+            {order.delivery_country_code && (
+              // the code, not a flag emoji: Windows draws those as two bare letters anyway
+              <span
+                className="country-badge"
+                title={t("orders.country", { country: countryName(order.delivery_country_code) })}
+              >
+                {order.delivery_country_code.toUpperCase()}
+              </span>
+            )}
+          </div>
           {order.customer_login && (
             <span className="order-cell-login" title={order.customer_login}>
               {order.customer_login}
@@ -149,6 +237,46 @@ export function OrderRow({
               </option>
             ))}
           </select>
+          <div className="row-icons">
+            {payment && (
+              <span
+                className={`row-icon row-icon-${payment}`}
+                title={t(payment === "paid" ? "orders.icon.paid" : "orders.icon.unpaid")}
+                role="img"
+                aria-label={t(payment === "paid" ? "orders.icon.paid" : "orders.icon.unpaid")}
+              >
+                {payment === "paid" ? "✔" : "✖"}
+              </span>
+            )}
+            {shipments.length > 0 && (
+              <span
+                className="row-icon"
+                title={t("orders.icon.parcel")}
+                role="img"
+                aria-label={t("orders.icon.parcel")}
+              >
+                📦
+              </span>
+            )}
+            {order.invoice_required && (
+              <span
+                className="row-icon"
+                title={t("orders.icon.invoice")}
+                role="img"
+                aria-label={t("orders.icon.invoice")}
+              >
+                🧾
+              </span>
+            )}
+            {order.has_buyer_message && noteIcon("message", "💬", t("orders.icon.message"))}
+            {order.has_seller_note && noteIcon("note", "📝", t("orders.icon.note"))}
+          </div>
+          <span
+            className="status-since"
+            title={t("orders.inStatusSince", { when: formatDateTime(statusSince) })}
+          >
+            {formatRelative(statusSince)}
+          </span>
           {hasCancellationWarning(order) && (
             <span className="badge badge-warning">
               {t("orders.cancelledOn", { source: order.source })}

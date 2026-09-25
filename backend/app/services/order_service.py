@@ -130,6 +130,16 @@ class OrderService:
             return order
         return self.repository.mark_deleted(order, user_id)
 
+    def set_marks(
+        self, order_id: uuid.UUID, starred: bool | None, flagged: bool | None
+    ) -> Order:
+        """Star or flag an order, or take the mark off; a mark left out stays as it is.
+
+        Raises:
+            HTTPException: 404 if no order exists with that id.
+        """
+        return self.repository.set_marks(self.get_order(order_id), starred, flagged)
+
     def restore_order(self, order_id: uuid.UUID) -> Order:
         """Put a deleted order back in the lists. One in use is left as it is."""
         order = self.get_order(order_id)
@@ -167,6 +177,8 @@ class OrderService:
         queue: OrderQueue | None = None,
         sort: OrderSort = OrderSort.NEWEST,
         deleted: bool = False,
+        starred: bool = False,
+        flagged: bool = False,
     ) -> tuple[list[Order], int]:
         """List orders with optional filtering and pagination.
 
@@ -190,6 +202,8 @@ class OrderService:
             sort: Newest first by default; also oldest first, or closest
                 dispatch deadline first.
             deleted: List the deleted orders instead of the ones in use.
+            starred: When true, only orders the operator has starred.
+            flagged: When true, only orders the operator has flagged.
 
         Returns:
             A tuple of (matching orders for the current page, total count
@@ -204,6 +218,8 @@ class OrderService:
             "cancellation_warning": cancellation_warning,
             "queue": queue,
             "deleted": deleted,
+            "starred": starred,
+            "flagged": flagged,
         }
         orders = self.repository.list(skip=skip, limit=limit, sort=sort, **filters)
         total = self.repository.count(**filters)

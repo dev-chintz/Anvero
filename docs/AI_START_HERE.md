@@ -44,7 +44,7 @@ started: see below. B4, returns and claims, is started: a read-only queue
 with deadlines, an alert on the order and a dashboard reminder, built from
 Allegro's published specification and never run against a real account).
 
-**InPost (2026-09-25):** parcel locker shipments and their labels can be made through InPost's ShipX API, in bulk from the Labels page and on the order (`INTEGRATIONS.md`, "InPost"); built from the documentation, never run against InPost, and waiting for the owner's sandbox token and organization number, which they enter in Settings.
+**InPost (2026-09-25):** parcel locker shipments and their labels can be made through InPost's ShipX API, in bulk from the Labels page and on the order (`INTEGRATIONS.md`, "InPost"); built from the documentation, never run against InPost, and waiting for the owner's sandbox token and organization number, which they enter in Integrations.
 
 **Open task:** the first deployment to the NAS is prepared but not yet run; see "PICK UP HERE" in `PROJECT_STATUS.md` and `DEPLOYMENT.md`.
 
@@ -60,7 +60,7 @@ breakdown; the short version:
   history.
 - Allegro adapter, import script, an import endpoint and a button, one
   import at a time.
-- 696 backend and 256 frontend tests passing.
+- 797 backend and 358 frontend tests passing.
 - The order opens as a page of its own with back and next/previous arrows, the
   list shows each order's items, the menu shows what waits, and a new interface
   language is a dictionary file and one line (`DECISIONS.md`, 2026-09-24).

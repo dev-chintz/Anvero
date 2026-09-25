@@ -1420,3 +1420,112 @@ def test_a_deleted_order_is_not_among_the_buyers_other_orders():
     others = client.get(f"/api/v1/orders/{kept['id']}/buyer-orders").json()
 
     assert [o["external_id"] for o in others] == []
+
+
+# --- the operator's marks, and the list's small facts ------------------------------
+
+
+def test_marking_an_order_needs_a_login():
+    some_id = "00000000-0000-0000-0000-000000000000"
+
+    assert anonymous.patch(f"/api/v1/orders/{some_id}/marks", json={"starred": True}).status_code == 401
+
+
+def test_an_order_starts_unmarked():
+    order = _create(external_id="MARK-NONE")
+
+    assert order["starred"] is False
+    assert order["flagged"] is False
+
+
+def test_an_order_can_be_starred_and_flagged_and_unmarked_again():
+    order = _create(external_id="MARK-BOTH")
+
+    starred = client.patch(f"/api/v1/orders/{order['id']}/marks", json={"starred": True})
+    assert starred.status_code == 200
+    assert (starred.json()["starred"], starred.json()["flagged"]) == (True, False)
+
+    # a mark left out stays as it is
+    flagged = client.patch(f"/api/v1/orders/{order['id']}/marks", json={"flagged": True}).json()
+    assert (flagged["starred"], flagged["flagged"]) == (True, True)
+
+    cleared = client.patch(
+        f"/api/v1/orders/{order['id']}/marks", json={"starred": False, "flagged": False}
+    ).json()
+    assert (cleared["starred"], cleared["flagged"]) == (False, False)
+
+
+def test_marking_an_unknown_order_is_404():
+    some_id = "00000000-0000-0000-0000-000000000000"
+
+    assert client.patch(f"/api/v1/orders/{some_id}/marks", json={"starred": True}).status_code == 404
+
+
+def test_marking_does_not_touch_the_status_or_its_history():
+    order = _create(external_id="MARK-QUIET")
+
+    client.patch(f"/api/v1/orders/{order['id']}/marks", json={"starred": True})
+
+    assert client.get(f"/api/v1/orders/{order['id']}").json()["status"] == "NEW"
+    assert client.get(f"/api/v1/orders/{order['id']}/history").json() == []
+
+
+def test_the_list_can_be_narrowed_to_starred_or_flagged_orders():
+    plain = _create(external_id="MARK-LIST-PLAIN")
+    star = _create(external_id="MARK-LIST-STAR")
+    flag = _create(external_id="MARK-LIST-FLAG")
+    client.patch(f"/api/v1/orders/{star['id']}/marks", json={"starred": True})
+    client.patch(f"/api/v1/orders/{flag['id']}/marks", json={"flagged": True})
+
+    def found(**params):
+        return {o["external_id"] for o in _listed(search="MARK-LIST", **params)["items"]}
+
+    assert found() == {plain["external_id"], star["external_id"], flag["external_id"]}
+    assert found(starred="true") == {"MARK-LIST-STAR"}
+    assert found(flagged="true") == {"MARK-LIST-FLAG"}
+    assert _listed(search="MARK-LIST", starred="true")["total"] == 1
+
+
+def test_a_status_change_stamps_when_the_status_began():
+    order = _create(external_id="SINCE-1")
+    assert order["status_changed_at"] is None
+
+    client.patch(f"/api/v1/orders/{order['id']}/status", json={"status": "CONFIRMED"})
+
+    listed = _listed(search="SINCE-1")["items"][0]
+    assert listed["status_changed_at"] is not None
+    assert listed["status_changed_at"].endswith("Z") or "+" in listed["status_changed_at"]
+
+
+def test_setting_the_same_status_does_not_restart_the_clock():
+    order = _create(external_id="SINCE-2")
+    client.patch(f"/api/v1/orders/{order['id']}/status", json={"status": "CONFIRMED"})
+    first = _listed(search="SINCE-2")["items"][0]["status_changed_at"]
+
+    client.patch(f"/api/v1/orders/{order['id']}/status", json={"status": "CONFIRMED"})
+
+    assert _listed(search="SINCE-2")["items"][0]["status_changed_at"] == first
+
+
+def test_the_list_carries_the_facts_its_icons_are_drawn_from():
+    _create(
+        **_details_payload(
+            external_id="FACTS-1",
+            delivery={"method": "DPD", "address": {"city": "Berlin", "country_code": "DE"}},
+        )
+    )
+    _create(external_id="FACTS-2")
+
+    with_details = _listed(search="FACTS-1")["items"][0]
+    bare = _listed(search="FACTS-2")["items"][0]
+
+    assert with_details["delivery_country_code"] == "DE"
+    assert Decimal(with_details["paid_amount"]) == Decimal("180.98")
+    assert with_details["invoice_required"] is True
+    assert with_details["has_buyer_message"] is True
+    assert with_details["has_seller_note"] is True
+    assert bare["delivery_country_code"] is None
+    assert bare["paid_amount"] is None
+    assert bare["invoice_required"] is False
+    assert bare["has_buyer_message"] is False
+    assert bare["has_seller_note"] is False

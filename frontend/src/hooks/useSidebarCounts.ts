@@ -17,6 +17,9 @@ export interface SidebarCounts {
   afterSalesOverdue: number | null;
   /** buyer message threads not yet read */
   unreadMessages: number | null;
+  /** orders in each Anvero status, and from each marketplace, for the shortcuts under Orders */
+  byStatus: Record<string, number> | null;
+  bySource: Record<string, number> | null;
 }
 
 const EMPTY: SidebarCounts = {
@@ -27,6 +30,8 @@ const EMPTY: SidebarCounts = {
   afterSales: null,
   afterSalesOverdue: null,
   unreadMessages: null,
+  byStatus: null,
+  bySource: null,
 };
 
 // how often the numbers are read again while nothing else asks for it
@@ -60,6 +65,8 @@ export function useSidebarCounts(refreshKey: string): SidebarCounts {
             late: stats.queues?.late ?? null,
             unpaid: stats.queues?.unpaid ?? null,
             toMake: stats.queues?.to_make ?? null,
+            byStatus: stats.by_status ?? null,
+            bySource: stats.by_source ?? null,
           }),
         )
         .catch(() => undefined);

@@ -9,9 +9,9 @@ The `client_credentials` flow reaches public data only, so it cannot be used
 here. A human has to authorize the application once; the refresh token that
 authorization produces is what the import then runs on.
 
-### Connecting from Settings
+### Connecting from Integrations
 
-The Settings page has an Allegro section that replaces steps 3 and 4 below,
+The Integrations page has an Allegro section that replaces steps 3 and 4 below,
 with nothing edited by hand: choose the environment (sandbox or production),
 enter the application's client id, client secret and User-Agent, save, and
 click **Connect account**. It shows a link and a code; open the link **logged
@@ -23,7 +23,7 @@ is written but never returned by the API, and sits in the database as plain
 text, the same exposure as the refresh token beside it. The client id and
 secret are still those of the owner's own application (step 1): only that
 application can be connected, and it must be registered as one without a
-browser callback, since Settings uses the same device flow as the script.
+browser callback, since Integrations uses the same device flow as the script.
 
 Changing the client id or the environment disconnects the account, because a
 token belongs to one application in one environment. Connecting always
@@ -133,7 +133,7 @@ unique, so running it twice does not duplicate anything.
 
 Exit codes: `2` not configured, `3` credentials refused, `1` other failure.
 
-The script notes how the import ended exactly as the button does, so Settings
+The script notes how the import ended exactly as the button does, so Integrations
 and the status page show it too.
 
 **Only one import may run at a time**, from either the script or the
@@ -457,7 +457,7 @@ opened with a real number: a page that has moved is one line in `tracking.ts`.
 
 Built 2026-09-24 from Allegro's documentation of the shipment-management API
 and tested on fakes: **nothing has been bought for real**. The flow, on the
-order ("Label" card), after the sender is entered in Settings, "Shipping":
+order ("Label" card), after the sender is entered in Integrations, "Shipping":
 
 1. `GET /order/checkout-forms/{id}`: the order's `delivery.method.id`, read
    live (it decides the carrier and the price, and was never imported).
@@ -694,12 +694,12 @@ the documentation until a real import confirms it.
 
 1. In the Erli seller panel: My ERLI > Sales on ERLI.pl > Store settings >
    Integration method > Own API integration, generate the API key.
-2. Enter it in Settings > Sales channels > Erli ("Save and check": Erli is
+2. Enter it in Integrations > Sales channels > Erli ("Save and check": Erli is
    asked for one order, and the key is saved only if it accepts it). It is kept
    in the database, so every machine on the shared database has it; only its
    last four characters are ever shown again. Alternatively put it in
    `backend/.env` as `ERLI_API_KEY` (not in Git, never in chat or a document);
-   a key entered in Settings takes precedence. `ERLI_API_URL` defaults to
+   a key entered in Integrations takes precedence. `ERLI_API_URL` defaults to
    production; Erli's documentation says its test environment is on another
    domain without naming it.
 3. "Import now" on the same card, or from `backend/`:
@@ -780,7 +780,7 @@ made in the Manager Paczek cannot be listed or printed through ShipX, so the tra
 numbers that come from there stay as they are; Anvero makes its own.
 
 **Setting it up.** In the Manager Paczek: My account > API, a token and the
-organization number. In Settings, "Shipping" > InPost: token, organization number,
+organization number. In Integrations, "Shipping" > InPost: token, organization number,
 environment (`sandbox`, `sandbox-api-shipx-pl.easypack24.net`, or `production`,
 `api-shipx-pl.easypack24.net`) and the default size. Save-and-check calls
 `GET /v1/organizations/{id}`; nothing is saved until InPost accepts the pair. The

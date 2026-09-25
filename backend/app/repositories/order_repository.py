@@ -79,6 +79,22 @@ class OrderRepository:
         self.db.refresh(order)
         return order
 
+    def set_marks(
+        self, order: Order, starred: bool | None = None, flagged: bool | None = None
+    ) -> Order:
+        """Set the operator's marks; one left out (None) stays as it is.
+
+        Not a change to the order as the marketplace knows it, so `updated_at`
+        is left alone.
+        """
+        if starred is not None:
+            order.starred = starred
+        if flagged is not None:
+            order.flagged = flagged
+        self.db.commit()
+        self.db.refresh(order)
+        return order
+
     def restore(self, order: Order) -> Order:
         order.deleted_at = None
         order.deleted_by_user_id = None
@@ -164,6 +180,7 @@ class OrderRepository:
             )
         )
         order.status = status
+        order.status_changed_at = self._to_db_datetime(datetime.now(UTC))
         if changed_by_user_id is not None:
             order.status_set_at = self._to_db_datetime(datetime.now(UTC))
         self.db.commit()
@@ -426,6 +443,8 @@ class OrderRepository:
         cancellation_warning: bool = False,
         queue: OrderQueue | None = None,
         deleted: bool = False,
+        starred: bool = False,
+        flagged: bool = False,
     ) -> Query:
         """Single source of truth for filtering.
 
@@ -441,6 +460,10 @@ class OrderRepository:
             query = query.filter(self._in_queue(queue))
         if cancellation_warning:
             query = query.filter(self._has_cancellation_warning())
+        if starred:
+            query = query.filter(Order.starred.is_(True))
+        if flagged:
+            query = query.filter(Order.flagged.is_(True))
         if source is not None:
             query = query.filter(Order.source == source)
         if status is not None:
@@ -503,6 +526,8 @@ class OrderRepository:
         queue: OrderQueue | None = None,
         sort: OrderSort = OrderSort.NEWEST,
         deleted: bool = False,
+        starred: bool = False,
+        flagged: bool = False,
     ) -> list[Order]:
         return (
             self._filtered(
@@ -514,10 +539,12 @@ class OrderRepository:
                 cancellation_warning=cancellation_warning,
                 queue=queue,
                 deleted=deleted,
+                starred=starred,
+                flagged=flagged,
             )
-            # the list shows each order's items in short: one extra query for
-            # the page, not one per order
-            .options(selectinload(Order.items))
+            # the list shows each order's items in short, and its country from the
+            # delivery address: one extra query each for the page, not one per order
+            .options(selectinload(Order.items), selectinload(Order.addresses))
             .order_by(*self._ordering(sort))
             .offset(skip)
             .limit(limit)
@@ -534,6 +561,8 @@ class OrderRepository:
         cancellation_warning: bool = False,
         queue: OrderQueue | None = None,
         deleted: bool = False,
+        starred: bool = False,
+        flagged: bool = False,
     ) -> int:
         return self._filtered(
             source=source,
@@ -544,6 +573,8 @@ class OrderRepository:
             cancellation_warning=cancellation_warning,
             queue=queue,
             deleted=deleted,
+            starred=starred,
+            flagged=flagged,
         ).count()
 
     @staticmethod

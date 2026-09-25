@@ -260,3 +260,140 @@
   border-color: #fecaca;
   background: #fef2f2;
 }
+
+/* Ticking orders and acting on them at once (OrderList.tsx, BulkActionsBar.tsx) */
+.orders-table .select-cell {
+  width: 2rem;
+  padding-right: 0;
+  text-align: center;
+}
+
+.orders-table tr.row-selected {
+  background: var(--color-surface-alt);
+}
+
+.orders-page .bulk-bar {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0.5rem 2rem;
+  padding: 0.5rem 0.75rem;
+  background: var(--color-surface-alt);
+  border: 1px solid var(--color-accent);
+  border-radius: var(--radius-md);
+}
+
+.orders-page .bulk-bar button,
+.orders-page .bulk-bar select {
+  padding: 0.25rem 0.6rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-bg);
+  color: var(--color-text);
+  font: inherit;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.orders-page .bulk-bar button:disabled,
+.orders-page .bulk-bar select:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.orders-page .bulk-count {
+  font-weight: 600;
+  color: var(--color-heading);
+}
+
+.orders-page .bulk-working {
+  color: var(--color-muted);
+  font-size: 0.85rem;
+}
+
+.orders-page .bulk-clear {
+  margin-left: auto;
+}
+
+@media (max-width: 768px) {
+  .orders-page .bulk-bar {
+    margin: 0.5rem 1rem;
+  }
+}
+
+/* The operator's marks, the country and the small icons in a row (OrderRow.tsx) */
+.orders-table .order-cell-head {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.orders-table .mark-button {
+  padding: 0;
+  background: none;
+  border: none;
+  font-size: 1rem;
+  line-height: 1;
+  color: var(--color-muted);
+  cursor: pointer;
+}
+
+.orders-table .mark-button:hover {
+  color: var(--color-heading);
+}
+
+.orders-table .mark-star.is-on {
+  color: #f59e0b;
+}
+
+.orders-table .mark-flag.is-on {
+  color: #dc2626;
+}
+
+.orders-table .country-badge {
+  padding: 0 0.3rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  color: var(--color-muted-strong);
+  font-size: 0.7rem;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.orders-table .row-icons {
+  display: flex;
+  flex-basis: 100%;
+  gap: 0.35rem;
+  font-size: 0.85rem;
+}
+
+.orders-table .row-icon-paid {
+  color: #16a34a;
+}
+
+.orders-table .row-icon-unpaid {
+  color: #dc2626;
+}
+
+.orders-table .status-since {
+  flex-basis: 100%;
+  color: var(--color-muted);
+  font-size: 0.75rem;
+}
+
+/* An icon that opens something (the buyer's message, the seller's note) is a button */
+.orders-table button.row-icon {
+  padding: 0;
+  background: none;
+  border: none;
+  font: inherit;
+  cursor: pointer;
+}
+
+.orders-table button.row-icon:hover {
+  filter: brightness(0.85);
+}

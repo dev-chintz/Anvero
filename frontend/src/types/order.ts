@@ -64,6 +64,18 @@ export interface Order {
   dispatch_by?: string | null;
   /** Optional because a backend older than the field omits it. */
   shipments?: Shipment[];
+  /** When the status last changed; null for an order that has kept its first status. */
+  status_changed_at?: string | null;
+  /** The operator's own marks, for finding an order again. */
+  starred?: boolean;
+  flagged?: boolean;
+  /** The list's small facts, from which its icons are drawn. */
+  delivery_country_code?: string | null;
+  /** What has been paid; null when unknown. */
+  paid_amount?: string | null;
+  invoice_required?: boolean;
+  has_buyer_message?: boolean;
+  has_seller_note?: boolean;
   /**
    * Set while an operator has deleted the order: it is in no list unless the
    * deleted ones were asked for, and is kept to be restored. Optional because a
@@ -78,6 +90,22 @@ export interface Order {
    * Optional because a backend older than the field omits it.
    */
   items?: OrderItemSummary[];
+}
+
+/**
+ * Whether the buyer has paid what is due before shipping, as far as the list can
+ * tell: "paid", "unpaid", or null when it cannot (no payment recorded, or one paid
+ * after delivery). The same rule as the backend's "unpaid" queue.
+ */
+export function paymentState(order: Order): "paid" | "unpaid" | null {
+  const paid = order.paid_amount == null ? null : Number(order.paid_amount);
+  const total = Number(order.total_amount);
+  const paysLater =
+    order.payment_type === PaymentType.CASH_ON_DELIVERY ||
+    order.payment_type === PaymentType.DEFERRED;
+  if (paysLater) return null;
+  if (paid !== null) return paid >= total ? "paid" : "unpaid";
+  return order.payment_type ? "unpaid" : null;
 }
 
 /** One item as the order list carries it: enough to recognise the product. */

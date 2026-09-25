@@ -18,6 +18,7 @@ from app.schemas.order import (
     OrderCreate,
     OrderDetailRead,
     OrderListResponse,
+    OrderMarksUpdate,
     OrderRead,
     OrderStats,
     OrderStatusHistoryRead,
@@ -53,6 +54,8 @@ def list_orders(
     queue: OrderQueue | None = Query(default=None),
     sort: OrderSort = Query(default=OrderSort.NEWEST),
     deleted: bool = Query(default=False),
+    starred: bool = Query(default=False),
+    flagged: bool = Query(default=False),
     db: Session = Depends(get_db),
 ):
     service = OrderService(OrderRepository(db))
@@ -68,6 +71,8 @@ def list_orders(
         queue=queue,
         sort=sort,
         deleted=deleted,
+        starred=starred,
+        flagged=flagged,
     )
     return OrderListResponse(items=orders, total=total, skip=skip, limit=limit)
 
@@ -153,6 +158,16 @@ def update_order_status(
     if order.status != previous:
         write = OrderWrites(db).push_status(order, current_user.id)
     return _change_result(order, write)
+
+
+@router.patch("/{order_id}/marks", response_model=OrderDetailRead)
+def update_order_marks(order_id: uuid.UUID, payload: OrderMarksUpdate, db: Session = Depends(get_db)):
+    """Star or flag an order. The marks are the operator's own: nothing is sent to a
+    marketplace, and an order that is deleted can still be marked."""
+    service = OrderService(OrderRepository(db))
+    return OrderDetailRead.from_order(
+        service.set_marks(order_id, payload.starred, payload.flagged)
+    )
 
 
 @router.delete("/{order_id}", response_model=OrderDetailRead)

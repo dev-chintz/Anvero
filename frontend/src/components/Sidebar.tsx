@@ -1,29 +1,56 @@
+import { Fragment } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { useState } from 'react';
 import { useAuth } from '../auth/AuthContext';
+import { isNarrowWindow } from '../hooks/useSidebarOpen';
 import { useSidebarCounts } from '../hooks/useSidebarCounts';
-import { useTranslation, LANGUAGES, type Language } from '../i18n';
+import { useTranslation } from '../i18n';
+import { OrderSource, OrderStatus } from '../types/order';
 import '../styles/Sidebar.css';
 
 interface SidebarProps {
-  isDarkMode: boolean;
-  onThemeToggle: () => void;
+  /** Unfolded to labels (true) or folded to icons; held by the layout, which makes room for it. */
+  isOpen: boolean;
+  onToggle: () => void;
 }
 
-export const Sidebar: React.FC<SidebarProps> = ({ isDarkMode, onThemeToggle }) => {
-  const [isOpen, setIsOpen] = useState(true);
+export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onToggle }) => {
   const location = useLocation();
   const { user, logout } = useAuth();
-  const { t, language, setLanguage } = useTranslation();
-  // With two languages this is a toggle; with more it steps through them in turn
-  // (Settings has the full list).
-  const nextLanguage: Language = LANGUAGES[(LANGUAGES.indexOf(language) + 1) % LANGUAGES.length];
+  const { t } = useTranslation();
 
   const isActive = (path: string) => location.pathname === path;
 
   // read again whenever the operator moves to another page: what they just did
   // there moves these numbers
   const counts = useSidebarCounts(location.pathname);
+
+  // Under Orders, while on an orders page: what is in each status and each
+  // channel, each a shortcut to the list narrowed to it
+  const onOrdersPage = location.pathname.startsWith('/orders');
+  const currentParams = new URLSearchParams(location.search);
+  const subLinks: { key: string; to: string; label: string; count: number | null; active: boolean }[] = [
+    ...Object.values(OrderStatus).map((status) => ({
+      key: `status-${status}`,
+      to: `/orders?status=${status}`,
+      label: t(`status.${status}`),
+      // the backend leaves out what has none, so once the figures are in, a gap is a zero
+      count: counts.byStatus ? (counts.byStatus[status] ?? 0) : null,
+      active: location.pathname === '/orders' && currentParams.get('status') === status,
+    })),
+    ...Object.values(OrderSource).map((source) => ({
+      key: `source-${source}`,
+      to: `/orders?source=${source}`,
+      label: source,
+      // the backend leaves out what has none, so once the figures are in, a gap is a zero
+      count: counts.bySource ? (counts.bySource[source] ?? 0) : null,
+      active: location.pathname === '/orders' && currentParams.get('source') === source,
+    })),
+  ];
+
+  // on a narrow window the unfolded menu lies over the page, so following a link folds it
+  const handleNavigate = () => {
+    if (isOpen && isNarrowWindow()) onToggle();
+  };
 
   // `badge` is what waits in that section, shown beside it so an urgent thing is
   // seen from any page; `urgent` turns it red; `hint` says what it counts
@@ -76,6 +103,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isDarkMode, onThemeToggle }) =
       badge: counts.unreadMessages,
       hint: t('nav.badge.inbox', { count: counts.unreadMessages ?? 0 }),
     },
+    { path: '/integrations', label: t('nav.integrations'), icon: '🔌' },
     { path: '/settings', label: t('nav.settings'), icon: '⚙️' },
   ];
 
@@ -84,8 +112,10 @@ export const Sidebar: React.FC<SidebarProps> = ({ isDarkMode, onThemeToggle }) =
       <div className="sidebar-header">
         <button
           className="toggle-btn"
-          onClick={() => setIsOpen(!isOpen)}
+          onClick={onToggle}
           title={isOpen ? t('nav.collapse') : t('nav.expand')}
+          // the arrow alone names nothing to a screen reader
+          aria-label={isOpen ? t('nav.collapse') : t('nav.expand')}
         >
           {isOpen ? '◀' : '▶'}
         </button>
@@ -99,9 +129,10 @@ export const Sidebar: React.FC<SidebarProps> = ({ isDarkMode, onThemeToggle }) =
 
       <nav className="sidebar-nav">
         {navItems.map((item) => (
+          <Fragment key={item.path}>
           <Link
-            key={item.path}
             to={item.path}
+            onClick={handleNavigate}
             className={`nav-item ${isActive(item.path) ? 'active' : ''}`}
             // folded to icons the section's name is gone, so the tooltip brings it back
             title={
@@ -119,26 +150,28 @@ export const Sidebar: React.FC<SidebarProps> = ({ isDarkMode, onThemeToggle }) =
               </span>
             )}
           </Link>
+          {item.path === '/orders' && isOpen && onOrdersPage && (
+            <ul className="nav-sub" aria-label={t('nav.orders.filters')}>
+              {subLinks.map((link) => (
+                <li key={link.key}>
+                  <Link
+                    to={link.to}
+                    onClick={handleNavigate}
+                    className={`nav-sub-item${link.active ? ' active' : ''}`}
+                    aria-current={link.active ? 'page' : undefined}
+                  >
+                    <span className="nav-label">{link.label}</span>
+                    {link.count !== null && <span className="nav-sub-count">{link.count}</span>}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          )}
+          </Fragment>
         ))}
       </nav>
 
       <div className="sidebar-footer">
-        <button
-          className="theme-toggle"
-          onClick={onThemeToggle}
-          title={isDarkMode ? t('nav.switchToLight') : t('nav.switchToDark')}
-        >
-          {isDarkMode ? '☀️' : '🌙'}
-        </button>
-        <button
-          type="button"
-          className="theme-toggle language-toggle"
-          onClick={() => setLanguage(nextLanguage)}
-          title={t('nav.switchLanguage')}
-          aria-label={t('nav.switchLanguage')}
-        >
-          {nextLanguage.toUpperCase()}
-        </button>
         {isOpen && (
           <div className="user-profile">
             <div className="user-avatar" aria-hidden="true">👤</div>

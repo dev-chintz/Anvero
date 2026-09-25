@@ -149,11 +149,11 @@ describe("InpostShipmentCard", () => {
     expect(await screen.findByRole("alert")).toHaveTextContent("phone number");
   });
 
-  it("points to Settings when InPost is not connected", async () => {
+  it("points to Integrations when InPost is not connected", async () => {
     vi.mocked(inpostApi.status).mockResolvedValue(status({ configured: false }));
     renderCard();
 
-    expect(await screen.findByRole("link", { name: /Ustawienia|Settings/ })).toHaveAttribute("href", "/settings");
+    expect(await screen.findByRole("link", { name: /Integracje|Integrations/ })).toHaveAttribute("href", "/integrations");
     expect(screen.queryByRole("button", { name: /Utwórz przesyłkę InPost|Create InPost parcel/ })).toBeNull();
   });
 

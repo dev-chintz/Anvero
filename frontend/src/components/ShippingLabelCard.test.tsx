@@ -120,12 +120,12 @@ describe("the label card", () => {
     expect(await screen.findByText(/Safe mode: not sent/)).toBeInTheDocument();
   });
 
-  it("sends the operator to Settings when there is no sender", async () => {
+  it("sends the operator to Integrations when there is no sender", async () => {
     vi.mocked(shippingApi.labels).mockResolvedValue([]);
     vi.mocked(shippingApi.settings).mockResolvedValue({ sender: null, default_package: null });
     renderCard();
 
-    expect(await screen.findByRole("link", { name: "Settings" })).toHaveAttribute("href", "/settings");
+    expect(await screen.findByRole("link", { name: "Integrations" })).toHaveAttribute("href", "/integrations");
     expect(screen.queryByRole("button", { name: "Buy label" })).not.toBeInTheDocument();
   });
 

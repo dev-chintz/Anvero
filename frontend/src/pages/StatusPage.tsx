@@ -154,7 +154,7 @@ function StatusCard({
       )}
       <dl>{children}</dl>
       {settingsLink && state !== 'ok' && (
-        <Link to="/settings" className="status-settings-link">
+        <Link to="/integrations" className="status-settings-link">
           {t('appStatus.settingsLink')} →
         </Link>
       )}

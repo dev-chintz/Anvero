@@ -14,10 +14,12 @@ import { LoginPage } from './pages/LoginPage';
 import { OrdersPage } from './pages/OrdersPage';
 import { ProductionPage } from './pages/ProductionPage';
 import { InboxPage } from './pages/InboxPage';
+import { Integrations } from './pages/Integrations';
 import { Settings } from './pages/Settings';
 import { StatusPage } from './pages/StatusPage';
 import { LabelsPage } from './pages/LabelsPage';
 import { AfterSalesPage } from './pages/AfterSalesPage';
+import { useSidebarOpen } from './hooks/useSidebarOpen';
 import { useTranslation } from './i18n';
 import './App.css';
 
@@ -32,19 +34,19 @@ function NotFound() {
 }
 
 interface LayoutProps {
-  isDarkMode: boolean;
-  onThemeToggle: () => void;
   toasts: ToastMessage[];
   onToastClose: (id: string) => void;
 }
 
-function AppLayout({ isDarkMode, onThemeToggle, toasts, onToastClose }: LayoutProps) {
+function AppLayout({ toasts, onToastClose }: LayoutProps) {
+  // held here, not in the menu: the page beside it makes room for what it takes
+  const [sidebarOpen, toggleSidebar] = useSidebarOpen();
   return (
     // theming keys off the `dark` class App sets on <html>, so no
     // per-component modifier is needed here
     <SafeModeProvider>
-      <div className="app">
-        <Sidebar isDarkMode={isDarkMode} onThemeToggle={onThemeToggle} />
+      <div className={`app${sidebarOpen ? '' : ' sidebar-collapsed'}`}>
+        <Sidebar isOpen={sidebarOpen} onToggle={toggleSidebar} />
         <main className="app-content">
           <SafeModeBanner />
           <Outlet />
@@ -106,12 +108,7 @@ export default function App() {
             <Route element={<RequireAuth />}>
               <Route
                 element={
-                  <AppLayout
-                    isDarkMode={isDarkMode}
-                    onThemeToggle={toggleTheme}
-                    toasts={toasts}
-                    onToastClose={removeToast}
-                  />
+                  <AppLayout toasts={toasts} onToastClose={removeToast} />
                 }
               >
                 <Route path="/" element={<Home />} />
@@ -126,7 +123,11 @@ export default function App() {
                 <Route path="/status" element={<StatusPage />} />
 
                 <Route path="/inbox" element={<InboxPage />} />
-                <Route path="/settings" element={<Settings />} />
+                <Route path="/integrations" element={<Integrations />} />
+                <Route
+                  path="/settings"
+                  element={<Settings isDarkMode={isDarkMode} onThemeToggle={toggleTheme} />}
+                />
                 <Route
                   path="*"
                   element={<NotFound />}

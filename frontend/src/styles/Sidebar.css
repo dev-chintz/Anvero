@@ -12,13 +12,13 @@
 }
 
 .sidebar.open {
-  /* narrowed from 250px to give the order list more room; keep in sync
-     with .app-content's margin-left in App.css */
-  width: 200px;
+  /* narrowed from 250px to give the order list more room; the page's own
+     margin (App.css) reads the same variables */
+  width: var(--sidebar-width-open);
 }
 
 .sidebar.closed {
-  width: 70px;
+  width: var(--sidebar-width-closed);
 }
 
 :root.dark .sidebar {
@@ -274,20 +274,65 @@
   color: var(--color-muted);
 }
 
-/* Responsive */
-@media (max-width: 768px) {
-  .sidebar.open {
-    width: 100%;
-    position: fixed;
-  }
-
-  .sidebar.closed {
-    width: 100%;
-  }
+/* Statuses and channels under Orders (Sidebar.tsx): shortcuts to the list narrowed
+   to each, with what is in it. */
+.nav-sub {
+  list-style: none;
+  margin: 0 0.5rem 0.5rem 1.6rem;
+  padding: 0;
 }
 
-.theme-toggle.language-toggle {
-  font-size: 0.8rem;
+.nav-sub-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.3rem 0.6rem;
+  border-radius: var(--radius-md);
+  color: var(--color-muted-strong);
+  text-decoration: none;
+  font-size: 0.85rem;
+}
+
+.nav-sub-item:hover {
+  background: var(--color-divider);
+  color: #0d7377;
+}
+
+.nav-sub-item.active {
+  background: #d0f0ed;
+  color: var(--color-accent);
   font-weight: 600;
+}
+
+:root.dark .sidebar .nav-sub-item {
+  color: var(--color-text);
+}
+
+:root.dark .sidebar .nav-sub-item:hover {
+  background: var(--color-surface-alt);
+}
+
+:root.dark .sidebar .nav-sub-item.active {
+  background: #0d7377;
+  color: white;
+}
+
+.nav-sub-count {
+  margin-left: auto;
+  font-size: 0.75rem;
+  color: var(--color-muted);
+}
+
+.nav-sub-item.active .nav-sub-count {
   color: inherit;
+}
+
+/* Responsive: on a narrow window the folded menu stays a strip and the unfolded
+   one lies over the page (which keeps the strip's margin), rather than either
+   taking the whole width. */
+@media (max-width: 768px) {
+  .sidebar.open {
+    width: min(260px, 85vw);
+    box-shadow: 0 0 24px rgba(0, 0, 0, 0.25);
+  }
 }

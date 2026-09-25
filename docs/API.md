@@ -50,7 +50,7 @@ are days in the business timezone, `BUSINESS_TIMEZONE`, default
 | `POST` | `/api/v1/integrations/allegro/import` | run an Allegro import; rate limited to 6 attempts per minute per IP |
 | `GET` | `/api/v1/integrations/erli` | the Erli key's state (source, last characters, last import), never the key |
 | `PUT` | `/api/v1/integrations/erli/settings` | save the Erli API key once Erli has accepted it; rate limited to 10 per minute per IP |
-| `DELETE` | `/api/v1/integrations/erli/settings` | forget the key entered in Settings; the one in `backend/.env`, if any, applies again |
+| `DELETE` | `/api/v1/integrations/erli/settings` | forget the key entered in Integrations; the one in `backend/.env`, if any, applies again |
 | `POST` | `/api/v1/integrations/erli/import` | run an Erli import; rate limited to 6 per minute per IP |
 | `GET` | `/api/v1/integrations/inpost` | the InPost connection's state (environment, organization, last characters of the token, default size), never the token |
 | `PUT` | `/api/v1/integrations/inpost/settings` | save token, organization and environment once InPost has accepted them; rate limited to 10 per minute per IP |
@@ -90,7 +90,7 @@ response does not reveal which emails have accounts.
 
 ## `GET /api/v1/integrations/allegro`
 
-What Settings shows about the connection:
+What Integrations shows about the connection:
 
 ```json
 {"configured": true, "connected": true, "application_complete": true,
@@ -200,8 +200,8 @@ returns) or cannot be reached.
  "last_import_updated": 1, "last_import_error": null}
 ```
 
-`source` is `settings` (entered in Settings), `environment` (`ERLI_API_KEY` in
-`backend/.env`) or `none`; a key entered in Settings takes precedence. Only the
+`source` is `settings` (entered in Integrations), `environment` (`ERLI_API_KEY` in
+`backend/.env`) or `none`; a key entered in Integrations takes precedence. Only the
 last four characters of the key ever leave the backend. The `last_import_*`
 fields are those of the `ERLI` row of `integration_credentials`, filled by the
 button and by `scripts/import_erli.py` alike.
@@ -423,6 +423,7 @@ database, so `total` counts every match rather than the returned page.
 | `date_from`, `date_to` | `YYYY-MM-DD`, both inclusive, calendar days in the business timezone, matched on `ordered_at` |
 | `cancellation_warning` | `true` returns only orders cancelled on their marketplace whose Anvero status is not `CANCELLED` |
 | `deleted` | `true` lists the deleted orders instead of the ones in use (default `false`); see "Deleting an order" |
+| `starred`, `flagged` | `true` keeps only the orders the operator has starred / flagged (default `false`, which does not narrow); see "Marks". Both together keep an order that has both |
 
 Response: `{"items": [...], "total": N, "skip": N, "limit": N}`, newest
 `ordered_at` first. Each item also carries `customer_login`,
@@ -433,6 +434,27 @@ extra query cost. It also carries `items`, in short: for each item its `name`,
 order's item order, loaded for the whole page in one extra query. Prices,
 ids, `delivery` and the rest of `GET /api/v1/orders/{id}`'s nested detail are
 not in the list.
+
+### The list's small facts
+
+Each item also carries what the list draws its icons and its country from, all
+flat columns except the country: `status_changed_at` (when the status last
+changed, null for an order that has kept its first one, so the list counts from
+`ordered_at`), `delivery_country_code` (the delivery address's country, e.g.
+`PL`, null when none is recorded; the addresses are loaded for the whole page in
+one extra query), `paid_amount` (null when unknown), `invoice_required`,
+`has_buyer_message` and `has_seller_note` (whether there is one, never its text),
+and the two marks below.
+
+### Marks
+
+`PATCH /api/v1/orders/{id}/marks` sets the operator's own marks: a star for
+"important" and a flag for "come back to this". Body: `{"starred": true}`,
+`{"flagged": false}` or both; a mark left out stays as it is. Returns the order
+with its details. The marks are Anvero's alone: nothing is sent to a marketplace,
+`updated_at` and the status history are untouched, and an order that is deleted
+can still be marked. `404` for an unknown id. Every order carries `starred` and
+`flagged` (`false` until set) in the list and in the detail.
 
 ### Deleting an order
 
@@ -684,7 +706,7 @@ or there are more than 50, `422` for an empty list, `502` when Allegro fails.
 Anvero itself: a frame and corner squares (to see clipping), a 100 mm ruler (to
 see scaling), lines one to four printer dots wide (203 dpi) and a solid block
 (to see how fine print and black come out), text from 6 to 12 pt, and the sender
-and default parcel saved in Settings, printed without Polish letters. It buys
+and default parcel saved in Integrations, printed without Polish letters. It buys
 nothing, calls no marketplace and does not go through safe mode; it needs only
 the login.
 

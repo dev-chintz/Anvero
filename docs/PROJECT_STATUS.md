@@ -43,7 +43,7 @@ folder, and one was restored from that copy into a scratch database as a test.
   remains the no-setup default for a fresh clone)
 - Health endpoint and first order model — done
 - Minimal order list interface — done
-- Automated tests for core flows — done (786 backend, 283 frontend passing
+- Automated tests for core flows — done (797 backend, 358 frontend passing
   across the suite as of 2026-09-25)
 
 ---
@@ -160,6 +160,10 @@ The test label (`GET /labels/test-pdf`) was opened in the browser pane's PDF vie
 ---
 
 Deleting an order (`DECISIONS.md`, 2026-09-24, "soft") is covered by tests and its list view was opened in the browser (the "Deleted" chip, empty), but the trash button was not pressed on the real orders in the shared database, so the confirmation, the toast and a restore have not been seen end to end. Its migration `b8e3d5a7c246` was applied to the shared PostgreSQL on 2026-09-24: the other machines need `alembic upgrade head`.
+
+---
+
+The 2026-09-25 list and menu work (`DECISIONS.md`, "Ideas from BaseLinker") was checked in the browser on a scratch SQLite database with sample data, not on the shared PostgreSQL: the menu folding at 900 and 600 px (the page's left edge and width, the choice kept, the narrow menu folding after a link), the ticking and the bar, one bulk status change over ten orders (ten `PATCH .../status` answered 200, the list read again), a star kept after a reload and the starred filter, the menu's status and channel shortcuts, and the enlarged picture in an order's details (320 px, wholly inside the window). Not seen: the toast messages on screen (only the tests assert them), a bulk change on orders that go on to a real Allegro (safe mode was on and nothing is connected there), the flag and the three icons that need real data (a parcel, an invoice, a note), and the whole on real orders. **Its migration `a4d7c1e9b352` has not been applied to the shared PostgreSQL**, so a backend with this code cannot serve that database until `alembic upgrade head` is run on it.
 
 ---
 

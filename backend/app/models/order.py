@@ -188,6 +188,23 @@ class Order(Base):
         nullable=True,
     )
 
+    # When the status last changed, by whoever changed it (an operator or an
+    # import): the list shows how long an order has sat in its status. Null for an
+    # order whose status has never changed, which has been in it since it was placed.
+    status_changed_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True),
+        nullable=True,
+    )
+
+    # The operator's own marks, for finding an order again: a star for "important"
+    # and a flag for "come back to this". Anvero's alone; no marketplace has them.
+    starred: Mapped[bool] = mapped_column(
+        Boolean, default=False, server_default=false(), nullable=False
+    )
+    flagged: Mapped[bool] = mapped_column(
+        Boolean, default=False, server_default=false(), nullable=False
+    )
+
     # Set when an operator deletes the order from the list. The row stays: the
     # marketplace's next import would bring a really deleted order back, and its
     # Anvero number is never reused. Every list, count and queue leaves a deleted
@@ -275,6 +292,23 @@ class Order(Base):
 
     def address(self, address_type: AddressType) -> "OrderAddress | None":
         return next((a for a in self.addresses if a.type is address_type), None)
+
+    # The list's small facts about an order, read off what the row already holds
+    # (or, for the country, off the addresses the list loads with the page).
+
+    @property
+    def delivery_country_code(self) -> str | None:
+        """Where the order goes, e.g. PL; null when no delivery address is recorded."""
+        address = self.address(AddressType.DELIVERY)
+        return address.country_code if address is not None else None
+
+    @property
+    def has_buyer_message(self) -> bool:
+        return bool(self.buyer_message)
+
+    @property
+    def has_seller_note(self) -> bool:
+        return bool(self.seller_note)
 
 
 class OrderItem(Base):

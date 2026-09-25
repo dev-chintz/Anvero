@@ -72,7 +72,7 @@ describe("the application status page", () => {
     expect(within(allegro).getByText("Connected as seller_login")).toBeInTheDocument();
     expect(within(allegro).getByText(/3 new, 5 updated/)).toBeInTheDocument();
     expect(within(allegro).getByText(/^Every 15 min, next/)).toBeInTheDocument();
-    expect(within(allegro).queryByRole("link", { name: /Settings/ })).not.toBeInTheDocument();
+    expect(within(allegro).queryByRole("link", { name: /Integrations/ })).not.toBeInTheDocument();
   });
 
   it("says Erli is not set up and has no schedule yet", async () => {
@@ -85,7 +85,7 @@ describe("the application status page", () => {
     expect(within(erli).getByText(/imports run from the script only/)).toBeInTheDocument();
   });
 
-  it("words each problem, shows the import error and links to Settings", async () => {
+  it("words each problem, shows the import error and links to Integrations", async () => {
     const failing = status().allegro;
     vi.mocked(statusApi.get).mockResolvedValue(
       status({
@@ -107,7 +107,7 @@ describe("the application status page", () => {
     expect(within(allegro).getByText("something_newer")).toBeInTheDocument();
     expect(within(allegro).getByText("token rejected")).toBeInTheDocument();
     expect(within(allegro).getByText("Set to every 15 min, but not running")).toBeInTheDocument();
-    expect(within(allegro).getByRole("link", { name: /Settings/ })).toHaveAttribute("href", "/settings");
+    expect(within(allegro).getByRole("link", { name: /Integrations/ })).toHaveAttribute("href", "/integrations");
   });
 
   it("shows the message sync schedule apart from the import schedule", async () => {

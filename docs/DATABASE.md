@@ -84,6 +84,8 @@ Columns on `orders`, one per order:
 | `paid_amount`, `paid_at` | null means unknown; `0.00` means known to be unpaid |
 | `invoice_required` | the buyer asked for an invoice |
 | `deleted_at`, `deleted_by_user_id` | set when an operator deletes the order from the list (`DELETE /orders/{id}`); the row is kept, every list, figure and queue leaves it out, and an import does not touch it. Null while the order is in use. `deleted_by_user_id` is `SET NULL` when the account goes. Added by `b8e3d5a7c246` |
+| `starred`, `flagged` | the operator's own marks for finding an order again, both `false` for every order until set (`PATCH /orders/{id}/marks`); Anvero's alone, no marketplace has them and an import never touches them. Added by `a4d7c1e9b352` |
+| `status_changed_at` | when the status last changed, by an operator or an import (set wherever a row is added to `order_status_history`); null for an order that has kept its first status, which the list then counts from `ordered_at`. Filled from the history's latest change for existing orders. Added by `a4d7c1e9b352` |
 
 `payment_type` is a plain string column validated by the application, not a
 database enum type: the list grows with each marketplace, and a new value in a
@@ -254,7 +256,7 @@ go of them.
 each a JSON object (`API.md`, "Labels through Wysyłam z Allegro").
 
 `integration_settings` holds the application's own credentials when they were
-entered in Settings, and are then used instead of the `ALLEGRO_*` variables:
+entered in Integrations, and are then used instead of the `ALLEGRO_*` variables:
 `provider` (primary key), `client_id`, `client_secret` (plain text, never
 returned by the API), `user_agent`, `environment` (`sandbox` or `production`),
 `updated_at`.

@@ -1,6 +1,7 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { ApiError } from "../api/client";
 import { OrderDetail } from "../components/OrderDetail";
 import { OrdersPage } from "./OrdersPage";
 import {
@@ -23,6 +24,7 @@ vi.mock("../api/client", async () => {
       delete: vi.fn(),
       restore: vi.fn(),
       stats: vi.fn(),
+      setMarks: vi.fn(),
     },
     integrationsApi: {
       allegroStatus: vi.fn(),
@@ -536,6 +538,68 @@ describe("going to a page of the list", () => {
   });
 });
 
+describe("the quick button for new orders", () => {
+  it("sits between All and In progress, with how many orders are new", async () => {
+    renderAt("/orders");
+
+    const nav = screen.getByRole("navigation", { name: "Work queues" });
+    await screen.findByRole("button", { name: "New 1" });
+
+    const tabs = Array.from(nav.querySelectorAll("button")).map((b) => b.textContent?.trim());
+    expect(tabs.indexOf("New 1")).toBe(tabs.indexOf("All") + 1);
+    expect(tabs.indexOf("In progress 6")).toBe(tabs.indexOf("New 1") + 1);
+  });
+
+  it("asks for the new orders only, and shows itself pressed instead of All", async () => {
+    renderAt("/orders");
+    fireEvent.click(await screen.findByRole("button", { name: "New 1" }));
+
+    await waitFor(() =>
+      expect(ordersApi.list).toHaveBeenLastCalledWith(
+        expect.objectContaining({ status: "NEW", queue: undefined, skip: 0 }),
+      ),
+    );
+    expect(screen.getByRole("button", { name: "New 1" })).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByRole("button", { name: "All" })).toHaveAttribute("aria-pressed", "false");
+    expect(screen.getByRole("button", { name: "In progress 6" })).toHaveAttribute(
+      "aria-pressed",
+      "false",
+    );
+    expect(screen.getByTestId("where")).toHaveTextContent("status=NEW");
+  });
+
+  it("is pressed when the address asks for the new orders, and gives way to In progress", async () => {
+    renderAt("/orders?status=NEW");
+    expect(await screen.findByRole("button", { name: "New 1" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "In progress 6" }));
+
+    await waitFor(() =>
+      expect(ordersApi.list).toHaveBeenLastCalledWith(expect.objectContaining({ status: "CONFIRMED" })),
+    );
+    expect(screen.getByRole("button", { name: "New 1" })).toHaveAttribute("aria-pressed", "false");
+  });
+
+  it("counts none as a zero, not as nothing", async () => {
+    vi.mocked(ordersApi.stats).mockResolvedValue({
+      total_orders: 1,
+      total_revenue: "45.49",
+      this_week: 1,
+      pending: 1,
+      cancellation_warnings: 0,
+      queues: { to_make: 0, unpaid: 0, to_ship: 0, late: 0 },
+      by_status: { CONFIRMED: 6 },
+      by_source: {},
+    });
+    renderAt("/orders");
+
+    expect(await screen.findByRole("button", { name: "New 0" })).toBeInTheDocument();
+  });
+});
+
 describe("the quick button for orders in progress", () => {
   it("shows how many orders are in progress, beside the other quick buttons", async () => {
     renderAt("/orders");
@@ -545,7 +609,7 @@ describe("the quick button for orders in progress", () => {
 
     // right after "All", ahead of the queues
     const tabs = Array.from(nav.querySelectorAll("button")).map((b) => b.textContent?.trim());
-    expect(tabs.slice(0, 3)).toEqual(["All", "In progress 6", "To make 4"]);
+    expect(tabs.slice(0, 4)).toEqual(["All", "New 1", "In progress 6", "To make 4"]);
   });
 
   it("asks for the orders in that status only, and shows itself pressed", async () => {
@@ -596,5 +660,243 @@ describe("the quick button for orders in progress", () => {
     await screen.findByRole("button", { name: "Deleted" });
 
     expect(screen.getByRole("button", { name: "In progress 6" })).toHaveAttribute("aria-pressed", "false");
+  });
+});
+
+describe("ticking orders and acting on them together", () => {
+  afterEach(() => vi.restoreAllMocks());
+
+  const twoOrders = () => {
+    vi.mocked(ordersApi.list).mockResolvedValue({
+      items: [
+        makeOrder({ id: "order-1", order_label: "AN-000001" }),
+        makeOrder({ id: "order-2", order_label: "AN-000002" }),
+      ],
+      total: 2,
+      skip: 0,
+      limit: 20,
+    });
+  };
+
+  it("shows the actions only while something is ticked", async () => {
+    twoOrders();
+    renderAt("/orders");
+
+    fireEvent.click(await screen.findByRole("checkbox", { name: "Select order AN-000001" }));
+
+    expect(screen.getByRole("toolbar", { name: "Actions on the selected orders" })).toHaveTextContent(
+      "1 order selected",
+    );
+    fireEvent.click(screen.getByRole("checkbox", { name: "Select order AN-000002" }));
+    expect(screen.getByRole("toolbar")).toHaveTextContent("2 orders selected");
+    fireEvent.click(screen.getByRole("button", { name: "Clear selection" }));
+    expect(screen.queryByRole("toolbar")).not.toBeInTheDocument();
+  });
+
+  it("ticks the whole page from the header", async () => {
+    twoOrders();
+    renderAt("/orders");
+
+    fireEvent.click(await screen.findByRole("checkbox", { name: "Select every order on this page" }));
+
+    expect(screen.getByRole("toolbar")).toHaveTextContent("2 orders selected");
+    fireEvent.click(screen.getByRole("checkbox", { name: "Select every order on this page" }));
+    expect(screen.queryByRole("toolbar")).not.toBeInTheDocument();
+  });
+
+  it("sets one status on every ticked order, and reads the list again", async () => {
+    twoOrders();
+    vi.mocked(ordersApi.updateStatus).mockResolvedValue(makeOrderDetails() as never);
+    renderAt("/orders");
+    fireEvent.click(await screen.findByRole("checkbox", { name: "Select every order on this page" }));
+
+    fireEvent.change(screen.getByRole("combobox", { name: "Set status to…" }), {
+      target: { value: OrderStatus.READY_FOR_SHIPMENT },
+    });
+
+    await waitFor(() => expect(ordersApi.updateStatus).toHaveBeenCalledTimes(2));
+    expect(ordersApi.updateStatus).toHaveBeenCalledWith("order-1", OrderStatus.READY_FOR_SHIPMENT);
+    expect(ordersApi.updateStatus).toHaveBeenCalledWith("order-2", OrderStatus.READY_FOR_SHIPMENT);
+    await waitFor(() =>
+      expect(addToast).toHaveBeenCalledWith("Status set on 2 orders", "success"),
+    );
+    await waitFor(() => expect(ordersApi.list).toHaveBeenCalledTimes(2));
+  });
+
+  it("goes on past an order that is refused, and says which failed", async () => {
+    twoOrders();
+    vi.mocked(ordersApi.updateStatus)
+      .mockRejectedValueOnce(new ApiError(409, "Order is deleted; restore it first"))
+      .mockResolvedValueOnce(makeOrderDetails() as never);
+    renderAt("/orders");
+    fireEvent.click(await screen.findByRole("checkbox", { name: "Select every order on this page" }));
+
+    fireEvent.change(screen.getByRole("combobox", { name: "Set status to…" }), {
+      target: { value: OrderStatus.CONFIRMED },
+    });
+
+    await waitFor(() => expect(ordersApi.updateStatus).toHaveBeenCalledTimes(2));
+    await waitFor(() =>
+      expect(addToast).toHaveBeenCalledWith("Status set on 1 order", "success"),
+    );
+    expect(addToast).toHaveBeenCalledWith(
+      "1 of 2 could not be changed: Order is deleted; restore it first",
+      "error",
+    );
+  });
+
+  it("stars every ticked order without reloading the list", async () => {
+    twoOrders();
+    vi.mocked(ordersApi.setMarks).mockImplementation(
+      async (id) => makeOrderDetails({ id, starred: true, flagged: false }) as never,
+    );
+    renderAt("/orders");
+    fireEvent.click(await screen.findByRole("checkbox", { name: "Select every order on this page" }));
+
+    fireEvent.click(screen.getByRole("button", { name: "★ Star" }));
+
+    await waitFor(() => expect(ordersApi.setMarks).toHaveBeenCalledTimes(2));
+    expect(ordersApi.setMarks).toHaveBeenCalledWith("order-1", { starred: true });
+    await waitFor(() => expect(addToast).toHaveBeenCalledWith("2 orders marked", "success"));
+    // each row shows its star from the answer; the list itself was not fetched again
+    expect(
+      await screen.findByRole("button", { name: "Take the star off order AN-000001" }),
+    ).toBeInTheDocument();
+    expect(ordersApi.list).toHaveBeenCalledTimes(1);
+  });
+
+  it("stars a single order from its row", async () => {
+    vi.mocked(ordersApi.setMarks).mockResolvedValue(
+      makeOrderDetails({ starred: true, flagged: false }) as never,
+    );
+    renderAt("/orders");
+
+    fireEvent.click(await screen.findByRole("button", { name: "Star order AN-000007" }));
+
+    await waitFor(() => expect(ordersApi.setMarks).toHaveBeenCalledWith("order-1", { starred: true }));
+    expect(
+      await screen.findByRole("button", { name: "Take the star off order AN-000007" }),
+    ).toBeInTheDocument();
+  });
+
+  it("says so when a mark cannot be saved", async () => {
+    vi.mocked(ordersApi.setMarks).mockRejectedValue(new ApiError(500, "boom"));
+    renderAt("/orders");
+
+    fireEvent.click(await screen.findByRole("button", { name: "Star order AN-000007" }));
+
+    await waitFor(() => expect(addToast).toHaveBeenCalledWith("boom", "error"));
+  });
+
+  it("asks only for the starred orders from its quick button", async () => {
+    renderAt("/orders");
+
+    fireEvent.click(await screen.findByRole("button", { name: /Starred/ }));
+
+    await waitFor(() =>
+      expect(ordersApi.list).toHaveBeenLastCalledWith(expect.objectContaining({ starred: true })),
+    );
+    expect(screen.getByRole("button", { name: /Starred/ })).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByRole("button", { name: "All" })).toHaveAttribute("aria-pressed", "false");
+  });
+
+  it("asks only for the flagged orders from its quick button", async () => {
+    renderAt("/orders");
+
+    fireEvent.click(await screen.findByRole("button", { name: /Flagged/ }));
+
+    await waitFor(() =>
+      expect(ordersApi.list).toHaveBeenLastCalledWith(expect.objectContaining({ flagged: true })),
+    );
+  });
+
+  it("offers nothing to tick among the deleted orders", async () => {
+    renderAt("/orders?deleted=true");
+
+    await screen.findByRole("table");
+
+    expect(screen.queryByRole("checkbox")).not.toBeInTheDocument();
+    expect(screen.queryByRole("toolbar")).not.toBeInTheDocument();
+  });
+});
+
+describe("reading the buyer's message and the seller's note from the list", () => {
+  const withNotes = () => {
+    vi.mocked(ordersApi.list).mockResolvedValue({
+      items: [makeOrder({ has_buyer_message: true, has_seller_note: true })],
+      total: 1,
+      skip: 0,
+      limit: 20,
+    });
+  };
+
+  it("opens the buyer's message in a window, fetched from the order", async () => {
+    withNotes();
+    vi.mocked(ordersApi.get).mockResolvedValue({
+      ...makeOrderDetails(),
+      buyer_message: "Please pack it well",
+      seller_note: "Regular customer",
+    });
+    renderAt("/orders");
+
+    fireEvent.click(await screen.findByRole("button", { name: "The buyer left a message" }));
+
+    const dialog = await screen.findByRole("dialog", { name: "Message from the buyer, AN-000007" });
+    expect(await within(dialog).findByText("Please pack it well")).toBeInTheDocument();
+    expect(ordersApi.get).toHaveBeenCalledWith("order-1");
+  });
+
+  it("opens the seller's note, not the message, from the note's icon", async () => {
+    withNotes();
+    vi.mocked(ordersApi.get).mockResolvedValue({
+      ...makeOrderDetails(),
+      buyer_message: "Please pack it well",
+      seller_note: "Regular customer",
+    });
+    renderAt("/orders");
+
+    fireEvent.click(await screen.findByRole("button", { name: "The order has a seller's note" }));
+
+    const dialog = await screen.findByRole("dialog", { name: "Seller's note, AN-000007" });
+    expect(await within(dialog).findByText("Regular customer")).toBeInTheDocument();
+    expect(within(dialog).queryByText("Please pack it well")).toBeNull();
+  });
+
+  it("closes, and the list is still there", async () => {
+    withNotes();
+    vi.mocked(ordersApi.get).mockResolvedValue({ ...makeOrderDetails(), buyer_message: "Hello" });
+    renderAt("/orders");
+    fireEvent.click(await screen.findByRole("button", { name: "The buyer left a message" }));
+    await screen.findByText("Hello");
+
+    fireEvent.keyDown(document, { key: "Escape" });
+
+    expect(screen.queryByRole("dialog")).toBeNull();
+    expect(screen.getByRole("link", { name: "AN-000007" })).toBeInTheDocument();
+  });
+
+  it("says when the text could not be fetched", async () => {
+    withNotes();
+    vi.mocked(ordersApi.get).mockRejectedValue(new ApiError(500, "The server is down"));
+    renderAt("/orders");
+
+    fireEvent.click(await screen.findByRole("button", { name: "The buyer left a message" }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("The server is down");
+  });
+
+  it("does not open again from a fetch that was closed before it answered", async () => {
+    withNotes();
+    let answer: (value: OrderWithDetails) => void = () => undefined;
+    vi.mocked(ordersApi.get).mockReturnValue(new Promise((resolve) => (answer = resolve)));
+    renderAt("/orders");
+    fireEvent.click(await screen.findByRole("button", { name: "The buyer left a message" }));
+    await screen.findByRole("status");
+
+    fireEvent.keyDown(document, { key: "Escape" });
+    answer({ ...makeOrderDetails(), buyer_message: "Late" });
+    await new Promise((resolve) => setTimeout(resolve, 20));
+
+    expect(screen.queryByRole("dialog")).toBeNull();
   });
 });

@@ -1136,6 +1136,63 @@ branch is unverified: only the SQLite path has been run.
 
 **Consequences:** Whether Allegro's pages read the number from the address is not confirmed (allegro.pl answers no automated request, so it could not be tried, and only one search result named the parameter, for One's page); if they do not, the link still lands on the page that asks for the number. Anvero's own status for these parcels comes from Allegro's tracking API and is unaffected.
 
+## 2026-09-25 — Integrations are a page of their own; the theme and the language are chosen in Settings only
+
+**Decided (owner, 2026-09-25):** the bottom of the menu carried a theme button and a
+language button that were hardly ever used and crowded a folded menu; both now live only in
+Settings, and everything about Allegro, Erli, InPost and the shipping details for labels
+moves from Settings to a new **Integrations** page (`/integrations`). Settings keeps the
+safe mode, the appearance and the language: the safe mode guards writes to every
+marketplace, so it belongs to the application, not to one integration. Both pages are one
+component, `SettingsLayout` (the menu of sections and the cards), given different groups.
+The message keys keep their `settings.group...` names, and the cards their `settings-...`
+ids, so nothing that linked to them broke. The sender and default parcel count as an
+integration: they are only used for labels bought through Wysyłam z Allegro.
+
+## 2026-09-25 — Ideas from BaseLinker: ticking orders, marks, a menu that shows statuses, a menu that folds properly
+
+**Decided (owner, 2026-09-25):** after comparing the order list with BaseLinker's,
+take these into Anvero, as one change:
+
+- **The folded menu makes room.** The page's left margin was fixed at the open
+  menu's width, so folding the menu left an empty strip. The menu's state now lives
+  in the layout (`useSidebarOpen`, kept in `localStorage` as `sidebar.open`) and the
+  page's margin follows it; the two widths are the CSS variables
+  `--sidebar-width-open` and `--sidebar-width-closed`, in one place instead of two
+  files "kept in sync". Below 768 px the menu is a 70 px strip that unfolds *over*
+  the page (it used to become the full width, folded or not) and folds again when a
+  link is followed; unfolded beside the page on a wide window, folded on a narrow
+  one until the operator chooses.
+- **The picture on hover in an order's details is the list's.** It was scaled in
+  place by CSS and cut off by the table's scroll box; it now uses `ItemThumb`, which
+  draws it on the page.
+- **Ticking orders and acting on them together** (`BulkActionsBar`): set one status
+  on all, star, flag or take a mark off. A status change is one request per order,
+  one after another, through the existing `PATCH /orders/{id}/status`, so each still
+  goes through safe mode and the marketplace write; no bulk endpoint. A failure of
+  one is reported, and the rest go on. Labels are not in the bar: the Labels page
+  already prints many at once.
+- **Marks:** `starred` and `flagged` on the order (two plain booleans), set with
+  `PATCH /orders/{id}/marks`, filterable from two quick buttons. Star and flag are
+  independent so that "important" and "come back to this" do not fight over one mark.
+- **The list says more at a glance:** the delivery country (as its code: Windows
+  draws flag emoji as bare letters), how long the order has been in its status
+  (`status_changed_at`, new column, shown as "3 days ago" with the date on hover),
+  and small icons for paid / not paid, a parcel sent, an invoice wanted, a buyer's
+  message and a seller's note. "Paid" follows the same rule as the "unpaid" queue.
+- **The message and note icons open their text** in a small window over the list. The
+  list carries only whether there is a message or a note (up to 4000 characters each,
+  for every order of a page), so the text is fetched from `GET /orders/{id}` when the
+  icon is pressed and nothing about the API changes. A fetch closed before it answers
+  does not open the window again.
+- **The menu shows statuses and channels** under Orders, on an orders page only,
+  with how many each holds and a link to the list narrowed to it. Not BaseLinker's
+  custom statuses in groups: Anvero's six statuses are fixed, and the work queues
+  already are the quick buttons.
+
+**Not done, on purpose:** custom statuses and groups, saved filter sets, a global
+search box in the header, adding an order by hand. Shift-click range ticking.
+
 ## 2026-09-25 — InPost parcels are made through ShipX by Anvero itself
 
 **Decision:** Anvero makes InPost parcel locker shipments and prints their labels through InPost's ShipX API (`services/inpost_shipments.py`, `integrations/inpost/client.py`), in bulk from the Labels page and one by one on the order. Token, organization and environment are entered in Settings and kept in `app_settings`, environment `sandbox` by default. Creating goes through `MarketplaceWriter` (safe mode), an order has at most one shipment that is not cancelled, and a number InPost returns is added to the order like any tracking number, which pushes it to Allegro.

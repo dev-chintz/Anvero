@@ -15,6 +15,8 @@ export interface UseOrdersParams {
   queue?: OrderQueue;
   sort?: OrderSort;
   deleted?: boolean;
+  starred?: boolean;
+  flagged?: boolean;
 }
 
 export interface UseOrdersResult {
@@ -23,6 +25,8 @@ export interface UseOrdersResult {
   error: string | null;
   count: number;
   refetch: () => void;
+  /** Change one order in the page already fetched, e.g. to show a mark just saved, without a reload. */
+  patchOrder: (orderId: string, changes: Partial<Order>) => void;
 }
 
 /**
@@ -47,6 +51,8 @@ export function useOrders(params: UseOrdersParams): UseOrdersResult {
     queue,
     sort,
     deleted,
+    starred,
+    flagged,
   } = params;
 
   const [orders, setOrders] = useState<Order[]>([]);
@@ -56,6 +62,13 @@ export function useOrders(params: UseOrdersParams): UseOrdersResult {
   const [version, setVersion] = useState(0);
 
   const refetch = useCallback(() => setVersion((v) => v + 1), []);
+  const patchOrder = useCallback(
+    (orderId: string, changes: Partial<Order>) =>
+      setOrders((current) =>
+        current.map((order) => (order.id === orderId ? { ...order, ...changes } : order)),
+      ),
+    [],
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -76,6 +89,8 @@ export function useOrders(params: UseOrdersParams): UseOrdersResult {
         queue,
         sort,
         deleted,
+        starred,
+        flagged,
       })
       .then((response) => {
         if (cancelled) return;
@@ -109,8 +124,10 @@ export function useOrders(params: UseOrdersParams): UseOrdersResult {
     queue,
     sort,
     deleted,
+    starred,
+    flagged,
     version,
   ]);
 
-  return { orders, loading, error, count, refetch };
+  return { orders, loading, error, count, refetch, patchOrder };
 }

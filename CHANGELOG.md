@@ -6,6 +6,52 @@ All significant changes to the Anvero project.
 
 ## 2026-09-25
 
+### 🆕 A "New" quick button
+
+- A **"Nowe" quick button** (with the number of new orders) between "Wszystkie" and
+  "W realizacji" shows only the orders in that status; it works like the "In progress" one.
+
+### 🔌 Integrations get a page of their own; the theme and the language live only in Settings
+
+- The **theme** and **language** buttons are gone from the bottom of the menu; both are
+  chosen in **Settings** ("Appearance" is new there, next to "Language").
+- A new **Integrations** page (menu entry before Settings, address `/integrations`) holds
+  everything that connects Anvero to the outside: Allegro, Erli, the sender and default
+  parcel for labels, and InPost. Settings keeps what is the application's own: the safe
+  mode, the appearance and the language.
+- Every link that sent the operator to Settings to connect an account, enter a sender or
+  a token (the orders page, the status page, the label cards) now goes to Integrations, and
+  the texts that said "in Settings" say "in Integrations". The safe-mode banner still
+  leads to Settings.
+
+### 🧭 Ideas from BaseLinker: ticking orders, marks, statuses in the menu
+
+- **The folded menu now makes room:** the page widens when the menu folds (it stayed
+  at the open menu's width); the choice is remembered. On a narrow window the folded
+  menu stays a strip and the unfolded one lies over the page, instead of taking the
+  whole width either way.
+- **The enlarged picture in an order's details** is no longer cut off: it uses the
+  list's hover preview.
+- **Order list:** a checkbox on every row (and one for the page) with a bar to set
+  one status on all ticked orders, star or flag them; a **star** and a **flag** on
+  every order with two quick buttons to show only those; the delivery **country**,
+  **how long the order has been in its status**, and small icons for paid, parcel
+  sent, invoice wanted, buyer's message and seller's note.
+- **Reading a message or a note from the list:** the message and note icons of a row are
+  buttons that open the buyer's message or the seller's note in a small window (Escape,
+  the button or a click outside closes it; a link opens the order). The text is fetched
+  from the order when the icon is pressed, so the list stays light.
+- **Menu:** under Orders, on an orders page, the six statuses and the two
+  marketplaces with their counts, each a shortcut to the list narrowed to it.
+- New columns `starred`, `flagged`, `status_changed_at` on `orders` (migration
+  `a4d7c1e9b352`: other machines need `alembic upgrade head`) and
+  `PATCH /orders/{id}/marks` (`API.md`).
+- Checked in the browser on a scratch SQLite database (not the shared one): folding at
+  wide and narrow widths, ticking, a bulk status change over ten orders, a star that
+  survives a reload, the starred filter, the menu's shortcuts and the hover preview.
+  Not seen: the bulk change against orders that go on to a real Allegro, and the
+  toast messages on screen (covered by tests only).
+
 ### 📮 InPost parcel lockers made and printed from Anvero
 
 - **Settings > Shipping > InPost**: token, organization number, environment

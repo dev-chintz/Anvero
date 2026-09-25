@@ -1,6 +1,7 @@
 import type { Order, OrderStatus } from "../types/order";
 import { useTranslation } from "../i18n";
 import { HorizontalScroll } from "./HorizontalScroll";
+import type { OrderNoteKind } from "./OrderNoteDialog";
 import { OrderRow } from "./OrderRow";
 import { Pagination } from "./Pagination";
 import type { OrderLinkState } from "./orderLinkState";
@@ -22,6 +23,13 @@ interface OrderListProps {
   onRestore?: (order: Order) => void;
   /** Offered beside the page buttons when given: how many orders a page holds. */
   onLimitChange?: (limit: number) => void;
+  /** With these the list has a checkbox on every row and one in the header for the whole page. */
+  selectedIds?: ReadonlySet<string>;
+  onSelectionChange?: (ids: Set<string>) => void;
+  /** With this every row has a star and a flag. */
+  onMarksChange?: (order: Order, marks: { starred?: boolean; flagged?: boolean }) => void;
+  /** With this the message and note icons of a row open their text. */
+  onOpenNote?: (order: Order, kind: OrderNoteKind) => void;
 }
 
 export function OrderList({
@@ -38,8 +46,24 @@ export function OrderList({
   onDelete,
   onRestore,
   onLimitChange,
+  selectedIds,
+  onSelectionChange,
+  onMarksChange,
+  onOpenNote,
 }: OrderListProps) {
   const { t } = useTranslation();
+
+  const selectable = !!selectedIds && !!onSelectionChange;
+  const allSelected = selectable && orders.length > 0 && orders.every((o) => selectedIds.has(o.id));
+  const someSelected = selectable && orders.some((o) => selectedIds.has(o.id));
+  const selectOne = (orderId: string, selected: boolean) => {
+    if (!selectedIds || !onSelectionChange) return;
+    const next = new Set(selectedIds);
+    if (selected) next.add(orderId);
+    else next.delete(orderId);
+    onSelectionChange(next);
+  };
+  const selectPage = (selected: boolean) => onSelectionChange?.(new Set(selected ? orders.map((o) => o.id) : []));
 
   return (
     <section aria-label={t("orders.regionLabel")}>
@@ -61,6 +85,20 @@ export function OrderList({
             <caption className="sr-only">{t("orders.caption")}</caption>
             <thead>
               <tr>
+                {selectable && (
+                  <th scope="col" className="select-cell">
+                    <input
+                      type="checkbox"
+                      checked={allSelected}
+                      // some but not all: the box shows the dash of a partial choice
+                      ref={(box) => {
+                        if (box) box.indeterminate = someSelected && !allSelected;
+                      }}
+                      onChange={(e) => selectPage(e.target.checked)}
+                      aria-label={t("orders.selectAll")}
+                    />
+                  </th>
+                )}
                 <th scope="col">{t("orders.col.order")}</th>
                 <th scope="col">{t("orders.col.items")}</th>
                 <th scope="col">{t("orders.col.payment")}</th>
@@ -80,6 +118,10 @@ export function OrderList({
                   linkState={linkState}
                   onDelete={onDelete}
                   onRestore={onRestore}
+                  onSelectChange={selectable ? selectOne : undefined}
+                  selected={selectable && selectedIds.has(order.id)}
+                  onMarksChange={onMarksChange}
+                  onOpenNote={onOpenNote}
                 />
               ))}
             </tbody>

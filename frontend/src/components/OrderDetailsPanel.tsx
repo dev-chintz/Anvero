@@ -2,6 +2,7 @@ import { PaymentType } from "../types/order";
 import { formatNumber, useTranslation } from "../i18n";
 import { carrierLabel } from "../types/order";
 import type { Address, OrderWithDetails } from "../types/order";
+import { ItemThumb } from "./ItemThumb";
 import { TrackingLink } from "./TrackingLink";
 import "../styles/OrderDetailsPanel.css";
 
@@ -153,14 +154,7 @@ export function OrderDetailsPanel({ order }: { order: OrderWithDetails }) {
                   <tr key={item.id}>
                     <td>
                       <div className="item-name-cell">
-                        {item.image_url && (
-                          <img
-                            src={item.image_url}
-                            alt=""
-                            loading="lazy"
-                            className="item-thumb"
-                          />
-                        )}
+                        {item.image_url && <ItemThumb src={item.image_url} className="item-thumb" />}
                         <span>
                           {item.name}
                           {item.sku && <span className="order-item-sku">{t("details.sku", { sku: item.sku })}</span>}

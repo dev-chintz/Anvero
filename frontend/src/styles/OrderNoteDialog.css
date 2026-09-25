@@ -1,0 +1,69 @@
+/* The buyer's message or the seller's note over the order list (OrderNoteDialog.tsx) */
+.note-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  background: rgba(0, 0, 0, 0.45);
+}
+
+.note-dialog {
+  display: flex;
+  flex-direction: column;
+  width: min(32rem, 100%);
+  max-height: min(80vh, 32rem);
+  background: var(--color-bg);
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.35);
+}
+
+.note-dialog-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--color-divider);
+}
+
+.note-dialog-header h2 {
+  margin: 0;
+  font-size: 1rem;
+  color: var(--color-heading);
+}
+
+.note-dialog-close {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  line-height: 1;
+  color: var(--color-muted-strong);
+  cursor: pointer;
+}
+
+.note-dialog-close:hover {
+  color: var(--color-heading);
+}
+
+.note-dialog-body {
+  padding: 1rem;
+  overflow-y: auto;
+}
+
+/* the text as it was written: its line breaks kept, a long word broken rather than widening the window */
+.note-dialog-text {
+  margin: 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.note-dialog-footer {
+  padding: 0.5rem 1rem 0.75rem;
+  border-top: 1px solid var(--color-divider);
+  font-size: 0.9rem;
+}

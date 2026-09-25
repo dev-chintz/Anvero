@@ -110,6 +110,15 @@ export function trackingLabel(code: string): string {
   return key in en ? translate(key as MessageKey) : code;
 }
 
+/** A country's name in the current language from its ISO code (PL → Poland); the code itself if unknown. */
+export function countryName(code: string): string {
+  try {
+    return new Intl.DisplayNames([locales[current]], { type: "region" }).of(code.toUpperCase()) ?? code;
+  } catch {
+    return code;
+  }
+}
+
 /** An amount with its currency, e.g. "45,49 PLN" or "45.49 PLN". */
 export function formatMoney(amount: string | number, currency: string): string {
   const number = Number(amount);
@@ -133,6 +142,7 @@ export function useTranslation() {
     formatNumber,
     formatMoney,
     trackingLabel,
+    countryName,
   };
 }
 

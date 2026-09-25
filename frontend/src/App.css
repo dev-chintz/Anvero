@@ -10,14 +10,19 @@
   /* a flex item does not shrink below its content unless told it may, and a wide
      table inside would otherwise widen the page instead of scrolling */
   min-width: 0;
-  /* matches .sidebar.open's width in Sidebar.css */
-  margin-left: 200px;
+  /* room for the menu, unfolded or folded (App.tsx puts sidebar-collapsed on .app) */
+  margin-left: var(--sidebar-width-open);
+  transition: margin-left 0.3s ease;
   /* Not `overflow: auto`: that makes this the scroll container of anything
      sticky inside it, and it is as tall as its content, so a bar meant to stay at
      the bottom of the window (HorizontalScroll) would never leave the page's end.
      `clip` keeps a wide page from widening the window without becoming one. */
   overflow-x: clip;
   background: var(--color-bg);
+}
+
+.app.sidebar-collapsed .app-content {
+  margin-left: var(--sidebar-width-closed);
 }
 
 /* Page Header */
@@ -79,8 +84,10 @@
 
 /* Responsive Layout */
 @media (max-width: 768px) {
-  .app-content {
-    margin-left: 70px;
+  /* the menu lies over the page here, so the page only ever leaves room for its strip */
+  .app-content,
+  .app.sidebar-collapsed .app-content {
+    margin-left: var(--sidebar-width-closed);
   }
 
   .page-header {
@@ -93,17 +100,6 @@
 
   .settings-page {
     padding: 1rem;
-  }
-}
-
-@media (max-width: 480px) {
-  .app-content {
-    margin-left: 0;
-  }
-
-  /* When sidebar is collapsed on mobile */
-  .app-content {
-    margin-left: 70px;
   }
 }
 

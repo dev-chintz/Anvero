@@ -121,6 +121,9 @@ export interface ListOrdersParams {
   sort?: OrderSort;
   /** List the deleted orders instead of the ones in use. */
   deleted?: boolean;
+  /** Only the orders the operator has starred / flagged. */
+  starred?: boolean;
+  flagged?: boolean;
 }
 
 function buildQuery(params: ListOrdersParams): string {
@@ -136,6 +139,8 @@ function buildQuery(params: ListOrdersParams): string {
   if (params.queue) query.set("queue", params.queue);
   if (params.sort) query.set("sort", params.sort);
   if (params.deleted) query.set("deleted", "true");
+  if (params.starred) query.set("starred", "true");
+  if (params.flagged) query.set("flagged", "true");
   const queryString = query.toString();
   return queryString ? `?${queryString}` : "";
 }
@@ -307,6 +312,17 @@ export const ordersApi = {
     return request<OrderChangeResult>(`/orders/${orderId}/status`, {
       method: "PATCH",
       body: JSON.stringify({ status }),
+    });
+  },
+
+  /** Star or flag an order, or take the mark off; a mark left out stays as it is. */
+  setMarks(
+    orderId: string,
+    marks: { starred?: boolean; flagged?: boolean },
+  ): Promise<OrderWithDetails> {
+    return request<OrderWithDetails>(`/orders/${orderId}/marks`, {
+      method: "PATCH",
+      body: JSON.stringify(marks),
     });
   },
 

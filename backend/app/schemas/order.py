@@ -206,6 +206,13 @@ class OrderUpdate(BaseModel):
     status: OrderStatus
 
 
+class OrderMarksUpdate(BaseModel):
+    """The operator's marks on an order; one left out stays as it is."""
+
+    starred: bool | None = None
+    flagged: bool | None = None
+
+
 class OrderRead(OrderBase):
     id: uuid.UUID
     # Anvero's own number, continuous across sources and never reused
@@ -231,6 +238,20 @@ class OrderRead(OrderBase):
     dispatch_by: UtcDateTime | None = None
     # small, and the list shows them in its Shipping column
     shipments: list[ShipmentRead] = Field(default_factory=list)
+    # when the status last changed; null for an order that has kept the one it
+    # was placed with (the list then counts from `ordered_at`)
+    status_changed_at: UtcDateTime | None = None
+    # the operator's own marks, for finding an order again
+    starred: bool = False
+    flagged: bool = False
+    # the list's small facts: where it goes (delivery country, e.g. PL), how much
+    # has been paid (null when unknown), whether an invoice is wanted, and whether
+    # the buyer left a message or the seller a note
+    delivery_country_code: str | None = None
+    paid_amount: Decimal | None = None
+    invoice_required: bool = False
+    has_buyer_message: bool = False
+    has_seller_note: bool = False
     # set while an operator has deleted the order; such an order is in no list
     # unless it was asked for, and is kept to be restored
     deleted_at: UtcDateTime | None = None

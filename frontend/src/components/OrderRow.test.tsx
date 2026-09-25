@@ -2,7 +2,7 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { describe, expect, it, vi } from "vitest";
 import { OrderRow } from "./OrderRow";
-import { OrderSource, OrderStatus, PaymentType, type Order } from "../types/order";
+import { OrderSource, OrderStatus, PaymentType, paymentState, type Order } from "../types/order";
 
 function makeOrder(overrides: Partial<Order> = {}): Order {
   return {
@@ -310,7 +310,7 @@ describe("deleting from the row", () => {
 describe("the buyer in the order cell", () => {
   const cellText = () =>
     Array.from(
-      screen.getByRole("link", { name: "AN-000042" }).parentElement?.children ?? [],
+      screen.getByRole("link", { name: "AN-000042" }).closest(".order-cell")?.children ?? [],
     ).map((child) => child.textContent);
 
   it("puts the login right under the number, before the name", () => {
@@ -343,5 +343,223 @@ describe("the buyer in the order cell", () => {
     renderRow(makeOrder());
 
     expect(cellText()).toEqual(["AN-000042", "buyer@example.com", "ALLEGRO"]);
+  });
+});
+
+describe("ticking a row and the operator's marks", () => {
+  function renderMarkable(order: Order, props: Record<string, unknown> = {}) {
+    return render(
+      <MemoryRouter>
+        <table>
+          <tbody>
+            <OrderRow order={order} onStatusChange={vi.fn()} updating={false} {...props} />
+          </tbody>
+        </table>
+      </MemoryRouter>,
+    );
+  }
+
+  it("has no checkbox, star or flag unless asked for", () => {
+    renderMarkable(makeOrder());
+
+    expect(screen.queryByRole("checkbox")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /star/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /flag/i })).not.toBeInTheDocument();
+  });
+
+  it("ticks and unticks itself by id", () => {
+    const onSelectChange = vi.fn();
+    renderMarkable(makeOrder(), { onSelectChange, selected: false });
+
+    fireEvent.click(screen.getByRole("checkbox", { name: "Select order AN-000042" }));
+
+    expect(onSelectChange).toHaveBeenCalledWith("1", true);
+  });
+
+  it("shows a ticked row as ticked", () => {
+    const { container } = renderMarkable(makeOrder(), { onSelectChange: vi.fn(), selected: true });
+
+    expect(screen.getByRole("checkbox")).toBeChecked();
+    expect(container.querySelector("tr")).toHaveClass("row-selected");
+  });
+
+  it("stars an order, and takes the star off one that has it", () => {
+    const onMarksChange = vi.fn();
+    const { unmount } = renderMarkable(makeOrder(), { onMarksChange });
+
+    fireEvent.click(screen.getByRole("button", { name: "Star order AN-000042" }));
+    expect(onMarksChange).toHaveBeenLastCalledWith(expect.objectContaining({ id: "1" }), {
+      starred: true,
+    });
+    unmount();
+
+    renderMarkable(makeOrder({ starred: true }), { onMarksChange });
+    const star = screen.getByRole("button", { name: "Take the star off order AN-000042" });
+    expect(star).toHaveAttribute("aria-pressed", "true");
+    fireEvent.click(star);
+    expect(onMarksChange).toHaveBeenLastCalledWith(expect.objectContaining({ id: "1" }), {
+      starred: false,
+    });
+  });
+
+  it("flags an order without touching its star", () => {
+    const onMarksChange = vi.fn();
+    renderMarkable(makeOrder({ starred: true }), { onMarksChange });
+
+    fireEvent.click(screen.getByRole("button", { name: "Flag order AN-000042" }));
+
+    expect(onMarksChange).toHaveBeenCalledWith(expect.anything(), { flagged: true });
+  });
+});
+
+describe("what a row says at a glance", () => {
+  function renderPlain(order: Order) {
+    return render(
+      <MemoryRouter>
+        <table>
+          <tbody>
+            <OrderRow order={order} onStatusChange={vi.fn()} updating={false} />
+          </tbody>
+        </table>
+      </MemoryRouter>,
+    );
+  }
+
+  it("names the delivery country by its code, with the full name on hover", () => {
+    renderPlain(makeOrder({ delivery_country_code: "de" }));
+
+    const badge = screen.getByText("DE");
+    expect(badge).toHaveClass("country-badge");
+    expect(badge).toHaveAttribute("title", "Delivery to Germany");
+  });
+
+  it("shows no country when the order has none", () => {
+    const { container } = renderPlain(makeOrder());
+
+    expect(container.querySelector(".country-badge")).toBeNull();
+  });
+
+  it("says how long the order has been in its status, from when it changed", () => {
+    const { container } = renderPlain(
+      makeOrder({
+        ordered_at: "2020-01-01T10:00:00Z",
+        status_changed_at: new Date(Date.now() - 3 * 86_400_000).toISOString(),
+      }),
+    );
+
+    expect(container.querySelector(".status-since")).toHaveTextContent("3 days ago");
+    expect(container.querySelector(".status-since")).toHaveAttribute(
+      "title",
+      expect.stringContaining("In this status since"),
+    );
+  });
+
+  it("counts from the order date when the status has never changed", () => {
+    const { container } = renderPlain(
+      makeOrder({ ordered_at: new Date(Date.now() - 2 * 86_400_000).toISOString() }),
+    );
+
+    expect(container.querySelector(".status-since")).toHaveTextContent("2 days ago");
+  });
+
+  it("draws an icon for what the order has, and none for what it has not", () => {
+    renderPlain(
+      makeOrder({
+        payment_type: PaymentType.ONLINE,
+        paid_amount: "45.49",
+        invoice_required: true,
+        has_buyer_message: true,
+        has_seller_note: true,
+        shipments: [
+          { id: "s1", carrier_id: "DPD", carrier_name: null, waybill: "W1" } as never,
+        ],
+      }),
+    );
+
+    expect(screen.getByRole("img", { name: "Paid" })).toBeInTheDocument();
+    expect(screen.getByRole("img", { name: "A parcel has been sent" })).toBeInTheDocument();
+    expect(screen.getByRole("img", { name: "The buyer wants an invoice" })).toBeInTheDocument();
+    expect(screen.getByRole("img", { name: "The buyer left a message" })).toBeInTheDocument();
+    expect(screen.getByRole("img", { name: "The order has a seller's note" })).toBeInTheDocument();
+  });
+
+  it("draws no icon for an order with nothing to say", () => {
+    renderPlain(makeOrder());
+
+    expect(screen.queryByRole("img")).not.toBeInTheDocument();
+  });
+
+  it("marks an order as not paid yet when it pays up front and nothing is recorded", () => {
+    renderPlain(makeOrder({ payment_type: PaymentType.ONLINE, paid_amount: null }));
+
+    expect(screen.getByRole("img", { name: "Not paid yet" })).toBeInTheDocument();
+  });
+});
+
+describe("paymentState", () => {
+  const state = (overrides: Partial<Order>) => paymentState(makeOrder(overrides));
+
+  it("is paid when the paid amount covers the total", () => {
+    expect(state({ payment_type: PaymentType.ONLINE, paid_amount: "45.49" })).toBe("paid");
+  });
+
+  it("is unpaid when the paid amount falls short", () => {
+    expect(state({ payment_type: PaymentType.ONLINE, paid_amount: "10.00" })).toBe("unpaid");
+  });
+
+  it("is unpaid when it pays up front and nothing is recorded", () => {
+    expect(state({ payment_type: PaymentType.BANK_TRANSFER, paid_amount: null })).toBe("unpaid");
+  });
+
+  it("says nothing for a payment made after delivery, whatever is recorded", () => {
+    expect(state({ payment_type: PaymentType.CASH_ON_DELIVERY, paid_amount: "0.00" })).toBeNull();
+    expect(state({ payment_type: PaymentType.DEFERRED, paid_amount: null })).toBeNull();
+  });
+
+  it("says nothing when the payment is unknown", () => {
+    expect(state({ payment_type: null, paid_amount: null })).toBeNull();
+  });
+});
+
+describe("the message and note icons", () => {
+  function renderWithNotes(order: Order, onOpenNote?: (o: Order, kind: string) => void) {
+    return render(
+      <MemoryRouter>
+        <table>
+          <tbody>
+            <OrderRow
+              order={order}
+              onStatusChange={vi.fn()}
+              updating={false}
+              onOpenNote={onOpenNote as never}
+            />
+          </tbody>
+        </table>
+      </MemoryRouter>,
+    );
+  }
+
+  it("open the buyer's message and the seller's note when the list can show them", () => {
+    const onOpenNote = vi.fn();
+    renderWithNotes(makeOrder({ has_buyer_message: true, has_seller_note: true }), onOpenNote);
+
+    fireEvent.click(screen.getByRole("button", { name: "The buyer left a message" }));
+    expect(onOpenNote).toHaveBeenLastCalledWith(expect.objectContaining({ id: "1" }), "message");
+
+    fireEvent.click(screen.getByRole("button", { name: "The order has a seller's note" }));
+    expect(onOpenNote).toHaveBeenLastCalledWith(expect.objectContaining({ id: "1" }), "note");
+  });
+
+  it("are only signs, not buttons, when nothing can open them", () => {
+    renderWithNotes(makeOrder({ has_buyer_message: true, has_seller_note: true }));
+
+    expect(screen.queryByRole("button", { name: "The buyer left a message" })).toBeNull();
+    expect(screen.getByRole("img", { name: "The buyer left a message" })).toBeInTheDocument();
+  });
+
+  it("are not there for an order without them", () => {
+    renderWithNotes(makeOrder(), vi.fn());
+
+    expect(screen.queryByRole("button", { name: /message|note/i })).toBeNull();
   });
 });

@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useLocation, useSearchParams } from 'react-router-dom';
 import { ApiError, integrationsApi, ordersApi, type AllegroStatus } from '../api/client';
+import { BulkActionsBar } from '../components/BulkActionsBar';
 import { OrderList } from '../components/OrderList';
+import { OrderNoteDialog, type OrderNoteKind } from '../components/OrderNoteDialog';
 import { PAGE_SIZES } from '../components/Pagination';
 import type { OrderLinkState } from '../components/orderLinkState';
 import { AdvancedFilters, type Filters } from '../components/AdvancedFilters';
@@ -27,6 +29,9 @@ function storedPageSize(): number {
   }
 }
 
+// the statuses with a quick button of their own beside the queues, in the order shown
+const QUICK_STATUSES = [OrderStatus.NEW, OrderStatus.CONFIRMED];
+
 // how often the page asks whether an import has run by itself
 const STATUS_POLL_MS = 60_000;
 
@@ -42,7 +47,7 @@ interface OrdersPageProps {
 export function OrdersPage({ addToast }: OrdersPageProps) {
   const [searchParams, setSearchParams] = useSearchParams();
   const location = useLocation();
-  const { t, formatRelative } = useTranslation();
+  const { t, tc, formatRelative } = useTranslation();
 
   const skip = Number(searchParams.get('skip') ?? 0);
   // an address that names a size wins, so a shared link shows what was meant
@@ -56,6 +61,9 @@ export function OrdersPage({ addToast }: OrdersPageProps) {
   const queue = (searchParams.get('queue') as OrderQueue) || undefined;
   // the deleted orders, to look at or restore, instead of the ones in use
   const deleted = searchParams.get('deleted') === 'true';
+  // the operator's own marks: only the starred / flagged orders
+  const starred = searchParams.get('starred') === 'true';
+  const flagged = searchParams.get('flagged') === 'true';
   // a queue is a to-do list, so it opens with what is most at risk; the
   // whole list keeps opening with what is newest
   const sort =
@@ -63,7 +71,14 @@ export function OrdersPage({ addToast }: OrdersPageProps) {
 
   // every filter is applied by the backend, so results and the total span
   // all pages rather than just the rows already fetched
-  const { orders, loading, error, count, refetch: refetchOrders } = useOrders({
+  const {
+    orders,
+    loading,
+    error,
+    count,
+    refetch: refetchOrders,
+    patchOrder,
+  } = useOrders({
     skip,
     limit,
     source,
@@ -75,7 +90,22 @@ export function OrdersPage({ addToast }: OrdersPageProps) {
     queue,
     sort,
     deleted,
+    starred,
+    flagged,
   });
+
+  // the orders ticked in the list, by id; only ones on the page in view stay ticked,
+  // so an action never reaches an order the operator cannot see
+  const [selectedIds, setSelectedIds] = useState<ReadonlySet<string>>(new Set());
+  const [bulkWorking, setBulkWorking] = useState(false);
+  useEffect(() => {
+    if (loading) return;
+    setSelectedIds((current) => {
+      const onPage = new Set(orders.map((order) => order.id));
+      const kept = [...current].filter((id) => onPage.has(id));
+      return kept.length === current.size ? current : new Set(kept);
+    });
+  }, [orders, loading]);
 
   // what an order opened from this list is told: where "back" goes (this very
   // list, filters and page included) and the order of the orders on this page,
@@ -217,6 +247,121 @@ export function OrdersPage({ addToast }: OrdersPageProps) {
       });
   };
 
+  // the buyer's message or the seller's note being read in its window; the list does not
+  // carry the text, so it is fetched from the order when its icon is pressed
+  const [note, setNote] = useState<{
+    order: Order;
+    kind: OrderNoteKind;
+    text: string | null;
+    loading: boolean;
+    error: string | null;
+  } | null>(null);
+  const noteRequest = useRef(0);
+
+  const handleOpenNote = (order: Order, kind: OrderNoteKind) => {
+    const request = ++noteRequest.current;
+    setNote({ order, kind, text: null, loading: true, error: null });
+    ordersApi
+      .get(order.id)
+      .then((details) => {
+        if (request !== noteRequest.current) return;
+        const text = kind === 'message' ? details.buyer_message : details.seller_note;
+        setNote({ order, kind, text, loading: false, error: null });
+      })
+      .catch((err: unknown) => {
+        if (request !== noteRequest.current) return;
+        const error = err instanceof ApiError ? err.message : t('orders.note.failed');
+        setNote({ order, kind, text: null, loading: false, error });
+      });
+  };
+
+  // closing also drops a fetch still under way, so it cannot open the window again
+  const closeNote = useCallback(() => {
+    noteRequest.current += 1;
+    setNote(null);
+  }, []);
+
+  // a mark is saved at once and shown from the answer, without reloading the list
+  // (which would send the operator back to its top); in a list narrowed to a mark, the
+  // order leaves it the next time the list is loaded
+  const handleMarksChange = (order: Order, marks: { starred?: boolean; flagged?: boolean }) => {
+    ordersApi
+      .setMarks(order.id, marks)
+      .then((updated) =>
+        patchOrder(order.id, { starred: updated.starred, flagged: updated.flagged }),
+      )
+      .catch((err: unknown) => {
+        addToast?.(err instanceof ApiError ? err.message : t('orders.markFailed'), 'error');
+      });
+  };
+
+  // One request per selected order, one after another: each order's status change
+  // may go on to the marketplace, and a failure of one must not hide the rest.
+  const handleBulkStatus = async (newStatus: OrderStatus) => {
+    const ids = [...selectedIds];
+    setBulkWorking(true);
+    let done = 0;
+    const failures: string[] = [];
+    let writeNote: { text: string; tone: 'success' | 'info' | 'error' } | null = null;
+    for (const id of ids) {
+      try {
+        const result = await ordersApi.updateStatus(id, newStatus);
+        done += 1;
+        const write = describeWrite(result.marketplace_write);
+        // one word about the marketplace for the whole batch: a failure outranks a hold
+        if (write && write.tone !== 'success' && (!writeNote || write.tone === 'error')) {
+          writeNote = write;
+        }
+      } catch (err: unknown) {
+        failures.push(err instanceof ApiError ? err.message : t('error.updateStatus'));
+      }
+    }
+    setBulkWorking(false);
+    if (done > 0) addToast?.(tc('orders.bulk.statusDone', done), 'success');
+    if (writeNote) addToast?.(writeNote.text, writeNote.tone === 'error' ? 'error' : 'info');
+    if (failures.length > 0) {
+      addToast?.(
+        t('orders.bulk.someFailed', {
+          failed: failures.length,
+          total: ids.length,
+          first: failures[0],
+        }),
+        'error',
+      );
+    }
+    refetch();
+  };
+
+  const handleBulkMarks = async (marks: { starred?: boolean; flagged?: boolean }) => {
+    const ids = [...selectedIds];
+    setBulkWorking(true);
+    let done = 0;
+    const failures: string[] = [];
+    for (const id of ids) {
+      try {
+        const updated = await ordersApi.setMarks(id, marks);
+        patchOrder(id, { starred: updated.starred, flagged: updated.flagged });
+        done += 1;
+      } catch (err: unknown) {
+        failures.push(err instanceof ApiError ? err.message : t('orders.markFailed'));
+      }
+    }
+    setBulkWorking(false);
+    if (done > 0) addToast?.(tc('orders.bulk.marksDone', done), 'success');
+    if (failures.length > 0) {
+      addToast?.(
+        t('orders.bulk.someFailed', {
+          failed: failures.length,
+          total: ids.length,
+          first: failures[0],
+        }),
+        'error',
+      );
+    }
+    // in a list narrowed to a mark, what lost it leaves
+    if (starred || flagged) refetch();
+  };
+
   const handleLimitChange = (newLimit: number) => {
     try {
       localStorage.setItem(PAGE_SIZE_KEY, String(newLimit));
@@ -246,6 +391,8 @@ export function OrdersPage({ addToast }: OrdersPageProps) {
       queue: undefined,
       status: undefined,
       deleted: undefined,
+      starred: undefined,
+      flagged: undefined,
       sort: undefined,
       skip: '0',
       ...choice,
@@ -285,7 +432,7 @@ export function OrdersPage({ addToast }: OrdersPageProps) {
           </button>
           {allegroConfigured === false && (
             <p className="allegro-import-hint">
-              {t('orders.notConnectedBefore')}<Link to="/settings">{t('orders.notConnectedLink')}</Link>{t('orders.notConnectedAfter')}
+              {t('orders.notConnectedBefore')}<Link to="/integrations">{t('orders.notConnectedLink')}</Link>{t('orders.notConnectedAfter')}
             </p>
           )}
           {allegro?.last_import_error ? (
@@ -336,26 +483,29 @@ export function OrdersPage({ addToast }: OrdersPageProps) {
           <button
             type="button"
             className="queue-tab"
-            aria-pressed={!deleted && !queue && !status}
+            aria-pressed={!deleted && !queue && !status && !starred && !flagged}
             onClick={() => showQuickly({})}
           >
             {t('queue.all')}
           </button>
-          {/* what is "in progress" on the marketplace is asked for most, so it has a button of its own */}
-          <button
-            type="button"
-            className="queue-tab"
-            aria-pressed={!deleted && !queue && status === OrderStatus.CONFIRMED}
-            onClick={() => showQuickly({ status: OrderStatus.CONFIRMED })}
-          >
-            {t(`status.${OrderStatus.CONFIRMED}`)}
-            {stats?.by_status && (
-              <>
-                {' '}
-                <span className="queue-count">{stats.by_status[OrderStatus.CONFIRMED] ?? 0}</span>
-              </>
-            )}
-          </button>
+          {/* what has just arrived and what is being made are asked for most, so each has a button of its own */}
+          {QUICK_STATUSES.map((quickStatus) => (
+            <button
+              key={quickStatus}
+              type="button"
+              className="queue-tab"
+              aria-pressed={!deleted && !queue && status === quickStatus}
+              onClick={() => showQuickly({ status: quickStatus })}
+            >
+              {t(`status.${quickStatus}`)}
+              {stats?.by_status && (
+                <>
+                  {' '}
+                  <span className="queue-count">{stats.by_status[quickStatus] ?? 0}</span>
+                </>
+              )}
+            </button>
+          ))}
           {Object.values(OrderQueue).map((q) => (
             <button
               key={q}
@@ -373,6 +523,22 @@ export function OrdersPage({ addToast }: OrdersPageProps) {
               )}
             </button>
           ))}
+          <button
+            type="button"
+            className="queue-tab"
+            aria-pressed={!deleted && starred}
+            onClick={() => showQuickly(starred ? {} : { starred: 'true' })}
+          >
+            ★ {t('queue.starred')}
+          </button>
+          <button
+            type="button"
+            className="queue-tab"
+            aria-pressed={!deleted && flagged}
+            onClick={() => showQuickly(flagged ? {} : { flagged: 'true' })}
+          >
+            🚩 {t('queue.flagged')}
+          </button>
           <button
             type="button"
             className="queue-tab queue-tab-deleted"
@@ -423,6 +589,16 @@ export function OrdersPage({ addToast }: OrdersPageProps) {
         </div>
       )}
 
+      {!deleted && (
+        <BulkActionsBar
+          count={selectedIds.size}
+          working={bulkWorking}
+          onSetStatus={handleBulkStatus}
+          onSetMarks={handleBulkMarks}
+          onClear={() => setSelectedIds(new Set())}
+        />
+      )}
+
       <OrderList
         orders={orders}
         loading={loading}
@@ -437,7 +613,24 @@ export function OrdersPage({ addToast }: OrdersPageProps) {
         onDelete={handleDelete}
         onRestore={handleRestore}
         onLimitChange={handleLimitChange}
+        // a deleted order takes no change, so its list has nothing to tick or mark
+        selectedIds={deleted ? undefined : selectedIds}
+        onSelectionChange={deleted ? undefined : setSelectedIds}
+        onMarksChange={deleted ? undefined : handleMarksChange}
+        onOpenNote={handleOpenNote}
       />
+
+      {note && (
+        <OrderNoteDialog
+          kind={note.kind}
+          orderId={note.order.id}
+          orderLabel={note.order.order_label}
+          text={note.text}
+          loading={note.loading}
+          error={note.error}
+          onClose={closeNote}
+        />
+      )}
     </div>
   );
 }

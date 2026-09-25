@@ -133,7 +133,7 @@ export function InpostLabelsPanel() {
   if (status && !status.configured) {
     return (
       <p role="status" className="order-muted">
-        {t("inpost.needsSettings")} <Link to="/settings">{t("label.settingsLink")}</Link>
+        {t("inpost.needsSettings")} <Link to="/integrations">{t("label.settingsLink")}</Link>
       </p>
     );
   }
