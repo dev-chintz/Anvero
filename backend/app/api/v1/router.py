@@ -4,6 +4,7 @@ from app.api.v1.endpoints import (
     after_sales,
     app_status,
     auth,
+    finance,
     health,
     inpost,
     integrations,
@@ -30,3 +31,4 @@ router.include_router(inpost.router)
 
 router.include_router(messages.router)
 router.include_router(after_sales.router)
+router.include_router(finance.router)

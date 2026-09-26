@@ -979,3 +979,99 @@ export const afterSalesApi = {
     });
   },
 };
+
+// ---- Finance: a period's sales, what the marketplaces took, and what is left ----
+// Amounts are decimal strings, as the backend sends them; fees are positive (what was taken).
+
+export interface FinanceSourceMoney {
+  source: OrderSource;
+  sales: string;
+  orders: number;
+  fees: string;
+  previous_sales: string;
+  previous_fees: string;
+}
+
+export interface FinanceFeeType {
+  source: OrderSource;
+  type_id: string;
+  type_name: string | null;
+  fees: string;
+  previous_fees: string;
+}
+
+/** What a marketplace took out of the proceeds to pay its fees, beside the fees booked. */
+export interface FinanceSettlement {
+  source: OrderSource;
+  fees: string;
+  settled: string;
+  synced_at: string | null;
+}
+
+export interface FinanceSummary {
+  date_from: string;
+  date_to: string;
+  previous_from: string;
+  previous_to: string;
+  currency: string;
+  sales: string;
+  orders: number;
+  fees: string;
+  previous_sales: string;
+  previous_orders: number;
+  previous_fees: string;
+  by_source: FinanceSourceMoney[];
+  by_type: FinanceFeeType[];
+  settlements: FinanceSettlement[];
+}
+
+export interface FinanceOrder {
+  id: string;
+  order_label: string;
+  source: OrderSource;
+  ordered_at: string;
+  currency: string;
+  sales: string;
+  commission: string;
+  delivery: string;
+  other: string;
+  fees: string;
+}
+
+export interface FinanceProduct {
+  key: string;
+  name: string;
+  sku: string | null;
+  offer_id: string | null;
+  image_url: string | null;
+  quantity: number;
+  orders: number;
+  sales: string;
+  fees: string;
+}
+
+export type FinanceOrderSort = "newest" | "share";
+
+export const financeApi = {
+  summary(dateFrom: string, dateTo: string): Promise<FinanceSummary> {
+    const query = new URLSearchParams({ date_from: dateFrom, date_to: dateTo });
+    return request<FinanceSummary>(`/finance/summary?${query.toString()}`);
+  },
+
+  orders(
+    dateFrom: string,
+    dateTo: string,
+    params: { sort?: FinanceOrderSort; limit?: number; offset?: number } = {},
+  ): Promise<{ items: FinanceOrder[]; total: number }> {
+    const query = new URLSearchParams({ date_from: dateFrom, date_to: dateTo });
+    if (params.sort) query.set("sort", params.sort);
+    if (params.limit !== undefined) query.set("limit", String(params.limit));
+    if (params.offset !== undefined) query.set("offset", String(params.offset));
+    return request(`/finance/orders?${query.toString()}`);
+  },
+
+  products(dateFrom: string, dateTo: string): Promise<{ items: FinanceProduct[] }> {
+    const query = new URLSearchParams({ date_from: dateFrom, date_to: dateTo });
+    return request(`/finance/products?${query.toString()}`);
+  },
+};

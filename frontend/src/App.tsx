@@ -17,6 +17,7 @@ import { Integrations } from './pages/Integrations';
 import { Settings } from './pages/Settings';
 import { LabelsPage } from './pages/LabelsPage';
 import { AfterSalesPage } from './pages/AfterSalesPage';
+import { FinancePage } from './pages/FinancePage';
 import { useSidebarOpen } from './hooks/useSidebarOpen';
 import { useTranslation } from './i18n';
 import './App.css';
@@ -123,6 +124,7 @@ export default function App() {
                 <Route path="/status" element={<Navigate to="/settings?tab=status" replace />} />
 
                 <Route path="/inbox" element={<InboxPage />} />
+                <Route path="/finance" element={<FinancePage />} />
                 <Route path="/integrations" element={<Integrations />} />
                 <Route
                   path="/settings"

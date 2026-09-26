@@ -1,0 +1,464 @@
+/* The Finance page: four figures, the orders table the fees figure opens, what the fees went on,
+   and beside it the channels and the check against the marketplace. Cards, bands and tones are
+   the shared ones (theme.css); this file lays them out. */
+
+.finance-page {
+  --fee: #b45309;
+}
+
+:root.dark .finance-page {
+  --fee: #f59e0b;
+}
+
+.finance-body {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 0 2rem 2rem;
+}
+
+/* the period and the tabs are the shared pills (theme.css) */
+.finance-periods,
+.finance-tabs,
+.finance-sort {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+/* ---- The four figures ---- */
+.finance-kpis {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.finance-kpi {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  padding: 0.9rem 1rem;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  color: var(--color-text);
+  text-align: left;
+  font: inherit;
+}
+
+.finance-kpi-value {
+  font-size: 1.55rem;
+  font-weight: 700;
+  line-height: 1.15;
+  color: var(--color-heading);
+  font-variant-numeric: tabular-nums;
+}
+
+.finance-kpi-note {
+  font-size: 0.8rem;
+  color: var(--color-muted);
+}
+
+.finance-kpi .is-up {
+  color: var(--tone-green-fg);
+}
+
+.finance-kpi .is-down {
+  color: var(--tone-red-fg);
+}
+
+/* the fees figure is a button: it opens the orders table under the figures */
+button.finance-kpi {
+  cursor: pointer;
+  transition: border-color 0.15s ease;
+}
+
+button.finance-kpi:hover,
+button.finance-kpi.is-open {
+  border-color: var(--color-accent);
+}
+
+.finance-kpi.is-fees .finance-kpi-value {
+  color: var(--fee);
+}
+
+.finance-kpi-go {
+  margin-top: 0.2rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--color-accent);
+}
+
+.finance-kpi.is-left {
+  background: color-mix(in srgb, var(--tone-green-bg) 45%, var(--color-bg));
+  border-color: color-mix(in srgb, var(--color-success) 35%, var(--color-bg));
+}
+
+.finance-kpi.is-left .finance-kpi-value {
+  color: var(--tone-green-fg);
+}
+
+/* ---- Fees by kind beside the channels and the check ---- */
+.finance-columns {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 21rem;
+  gap: 1rem;
+  align-items: start;
+}
+
+.finance-side {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  min-width: 0;
+}
+
+.finance-legend {
+  display: flex;
+  gap: 0.8rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+.finance-swatch {
+  display: inline-block;
+  width: 0.6rem;
+  height: 0.6rem;
+  margin-right: 0.3rem;
+  border-radius: 3px;
+  background: var(--color-accent);
+}
+
+.finance-bars {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.finance-bars li {
+  display: grid;
+  grid-template-columns: minmax(8rem, 15rem) minmax(4rem, 1fr) 7rem 3.5rem;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.finance-bar-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.finance-bar-track {
+  height: 0.65rem;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--color-surface-alt);
+}
+
+.finance-bar-track i {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--color-accent);
+}
+
+:is(.finance-bar-track i, .finance-swatch).channel-allegro {
+  background: var(--channel-allegro);
+}
+
+:is(.finance-bar-track i, .finance-swatch).channel-erli {
+  background: var(--channel-erli);
+}
+
+.finance-bar-amount {
+  text-align: right;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.finance-bar-change {
+  text-align: right;
+  font-size: 0.78rem;
+  color: var(--color-muted);
+  white-space: nowrap;
+}
+
+/* label and value down a card */
+.finance-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  margin: 0;
+}
+
+.finance-list + .finance-list {
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--color-divider);
+}
+
+.finance-list > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.finance-list dt {
+  color: var(--color-muted);
+}
+
+.finance-list dd {
+  margin: 0;
+  text-align: right;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.finance-channel dd {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+
+.finance-fee {
+  font-weight: 500;
+  font-size: 0.8rem;
+  color: var(--fee);
+}
+
+.finance-ok {
+  color: var(--tone-green-fg);
+}
+
+.finance-diff {
+  color: var(--tone-red-fg);
+}
+
+.finance-forecast {
+  margin: 0.75rem 0 0;
+  font-size: 0.8rem;
+  color: var(--color-muted);
+}
+
+.finance-basis {
+  margin: 0;
+  max-width: 80ch;
+  font-size: 0.8rem;
+  color: var(--color-muted);
+}
+
+.finance-empty {
+  margin: 0;
+  padding: 0.75rem 0;
+  color: var(--color-muted);
+}
+
+.finance-muted {
+  color: var(--color-muted);
+  font-size: 0.8rem;
+}
+
+/* a marketplace in its own colour, as in the order list */
+.finance-channel-chip {
+  display: inline-block;
+  padding: 0.05rem 0.5rem;
+  border-radius: 6px;
+  background: var(--color-surface-alt);
+  color: var(--color-muted-strong);
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.finance-channel-chip.channel-allegro {
+  background: var(--channel-allegro-bg);
+  color: var(--channel-allegro-fg);
+}
+
+.finance-channel-chip.channel-erli {
+  background: var(--channel-erli-bg);
+  color: var(--channel-erli-fg);
+}
+
+/* ---- Tables: the orders under the figures, and the products ---- */
+.finance-orders,
+.finance-products {
+  padding-bottom: 0;
+}
+
+.finance-orders > .card-head {
+  margin-bottom: 0;
+}
+
+.finance-table-scroll {
+  margin: 0 -1rem;
+  overflow-x: auto;
+}
+
+.finance-products .finance-table-scroll {
+  margin: -1rem -1rem 0;
+}
+
+.finance-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.finance-table th {
+  padding: 0.45rem 0.75rem;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.finance-table td {
+  padding: 0.5rem 0.75rem;
+  border-top: 1px solid var(--color-divider);
+  vertical-align: middle;
+}
+
+.finance-table tr:first-child td {
+  border-top: none;
+}
+
+.finance-table :is(th, td):first-child {
+  padding-left: 1rem;
+}
+
+.finance-table :is(th, td):last-child {
+  padding-right: 1rem;
+}
+
+.finance-table .is-num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.finance-left {
+  font-weight: 700;
+  color: var(--tone-green-fg);
+}
+
+.finance-share {
+  display: inline-block;
+  min-width: 2.8rem;
+  padding: 0.05rem 0.45rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-align: center;
+}
+
+.finance-share.is-low {
+  background: var(--tone-green-bg);
+  color: var(--tone-green-fg);
+}
+
+.finance-share.is-mid {
+  background: var(--tone-amber-bg);
+  color: var(--tone-amber-fg);
+}
+
+.finance-share.is-high {
+  background: var(--tone-red-bg);
+  color: var(--tone-red-fg);
+}
+
+/* a sortable head is a button that looks like the head it is */
+.finance-th-button {
+  padding: 0;
+  border: none;
+  background: none;
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+
+.finance-th-button:hover {
+  color: var(--color-accent);
+}
+
+.finance-more {
+  display: flex;
+  justify-content: center;
+  padding: 0.75rem;
+  border-top: 1px solid var(--color-divider);
+  margin: 0 -1rem;
+}
+
+.finance-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem 1rem;
+}
+
+.finance-search {
+  min-width: min(20rem, 100%);
+}
+
+.finance-product {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  min-width: 0;
+}
+
+.finance-thumb {
+  width: 2.2rem;
+  height: 2.2rem;
+  flex-shrink: 0;
+  border-radius: 6px;
+  object-fit: cover;
+  background: var(--color-surface-alt);
+}
+
+.finance-product-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.finance-product-name {
+  max-width: 28rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 500;
+}
+
+@media (max-width: 1100px) {
+  .finance-columns {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .finance-kpis {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 768px) {
+  .finance-body {
+    padding: 0 1rem 1.5rem;
+  }
+
+  .finance-bars li {
+    grid-template-columns: minmax(0, 1fr) 6.5rem;
+  }
+
+  .finance-bar-track,
+  .finance-bar-change {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  button.finance-kpi {
+    transition: none;
+  }
+}

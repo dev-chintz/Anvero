@@ -389,7 +389,10 @@ item is scoped when it is taken up.
    in time is accepted by Allegro. Needs the owner's rules for when to accept.
 2. **Money without the invoicing program**: a purchase price on a product, a
    period summary of Allegro's fees, and "what is left" (revenue less fees less
-   cost). The fees are already read. The money half of B3.
+   cost). The fees are already read. The money half of B3. Started 2026-09-27:
+   the Finance page with the period summary, the orders' fees and the products
+   (`DECISIONS.md`). Left: Erli's fees, rebates and payouts (its API has them),
+   Allegro's payouts, the cost of making a product, advertising.
 3. **Statistics and dashboard**: sales for 7/30/90 days against the period
    before, a chart by channel, best and worst sellers, regular customers with a
    CSV export. Own data only, nothing that can go wrong on Allegro's side.

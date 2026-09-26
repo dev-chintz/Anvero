@@ -6,6 +6,15 @@ All significant changes to the Anvero project.
 
 ## 2026-09-27
 
+### 💰 A Finance page
+
+- **Finanse** in the menu: sales, marketplace fees and what is left for this month, last month or 7/30/90 days, each
+  against the period before; the fees by kind (commission, each carrier's delivery); a check that Allegro's fees equal
+  what it took from the proceeds. The fees figure opens the period's orders with their fees and the share taken.
+- A **Products** tab: each product's sales, its share of the fees and what is left, sortable and searchable. It shows,
+  for instance, the products where Allegro's minimum commission per unit takes over a third of the price.
+- Allegro only for now; Erli's fees and payouts, product costs and payouts are the next steps.
+
 ### 🕓 The status history is never empty
 
 - An order's status history ends with the status it was imported with ("Zaimportowane z Allegro jako W realizacji"),

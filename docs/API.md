@@ -69,6 +69,9 @@ are days in the business timezone, `BUSINESS_TIMEZONE`, default
 | `POST` | `/api/v1/inpost/labels/pdf` | the labels of the given shipments as one A6 PDF; notes them printed |
 | `GET` | `/api/v1/after-sales` | returns, claims and disputes: by default what waits for the seller, closest deadline first |
 | `GET` | `/api/v1/after-sales/summary` | how many wait, how many are late, how many are due within three days |
+| `GET` | `/api/v1/finance/summary` | a period's sales, marketplace fees by kind and by channel, beside the period before, and the check against what the marketplace took from proceeds |
+| `GET` | `/api/v1/finance/orders` | the orders placed in a period, each with every fee booked for it, by kind |
+| `GET` | `/api/v1/finance/products` | each product sold in a period with its share of its orders' fees |
 | `GET` | `/api/v1/orders/{id}/after-sales` | the cases on one order, open or not, newest first |
 | `POST` | `/api/v1/integrations/allegro/after-sales/sync` | read returns, claims and disputes from Allegro; rate limited to 6 per minute per IP |
 | `POST` | `/api/v1/integrations/allegro/messages/sync` | read new and changed Message Center threads; rate limited to 6 per minute per IP |
@@ -795,6 +798,59 @@ parcel added in Anvero stays on the order when an import does not list it.
 `POST /api/v1/messages/threads/{id}/reply` reports the same way, as
 `marketplace_write` in its own response rather than nested in an order (a
 thread is not one): action `message_reply`.
+
+## Finance: `GET /api/v1/finance/summary`, `/orders`, `/products`
+
+All three take `date_from` and `date_to` (calendar days in the business
+timezone, both included, at most 366 days; `date_to` before `date_from` is
+`422`) and require a login. Amounts are decimal strings in `PLN`; orders and
+fees in another currency are left out. **Fees are positive**: what the
+marketplace took, less any fee it refunded. Allegro's "Pobranie opłat z
+wpływów" (`PAD`), the fees taken out of the proceeds, is a settlement and never
+a fee. An order counts as sold when it was placed in the period and is neither
+deleted nor cancelled (in Anvero or on the marketplace).
+
+`/summary` counts sales by the day ordered and fees by the day the marketplace
+booked them, as Allegro's Centrum Finansów does, beside the period of the same
+length just before (`previous_from`, `previous_to`):
+
+```json
+{"date_from": "2026-09-01", "date_to": "2026-09-27", "previous_from": "2026-08-05", "previous_to": "2026-08-31",
+ "currency": "PLN", "sales": "3398.81", "orders": 62, "fees": "939.43",
+ "previous_sales": "0.00", "previous_orders": 0, "previous_fees": "0.00",
+ "by_source": [{"source": "ALLEGRO", "sales": "3271.78", "orders": 58, "fees": "939.43", "previous_sales": "0.00", "previous_fees": "0.00"}],
+ "by_type": [{"source": "ALLEGRO", "type_id": "SUC", "type_name": "Prowizja od sprzedaży", "fees": "628.12", "previous_fees": "0.00"}],
+ "settlements": [{"source": "ALLEGRO", "fees": "939.43", "settled": "939.43", "synced_at": "2026-09-26T22:30:58Z"}]}
+```
+
+`by_type` is largest first. `settlements` has a row for each marketplace whose
+fees or settlements are held or that has read its fees: the fees in the period,
+what it took from the proceeds in the period (`settled`), and when its fees
+were last read.
+
+`/orders` takes the orders placed in the period and every fee booked for each,
+whenever it was booked; `sort` is `newest` (default) or `share` (the largest
+share of the sale taken by fees first), with `limit` (1–500, default 50) and
+`offset`:
+
+```json
+{"total": 62, "items": [{"id": "...", "order_label": "AN-000064", "source": "ALLEGRO", "ordered_at": "...Z",
+  "currency": "PLN", "sales": "68.85", "commission": "23.84", "delivery": "0.00", "other": "0.00", "fees": "23.84"}]}
+```
+
+`commission` is Allegro's `SUC`; `delivery`, a fee whose name speaks of
+delivery; `other`, the rest.
+
+`/products` groups the items of those orders by SKU, else offer, else name,
+most left (sales less fees) first. A fee naming an offer goes to that offer's
+items in its order; a fee naming none (the delivery) is shared among the
+order's items by value. `sales` is price times quantity (the buyer's delivery
+charge is not a product's):
+
+```json
+{"items": [{"key": "sku:D1797", "name": "...", "sku": "D1797", "offer_id": "...", "image_url": "...",
+  "quantity": 11, "orders": 9, "sales": "323.07", "fees": "55.88"}]}
+```
 
 ## `GET /api/v1/orders/{id}/buyer-orders`
 
