@@ -194,6 +194,25 @@ def test_summary_counts_sales_by_order_date_and_fees_by_booking_date():
     assert Decimal(body["previous_sales"]) == Decimal("40.00")
 
 
+def test_the_delivery_the_buyers_paid_is_set_beside_the_delivery_fees():
+    erli = _order("21.86", _day(9, 10), source=OrderSource.ERLI, delivery_cost=Decimal("10.49"))
+    _fee("-10.49", _day(9, 11), type_id="SHIP", type_name="metoda dostawy ERLI.pl", order=erli, source=OrderSource.ERLI)
+    _fee("-2.20", _day(9, 10), type_id="COMM", type_name="naliczenie prowizji", order=erli, source=OrderSource.ERLI)
+    smart = _order("40.00", _day(9, 12), delivery_cost=Decimal("0.00"))
+    _fee("-8.99", _day(9, 12), type_id="HB4", type_name="Opłata za dostawę InPost", order=smart)
+
+    body = client.get("/api/v1/finance/summary", params=SEPTEMBER).json()
+
+    by_source = {row["source"]: row for row in body["by_source"]}
+    assert (Decimal(by_source["ERLI"]["delivery_paid"]), Decimal(by_source["ERLI"]["delivery_fees"])) == (
+        Decimal("10.49"), Decimal("10.49")
+    )
+    assert (Decimal(by_source["ALLEGRO"]["delivery_paid"]), Decimal(by_source["ALLEGRO"]["delivery_fees"])) == (
+        Decimal("0.00"), Decimal("8.99")
+    )
+    assert (Decimal(body["delivery_paid"]), Decimal(body["delivery_fees"])) == (Decimal("10.49"), Decimal("19.48"))
+
+
 def test_summary_leaves_out_the_fees_settled_from_proceeds_but_reports_them():
     placed = _order("100.00", _day(9, 10))
     _fee("-12.00", _day(9, 10), order=placed)

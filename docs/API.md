@@ -825,6 +825,12 @@ length just before (`previous_from`, `previous_to`):
  "settlements": [{"source": "ERLI", "fees": "124.13", "settled": "145.11", "unsettled": "0.00", "held_since": "2026-07-31T17:03:18Z", "synced_at": "..."}]}
 ```
 
+`delivery_paid` is what the buyers paid for delivery in the orders sold (part
+of `sales`) and `delivery_fees` the delivery fees booked in the period, per
+marketplace and in all, so the page can set delivery apart: Erli charges back
+exactly what the buyer paid, while Allegro Smart charges the seller for
+parcels the buyer did not pay for.
+
 `by_type` is largest first. `paid_out` is what reached the bank in the period
 (by the day paid), per marketplace and in all; it is `null` for a marketplace
 whose payouts are not read (Allegro today) and at the top when none is.

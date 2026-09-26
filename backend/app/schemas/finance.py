@@ -20,6 +20,9 @@ class SourceMoney(BaseModel):
     previous_fees: Decimal
     # sent to the bank in the period; null for a marketplace whose payouts are not read
     paid_out: Decimal | None = None
+    # what the buyers paid for delivery (part of `sales`), and the delivery fees booked
+    delivery_paid: Decimal = Decimal("0.00")
+    delivery_fees: Decimal = Decimal("0.00")
 
 
 class FeeTypeMoney(BaseModel):
@@ -59,6 +62,8 @@ class FinanceSummary(BaseModel):
     previous_fees: Decimal
     # the payouts of the marketplaces whose payouts are read; null when none is
     paid_out: Decimal | None = None
+    delivery_paid: Decimal = Decimal("0.00")
+    delivery_fees: Decimal = Decimal("0.00")
     by_source: list[SourceMoney]
     by_type: list[FeeTypeMoney]
     settlements: list[Settlement]

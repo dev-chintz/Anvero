@@ -21,7 +21,7 @@ from app.schemas.finance import (
     Settlement,
     SourceMoney,
 )
-from app.services.finance import ZERO, FinanceService, previous_period
+from app.services.finance import ZERO, FinanceService, fee_kind, previous_period
 
 router = APIRouter(prefix="/finance", tags=["Finance"], dependencies=[Depends(get_current_user)])
 
@@ -54,9 +54,16 @@ def summary(date_from: date, date_to: date, db: Session = Depends(get_db)):
     fees, previous_fees = finance.fees_by_type(date_from, date_to), finance.fees_by_type(previous_from, previous_to)
     settled = finance.settled(date_from, date_to)
     paid_out = finance.paid_out(date_from, date_to)
+    delivery_paid = finance.delivery_paid(date_from, date_to)
 
     def fees_of(table, source):
         return sum((amount for (s, _), (_, amount) in table.items() if s == source), ZERO)
+
+    def delivery_fees_of(source):
+        return sum(
+            (amount for (s, type_id), (name, amount) in fees.items() if s == source and fee_kind(type_id, name) == "delivery"),
+            ZERO,
+        )
 
     sources = sorted(
         {*sales, *previous_sales, *(s for s, _ in fees), *(s for s, _ in previous_fees), *paid_out},
@@ -71,6 +78,8 @@ def summary(date_from: date, date_to: date, db: Session = Depends(get_db)):
             previous_sales=previous_sales.get(source, (ZERO, 0))[0],
             previous_fees=fees_of(previous_fees, source),
             paid_out=paid_out.get(source),
+            delivery_paid=delivery_paid.get(source, ZERO),
+            delivery_fees=delivery_fees_of(source),
         )
         for source in sources
     ]
@@ -114,6 +123,8 @@ def summary(date_from: date, date_to: date, db: Session = Depends(get_db)):
         previous_orders=sum(n for _, n in previous_sales.values()),
         previous_fees=sum((row.previous_fees for row in by_source), ZERO),
         paid_out=sum(paid_out.values(), ZERO) if paid_out else None,
+        delivery_paid=sum((row.delivery_paid for row in by_source), ZERO),
+        delivery_fees=sum((row.delivery_fees for row in by_source), ZERO),
         by_source=by_source,
         by_type=by_type,
         settlements=settlements,

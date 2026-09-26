@@ -167,6 +167,12 @@ function Summary({ from, to, period }: { from: string; to: string; period: Perio
   const share = sales ? (fees / sales) * 100 : 0;
   const previousShare = num(data.previous_sales) ? (num(data.previous_fees) / num(data.previous_sales)) * 100 : null;
   const salesChange = change(sales, num(data.previous_sales));
+  // delivery passes through: the buyer pays it into the sale, the marketplace charges it as a fee;
+  // set aside, what is left is what the marketplace takes for selling
+  const deliveryPaid = num(data.delivery_paid ?? 0);
+  const deliveryFees = num(data.delivery_fees ?? 0);
+  const goods = sales - deliveryPaid;
+  const shareWithoutDelivery = goods > 0 ? ((fees - deliveryFees) / goods) * 100 : null;
   const compared = t('finance.comparedWith', {
     from: formatDate(data.previous_from),
     to: formatDate(data.previous_to),
@@ -209,6 +215,12 @@ function Summary({ from, to, period }: { from: string; to: string; period: Perio
           <span className="finance-kpi-value">{money(fees)}</span>
           <span className="finance-kpi-note">
             {t('finance.feesShare', { share: oneDecimal(share) })}
+            {shareWithoutDelivery !== null && deliveryFees > 0 && (
+              <>
+                {' · '}
+                {t('finance.feesShareGoods', { share: oneDecimal(shareWithoutDelivery) })}
+              </>
+            )}
             {previousShare !== null && (
               <b className={share > previousShare ? 'is-down' : 'is-up'} title={compared}>
                 {' · '}
@@ -276,6 +288,42 @@ function Summary({ from, to, period }: { from: string; to: string; period: Perio
               })}
             </dl>
           </section>
+
+          {(deliveryPaid > 0 || deliveryFees > 0) && (
+            <section className="card tone-teal" aria-labelledby="finance-delivery">
+              <h2 id="finance-delivery">{t('finance.delivery')}</h2>
+              <dl className="finance-list">
+                {data.by_source
+                  .filter((row) => num(row.delivery_paid ?? 0) > 0 || num(row.delivery_fees ?? 0) > 0)
+                  .map((row) => {
+                    const paid = num(row.delivery_paid ?? 0);
+                    const charged = num(row.delivery_fees ?? 0);
+                    const extra = charged - paid;
+                    return (
+                      <div key={row.source} className="finance-channel">
+                        <dt>
+                          <span className={`finance-channel-chip channel-${row.source.toLowerCase()}`}>
+                            {channelName(row.source)}
+                          </span>
+                        </dt>
+                        <dd>
+                          <span className="finance-muted">{t('finance.deliveryPaid', { amount: money(paid) })}</span>
+                          <span className="finance-muted">{t('finance.deliveryCharged', { amount: money(charged) })}</span>
+                          <span className={Math.abs(extra) < 0.005 ? 'finance-ok' : extra > 0 ? 'finance-diff' : 'finance-ok'}>
+                            {Math.abs(extra) < 0.005
+                              ? t('finance.deliveryEven')
+                              : extra > 0
+                                ? t('finance.deliveryExtra', { amount: money(extra) })
+                                : t('finance.deliveryGain', { amount: money(-extra) })}
+                          </span>
+                        </dd>
+                      </div>
+                    );
+                  })}
+              </dl>
+              <p className="finance-forecast">{t('finance.deliveryNote')}</p>
+            </section>
+          )}
 
           {data.settlements.length > 0 && (
             <section className="card tone-green" aria-labelledby="finance-check">

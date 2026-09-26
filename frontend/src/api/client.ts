@@ -992,6 +992,9 @@ export interface FinanceSourceMoney {
   previous_fees: string;
   /** Sent to the bank in the period; null for a marketplace whose payouts are not read. */
   paid_out?: string | null;
+  /** What the buyers paid for delivery (part of `sales`), and the delivery fees booked. */
+  delivery_paid?: string;
+  delivery_fees?: string;
 }
 
 export interface FinanceFeeType {
@@ -1027,6 +1030,8 @@ export interface FinanceSummary {
   previous_fees: string;
   /** The payouts of the marketplaces whose payouts are read; null when none is. */
   paid_out?: string | null;
+  delivery_paid?: string;
+  delivery_fees?: string;
   by_source: FinanceSourceMoney[];
   by_type: FinanceFeeType[];
   settlements: FinanceSettlement[];

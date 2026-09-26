@@ -150,6 +150,32 @@ describe("the summary", () => {
   });
 });
 
+describe("the delivery", () => {
+  it("is set apart: what buyers paid, what the marketplace charged, and the difference", async () => {
+    vi.mocked(financeApi.summary).mockResolvedValue(
+      summary({
+        fees: "400.00",
+        delivery_paid: "104.90",
+        delivery_fees: "298.59",
+        by_source: [
+          { source: OrderSource.ALLEGRO, sales: "900.00", orders: 9, fees: "240.00", previous_sales: "0", previous_fees: "0", delivery_paid: "94.41", delivery_fees: "193.69" },
+          { source: OrderSource.ERLI, sales: "100.00", orders: 1, fees: "10.00", previous_sales: "0", previous_fees: "0", delivery_paid: "10.49", delivery_fees: "10.49" },
+        ],
+      }),
+    );
+    renderAt();
+
+    const card = await screen.findByRole("region", { name: "Delivery" });
+    const allegro = within(card).getByText("Allegro").closest("div")!;
+    const erli = within(card).getByText("Erli").closest("div")!;
+    expect(allegro).toHaveTextContent("buyers paid 94.41 PLN");
+    expect(allegro).toHaveTextContent("you pay 99.28 PLN on top");
+    expect(erli).toHaveTextContent("comes out even");
+    // (400 - 298.59) / (1000 - 104.90)
+    expect(screen.getByRole("region", { name: "The period in figures" })).toHaveTextContent("11.3% without delivery");
+  });
+});
+
 describe("the channels", () => {
   it("show what reached the bank only for a marketplace whose payouts are read", async () => {
     renderAt();

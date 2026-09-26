@@ -16,6 +16,9 @@ All significant changes to the Anvero project.
 - Erli's fees (commission, payment handling, delivery) and its payouts to the bank are read at every Erli import
   and shown beside Allegro's; the check against the marketplaces now runs over everything read, where both agree
   to the grosz (Allegro 939.43 zł, Erli 205.30 zł). Run `alembic upgrade head` on each machine.
+- Delivery is set apart: what buyers paid against what the marketplace charged (Erli comes out even, Allegro Smart
+  costs extra), and the fees' share of sales is also shown without delivery.
+- Erli's older orders (from 31 July) imported, so every Erli fee has its order.
 - Next: Allegro's payouts, the cost of making a product, advertising.
 
 ### 🕓 The status history is never empty

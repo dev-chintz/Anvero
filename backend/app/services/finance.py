@@ -137,6 +137,16 @@ class FinanceService:
         ).all()
         return {source: (Decimal(total).quantize(ZERO), count) for source, total, count in rows}
 
+    def delivery_paid(self, date_from: date, date_to: date) -> dict[OrderSource, Decimal]:
+        """What the buyers paid for delivery in the orders sold in the period."""
+        start, end = self._bounds(date_from, date_to)
+        rows = self.db.execute(
+            select(Order.source, func.coalesce(func.sum(Order.delivery_cost), 0))
+            .where(*self._sold(start, end))
+            .group_by(Order.source)
+        ).all()
+        return {source: Decimal(total).quantize(ZERO) for source, total in rows}
+
     def fees_by_type(self, date_from: date, date_to: date) -> dict[tuple[OrderSource, str], tuple[str | None, Decimal]]:
         """What each kind of fee came to, booked in the period, as a positive amount."""
         start, end = self._bounds(date_from, date_to)
