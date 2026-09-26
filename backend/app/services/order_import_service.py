@@ -117,6 +117,7 @@ class OrderImportService:
                 provider,
             )
         self._refresh_tracking()
+        self._settle_delivered()
         self._sync_billing(started_at)
         return result
 
@@ -220,6 +221,26 @@ class OrderImportService:
             logger.info("Tracking refreshed: %d of %d parcels moved", changed, len(shipments))
         except Exception:
             logger.exception("Refreshing tracking failed; the import itself is unaffected")
+
+    def _settle_delivered(self) -> None:
+        """Move a sent order to delivered once its carrier says every parcel arrived.
+
+        The marketplace does not: Allegro keeps an order `SENT` (its `PICKED_UP`
+        is for collection in person), so the delivery is only in the parcels'
+        tracking. The move is Anvero's own reading of that, recorded in the
+        status history with no author, and is never written back to the
+        marketplace. Best effort like the tracking: it never fails an import
+        that has already stored its orders.
+        """
+        try:
+            orders = self.repository.shipped_orders_delivered(self.adapter.source)
+            for order in orders:
+                self.repository.update_status(order, OrderStatus.DELIVERED)
+            if orders:
+                logger.info("Orders whose parcels were all delivered: %d", len(orders))
+        except Exception:
+            self.repository.db.rollback()
+            logger.exception("Settling delivered orders failed; the import itself is unaffected")
 
     def import_orders(self, limit: int = 100, offset: int = 0) -> ImportResult:
         """Fetch one page of orders and store them, whatever their age.

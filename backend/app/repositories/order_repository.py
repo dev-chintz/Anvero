@@ -321,6 +321,33 @@ class OrderRepository:
             )
         )
 
+    def shipped_orders_delivered(self, source: OrderSource) -> list[Order]:
+        """Orders still `SHIPPED` whose every parcel the carrier reports delivered.
+
+        An order with no parcel, or one whose parcel is still on its way, has
+        not been delivered as far as anyone knows, so it is left out.
+        """
+        of_this_order = OrderShipment.order_id == Order.id
+        return list(
+            self.db.scalars(
+                select(Order).where(
+                    Order.source == source,
+                    Order.deleted_at.is_(None),
+                    Order.status == OrderStatus.SHIPPED,
+                    exists().where(of_this_order),
+                    not_(
+                        exists().where(
+                            of_this_order,
+                            or_(
+                                OrderShipment.tracking_status.is_(None),
+                                OrderShipment.tracking_status != "DELIVERED",
+                            ),
+                        )
+                    ),
+                )
+            )
+        )
+
     def update_tracking(
         self, shipment: OrderShipment, status: str, reported_at: datetime | None
     ) -> None:

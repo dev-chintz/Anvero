@@ -1421,3 +1421,12 @@ search box in the header, adding an order by hand. Shift-click range ticking.
 **Rationale:** On 2026-09-26 nine orders sat as "ready to ship" in Anvero that Allegro had already marked `SENT`, some for two days. Once an order is `SENT` the per-status lists of open orders (`OPEN_FULFILLMENT_STATUSES`) no longer name it, and Allegro does not count a change of the handling status as a change of the order, so the window missed it as well: the two mechanisms of 2026-09-24 covered orders that stay open, not the moment they stop being. Confirmed against the real API before the change (`READY_FOR_PROCESSING` / `SENT` for all nine), and after it one import moved all nine.
 
 **Consequences:** One more request per open order every import (about 25 today), plus their shipments. An order the operator set by hand still stands until the marketplace moves again. Erli has no such call yet: its search is by update time, and none of its orders has been seen stuck.
+
+
+## 2026-09-26 — A sent order becomes delivered when its carrier says every parcel arrived
+
+**Decision:** At the end of a sync, `OrderImportService._settle_delivered` moves every order still `SHIPPED` (not deleted, of the importing marketplace) to `DELIVERED` when it has at least one parcel and every parcel's `tracking_status` is `DELIVERED` (`OrderRepository.shipped_orders_delivered`). The move is recorded in the status history with no author and is **not** written back to the marketplace. A parcel that is `RETURNED`, still on its way, or unknown keeps the order `SHIPPED`; so does an order with no parcel.
+
+**Rationale:** The Anvero status follows the marketplace's (`The Anvero Status Follows Allegro`), but Allegro's seller status never says "delivered": it stays `SENT` (`PICKED_UP` is only for collection in person). The delivery was known to Anvero all along, in the parcels' tracking, and nothing used it: on 2026-09-26 40 of 43 "shipped" orders had every parcel delivered, so the "Shipped" list mixed what was on its way with what had long arrived. Erli already reports its own delivered status, so nothing changes there.
+
+**Consequences:** The marketplace's own status is kept beside (`marketplace_status` stays `SENT`), so the next import sees no move and does not undo it. Writing `DELIVERED` back would send Allegro `PICKED_UP`, which is wrong for a courier delivery, hence no write. An order set to `SHIPPED` by hand is settled too once its parcels are delivered. One import moved the 40.

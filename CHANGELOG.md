@@ -6,6 +6,13 @@ All significant changes to the Anvero project.
 
 ## 2026-09-26
 
+### 📦 "Delivered" from the carrier, and quick buttons for Shipped and Delivered
+
+- A sent order becomes **Delivered** once its carrier reports every parcel delivered (Allegro itself keeps such an order
+  "sent", so nothing moved it before). Recorded in the history with no author; not written back to Allegro. One import
+  moved 40 orders that were still showing as shipped.
+- The orders page has quick buttons **Wysłane** and **Dostarczone**, with counts, after the queues.
+
 ### 🔄 Orders Allegro has sent no longer stay "ready to ship"
 
 - An import now also asks Allegro, by id, for every order Anvero still holds as open. Before, an order that Allegro had

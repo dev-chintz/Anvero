@@ -740,3 +740,116 @@ def test_a_failure_reading_held_orders_does_not_fail_the_import(session):
 
     assert (result.created, result.updated) == (1, 0)
     assert credentials.last_synced_at("ALLEGRO") is not None
+
+
+# --- sent orders whose parcels the carrier has delivered ------------------------------
+
+
+def _shipped_with(session, external_id, *tracking_statuses):
+    """A stored order, already sent, with one parcel per given carrier status."""
+    from app.models.order import OrderShipment
+
+    _service(session, [_order(external_id)]).import_orders()
+    order = session.query(Order).filter_by(external_id=external_id).one()
+    OrderRepository(session).update_status(order, OrderStatus.SHIPPED)
+    for position, status in enumerate(tracking_statuses):
+        session.add(
+            OrderShipment(
+                order_id=order.id,
+                position=position,
+                waybill=f"{external_id}-{position}",
+                carrier_id="INPOST",
+                tracking_status=status,
+            )
+        )
+    session.commit()
+    return order
+
+
+def _sync_nothing_new(session):
+    _sync_service(session, PagedFakeAdapter([[]]), _credentials(session)).sync_orders()
+
+
+def test_a_sent_order_whose_parcel_was_delivered_becomes_delivered(session):
+    _shipped_with(session, "ALG-1", "DELIVERED")
+
+    _sync_nothing_new(session)
+
+    order = session.query(Order).one()
+    assert order.status is OrderStatus.DELIVERED
+    # the marketplace still calls it sent, which is what the next import compares with
+    assert order.marketplace_status is OrderStatus.NEW
+
+
+def test_the_move_is_in_the_history_with_no_author(session):
+    _shipped_with(session, "ALG-1", "DELIVERED")
+
+    _sync_nothing_new(session)
+
+    last = OrderRepository(session).list_status_history(session.query(Order).one().id)[0]
+    assert (last.from_status, last.to_status, last.changed_by_user_id) == (
+        OrderStatus.SHIPPED,
+        OrderStatus.DELIVERED,
+        None,
+    )
+
+
+def test_a_parcel_still_on_its_way_keeps_the_order_sent(session):
+    _shipped_with(session, "ALG-1", "IN_TRANSIT")
+    _shipped_with(session, "ALG-2", None)
+    _shipped_with(session, "ALG-3", "AVAILABLE_FOR_PICKUP")
+
+    _sync_nothing_new(session)
+
+    assert {o.status for o in session.query(Order).all()} == {OrderStatus.SHIPPED}
+
+
+def test_one_parcel_not_yet_delivered_keeps_the_order_sent(session):
+    _shipped_with(session, "ALG-1", "DELIVERED", "IN_TRANSIT")
+
+    _sync_nothing_new(session)
+
+    assert session.query(Order).one().status is OrderStatus.SHIPPED
+
+
+def test_every_parcel_delivered_makes_a_multi_parcel_order_delivered(session):
+    _shipped_with(session, "ALG-1", "DELIVERED", "DELIVERED")
+
+    _sync_nothing_new(session)
+
+    assert session.query(Order).one().status is OrderStatus.DELIVERED
+
+
+def test_a_returned_parcel_is_not_a_delivery(session):
+    _shipped_with(session, "ALG-1", "RETURNED")
+
+    _sync_nothing_new(session)
+
+    assert session.query(Order).one().status is OrderStatus.SHIPPED
+
+
+def test_a_sent_order_without_a_parcel_stays_sent(session):
+    _shipped_with(session, "ALG-1")
+
+    _sync_nothing_new(session)
+
+    assert session.query(Order).one().status is OrderStatus.SHIPPED
+
+
+def test_an_order_deleted_in_anvero_is_not_settled(session):
+    order = _shipped_with(session, "ALG-1", "DELIVERED")
+    OrderRepository(session).mark_deleted(order, None)
+
+    _sync_nothing_new(session)
+
+    assert session.query(Order).one().status is OrderStatus.SHIPPED
+
+
+def test_only_the_importing_marketplaces_orders_are_settled(session):
+    order = _shipped_with(session, "ERL-1", "DELIVERED")
+    order.source = OrderSource.ERLI
+    session.commit()
+
+    _sync_nothing_new(session)
+
+    assert session.query(Order).one().status is OrderStatus.SHIPPED
