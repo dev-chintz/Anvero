@@ -3,6 +3,7 @@ import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { AllegroStatus, ErliStatus } from "../api/client";
 import { ApiError } from "../api/client";
+import { formatShortDateTime } from "../i18n";
 import { OrdersPage } from "./OrdersPage";
 
 vi.mock("../api/client", async () => {
@@ -90,32 +91,48 @@ afterEach(() => {
 
 describe("the last import, shown beside the import button", () => {
   it("says when each channel last ran and what it stored", async () => {
+    const allegroAt = minutesAgo(5);
+    const erliAt = minutesAgo(20);
     vi.mocked(integrationsApi.allegroStatus).mockResolvedValue(
-      status({ last_import_at: minutesAgo(5), last_import_created: 3, last_import_updated: 1 }),
+      status({ last_import_at: allegroAt, last_import_created: 3, last_import_updated: 1 }),
     );
     vi.mocked(integrationsApi.erliStatus).mockResolvedValue(
       erliStatus({
         configured: true,
-        last_import_at: minutesAgo(20),
+        last_import_at: erliAt,
         last_import_created: 0,
         last_import_updated: 2,
       }),
     );
     renderPage();
 
-    expect(await screen.findByText(/Allegro: last import 5 minutes ago \(3 new, 1 updated\)/)).toBeInTheDocument();
-    expect(await screen.findByText(/Erli: last import 20 minutes ago \(0 new, 2 updated\)/)).toBeInTheDocument();
+    const allegro = await screen.findByTitle(/^Allegro: last import/);
+    expect(allegro).toHaveTextContent(`Allegro${formatShortDateTime(allegroAt)}+3 new1 updated`);
+    expect(allegro).toHaveAttribute("title", expect.stringContaining("5 minutes ago"));
+    const erli = await screen.findByTitle(/^Erli: last import/);
+    expect(erli).toHaveTextContent(`Erli${formatShortDateTime(erliAt)}2 updated`);
+    expect(erli).not.toHaveTextContent("+0");
   });
 
-  it("reports a failed import with its error, as an alert", async () => {
+  it("says when an import brought nothing", async () => {
     vi.mocked(integrationsApi.allegroStatus).mockResolvedValue(
-      status({ last_import_at: minutesAgo(2), last_import_error: "Allegro API returned 503" }),
+      status({ last_import_at: minutesAgo(1), last_import_created: 0, last_import_updated: 0 }),
     );
     renderPage();
 
-    expect(await screen.findByRole("alert")).toHaveTextContent(
-      "Allegro: the last import failed (2 minutes ago): Allegro API returned 503",
+    expect(await screen.findByTitle(/^Allegro: last import/)).toHaveTextContent("no changes");
+  });
+
+  it("reports a failed import with its day, time and error, as an alert", async () => {
+    const at = minutesAgo(2);
+    vi.mocked(integrationsApi.allegroStatus).mockResolvedValue(
+      status({ last_import_at: at, last_import_error: "Allegro API returned 503" }),
     );
+    renderPage();
+
+    const alert = await screen.findByRole("alert");
+    expect(alert).toHaveTextContent(`Allegrofailed ${formatShortDateTime(at)}Allegro API returned 503`);
+    expect(alert).toHaveAttribute("title", expect.stringContaining("2 minutes ago"));
   });
 
   it("mentions the schedule only when one is running", async () => {
@@ -124,7 +141,7 @@ describe("the last import, shown beside the import button", () => {
     );
     renderPage();
 
-    expect(await screen.findByText("Imports run automatically every 15 min.")).toBeInTheDocument();
+    expect(await screen.findByText("auto every 15 min")).toBeInTheDocument();
   });
 
   it("does not mention a schedule that is off", async () => {
@@ -134,7 +151,7 @@ describe("the last import, shown beside the import button", () => {
     renderPage();
     await screen.findByRole("button", { name: "Import orders" });
 
-    expect(screen.queryByText(/automatically/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/auto every/)).not.toBeInTheDocument();
   });
 
   it("stays quiet before any import has run", async () => {
@@ -142,8 +159,8 @@ describe("the last import, shown beside the import button", () => {
     renderPage();
     await screen.findByRole("button", { name: "Import orders" });
 
-    expect(screen.queryByText(/last import/)).not.toBeInTheDocument();
-    expect(screen.queryByText(/automatically/)).not.toBeInTheDocument();
+    expect(screen.queryByTitle(/last import/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/auto every/)).not.toBeInTheDocument();
   });
 
   it("reloads the list when an import it did not start finishes", async () => {
@@ -152,7 +169,7 @@ describe("the last import, shown beside the import button", () => {
       .mockResolvedValueOnce(status({ last_import_at: minutesAgo(15) }))
       .mockResolvedValue(status({ last_import_at: minutesAgo(0) }));
     renderPage();
-    await screen.findByText(/last import/);
+    await screen.findByTitle(/last import/);
     const loadsBefore = vi.mocked(ordersApi.list).mock.calls.length;
 
     await act(async () => {
@@ -169,7 +186,7 @@ describe("the last import, shown beside the import button", () => {
       .mockResolvedValueOnce(erliStatus({ configured: true, last_import_at: minutesAgo(15) }))
       .mockResolvedValue(erliStatus({ configured: true, last_import_at: minutesAgo(0) }));
     renderPage();
-    await screen.findByText(/Erli: last import/);
+    await screen.findByTitle(/Erli: last import/);
     const loadsBefore = vi.mocked(ordersApi.list).mock.calls.length;
 
     await act(async () => {

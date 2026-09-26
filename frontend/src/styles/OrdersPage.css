@@ -2,12 +2,101 @@
   padding: 0;
 }
 
+/* the button sits in the page header; the strip of import chips wraps onto a row of its own under the title */
 .orders-page .import-bar {
+  display: contents;
+}
+
+.orders-page .import-strip {
   display: flex;
-  flex-direction: column;
-  align-items: flex-end;
+  flex: 0 0 100%;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: -0.5rem;
+}
+
+.orders-page .import-chip {
+  display: inline-flex;
+  align-items: center;
   gap: 0.4rem;
-  text-align: right;
+  max-width: 100%;
+  padding: 0.25rem 0.6rem;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-size: 0.8rem;
+  white-space: nowrap;
+}
+
+.orders-page .import-chip b {
+  font-weight: 600;
+}
+
+.orders-page .import-status-dot {
+  width: 0.5rem;
+  height: 0.5rem;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: var(--tone-green-fg);
+}
+
+/* the marketplace as one coloured letter, as in the list below */
+.orders-page .import-chip-mark {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 1.1rem;
+  height: 1.1rem;
+  border-radius: 4px;
+  color: #fff;
+  font-size: 0.7rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.orders-page .import-chip-allegro {
+  background: var(--channel-allegro);
+}
+
+.orders-page .import-chip-erli {
+  background: var(--channel-erli);
+}
+
+.orders-page .import-count {
+  padding: 0.05rem 0.4rem;
+  border-radius: 6px;
+  background: var(--color-surface-alt);
+  color: var(--color-muted-strong);
+  font-size: 0.75rem;
+}
+
+.orders-page .import-count-new {
+  background: var(--tone-green-bg);
+  color: var(--tone-green-fg);
+  font-weight: 600;
+}
+
+.orders-page .import-chip-failed {
+  border-color: color-mix(in srgb, var(--tone-red-fg) 35%, var(--tone-red-bg));
+  background: var(--tone-red-bg);
+  color: var(--tone-red-fg);
+}
+
+/* a long error is cut short here; the whole of it is in the tooltip */
+.orders-page .import-chip-error {
+  min-width: 0;
+  max-width: 22rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.orders-page .import-auto {
+  margin-left: auto;
+  color: var(--color-muted);
+  font-size: 0.8rem;
 }
 
 .orders-page .import-bar-button {
@@ -44,7 +133,7 @@
   margin: 0;
   font-size: 0.8rem;
   color: var(--color-muted);
-  max-width: 340px;
+  flex: 0 0 100%;
 }
 
 :root.dark .orders-page .import-bar-hint {
@@ -61,9 +150,12 @@
 }
 
 @media (max-width: 768px) {
-  .orders-page .import-bar {
-    align-items: flex-start;
-    text-align: left;
+  .orders-page .import-auto {
+    margin-left: 0;
+  }
+
+  .orders-page .import-chip-error {
+    max-width: 12rem;
   }
 
   .orders-page > :not(.page-header) {

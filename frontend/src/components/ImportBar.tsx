@@ -22,11 +22,11 @@ interface ImportBarProps {
 }
 
 /**
- * One button that imports from every connected marketplace, and under it how each last
- * import went and how often the backend does it by itself.
+ * One button that imports from every connected marketplace, and a strip under the page title
+ * with when each last import ran and how it went, and how often the backend does it by itself.
  */
 export function ImportBar({ addToast, onImported }: ImportBarProps) {
-  const { t, formatRelative } = useTranslation();
+  const { t, formatRelative, formatDateTime, formatShortDateTime } = useTranslation();
   const [allegro, setAllegro] = useState<AllegroStatus | null>(null);
   const [erli, setErli] = useState<ErliStatus | null>(null);
   // whether Erli has answered (or failed to), so "nothing is connected" is not said too early
@@ -133,32 +133,57 @@ export function ImportBar({ addToast, onImported }: ImportBarProps) {
     );
   };
 
-  const lastImport = (source: string, status: Status | null) => {
+  // one chip a channel: its mark, the day and time of the last import, and what it brought (or
+  // what went wrong). The full time, and how long ago, are in the tooltip.
+  const lastImport = (channel: Channel, source: string, status: Status | null) => {
     if (!status) return null;
-    if (status.last_import_error) {
+    const at = status.last_import_at;
+    const failed = !!status.last_import_error;
+    if (!failed && !at) return null;
+    const created = status.last_import_created ?? 0;
+    const updated = status.last_import_updated ?? 0;
+    const mark = (
+      <span className={`import-chip-mark import-chip-${channel}`} aria-hidden="true">
+        {source[0]}
+      </span>
+    );
+    const when = at ? formatShortDateTime(at) : '';
+    const tooltip = { source, when: at ? formatDateTime(at) : '', ago: at ? formatRelative(at) : '' };
+    if (failed) {
       return (
-        <p key={source} className="import-bar-hint import-failed" role="alert">
-          {t('orders.lastImportFailed', {
-            source,
-            when: status.last_import_at ? formatRelative(status.last_import_at) : '',
-            error: status.last_import_error,
-          })}
-        </p>
+        <span
+          key={channel}
+          className="import-chip import-chip-failed"
+          role="alert"
+          title={t('orders.importFailedTitle', { ...tooltip, error: status.last_import_error ?? '' })}
+        >
+          {mark}
+          <b>{source}</b>
+          <span>{t('orders.importFailedShort', { when })}</span>
+          <span className="import-chip-error">{status.last_import_error}</span>
+        </span>
       );
     }
-    if (!status.last_import_at) return null;
     return (
-      <p key={source} className="import-bar-hint">
-        {t('orders.lastImport', {
-          source,
-          when: formatRelative(status.last_import_at),
-          created: status.last_import_created ?? 0,
-          updated: status.last_import_updated ?? 0,
-        })}
-      </p>
+      <span
+        key={channel}
+        className="import-chip"
+        title={t('orders.importTitle', { ...tooltip, created, updated })}
+      >
+        <span className="import-status-dot" aria-hidden="true" />
+        {mark}
+        <b>{source}</b>
+        <span>{when}</span>
+        {created > 0 && <span className="import-count import-count-new">{t('orders.importNew', { count: created })}</span>}
+        {updated > 0 && <span className="import-count">{t('orders.importUpdated', { count: updated })}</span>}
+        {created === 0 && updated === 0 && <span className="import-count">{t('orders.importNothingNew')}</span>}
+      </span>
     );
   };
 
+  const allegroChip = lastImport('allegro', 'Allegro', allegro);
+  const erliChip = lastImport('erli', 'Erli', erli);
+  const hasChips = !!allegroChip || !!erliChip;
   const nothingConnected = allegro !== null && !allegroReady && erliChecked && !erliReady;
   const minutes = Math.max(
     allegroReady ? (allegro?.auto_import_interval_minutes ?? 0) : 0,
@@ -182,9 +207,17 @@ export function ImportBar({ addToast, onImported }: ImportBarProps) {
           {t('orders.notConnectedAfter')}
         </p>
       )}
-      {lastImport('Allegro', allegro)}
-      {lastImport('Erli', erli)}
-      {minutes > 0 && <p className="import-bar-hint">{t('orders.autoImport', { minutes })}</p>}
+      {(hasChips || minutes > 0) && (
+        <div className="import-strip" aria-label={t('orders.importsLabel')}>
+          {allegroChip}
+          {erliChip}
+          {minutes > 0 && (
+            <span className="import-auto" title={t('orders.autoImportTitle', { minutes })}>
+              {t('orders.autoImportShort', { minutes })}
+            </span>
+          )}
+        </div>
+      )}
       {statusFailed && <p className="import-bar-hint">{t('orders.statusCheckFailed')}</p>}
     </div>
   );

@@ -4,6 +4,23 @@ All significant changes to the Anvero project.
 
 ---
 
+## 2026-09-26
+
+### 🔄 Orders Allegro has sent no longer stay "ready to ship"
+
+- An import now also asks Allegro, by id, for every order Anvero still holds as open. Before, an order that Allegro had
+  marked sent was named by neither the window nor the list of open orders, so it kept its old status: nine orders had been
+  "ready to ship" in Anvero for up to two days. One import moved all nine to "shipped".
+
+### 🖼 Erli orders have product thumbnails; the import status is a strip of chips
+
+- Erli's items get their picture from `GET /products/{externalId}` (checked against the real service), so an Erli order
+  no longer shows a blank where an Allegro one shows a thumbnail. Orders imported earlier get theirs when read again
+  (`python scripts/import_erli.py --days N`).
+- **Orders page:** the last import of each channel is one chip under the title (channel mark, day and time, "+3 new /
+  12 updated", or the error in red), with the full time and how long ago on hover, and the automatic interval at the
+  right, instead of several lines of text beside the button.
+
 ## 2026-09-25
 
 ### 🎨 Settings and Integrations across the page, with colour
