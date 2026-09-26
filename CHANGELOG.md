@@ -19,6 +19,8 @@ All significant changes to the Anvero project.
 - Delivery is set apart: what buyers paid against what the marketplace charged (Erli comes out even, Allegro Smart
   costs extra), and the fees' share of sales is also shown without delivery.
 - Erli's older orders (from 31 July) imported, so every Erli fee has its order.
+- Allegro's subscription counts among the fees; Allegro's fees and orders are read back to 30 August (189 orders now).
+  One fee booked under two codes is one row.
 - Next: Allegro's payouts, the cost of making a product, advertising.
 
 ### 🕓 The status history is never empty

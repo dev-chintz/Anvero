@@ -386,7 +386,25 @@ function FeeBars({
   compared: string;
 }) {
   const { t } = useTranslation();
-  const rows = summary.by_type.filter((row) => num(row.fees) !== 0 || num(row.previous_fees) !== 0);
+  // one row per name: Allegro books the same fee under more than one code (One Kurier: DXP and HXO)
+  const merged = new Map<string, FinanceSummary['by_type'][number]>();
+  for (const row of summary.by_type) {
+    const key = `${row.source}|${(row.type_name ?? row.type_id).toLowerCase()}`;
+    const seen = merged.get(key);
+    merged.set(
+      key,
+      seen
+        ? {
+            ...seen,
+            fees: String(num(seen.fees) + num(row.fees)),
+            previous_fees: String(num(seen.previous_fees) + num(row.previous_fees)),
+          }
+        : row,
+    );
+  }
+  const rows = [...merged.values()]
+    .filter((row) => num(row.fees) !== 0 || num(row.previous_fees) !== 0)
+    .sort((a, b) => num(b.fees) - num(a.fees));
   if (rows.length === 0) return <p className="finance-empty">{t('finance.noFees')}</p>;
   const max = Math.max(...rows.map((row) => Math.abs(num(row.fees))), 0.01);
   return (

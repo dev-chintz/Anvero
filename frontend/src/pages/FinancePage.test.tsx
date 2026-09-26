@@ -275,3 +275,24 @@ describe("the fee kinds", () => {
     expect(card).not.toHaveTextContent("−-");
   });
 });
+
+describe("fees booked under two codes with one name", () => {
+  it("are one row", async () => {
+    vi.mocked(financeApi.summary).mockResolvedValue(
+      summary({
+        by_type: [
+          { source: OrderSource.ALLEGRO, type_id: "DXP", type_name: "Opłata za dostawę One Kurier", fees: "210.68", previous_fees: "0" },
+          { source: OrderSource.ALLEGRO, type_id: "SB2", type_name: "Abonament profesjonalny", fees: "199.00", previous_fees: "0" },
+          { source: OrderSource.ALLEGRO, type_id: "HXO", type_name: "Opłata za dostawę One Kurier", fees: "7.38", previous_fees: "0" },
+          { source: OrderSource.ALLEGRO, type_id: "SUM", type_name: "Podsumowanie miesiąca", fees: "0.00", previous_fees: "0.00" },
+        ],
+      }),
+    );
+    renderAt();
+    const card = await screen.findByRole("region", { name: "What the fees went on" });
+    const rows = within(card).getAllByRole("listitem");
+    expect(rows).toHaveLength(2);
+    expect(rows[0]).toHaveTextContent("218.06 PLN");
+    expect(rows[1]).toHaveTextContent("Abonament profesjonalny");
+  });
+});
