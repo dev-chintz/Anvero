@@ -853,3 +853,45 @@ def test_only_the_importing_marketplaces_orders_are_settled(session):
     _sync_nothing_new(session)
 
     assert session.query(Order).one().status is OrderStatus.SHIPPED
+
+
+# --- the pictures Anvero already holds ------------------------------------------------
+
+
+def _with_item(external_id, offer_id, image_url, source=OrderSource.ALLEGRO):
+    order = _order(external_id).model_copy(update={"source": source})
+    order.items = [
+        OrderItemCreate(
+            name="Kubek", quantity=1, unit_price=Decimal("10.00"), offer_id=offer_id, image_url=image_url
+        )
+    ]
+    return order
+
+
+def test_a_stored_picture_is_found_by_offer(session):
+    _service(session, [_with_item("ALG-1", "offer-1", "https://img/a.jpg")]).import_orders()
+
+    found = OrderRepository(session).images_by_offer(OrderSource.ALLEGRO, ["offer-1", "offer-2"])
+
+    assert found == {"offer-1": "https://img/a.jpg"}
+
+
+def test_an_item_without_a_picture_is_not_a_held_picture(session):
+    _service(session, [_with_item("ALG-1", "offer-1", None)]).import_orders()
+
+    assert OrderRepository(session).images_by_offer(OrderSource.ALLEGRO, ["offer-1"]) == {}
+
+
+def test_a_picture_is_held_per_marketplace(session):
+    _service(session, [_with_item("ALG-1", "same-id", "https://img/a.jpg")]).import_orders()
+
+    assert OrderRepository(session).images_by_offer(OrderSource.ERLI, ["same-id"]) == {}
+
+
+def test_the_newest_picture_of_an_offer_wins(session):
+    _service(session, [_with_item("ALG-1", "offer-1", "https://img/old.jpg")]).import_orders()
+    _service(session, [_with_item("ALG-2", "offer-1", "https://img/new.jpg")]).import_orders()
+
+    found = OrderRepository(session).images_by_offer(OrderSource.ALLEGRO, ["offer-1"])
+
+    assert found == {"offer-1": "https://img/new.jpg"}

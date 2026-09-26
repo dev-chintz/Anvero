@@ -414,3 +414,21 @@ def test_an_item_without_a_picture_is_still_imported():
     (fetched,) = list(ErliAdapter(client=_client(handler)).iter_order_pages())
 
     assert [item.image_url for item in fetched[0].items] == [None]
+
+
+def test_a_picture_already_held_is_not_fetched_again():
+    fetched = []
+
+    def handler(request):
+        if request.method == "GET":
+            fetched.append(request.url.path)
+            return httpx2.Response(200, json={"images": [{"url": "https://img/new.jpg"}]})
+        return httpx2.Response(200, json=[_order()])
+
+    adapter = ErliAdapter(
+        client=_client(handler), known_images=lambda ids: {"prod-77": "https://img/held.jpg"}
+    )
+    (fetched_orders,) = list(adapter.iter_order_pages())
+
+    assert fetched == []
+    assert [item.image_url for item in fetched_orders[0].items] == ["https://img/held.jpg"]

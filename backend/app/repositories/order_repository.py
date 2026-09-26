@@ -124,6 +124,28 @@ class OrderRepository:
             .first()
         )
 
+    def images_by_offer(self, source: OrderSource, offer_ids: list[str]) -> dict[str, str]:
+        """The picture already stored for each of these offers, where there is one.
+
+        Taken from the most recently stored item of the offer that has a picture,
+        so an adapter need not ask the marketplace for what Anvero already holds.
+        """
+        found: dict[str, str] = {}
+        for start in range(0, len(offer_ids), 500):
+            rows = self.db.execute(
+                select(OrderItem.offer_id, OrderItem.image_url)
+                .join(Order, Order.id == OrderItem.order_id)
+                .where(
+                    Order.source == source,
+                    OrderItem.offer_id.in_(offer_ids[start : start + 500]),
+                    OrderItem.image_url.is_not(None),
+                )
+                .order_by(Order.created_at)
+            )
+            # oldest first, so the newest picture of an offer wins
+            found.update({offer_id: url for offer_id, url in rows})
+        return found
+
     def open_external_ids(self, source: OrderSource) -> list[str]:
         """The marketplace ids of the orders it last called open (not deleted here).
 

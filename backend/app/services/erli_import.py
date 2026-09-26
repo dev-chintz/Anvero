@@ -35,9 +35,14 @@ def build_erli_import_service(db: Session, client: ErliClient | None = None) -> 
     credentials = IntegrationCredentialRepository(db)
     fingerprint = hashlib.sha256(client.api_key.encode()).hexdigest()
     credentials.save(PROVIDER, refresh_token="", seed_fingerprint=fingerprint)
+    repository = OrderRepository(db)
     return OrderImportService(
-        OrderRepository(db),
-        ErliAdapter(client=client),
+        repository,
+        # pictures already stored are not fetched again on every import
+        ErliAdapter(
+            client=client,
+            known_images=lambda products: repository.images_by_offer(OrderSource.ERLI, products),
+        ),
         credentials=credentials,
         initial_days=settings.erli_initial_import_days,
     )

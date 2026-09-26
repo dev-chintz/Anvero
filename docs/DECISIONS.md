@@ -1430,3 +1430,12 @@ search box in the header, adding an order by hand. Shift-click range ticking.
 **Rationale:** The Anvero status follows the marketplace's (`The Anvero Status Follows Allegro`), but Allegro's seller status never says "delivered": it stays `SENT` (`PICKED_UP` is only for collection in person). The delivery was known to Anvero all along, in the parcels' tracking, and nothing used it: on 2026-09-26 40 of 43 "shipped" orders had every parcel delivered, so the "Shipped" list mixed what was on its way with what had long arrived. Erli already reports its own delivered status, so nothing changes there.
 
 **Consequences:** The marketplace's own status is kept beside (`marketplace_status` stays `SENT`), so the next import sees no move and does not undo it. Writing `DELIVERED` back would send Allegro `PICKED_UP`, which is wrong for a courier delivery, hence no write. An order set to `SHIPPED` by hand is settled too once its parcels are delivered. One import moved the 40.
+
+
+## 2026-09-26 — Pictures Anvero already holds are not fetched again
+
+**Decision:** The adapters take an optional lookup of the pictures stored per offer (`known_images`, answered by `OrderRepository.images_by_offer(source, offer_ids)` and wired in `build_allegro_import_service` and `build_erli_import_service`). `attach_item_images` (`integrations/mapping.py`, one function for both adapters) asks it once for a page's offers, reuses what it has and fetches only the offers with none, once each. The newest stored picture of an offer wins.
+
+**Rationale:** An import reads every open order again, and each read asked Allegro for the offer's picture again: 106 of an import's 133 requests on 2026-09-26, all to `GET /sale/product-offers/{offerId}`, a resource with a limit of its own (3500 a minute; 9000 overall per Client ID). Nowhere near the limit, but it was most of the traffic and most of the time an import took, for pictures that hardly ever change. The same import made 27 requests afterwards, none for pictures.
+
+**Consequences:** A picture is fetched once per offer and then kept: if the seller changes an offer's photo, orders imported before keep the old one and new orders of that offer get it only if no stored order of it has one (an item with no picture is not held, so it is asked for again). An offer whose picture could not be read is retried on the next import.

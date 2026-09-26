@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 from app.core.config import settings
 from app.integrations.allegro import AllegroAdapter
 from app.integrations.allegro.client import AllegroClient
+from app.models.order import OrderSource
 from app.repositories.integration_credential_repository import (
     IntegrationCredentialRepository,
 )
@@ -27,9 +28,14 @@ def build_allegro_client(db: Session) -> AllegroClient:
 def build_allegro_import_service(db: Session) -> OrderImportService:
     """Build the same OrderImportService the import script builds."""
     client = build_allegro_client(db)
+    repository = OrderRepository(db)
     return OrderImportService(
-        OrderRepository(db),
-        AllegroAdapter(client=client),
+        repository,
+        # pictures already stored are not fetched again on every import
+        AllegroAdapter(
+            client=client,
+            known_images=lambda offers: repository.images_by_offer(OrderSource.ALLEGRO, offers),
+        ),
         credentials=IntegrationCredentialRepository(db),
         initial_days=settings.allegro_initial_import_days,
     )

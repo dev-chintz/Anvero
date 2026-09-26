@@ -5,6 +5,7 @@ from datetime import datetime
 from app.integrations.base import IntegrationUnavailable
 from app.integrations.erli.client import MAX_PAGE_SIZE, ErliClient, erli_timestamp
 from app.integrations.erli.mapper import OrderMappingError, map_order
+from app.integrations.mapping import KnownImages, attach_item_images
 from app.models.order import OrderSource
 from app.schemas.order import OrderCreate
 
@@ -19,8 +20,9 @@ class ErliAdapter:
 
     source = OrderSource.ERLI
 
-    def __init__(self, client: ErliClient | None = None):
+    def __init__(self, client: ErliClient | None = None, known_images: KnownImages | None = None):
         self._client = client or ErliClient()
+        self._known_images = known_images
 
     @property
     def is_configured(self) -> bool:
@@ -79,18 +81,9 @@ class ErliAdapter:
         return orders
 
     def _attach_item_images(self, orders: list[OrderCreate]) -> None:
-        """Fetch each item's picture, one call per distinct product in the page.
+        """Give each item its picture: the one already held, else one call per product.
 
         Best-effort: fetch_product_image never raises, so a picture that could
         not be read just leaves that item without one.
         """
-        images_by_product: dict[str, str | None] = {}
-        for order in orders:
-            for item in order.items:
-                if not item.offer_id:
-                    continue
-                if item.offer_id not in images_by_product:
-                    images_by_product[item.offer_id] = self._client.fetch_product_image(
-                        item.offer_id
-                    )
-                item.image_url = images_by_product[item.offer_id]
+        attach_item_images(orders, self._client.fetch_product_image, self._known_images)

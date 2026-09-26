@@ -6,6 +6,11 @@ All significant changes to the Anvero project.
 
 ## 2026-09-26
 
+### ⚡ Imports ask the marketplace for far less
+
+- Pictures Anvero already holds are not fetched again on every import: an import made 27 requests to Allegro instead
+  of 133 (106 of them were pictures). Only offers with no stored picture are asked for.
+
 ### 📦 "Delivered" from the carrier, and quick buttons for Shipped and Delivered
 
 - A sent order becomes **Delivered** once its carrier reports every parcel delivered (Allegro itself keeps such an order

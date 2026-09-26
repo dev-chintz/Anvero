@@ -282,3 +282,41 @@ def test_a_refused_read_by_id_ends_the_attempt():
         AllegroAdapter(client=client).fetch_orders_by_id(["ALG-1", "ALG-2"])
 
     assert client.asked == ["ALG-1"]
+
+
+# --- pictures already held are not asked for again -----------------------------------
+
+
+def test_a_picture_already_held_is_reused_without_asking_allegro():
+    form = _form("ALG-1", lineItems=[_line_item("offer-1")])
+    client = FakeClient([form], images={"offer-1": "https://img.test/new.jpg"})
+    adapter = AllegroAdapter(client=client, known_images=lambda ids: {"offer-1": "https://img.test/held.jpg"})
+
+    orders = adapter.fetch_orders()
+
+    assert orders[0].items[0].image_url == "https://img.test/held.jpg"
+    assert client.image_calls == []
+
+
+def test_only_offers_without_a_held_picture_are_fetched():
+    forms = [
+        _form("ALG-1", lineItems=[_line_item("offer-1"), _line_item("offer-2")]),
+        _form("ALG-2", lineItems=[_line_item("offer-2")]),
+    ]
+    client = FakeClient(forms, images={"offer-2": "https://img.test/b.jpg"})
+    asked = []
+
+    def known(ids):
+        asked.append(ids)
+        return {"offer-1": "https://img.test/held.jpg"}
+
+    orders = AllegroAdapter(client=client, known_images=known).fetch_orders()
+
+    # asked once for the whole page, by distinct offer
+    assert asked == [["offer-1", "offer-2"]]
+    assert client.image_calls == ["offer-2"]
+    assert [i.image_url for o in orders for i in o.items] == [
+        "https://img.test/held.jpg",
+        "https://img.test/b.jpg",
+        "https://img.test/b.jpg",
+    ]

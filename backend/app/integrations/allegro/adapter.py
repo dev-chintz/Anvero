@@ -19,6 +19,7 @@ from app.integrations.base import (
     IntegrationError,
     IntegrationUnavailable,
 )
+from app.integrations.mapping import KnownImages, attach_item_images
 from app.models.order import OrderSource, OrderStatus
 from app.schemas.order import BillingEntryCreate, OrderCreate
 
@@ -46,8 +47,11 @@ class AllegroAdapter:
 
     source = OrderSource.ALLEGRO
 
-    def __init__(self, client: AllegroClient | None = None):
+    def __init__(
+        self, client: AllegroClient | None = None, known_images: KnownImages | None = None
+    ):
         self._client = client or AllegroClient()
+        self._known_images = known_images
 
     @property
     def is_configured(self) -> bool:
@@ -282,18 +286,9 @@ class AllegroAdapter:
         return result
 
     def _attach_item_images(self, orders: list[OrderCreate]) -> None:
-        """Fetch each item's picture, one call per distinct offer in the page.
+        """Give each item its picture: the one already held, else one call per offer.
 
         Best-effort: fetch_offer_image never raises, so a picture that could
         not be read just leaves that item without one.
         """
-        images_by_offer: dict[str, str | None] = {}
-        for order in orders:
-            for item in order.items:
-                if not item.offer_id:
-                    continue
-                if item.offer_id not in images_by_offer:
-                    images_by_offer[item.offer_id] = self._client.fetch_offer_image(
-                        item.offer_id
-                    )
-                item.image_url = images_by_offer[item.offer_id]
+        attach_item_images(orders, self._client.fetch_offer_image, self._known_images)
