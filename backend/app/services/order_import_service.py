@@ -41,6 +41,9 @@ SYNC_OVERLAP = timedelta(minutes=5)
 
 # billing entries may be posted a while after they occurred
 BILLING_OVERLAP = timedelta(days=1)
+# payouts are read again from a week before the latest stored, which also
+# catches a payout cancelled after it was read
+PAYOUT_OVERLAP = timedelta(days=7)
 
 
 class OrderImportService:
@@ -119,6 +122,7 @@ class OrderImportService:
         self._refresh_tracking()
         self._settle_delivered()
         self._sync_billing(started_at)
+        self._sync_payouts(started_at)
         return result
 
     def _read_open_orders(self, already_read: set[str]) -> list[OrderCreate]:
@@ -190,17 +194,36 @@ class OrderImportService:
             )
             entries = fetch(since)
             added = self.repository.add_billing_entries(entries)
-            # the payouts to the seller's bank, where the marketplace gives them,
-            # ride on the same sync point: both come from its billing
-            fetch_payouts = getattr(self.adapter, "fetch_payouts", None)
-            if fetch_payouts is not None:
-                payouts = fetch_payouts(since)
-                logger.info("Payouts read: %d, %d new", len(payouts), self.repository.add_payouts(payouts))
             self.credentials.set_last_billing_synced_at(provider, started_at - SYNC_OVERLAP)
             logger.info("Billing entries read: %d, %d new", len(entries), added)
         except Exception:
             self.repository.db.rollback()
             logger.exception("Reading billing entries failed; the import itself is unaffected")
+
+    def _sync_payouts(self, started_at: datetime) -> None:
+        """Read the payouts to the seller's bank, where the marketplace gives them.
+
+        On their own, not with the fees: Allegro needs a scope of its own for
+        them (`allegro:api:payments:read`), and a refusal must not hold the
+        fees back. They start a week before the latest payout stored (the
+        first time, `initial_days` back); a payout already stored is skipped.
+        Best effort: a failure is logged and the import is unaffected.
+        """
+        fetch = getattr(self.adapter, "fetch_payouts", None)
+        if fetch is None:
+            return
+        try:
+            latest = self.repository.latest_payout_at(self.adapter.source)
+            since = (
+                _as_utc(latest) - PAYOUT_OVERLAP
+                if latest is not None
+                else started_at - timedelta(days=self.initial_days)
+            )
+            payouts = fetch(since)
+            logger.info("Payouts read: %d, %d new", len(payouts), self.repository.add_payouts(payouts))
+        except Exception:
+            self.repository.db.rollback()
+            logger.exception("Reading payouts failed; the import itself is unaffected")
 
     def _refresh_tracking(self) -> None:
         """Bring the tracking status of parcels on their way up to date.

@@ -1502,3 +1502,12 @@ search box in the header, adding an order by hand. Shift-click range ticking.
 **Rationale:** The owner pays Allegro's subscription and asked for it to count. The billing had been read only from 18 September, so neither the September subscription nor the fees of the orders of 1 to 17 September were held, and Anvero held only 63 Allegro orders; reading the fees alone would have counted 158 orders' fees against none of their sales.
 
 **Consequences:** Anvero now holds 189 Allegro orders. September: sales 8,747.94 zł from 181 orders, fees 2,853.78 zł (23.5% without delivery), subscription included; everything read is settled for both marketplaces. The delivery fees of 32 orders placed in August and sent in early September fall into September, as in Allegro's own statement; their sales are in August, which Anvero does not hold. The imported older orders took numbers after the newer ones.
+
+
+## 2026-09-27 — Allegro's payouts, read on their own
+
+**Decision:** An import reads Allegro's payouts from `GET /payments/payment-operations` (`group=OUTCOME`), keeping `PAYOUT` (by `payout.id`) and `PAYOUT_CANCEL` (the same id with `:cancel`, negative) in `payouts`. Payouts, Erli's included, are now read in a step of their own after the fees (`OrderImportService._sync_payouts`), from a week before the latest payout stored, instead of riding on the fees' sync point.
+
+**Rationale:** The owner saw Erli's payouts on the Finance page and not Allegro's. Allegro needs a scope of its own for payments (`allegro:api:payments:read`); read with the fees, a refusal would have rolled the fees back and kept their sync point from moving at every import. The latest stored payout is a sync point that needs no column, and reading a week back catches a payout cancelled after it was read.
+
+**Consequences:** Not yet checked against the real account: the first import after a restart shows whether the application has the scope (the log says so if not; then add the scope in Allegro's developer panel and connect the account again). Until a payout is read, the Finance page shows none for Allegro rather than 0. A cancelled payout lowers the period of its cancelling, not of the payout.

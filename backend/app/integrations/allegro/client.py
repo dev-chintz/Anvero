@@ -36,6 +36,8 @@ TOKEN_EXPIRY_MARGIN_SECONDS = 60
 REQUEST_TIMEOUT_SECONDS = 30.0
 
 MAX_PAGE_SIZE = 100
+# Allegro's maximum for one page of payment operations
+PAYMENT_OPERATIONS_PAGE_SIZE = 50
 
 # The Message Center lists at most 20 threads, and 20 messages of a thread, per
 # request: `limit` is `minimum: 1, maximum: 20` in Allegro's OpenAPI specification
@@ -569,6 +571,38 @@ class AllegroClient:
         if not isinstance(entries, list):
             raise IntegrationUnavailable("Allegro billing entries is not a list")
         return [e for e in entries if isinstance(e, dict)]
+
+    def fetch_payment_operations(
+        self,
+        occurred_since: datetime,
+        group: str = "OUTCOME",
+        limit: int = PAYMENT_OPERATIONS_PAGE_SIZE,
+        offset: int = 0,
+    ) -> list[dict[str, Any]]:
+        """Return one page of the seller's payment operations of one group.
+
+        `GET /payments/payment-operations` (scope `allegro:api:payments:read`),
+        at most 50 a page. The OUTCOME group holds the payouts to the seller's
+        bank (`PAYOUT`, `PAYOUT_CANCEL`) among the other money going out. Each
+        operation has `type`, `wallet`, a signed `value`, `occurredAt`, and for
+        a payout `payout.id`.
+        """
+        if not 1 <= limit <= PAYMENT_OPERATIONS_PAGE_SIZE:
+            raise ValueError(f"limit must be between 1 and {PAYMENT_OPERATIONS_PAGE_SIZE}")
+        payload = self._get_object(
+            "/payments/payment-operations",
+            "payment operations",
+            params=[
+                ("group", group),
+                ("occurredAt.gte", _timestamp(occurred_since)),
+                ("limit", str(limit)),
+                ("offset", str(offset)),
+            ],
+        )
+        operations = payload.get("paymentOperations", [])
+        if not isinstance(operations, list):
+            raise IntegrationUnavailable("Allegro payment operations is not a list")
+        return [o for o in operations if isinstance(o, dict)]
 
     def fetch_offers_by_external_id(self, external_ids: list[str]) -> list[dict[str, Any]]:
         """Return the seller's active offers whose external id (signature) is one of these.

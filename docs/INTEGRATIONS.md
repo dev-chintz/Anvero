@@ -397,12 +397,27 @@ and the order's total less them.
   `allegro:api:billing:read` scope, and the connection may need to be made
   again to grant it) or any failure is logged and the point stays; the import
   itself is unaffected. Until it works the fees card says nothing is recorded.
-- **Not verified:** the shape comes from Allegro's documentation, not a real
-  response. It is not known whether the history holds only fees and their
-  refunds or also other movements of money, so the card calls the sum "fees,
-  net" and it is worth checking against one real order before trusting it.
-  Fees that name no order (subscriptions, advertising) are stored but not
-  shown anywhere yet. No cost of goods is known, so this is not a margin.
+- **Checked against the real account since 2026-09-27:** the history holds
+  the fees (`SUC`, the carriers' delivery fees, the subscription `SB2`), the
+  fees taken from the proceeds (`PAD`, stored with `is_settlement`) and a
+  monthly `SUM` of 0.00. The Finance page shows them (`API.md`, "Finance").
+
+### Payouts
+
+After the fees, on its own (a refusal must not hold the fees back), an import
+reads the payouts to the seller's bank from `GET /payments/payment-operations`
+with `group=OUTCOME` and `occurredAt.gte`, 50 a page (Allegro's maximum). Of
+that group only `PAYOUT` (stored by `payout.id`, positive) and `PAYOUT_CANCEL`
+(the same id with `:cancel`, negative) are kept, into `payouts`, with the
+wallet's `paymentOperator`. It starts a week before the latest payout stored,
+the first time `ALLEGRO_INITIAL_IMPORT_DAYS` back.
+
+- **Needs the scope `allegro:api:payments:read`**, set on the application in
+  Allegro's developer panel; a connection made before it was added must be
+  made again to carry it. Without it the read is refused, logged, and the
+  import (fees included) goes on.
+- **Not verified:** built from Allegro's OpenAPI specification
+  (`PaymentOperations`, `PayoutOperation`); no real response has been seen.
 
 ### Known limits
 

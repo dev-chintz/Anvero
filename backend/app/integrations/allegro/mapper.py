@@ -31,6 +31,7 @@ from app.schemas.order import (
     OrderDetails,
     OrderItemCreate,
     Payment,
+    PayoutCreate,
     PickupPoint,
     ShipmentCreate,
 )
@@ -233,6 +234,42 @@ def map_billing_entry(raw: dict[str, Any]) -> BillingEntryCreate | None:
             "offer_id": _text(_obj(raw.get("offer")).get("id")),
             "offer_name": _text(_obj(raw.get("offer")).get("name")),
             "is_settlement": _text(entry_type.get("id")) in SETTLEMENT_TYPES,
+        },
+    )
+
+
+# a payout to the seller's bank, and its cancelling, which gives the money back
+PAYOUT_TYPES = {"PAYOUT": 1, "PAYOUT_CANCEL": -1}
+
+
+def map_payout_operation(raw: dict[str, Any]) -> PayoutCreate | None:
+    """A payout (or its cancelling) from GET /payments/payment-operations, or None.
+
+    Only `PAYOUT` and `PAYOUT_CANCEL` are payouts; other operations of the
+    group are not. A payout is stored by `payout.id`, positive; its cancelling
+    by the same id marked `:cancel`, negative, so the two cancel out.
+    """
+    sign = PAYOUT_TYPES.get(_text(raw.get("type")) or "")
+    payout_id = _text(_obj(raw.get("payout")).get("id"))
+    paid_at = _moment(raw.get("occurredAt"))
+    value = _obj(raw.get("value"))
+    try:
+        amount = abs(Decimal(_text(value.get("amount")) or ""))
+    except InvalidOperation:
+        return None
+    if sign is None or payout_id is None or paid_at is None:
+        return None
+    return _build(
+        PayoutCreate,
+        payout_id,
+        "payout",
+        {
+            "source": OrderSource.ALLEGRO,
+            "external_id": payout_id if sign > 0 else f"{payout_id}:cancel",
+            "paid_at": paid_at,
+            "amount": amount * sign,
+            "currency": _text(value.get("currency")) or "PLN",
+            "operator": _text(_obj(raw.get("wallet")).get("paymentOperator")),
         },
     )
 

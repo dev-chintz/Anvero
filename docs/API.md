@@ -833,7 +833,7 @@ parcels the buyer did not pay for.
 
 `by_type` is largest first. `paid_out` is what reached the bank in the period
 (by the day paid), per marketplace and in all; it is `null` for a marketplace
-whose payouts are not read (Allegro today) and at the top when none is.
+whose payouts have never been read (Allegro until its first payout read succeeds) and at the top when none is.
 `settlements` has a row for each marketplace whose fees or settlements are held
 or that has read its fees: the fees in the period, what it took from the
 proceeds in the period (`settled`), and `unsettled`, the fees not yet taken

@@ -136,7 +136,7 @@ the fees paid, which the Finance page leaves out of the fees. For Erli,
 `payouts`: money a marketplace sent to the seller's bank account, one row per
 payout, never changed once stored. `source`, `external_id` (unique together),
 `paid_at` (indexed), `amount`, `currency`, `operator` (e.g. `PAYU`). Read from
-Erli since 2026-09-27; Allegro's are not read yet. Added by `d8b3f1a6c925`.
+Erli and Allegro since 2026-09-27 (Allegro's from `/payments/payment-operations`; a cancelled payout is a second row, `<id>:cancel`, negative). Added by `d8b3f1a6c925`.
 
 `message_threads` and `messages`: one buyer-seller conversation each, and its
 messages, read from a marketplace's Message Center (plan B2, `INTEGRATIONS.md`,

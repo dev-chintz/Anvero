@@ -332,6 +332,9 @@ class OrderRepository:
         self.db.commit()
         return added
 
+    def latest_payout_at(self, source: OrderSource) -> datetime | None:
+        return self.db.scalar(select(func.max(Payout.paid_at)).where(Payout.source == source))
+
     def add_payouts(self, payouts: list[PayoutCreate]) -> int:
         """Store the payouts not stored yet; returns how many were new."""
         added = 0

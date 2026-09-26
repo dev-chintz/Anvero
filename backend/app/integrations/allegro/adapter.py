@@ -5,12 +5,14 @@ from datetime import datetime
 from app.integrations.allegro.client import (
     MAX_PAGE_SIZE,
     MAX_TRACKING_WAYBILLS,
+    PAYMENT_OPERATIONS_PAGE_SIZE,
     AllegroClient,
 )
 from app.integrations.allegro.mapper import (
     OrderMappingError,
     map_billing_entry,
     map_checkout_form,
+    map_payout_operation,
     map_shipment,
     map_tracking,
 )
@@ -21,7 +23,7 @@ from app.integrations.base import (
 )
 from app.integrations.mapping import KnownImages, attach_item_images
 from app.models.order import OrderSource, OrderStatus
-from app.schemas.order import BillingEntryCreate, OrderCreate
+from app.schemas.order import BillingEntryCreate, OrderCreate, PayoutCreate
 
 logger = logging.getLogger(__name__)
 
@@ -177,6 +179,23 @@ class AllegroAdapter:
         if skipped:
             logger.warning("%d billing entries could not be mapped and were skipped", skipped)
         return entries
+
+    def fetch_payouts(self, since: datetime) -> list[PayoutCreate]:
+        """The payouts to the seller's bank since `since`, all pages.
+
+        Read from the payment operations going out (`OUTCOME`), of which only
+        the payouts and their cancelling are kept. Allegro stops at 10000
+        operations for one search, far above a shop's payouts.
+        """
+        payouts: list[PayoutCreate] = []
+        for page_number in range(MAX_PAGES):
+            raw = self._client.fetch_payment_operations(
+                since, "OUTCOME", PAYMENT_OPERATIONS_PAGE_SIZE, page_number * PAYMENT_OPERATIONS_PAGE_SIZE
+            )
+            payouts.extend(p for p in (map_payout_operation(item) for item in raw) if p is not None)
+            if len(raw) < PAYMENT_OPERATIONS_PAGE_SIZE:
+                return payouts
+        raise IntegrationUnavailable("Allegro returned too many payment operations; narrow the window")
 
     def _fetch_page(
         self,
