@@ -102,6 +102,11 @@ class OrderImportService:
         # counted by the marketplace as a change since the last import
         rechecked = self._read_open_orders({order.external_id for order in fetched})
         fetched.extend(rechecked)
+        # and one Anvero holds as open that the marketplace has since moved on
+        # (sent) is named by neither the window nor the list of open orders
+        held = self._read_held_orders({order.external_id for order in fetched})
+        fetched.extend(held)
+        rechecked = rechecked + held
         fetched.sort(key=lambda order: order.ordered_at or started_at)
         result = self._store(fetched, rechecked={order.external_id for order in rechecked})
 
@@ -136,6 +141,29 @@ class OrderImportService:
             logger.warning("Reading the open orders failed, so the import goes on without them: %s", exc)
             return []
         logger.info("Open orders read again: %d not in the window", len(orders))
+        return orders
+
+    def _read_held_orders(self, already_read: set[str]) -> list[OrderCreate]:
+        """The orders Anvero holds as open that were not read already, asked for by id.
+
+        Best effort, like `_read_open_orders`: an adapter without the call, or a
+        refusal or failure of it, leaves the import with what it has, and the next
+        import tries again.
+        """
+        read = getattr(self.adapter, "fetch_orders_by_id", None)
+        if read is None:
+            return []
+        try:
+            wanted = [
+                external_id
+                for external_id in self.repository.open_external_ids(self.adapter.source)
+                if external_id not in already_read
+            ]
+            orders = read(wanted) if wanted else []
+        except IntegrationError as exc:
+            logger.warning("Reading the held orders failed, so the import goes on without them: %s", exc)
+            return []
+        logger.info("Held orders read again by id: %d", len(orders))
         return orders
 
     def _sync_billing(self, started_at: datetime) -> None:

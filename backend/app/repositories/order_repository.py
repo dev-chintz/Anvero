@@ -124,6 +124,23 @@ class OrderRepository:
             .first()
         )
 
+    def open_external_ids(self, source: OrderSource) -> list[str]:
+        """The marketplace ids of the orders it last called open (not deleted here).
+
+        By what the marketplace last said, not by the Anvero status, which an
+        operator may have moved by hand: it is the marketplace that can still
+        change an order, and such an order is worth asking about by its id.
+        """
+        return list(
+            self.db.scalars(
+                select(Order.external_id).where(
+                    Order.source == source,
+                    Order.deleted_at.is_(None),
+                    Order.marketplace_status.in_(PENDING_STATUSES),
+                )
+            )
+        )
+
     def update_imported_fields(
         self,
         order: Order,

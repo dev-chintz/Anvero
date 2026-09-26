@@ -115,6 +115,35 @@ class AllegroAdapter:
                     f"{status}; narrow the window and run it again"
                 )
 
+    def fetch_orders_by_id(self, external_ids: list[str]) -> list[OrderCreate]:
+        """The given orders as Allegro has them now, one request each.
+
+        For orders Anvero still holds as open: once such an order is `SENT`, the
+        lists of open orders no longer name it, and Allegro does not count a
+        change of its handling status as a change of the order, so nothing else
+        would bring the new status. An order that cannot be read (deleted, or
+        one request failing) is skipped and logged; a refused request ends the
+        attempt, since every other would be refused the same way.
+        """
+        checkout_forms: list[dict] = []
+        for external_id in external_ids:
+            try:
+                checkout_forms.append(self._client.fetch_checkout_form(external_id))
+            except IntegrationAuthError:
+                raise
+            except IntegrationError as exc:
+                logger.warning("Allegro order %s could not be read again: %s", external_id, exc)
+
+        orders: list[OrderCreate] = []
+        for checkout_form in checkout_forms:
+            try:
+                orders.append(map_checkout_form(checkout_form))
+            except OrderMappingError as exc:
+                logger.warning("Skipping Allegro order that could not be mapped: %s", exc)
+        self._attach_item_images(orders)
+        self._attach_shipments(orders)
+        return orders
+
     def fetch_billing_entries(self, since: datetime) -> list[BillingEntryCreate]:
         """Every billing entry that occurred at or after `since`, all pages.
 

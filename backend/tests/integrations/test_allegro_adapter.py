@@ -221,3 +221,64 @@ def test_open_orders_are_paged_within_a_status():
 
     assert len(orders) == 101
     assert [offset for status, offset in client.statuses if status == "PROCESSING"] == [0, 100]
+
+
+# --- orders asked for by id ----------------------------------------------------------
+
+
+class ByIdFakeClient:
+    is_configured = True
+
+    def __init__(self, forms, error=None):
+        self.forms = forms
+        self.error = error
+        self.asked = []
+
+    def fetch_checkout_form(self, external_id):
+        self.asked.append(external_id)
+        if isinstance(self.error, dict) and external_id in self.error:
+            raise self.error[external_id]
+        if self.error is not None and not isinstance(self.error, dict):
+            raise self.error
+        return self.forms[external_id]
+
+    def fetch_offer_image(self, offer_id):
+        return None
+
+    def fetch_shipments(self, order_id):
+        return []
+
+
+def test_orders_are_read_by_id_as_allegro_has_them_now():
+    client = ByIdFakeClient({"ALG-1": _form("ALG-1", fulfillment={"status": "SENT"})})
+
+    (order,) = AllegroAdapter(client=client).fetch_orders_by_id(["ALG-1"])
+
+    assert order.external_id == "ALG-1"
+    assert order.status.value == "SHIPPED"
+    assert client.asked == ["ALG-1"]
+
+
+def test_an_order_that_cannot_be_read_by_id_costs_only_itself(caplog):
+    client = ByIdFakeClient(
+        {"ALG-2": _form("ALG-2")}, error={"ALG-1": IntegrationUnavailable("gone")}
+    )
+
+    with caplog.at_level(logging.WARNING):
+        orders = AllegroAdapter(client=client).fetch_orders_by_id(["ALG-1", "ALG-2"])
+
+    assert [o.external_id for o in orders] == ["ALG-2"]
+    assert "ALG-1" in caplog.text
+
+
+def test_a_refused_read_by_id_ends_the_attempt():
+    import pytest
+
+    from app.integrations.base import IntegrationAuthError
+
+    client = ByIdFakeClient({}, error=IntegrationAuthError("refused"))
+
+    with pytest.raises(IntegrationAuthError):
+        AllegroAdapter(client=client).fetch_orders_by_id(["ALG-1", "ALG-2"])
+
+    assert client.asked == ["ALG-1"]

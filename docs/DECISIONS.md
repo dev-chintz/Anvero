@@ -1412,3 +1412,12 @@ search box in the header, adding an order by hand. Shift-click range ticking.
 **Rationale:** Erli's order items carry no picture, so Erli orders showed a blank where Allegro's showed a thumbnail. The product endpoint is in Erli's published description and, tried against the real service on 2026-09-26, answered 200 with `https://i.erli.pl/...webp` addresses.
 
 **Consequences:** Orders imported before this have no picture until they are read again: a plain import reads only what changed, so a backfill (`python scripts/import_erli.py --days N`) fills them. The import makes one more request per distinct product.
+
+
+## 2026-09-26 — An import also asks for the orders Anvero holds as open, by id
+
+**Decision:** After the window and the list of open orders, `OrderImportService` asks the adapter (`fetch_orders_by_id`, Allegro's `GET /order/checkout-forms/{id}`) for every order whose last marketplace status is still open (`NEW`, `CONFIRMED`, `READY_FOR_SHIPMENT`; `OrderRepository.open_external_ids`), not deleted in Anvero, and not read already in this run. They count as updated only when their status moved, like the open orders. A refusal or failure is logged and the import goes on; a single order that cannot be read is skipped.
+
+**Rationale:** On 2026-09-26 nine orders sat as "ready to ship" in Anvero that Allegro had already marked `SENT`, some for two days. Once an order is `SENT` the per-status lists of open orders (`OPEN_FULFILLMENT_STATUSES`) no longer name it, and Allegro does not count a change of the handling status as a change of the order, so the window missed it as well: the two mechanisms of 2026-09-24 covered orders that stay open, not the moment they stop being. Confirmed against the real API before the change (`READY_FOR_PROCESSING` / `SENT` for all nine), and after it one import moved all nine.
+
+**Consequences:** One more request per open order every import (about 25 today), plus their shipments. An order the operator set by hand still stands until the marketplace moves again. Erli has no such call yet: its search is by update time, and none of its orders has been seen stuck.

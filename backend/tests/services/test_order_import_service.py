@@ -660,3 +660,83 @@ def test_an_open_order_that_was_never_imported_is_created(session):
     result = _sync_service(session, adapter, _credentials(session)).sync_orders()
 
     assert (result.created, result.updated) == (1, 0)
+
+
+# --- orders held as open that the marketplace has moved on from -----------------------
+
+
+class HeldAwareAdapter(OpenAwareAdapter):
+    """Also answers for orders by id, as the marketplace has them now."""
+
+    def __init__(self, window, now=None, open_orders=None, error=None):
+        super().__init__(window, open_orders=open_orders)
+        self.now = now or {}
+        self.error = error
+        self.asked = []
+
+    def fetch_orders_by_id(self, external_ids):
+        self.asked.append(list(external_ids))
+        if self.error:
+            raise self.error
+        return [self.now[i] for i in external_ids if i in self.now]
+
+
+def test_an_open_order_the_marketplace_has_sent_is_asked_for_by_id(session):
+    """Once an order is sent the list of open orders no longer names it, and the window
+    does not either: only asking for it by its id brings the new status."""
+    _service(session, [_order("ALG-1")]).import_orders()
+    adapter = HeldAwareAdapter(window=[], now={"ALG-1": _moved(_order("ALG-1"))})
+
+    result = _sync_service(session, adapter, _credentials(session)).sync_orders()
+
+    assert adapter.asked == [["ALG-1"]]
+    assert session.query(Order).one().status is OrderStatus.SHIPPED
+    assert (result.created, result.updated) == (0, 1)
+
+
+def test_an_order_already_read_is_not_asked_for_again(session):
+    _service(session, [_order("ALG-1"), _order("ALG-2"), _order("ALG-3")]).import_orders()
+    adapter = HeldAwareAdapter(
+        window=[_order("ALG-1")],
+        open_orders=[_order("ALG-2")],
+        now={"ALG-3": _moved(_order("ALG-3"))},
+    )
+
+    _sync_service(session, adapter, _credentials(session)).sync_orders()
+
+    assert adapter.asked == [["ALG-3"]]
+
+
+def test_an_order_the_marketplace_called_finished_is_not_asked_for(session):
+    _service(session, [_moved(_order("ALG-DONE"))]).import_orders()
+    adapter = HeldAwareAdapter(window=[])
+
+    _sync_service(session, adapter, _credentials(session)).sync_orders()
+
+    assert adapter.asked == []
+
+
+def test_an_order_deleted_in_anvero_is_not_asked_for(session):
+    _service(session, [_order("ALG-1")]).import_orders()
+    OrderRepository(session).mark_deleted(session.query(Order).one(), None)
+    adapter = HeldAwareAdapter(window=[], now={"ALG-1": _moved(_order("ALG-1"))})
+
+    _sync_service(session, adapter, _credentials(session)).sync_orders()
+
+    assert adapter.asked == []
+    assert session.query(Order).one().status is OrderStatus.NEW
+
+
+def test_a_failure_reading_held_orders_does_not_fail_the_import(session):
+    from app.integrations.base import IntegrationUnavailable
+
+    _service(session, [_order("ALG-1")]).import_orders()
+    adapter = HeldAwareAdapter(
+        window=[_order("ALG-NEW")], error=IntegrationUnavailable("Allegro is slow")
+    )
+    credentials = _credentials(session)
+
+    result = _sync_service(session, adapter, credentials).sync_orders()
+
+    assert (result.created, result.updated) == (1, 0)
+    assert credentials.last_synced_at("ALLEGRO") is not None
