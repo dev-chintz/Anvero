@@ -23,7 +23,7 @@ function buyerName(order: Order): string {
 
 // what the buyer is called at the top of their cell: the name, else the login, else the email so
 // the cell is never blank
-function buyerTitle(order: Order): string {
+export function buyerTitle(order: Order): string {
   return buyerName(order) || order.customer_login || order.customer_email;
 }
 

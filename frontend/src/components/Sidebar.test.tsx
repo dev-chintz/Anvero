@@ -15,10 +15,19 @@ vi.mock("../api/client", async () => {
     ordersApi: { stats: vi.fn() },
     afterSalesApi: { summary: vi.fn() },
     messagesApi: { threads: vi.fn() },
+    statusApi: { get: vi.fn() },
   };
 });
 
-const { ordersApi, afterSalesApi, messagesApi } = await import("../api/client");
+const { ordersApi, afterSalesApi, messagesApi, statusApi } = await import("../api/client");
+
+/** The app's status as the menu reads it: only the two marketplaces' states matter to it. */
+function appStatus(erli: "ok" | "warning" | "error") {
+  return {
+    allegro: { state: "ok", problems: [] },
+    erli: { state: erli, problems: erli === "ok" ? [] : ["import_failed"] },
+  } as never;
+}
 
 function stats(queues: Record<string, number>) {
   return {
@@ -51,6 +60,7 @@ beforeEach(() => {
   vi.mocked(ordersApi.stats).mockResolvedValue(stats({ to_ship: 2, unpaid: 1, to_make: 4 }));
   vi.mocked(afterSalesApi.summary).mockResolvedValue({ needs_action: 3, overdue: 0, due_soon: 1 });
   vi.mocked(messagesApi.threads).mockResolvedValue([]);
+  vi.mocked(statusApi.get).mockResolvedValue(appStatus("ok"));
 });
 
 afterEach(() => {
@@ -174,6 +184,33 @@ describe("the menu's sections", () => {
       "href",
       "/integrations",
     );
+  });
+});
+
+describe("the app status in the menu", () => {
+  it("has no section of its own: it is a tab of Settings", () => {
+    renderSidebar();
+
+    const links = within(screen.getByRole("navigation"))
+      .getAllByRole("link")
+      .map((link) => link.getAttribute("href"));
+    expect(links).not.toContain("/status");
+  });
+
+  it("puts a dot beside Settings while something needs attention", async () => {
+    vi.mocked(statusApi.get).mockResolvedValue(appStatus("warning"));
+    renderSidebar();
+
+    const dot = await screen.findByRole("img", { name: "The app status needs attention" });
+    expect(dot).toHaveClass("nav-dot-warning");
+    expect(screen.getByRole("link", { name: /Settings/ })).toContainElement(dot);
+  });
+
+  it("leaves Settings plain while all is well", async () => {
+    renderSidebar();
+
+    await waitFor(() => expect(statusApi.get).toHaveBeenCalled());
+    expect(screen.queryByRole("img", { name: "The app status needs attention" })).toBeNull();
   });
 });
 

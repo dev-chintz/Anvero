@@ -628,7 +628,7 @@ sync as the button, its own loop beside the imports'), and by the same lease, fo
 the same reason: it takes the same lock and refreshes the same rotating token. A run skips quietly when no account
 is connected or when an import is running; a failed run is logged and the next
 one tries again. The outcome of a sync is not stored (unlike an order import's):
-the Status page shows only whether the schedule is running here, when it is due
+the app status (Settings, "App status" tab) shows only whether the schedule is running here, when it is due
 next and when it last ran.
 
 ### Returns and claims

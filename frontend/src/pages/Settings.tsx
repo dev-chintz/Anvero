@@ -1,10 +1,16 @@
+import { useSearchParams } from 'react-router-dom';
 import { SafeModeSettings } from '../components/SafeModeSettings';
+import { useAppHealth } from '../hooks/useAppHealth';
 import { useTranslation, LANGUAGES, languageName, type Language } from '../i18n';
 import { useSafeMode } from '../safeMode/SafeModeContext';
+import { StatusPage } from './StatusPage';
 import '../styles/SettingsPage.css';
 
 // Settings holds what belongs to the application itself; everything that connects it to
-// a marketplace or a carrier is on the Integrations page
+// a marketplace or a carrier is on the Integrations page. Its second tab is the application's
+// status: looked at when something is wrong, not every day, so it has no place in the menu.
+
+type Tab = 'general' | 'status';
 
 interface SettingsProps {
   isDarkMode: boolean;
@@ -27,6 +33,15 @@ function SettingRow({ title, help, children }: { title: string; help: string; ch
 export const Settings: React.FC<SettingsProps> = ({ isDarkMode, onThemeToggle }) => {
   const { t, language, setLanguage } = useTranslation();
   const { safeMode } = useSafeMode();
+  // the tab is in the address, so a link (the menu's dot, the dashboard's chip) can open it
+  const [params, setParams] = useSearchParams();
+  const tab: Tab = params.get('tab') === 'status' ? 'status' : 'general';
+  const { summary } = useAppHealth(tab);
+  const showTab = (next: Tab) => setParams(next === 'general' ? {} : { tab: next }, { replace: true });
+  const tabs: { id: Tab; label: string }[] = [
+    { id: 'general', label: t('settings.tab.general') },
+    { id: 'status', label: t('settings.tab.status') },
+  ];
 
   return (
     <div className="settings-page">
@@ -37,7 +52,32 @@ export const Settings: React.FC<SettingsProps> = ({ isDarkMode, onThemeToggle })
         </div>
       </header>
 
-      <div className="settings-grid">
+      <div className="settings-tabs" role="tablist" aria-label={t('settings.tabs')}>
+        {tabs.map(({ id, label }) => (
+          <button
+            key={id}
+            type="button"
+            role="tab"
+            id={`settings-tab-${id}`}
+            aria-selected={tab === id}
+            aria-controls={`settings-panel-${id}`}
+            className={tab === id ? 'active' : ''}
+            onClick={() => showTab(id)}
+          >
+            {id === 'status' && summary && (
+              <span className={`status-dot status-dot-${summary.level}`} aria-hidden="true" />
+            )}
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {tab === 'status' ? (
+        <div role="tabpanel" id="settings-panel-status" aria-labelledby="settings-tab-status">
+          <StatusPage embedded />
+        </div>
+      ) : (
+      <div className="settings-grid" role="tabpanel" id="settings-panel-general" aria-labelledby="settings-tab-general">
       <section className="settings-section card tone-blue" aria-label={t('settings.appearanceCard')}>
         <h2>{t('settings.appearanceCard')}</h2>
         <SettingRow title={t('settings.theme')} help={t('settings.themeHelp')}>
@@ -84,6 +124,7 @@ export const Settings: React.FC<SettingsProps> = ({ isDarkMode, onThemeToggle })
         <SafeModeSettings />
       </section>
       </div>
+      )}
     </div>
   );
 };

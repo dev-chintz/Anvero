@@ -172,7 +172,7 @@ export function ErliSettings({ onChanged }: ErliSettingsProps = {}) {
           </button>
         </div>
         <p className={`field-note${status.last_import_error ? " error-message" : ""}`}>
-          {lastImport()} · <Link to="/status">{t("erli.statusLink")}</Link>
+          {lastImport()} · <Link to="/settings?tab=status">{t("erli.statusLink")}</Link>
         </p>
       </div>
 

@@ -277,7 +277,18 @@
 }
 
 /* on paper: just the list, with nothing to click; the boxes print, ticked or empty, to tick with a pen */
+/* printed on A4 whatever paper the printer has by default (often the label printer's): a named
+   page, so the size applies to this page only and a label printed elsewhere keeps its own */
+@page production {
+  size: A4 portrait;
+  margin: 12mm;
+}
+
 @media print {
+  .production-page {
+    page: production;
+  }
+
   .sidebar,
   .production-page .print-button,
   .production-filters {

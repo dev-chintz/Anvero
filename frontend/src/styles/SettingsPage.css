@@ -274,3 +274,10 @@
 .schedule-input {
   width: 5.5rem;
 }
+
+/* the tabs are the shared pills (theme.css); the status tab carries its dot inside */
+.settings-tabs button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+}

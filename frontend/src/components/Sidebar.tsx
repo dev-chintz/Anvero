@@ -2,6 +2,7 @@ import { Fragment } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
 import { isNarrowWindow } from '../hooks/useSidebarOpen';
+import { useAppHealth } from '../hooks/useAppHealth';
 import { useSidebarCounts } from '../hooks/useSidebarCounts';
 import { useTranslation } from '../i18n';
 import { OrderSource, OrderStatus } from '../types/order';
@@ -23,6 +24,9 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onToggle }) => {
   // read again whenever the operator moves to another page: what they just did
   // there moves these numbers
   const counts = useSidebarCounts(location.pathname);
+  // the Status tab lives under Settings, so a problem there puts a dot beside Settings
+  const { summary: health } = useAppHealth(location.pathname);
+  const healthLevel = health && (health.level === 'warning' || health.level === 'error') ? health.level : null;
 
   // Under Orders, while on an orders page: what is in each status and each
   // channel, each a shortcut to the list narrowed to it
@@ -53,7 +57,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onToggle }) => {
   };
 
   // `badge` is what waits in that section, shown beside it so an urgent thing is
-  // seen from any page; `urgent` turns it red; `hint` says what it counts
+  // seen from any page; `urgent` turns it red; `hint` says what it counts; `dot`
+  // marks a section with something wrong in it that has no count
   interface NavItem {
     path: string;
     label: string;
@@ -61,6 +66,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onToggle }) => {
     badge?: number | null;
     urgent?: boolean;
     hint?: string;
+    dot?: 'warning' | 'error' | null;
   }
   const navItems: NavItem[] = [
     { path: '/dashboard', label: t('nav.dashboard'), icon: '📊' },
@@ -95,7 +101,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onToggle }) => {
         overdue: counts.afterSalesOverdue ?? 0,
       }),
     },
-    { path: '/status', label: t('nav.status'), icon: '🩺' },
     {
       path: '/inbox',
       label: t('nav.inbox'),
@@ -104,7 +109,13 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onToggle }) => {
       hint: t('nav.badge.inbox', { count: counts.unreadMessages ?? 0 }),
     },
     { path: '/integrations', label: t('nav.integrations'), icon: '🔌' },
-    { path: '/settings', label: t('nav.settings'), icon: '⚙️' },
+    {
+      path: '/settings',
+      label: t('nav.settings'),
+      icon: '⚙️',
+      dot: healthLevel,
+      hint: healthLevel ? t('nav.badge.settings') : undefined,
+    },
   ];
 
   return (
@@ -148,6 +159,9 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onToggle }) => {
               >
                 {item.badge > 99 ? '99+' : item.badge}
               </span>
+            )}
+            {item.dot && (
+              <span className={`nav-dot nav-dot-${item.dot}`} role="img" aria-label={item.hint} />
             )}
           </Link>
           {item.path === '/orders' && isOpen && onOrdersPage && (

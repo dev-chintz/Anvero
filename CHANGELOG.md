@@ -6,6 +6,19 @@ All significant changes to the Anvero project.
 
 ## 2026-09-26
 
+### 🖨 The To make list prints on A4
+
+- Printing the To make page asks for A4, instead of whatever paper the default printer has (a label printer's).
+
+### 🧭 A new Dashboard, opened after logging in; the app status moves into Settings
+
+- Logging in (and `/`) opens the **Dashboard**, rebuilt around the day's work: large tiles for the orders in progress
+  and the to-ship, unpaid and late queues, the orders
+  with the nearest dispatch deadline (with the item's picture), the recent orders, and one "Needs attention" card for
+  cancellations, returns, unread messages and import problems. The import button and its chips are in its header.
+- **Status** leaves the menu and is now the **App status** tab of Settings (`/status` still leads there). A dot beside
+  Settings in the menu, and a chip on the Dashboard, say when something there needs attention.
+
 ### ⚡ Imports ask the marketplace for far less
 
 - Pictures Anvero already holds are not fetched again on every import: an import made 27 requests to Allegro instead

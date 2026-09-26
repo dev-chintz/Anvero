@@ -1439,3 +1439,21 @@ search box in the header, adding an order by hand. Shift-click range ticking.
 **Rationale:** An import reads every open order again, and each read asked Allegro for the offer's picture again: 106 of an import's 133 requests on 2026-09-26, all to `GET /sale/product-offers/{offerId}`, a resource with a limit of its own (3500 a minute; 9000 overall per Client ID). Nowhere near the limit, but it was most of the traffic and most of the time an import took, for pictures that hardly ever change. The same import made 27 requests afterwards, none for pictures.
 
 **Consequences:** A picture is fetched once per offer and then kept: if the seller changes an offer's photo, orders imported before keep the old one and new orders of that offer get it only if no stored order of it has one (an item with no picture is not held, so it is asked for again). An offer whose picture could not be read is retried on the next import.
+
+
+## 2026-09-26 — The dashboard is where a session starts; the app status is a tab of Settings
+
+**Decision:** After logging in, and at `/`, the application opens the Dashboard (the old welcome page, `Home.tsx`, is gone). The Dashboard is rebuilt around the day's work, as chosen by the owner from three mockups ("A: today" with the deadline list of "C"): four large tiles linking to the list narrowed to each: the orders in progress (status `CONFIRMED`, which the owner preferred to the "to make" queue, since it counts unpaid ones too) and the to-ship, unpaid and late queues (the late one red when it holds anything); the orders waiting to be made or sent with the nearest dispatch deadline, with the item's picture; the recent orders as a small table; and in a column beside them one "Needs attention" card (an order cancelled on the marketplace, returns and claims, unread messages, a problem in the app status), the week's figures and each channel's share. The header carries the import button with the per-channel import chips (the same `ImportBar` as the order list) and a chip saying how the app stands. The Status page leaves the menu and becomes the "App status" tab of Settings (`/settings?tab=status`; `/status` redirects there). While the status has something needing attention, the menu shows a dot beside Settings.
+
+**Rationale:** The owner wants to see "what and how" at once after logging in, and does not look at the status every day. The old dashboard led with two rows of identical tiles, the second of all-time totals, and gave each warning its own banner. Moving the status out of the menu must not hide a broken import, hence the dot in the menu and the chip on the dashboard.
+
+**Consequences:** No API change: the deadline list merges `GET /orders?queue=to_make` and `?queue=to_ship`, both sorted `at_risk`, and keeps the five with the nearest `dispatch_by`; the status comes from `GET /status` (`useAppHealth`, read every minute and on each page change, like the menu's counts). The breakdown by status and the all-time order count are no longer on the dashboard (the list's shortcuts under Orders have the counts by status). The hints under the queue tiles are fixed sentences; figures such as "5 due today" would need new counters in `/orders/stats`.
+
+
+## 2026-09-27 — The to-make list prints on A4
+
+**Decision:** The To make page's print styles name their page (`@page production`, `size: A4 portrait`, 12 mm margins) and put `.production-page` on it when printing.
+
+**Rationale:** Printed with no page size, the browser used the default printer's paper, which on the owner's machine is the label printer's, so the list came out on a label. A named page keeps the size to this page: labels are PDFs opened in a tab of their own and keep theirs.
+
+**Consequences:** The paper size cannot be changed in the print dialog for this page; a browser without named pages (Chrome before 85) falls back to the printer's default.

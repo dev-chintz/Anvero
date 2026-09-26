@@ -3,11 +3,11 @@
 }
 
 /* the button sits in the page header; the strip of import chips wraps onto a row of its own under the title */
-.orders-page .import-bar {
+:is(.orders-page, .dashboard) .import-bar {
   display: contents;
 }
 
-.orders-page .import-strip {
+:is(.orders-page, .dashboard) .import-strip {
   display: flex;
   flex: 0 0 100%;
   flex-wrap: wrap;
@@ -16,7 +16,7 @@
   margin-top: -0.5rem;
 }
 
-.orders-page .import-chip {
+:is(.orders-page, .dashboard) .import-chip {
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
@@ -30,11 +30,11 @@
   white-space: nowrap;
 }
 
-.orders-page .import-chip b {
+:is(.orders-page, .dashboard) .import-chip b {
   font-weight: 600;
 }
 
-.orders-page .import-status-dot {
+:is(.orders-page, .dashboard) .import-status-dot {
   width: 0.5rem;
   height: 0.5rem;
   flex-shrink: 0;
@@ -43,7 +43,7 @@
 }
 
 /* the marketplace as one coloured letter, as in the list below */
-.orders-page .import-chip-mark {
+:is(.orders-page, .dashboard) .import-chip-mark {
   display: inline-flex;
   flex-shrink: 0;
   align-items: center;
@@ -57,15 +57,15 @@
   line-height: 1;
 }
 
-.orders-page .import-chip-allegro {
+:is(.orders-page, .dashboard) .import-chip-allegro {
   background: var(--channel-allegro);
 }
 
-.orders-page .import-chip-erli {
+:is(.orders-page, .dashboard) .import-chip-erli {
   background: var(--channel-erli);
 }
 
-.orders-page .import-count {
+:is(.orders-page, .dashboard) .import-count {
   padding: 0.05rem 0.4rem;
   border-radius: 6px;
   background: var(--color-surface-alt);
@@ -73,33 +73,33 @@
   font-size: 0.75rem;
 }
 
-.orders-page .import-count-new {
+:is(.orders-page, .dashboard) .import-count-new {
   background: var(--tone-green-bg);
   color: var(--tone-green-fg);
   font-weight: 600;
 }
 
-.orders-page .import-chip-failed {
+:is(.orders-page, .dashboard) .import-chip-failed {
   border-color: color-mix(in srgb, var(--tone-red-fg) 35%, var(--tone-red-bg));
   background: var(--tone-red-bg);
   color: var(--tone-red-fg);
 }
 
 /* a long error is cut short here; the whole of it is in the tooltip */
-.orders-page .import-chip-error {
+:is(.orders-page, .dashboard) .import-chip-error {
   min-width: 0;
   max-width: 22rem;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-.orders-page .import-auto {
+:is(.orders-page, .dashboard) .import-auto {
   margin-left: auto;
   color: var(--color-muted);
   font-size: 0.8rem;
 }
 
-.orders-page .import-bar-button {
+:is(.orders-page, .dashboard) .import-bar-button {
   padding: 0.5rem 1rem;
   border: none;
   border-radius: var(--radius-md);
@@ -112,31 +112,31 @@
   white-space: nowrap;
 }
 
-.orders-page .import-bar-button:hover:not(:disabled) {
+:is(.orders-page, .dashboard) .import-bar-button:hover:not(:disabled) {
   background: #0a5c60;
 }
 
-.orders-page .import-bar-button:disabled {
+:is(.orders-page, .dashboard) .import-bar-button:disabled {
   opacity: 0.5;
   cursor: not-allowed;
 }
 
-:root.dark .orders-page .import-bar-button {
+:root.dark :is(.orders-page, .dashboard) .import-bar-button {
   color: #1a1a1a;
 }
 
-:root.dark .orders-page .import-bar-button:hover:not(:disabled) {
+:root.dark :is(.orders-page, .dashboard) .import-bar-button:hover:not(:disabled) {
   background: #0f9384;
 }
 
-.orders-page .import-bar-hint {
+:is(.orders-page, .dashboard) .import-bar-hint {
   margin: 0;
   font-size: 0.8rem;
   color: var(--color-muted);
   flex: 0 0 100%;
 }
 
-:root.dark .orders-page .import-bar-hint {
+:root.dark :is(.orders-page, .dashboard) .import-bar-hint {
   color: var(--color-muted);
 }
 
@@ -150,11 +150,11 @@
 }
 
 @media (max-width: 768px) {
-  .orders-page .import-auto {
+  :is(.orders-page, .dashboard) .import-auto {
     margin-left: 0;
   }
 
-  .orders-page .import-chip-error {
+  :is(.orders-page, .dashboard) .import-chip-error {
     max-width: 12rem;
   }
 

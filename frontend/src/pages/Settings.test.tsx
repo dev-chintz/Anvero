@@ -13,6 +13,13 @@ vi.mock("../components/ShippingSettingsForm", () => ({
   ShippingSettingsForm: () => <p>shipping-card</p>,
 }));
 
+// the status tab is the Status page's own; here only that it is the tab's content
+vi.mock("./StatusPage", () => ({ StatusPage: ({ embedded }: { embedded?: boolean }) => <p>status-page {String(embedded)}</p> }));
+const health = vi.hoisted(() => ({ level: "ok" as string }));
+vi.mock("../hooks/useAppHealth", () => ({
+  useAppHealth: () => ({ status: null, summary: { level: health.level, attention: [] } }),
+}));
+
 const safeMode = vi.hoisted(() => ({ value: { enabled: true } as { enabled: boolean } | null }));
 vi.mock("../safeMode/SafeModeContext", () => ({
   useSafeMode: () => ({ safeMode: safeMode.value, setEnabled: vi.fn() }),
@@ -22,10 +29,10 @@ beforeEach(() => {
   safeMode.value = { enabled: true };
 });
 
-function renderIt(props: { isDarkMode?: boolean; onThemeToggle?: () => void } = {}) {
+function renderIt(props: { isDarkMode?: boolean; onThemeToggle?: () => void; at?: string } = {}) {
   const onThemeToggle = props.onThemeToggle ?? vi.fn();
   render(
-    <MemoryRouter>
+    <MemoryRouter initialEntries={[props.at ?? "/settings"]}>
       <Settings isDarkMode={props.isDarkMode ?? false} onThemeToggle={onThemeToggle} />
     </MemoryRouter>,
   );
@@ -37,7 +44,7 @@ describe("Settings page", () => {
     renderIt();
 
     const header = screen.getByRole("heading", { level: 1, name: "Settings" }).closest("header");
-    expect(header).toHaveTextContent("Application settings and preferences");
+    expect(header).toHaveTextContent("Application settings, preferences and status");
   });
 
   it("puts the appearance and the language together, each on a row with what it does", () => {
@@ -131,5 +138,32 @@ describe("the appearance choice", () => {
     });
 
     expect(onThemeToggle).not.toHaveBeenCalled();
+  });
+
+  it("opens on the general tab, with the status one beside it", () => {
+    renderIt();
+
+    expect(screen.getByRole("tab", { name: "General" })).toHaveAttribute("aria-selected", "true");
+    expect(screen.getByRole("tab", { name: "App status" })).toHaveAttribute("aria-selected", "false");
+    expect(screen.queryByText(/status-page/)).not.toBeInTheDocument();
+  });
+
+  it("shows the app status in its tab, opened by the address or by a click", () => {
+    renderIt({ at: "/settings?tab=status" });
+
+    expect(screen.getByRole("tab", { name: "App status" })).toHaveAttribute("aria-selected", "true");
+    expect(screen.getByRole("tabpanel")).toHaveTextContent("status-page true");
+    expect(screen.queryByRole("region", { name: "Appearance and language" })).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("tab", { name: "General" }));
+    expect(screen.getByRole("region", { name: "Appearance and language" })).toBeInTheDocument();
+  });
+
+  it("marks the status tab with the colour of how the app stands", () => {
+    health.level = "warning";
+    renderIt();
+
+    expect(screen.getByRole("tab", { name: "App status" }).querySelector(".status-dot-warning")).not.toBeNull();
+    health.level = "ok";
   });
 });

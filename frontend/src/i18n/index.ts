@@ -94,6 +94,16 @@ export function formatDayShort(value: string | number | Date, withWeekday = fals
   });
 }
 
+/** A day in words, with its weekday and without the year ("sobota, 26 września"). */
+export function formatDayLong(value: string | number | Date): string {
+  return toDate(value).toLocaleDateString(locales[current], { weekday: "long", day: "numeric", month: "long" });
+}
+
+/** The time of day alone ("12:40"). */
+export function formatTime(value: string | number | Date): string {
+  return toDate(value).toLocaleTimeString(locales[current], { hour: "2-digit", minute: "2-digit" });
+}
+
 /** A date and time without the year and the seconds ("25.09, 12:14"), for a crowded list. */
 export function formatShortDateTime(value: string | number | Date): string {
   return toDate(value).toLocaleString(locales[current], {
@@ -159,6 +169,8 @@ export function useTranslation() {
     formatDateTime,
     formatShortDateTime,
     formatDayShort,
+    formatDayLong,
+    formatTime,
     formatRelative,
     formatNumber,
     formatMoney,

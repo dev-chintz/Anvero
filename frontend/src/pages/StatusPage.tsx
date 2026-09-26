@@ -23,8 +23,11 @@ const RECENT_WRITES = 5;
  * a tile for each marketplace and for Anvero itself with how it stands; and a timeline of what
  * happened last. Everything comes from what the backend already holds; checking again asks the
  * backend, never the marketplaces.
+ *
+ * `embedded` is how Settings shows it, as one of its tabs: under the page's own title, so it
+ * brings only what the tab is about and the button that checks again.
  */
-export function StatusPage() {
+export function StatusPage({ embedded = false }: { embedded?: boolean }) {
   const { t, formatDateTime } = useTranslation();
   const [status, setStatus] = useState<AppStatus | null>(null);
   const [writes, setWrites] = useState<MarketplaceWrite[]>([]);
@@ -53,16 +56,25 @@ export function StatusPage() {
   useEffect(load, [load]);
 
   return (
-    <div className="status-page">
-      <header className="page-header">
-        <div className="page-header-text">
-          <h1>{t('appStatus.title')}</h1>
+    <div className={`status-page${embedded ? ' status-page-embedded' : ''}`}>
+      {embedded ? (
+        <div className="status-toolbar">
           <p className="subtitle">{t('appStatus.subtitle')}</p>
+          <button type="button" className="refresh-button" onClick={load} disabled={loading}>
+            {t('appStatus.refresh')}
+          </button>
         </div>
-        <button type="button" className="refresh-button" onClick={load} disabled={loading}>
-          {t('appStatus.refresh')}
-        </button>
-      </header>
+      ) : (
+        <header className="page-header">
+          <div className="page-header-text">
+            <h1>{t('appStatus.title')}</h1>
+            <p className="subtitle">{t('appStatus.subtitle')}</p>
+          </div>
+          <button type="button" className="refresh-button" onClick={load} disabled={loading}>
+            {t('appStatus.refresh')}
+          </button>
+        </header>
+      )}
 
       <div className="status-body">
         {error && (

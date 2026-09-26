@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { BrowserRouter, Outlet, Route, Routes } from 'react-router-dom';
+import { BrowserRouter, Navigate, Outlet, Route, Routes } from 'react-router-dom';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { Sidebar } from './components/Sidebar';
 import { SafeModeBanner } from './components/SafeModeBanner';
@@ -8,7 +8,6 @@ import { OrderDetail } from './components/OrderDetail';
 import { ToastContainer, ToastMessage } from './components/Toast';
 import { AuthProvider } from './auth/AuthContext';
 import { RequireAuth } from './auth/RequireAuth';
-import { Home } from './pages/Home';
 import { Dashboard } from './pages/Dashboard';
 import { LoginPage } from './pages/LoginPage';
 import { OrdersPage } from './pages/OrdersPage';
@@ -16,7 +15,6 @@ import { ProductionPage } from './pages/ProductionPage';
 import { InboxPage } from './pages/InboxPage';
 import { Integrations } from './pages/Integrations';
 import { Settings } from './pages/Settings';
-import { StatusPage } from './pages/StatusPage';
 import { LabelsPage } from './pages/LabelsPage';
 import { AfterSalesPage } from './pages/AfterSalesPage';
 import { useSidebarOpen } from './hooks/useSidebarOpen';
@@ -111,8 +109,9 @@ export default function App() {
                   <AppLayout toasts={toasts} onToastClose={removeToast} />
                 }
               >
-                <Route path="/" element={<Home />} />
-                <Route path="/dashboard" element={<Dashboard />} />
+                {/* the dashboard is where a session starts: it says what is waiting */}
+                <Route path="/" element={<Navigate to="/dashboard" replace />} />
+                <Route path="/dashboard" element={<Dashboard addToast={addToast} />} />
                 <Route path="/orders" element={<OrdersPage addToast={addToast} />} />
                 {/* a full view of its own beside the menu; the list's filters
                     live in its URL, so going back to it restores them */}
@@ -120,7 +119,8 @@ export default function App() {
                 <Route path="/production" element={<ProductionPage />} />
                 <Route path="/labels" element={<LabelsPage />} />
                 <Route path="/after-sales" element={<AfterSalesPage />} />
-                <Route path="/status" element={<StatusPage />} />
+                {/* the status is a tab of Settings now; the old address still leads to it */}
+                <Route path="/status" element={<Navigate to="/settings?tab=status" replace />} />
 
                 <Route path="/inbox" element={<InboxPage />} />
                 <Route path="/integrations" element={<Integrations />} />

@@ -235,21 +235,6 @@ body {
   margin: 0 auto;
 }
 
-.home {
-  text-align: center;
-  padding: 3rem 1rem;
-}
-
-.button-link {
-  display: inline-block;
-  margin-top: 1rem;
-  padding: 0.6rem 1.2rem;
-  background: var(--color-primary);
-  color: #fff;
-  text-decoration: none;
-  border-radius: var(--radius);
-}
-
 .filters {
   display: flex;
   flex-wrap: wrap;

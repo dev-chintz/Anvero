@@ -172,6 +172,32 @@
   color: var(--color-text);
 }
 
+/* something wrong in a section that has nothing to count: the app's status, under Settings */
+.nav-dot {
+  width: 0.55rem;
+  height: 0.55rem;
+  margin-left: auto;
+  flex-shrink: 0;
+  border-radius: 50%;
+}
+
+.nav-dot-warning {
+  background: var(--color-warning);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-warning) 25%, transparent);
+}
+
+.nav-dot-error {
+  background: var(--color-error);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-error) 25%, transparent);
+}
+
+.sidebar.closed .nav-dot {
+  position: absolute;
+  top: 0.35rem;
+  right: 0.45rem;
+  margin-left: 0;
+}
+
 .nav-label {
   white-space: nowrap;
   overflow: hidden;

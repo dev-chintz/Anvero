@@ -283,3 +283,27 @@
     flex-basis: 100%;
   }
 }
+
+/* ---- As a tab of Settings: the page around it pads it and gives it its title ---- */
+.status-page-embedded {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.status-page-embedded .status-body {
+  padding: 0;
+}
+
+.status-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.status-toolbar .subtitle {
+  margin: 0;
+  color: var(--color-muted);
+}

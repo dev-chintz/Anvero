@@ -4,7 +4,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import { getLanguage, setLanguage, translate, translateCount, useTranslation } from "./index";
 import { LANGUAGES, LANGUAGE_REGISTRY, isLanguage } from "./languages";
 import { en } from "./messages";
-import { Home } from "../pages/Home";
+import { Pagination } from "../components/Pagination";
 
 afterEach(() => {
   act(() => setLanguage("en"));
@@ -125,9 +125,9 @@ describe("switching the language", () => {
     setLanguage("pl");
     render(
       <MemoryRouter>
-        <Home />
+        <Pagination skip={0} limit={50} count={120} onPageChange={() => undefined} />
       </MemoryRouter>,
     );
-    expect(screen.getByRole("link", { name: "Zobacz zamówienia" })).toBeInTheDocument();
+    expect(screen.getByRole("navigation", { name: "Stronicowanie" })).toBeInTheDocument();
   });
 });
