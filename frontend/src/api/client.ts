@@ -1008,8 +1008,8 @@ export interface FinanceSettlement {
   fees: string;
   settled: string;
   /** Fees not yet taken from the proceeds, over everything read since `held_since`. */
-  unsettled: string;
-  held_since: string | null;
+  unsettled?: string | null;
+  held_since?: string | null;
   synced_at: string | null;
 }
 

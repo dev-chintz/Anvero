@@ -211,3 +211,41 @@ describe("the products", () => {
     expect(within(table).getAllByRole("row")[1]).toHaveTextContent("Serduszko serce");
   });
 });
+
+describe("an older backend", () => {
+  it("gives no verdict rather than a broken figure when it sends no unsettled amount", async () => {
+    vi.mocked(financeApi.summary).mockResolvedValue(
+      summary({ settlements: [{ source: OrderSource.ALLEGRO, fees: "240.00", settled: "240.00", synced_at: null }] }),
+    );
+    renderAt();
+    const card = await screen.findByRole("region", { name: "Agreement with the marketplace" });
+    expect(card).not.toHaveTextContent("NaN");
+    expect(card).not.toHaveTextContent("All settled");
+  });
+});
+
+describe("the fee kinds", () => {
+  it("start with a capital and name their marketplace", async () => {
+    vi.mocked(financeApi.summary).mockResolvedValue(
+      summary({
+        by_type: [{ source: OrderSource.ERLI, type_id: "COMM", type_name: "naliczenie prowizji", fees: "45.51", previous_fees: "0.00" }],
+      }),
+    );
+    renderAt();
+    const card = await screen.findByRole("region", { name: "What the fees went on" });
+    const name = within(card).getByText("Naliczenie prowizji");
+    expect(name).toHaveAttribute("title", "Erli: naliczenie prowizji");
+  });
+
+  it("show a fee given back with a plus in the channels, not a double minus", async () => {
+    vi.mocked(financeApi.summary).mockResolvedValue(
+      summary({
+        by_source: [{ source: OrderSource.ERLI, sales: "100.00", orders: 1, fees: "-2.57", previous_sales: "0", previous_fees: "0" }],
+      }),
+    );
+    renderAt();
+    const card = await screen.findByRole("region", { name: "By channel" });
+    expect(card).toHaveTextContent("+2.57 PLN");
+    expect(card).not.toHaveTextContent("−-");
+  });
+});

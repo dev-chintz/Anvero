@@ -54,6 +54,11 @@ function channelName(source: string): string {
   return source.charAt(0) + source.slice(1).toLowerCase();
 }
 
+/** A marketplace's name for a kind of fee, starting with a capital (Erli writes them in lower case). */
+function feeName(name: string): string {
+  return name.charAt(0).toUpperCase() + name.slice(1);
+}
+
 /**
  * Money: what was sold in a period, what the marketplaces took for it, and what is left.
  *
@@ -154,6 +159,8 @@ function Summary({ from, to, period }: { from: string; to: string; period: Perio
   if (!data) return <p role="status">{t('orders.loading')}</p>;
 
   const money = (value: number) => formatMoney(value, data.currency);
+  // a fee as taken: minus what was taken, plus what was given back
+  const signed = (fee: number) => `${fee >= 0 ? '−' : '+'}${money(Math.abs(fee))}`;
   const sales = num(data.sales);
   const fees = num(data.fees);
   const left = sales - fees;
@@ -258,7 +265,7 @@ function Summary({ from, to, period }: { from: string; to: string; period: Perio
                     <dd>
                       <span>{money(num(row.sales))}</span>
                       <span className="finance-fee">
-                        −{money(num(row.fees))} · {oneDecimal(rowShare)}%
+                        {signed(num(row.fees))} · {oneDecimal(rowShare)}%
                       </span>
                       {row.paid_out != null && (
                         <span className="finance-paid">{t('finance.paidOut', { amount: money(num(row.paid_out)) })}</span>
@@ -274,7 +281,9 @@ function Summary({ from, to, period }: { from: string; to: string; period: Perio
             <section className="card tone-green" aria-labelledby="finance-check">
               <h2 id="finance-check">{t('finance.check')}</h2>
               {data.settlements.map((row) => {
-                const matches = Math.abs(num(row.unsettled)) < 0.005;
+                // an older backend sends no `unsettled`: then there is no verdict to give
+                const known = row.unsettled != null;
+                const matches = known && Math.abs(num(row.unsettled ?? 0)) < 0.005;
                 return (
                   <dl key={row.source} className="finance-list">
                     <div>
@@ -285,6 +294,7 @@ function Summary({ from, to, period }: { from: string; to: string; period: Perio
                       <dt>{t('finance.checkSettled')}</dt>
                       <dd>{money(num(row.settled))}</dd>
                     </div>
+                    {known && (
                     <div>
                       <dt>
                         {row.held_since
@@ -294,9 +304,10 @@ function Summary({ from, to, period }: { from: string; to: string; period: Perio
                       <dd className={matches ? 'finance-ok' : 'finance-diff'}>
                         {matches
                           ? t('finance.checkMatches')
-                          : t('finance.checkUnsettled', { amount: money(num(row.unsettled)) })}
+                          : t('finance.checkUnsettled', { amount: money(num(row.unsettled ?? 0)) })}
                       </dd>
                     </div>
+                    )}
                     <div>
                       <dt>{t('finance.syncedAt')}</dt>
                       <dd>{row.synced_at ? formatDateTime(row.synced_at) : t('finance.neverSynced')}</dd>
@@ -336,8 +347,9 @@ function FeeBars({
         const diff = change(num(row.fees), num(row.previous_fees));
         return (
           <li key={`${row.source}-${row.type_id}`}>
-            <span className="finance-bar-name" title={row.type_name ?? row.type_id}>
-              {row.type_name ?? row.type_id}
+            <span className="finance-bar-name" title={`${channelName(row.source)}: ${row.type_name ?? row.type_id}`}>
+              <i className={`finance-swatch channel-${row.source.toLowerCase()}`} aria-hidden="true" />
+              {feeName(row.type_name ?? row.type_id)}
             </span>
             <span className="finance-bar-track" aria-hidden="true">
               <i
