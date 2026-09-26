@@ -356,7 +356,8 @@ export interface OrderListResponse {
 
 export interface OrderStatusChange {
   id: string;
-  from_status: OrderStatus;
+  /** Null on the last entry: the status the order came into Anvero with. */
+  from_status: OrderStatus | null;
   to_status: OrderStatus;
   changed_at: string;
   /** Email of the user who made the change; null for older entries. */

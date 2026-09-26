@@ -39,6 +39,13 @@ describe("BuyerOrdersCard", () => {
     expect(screen.getAllByText("Delivered")).toHaveLength(2);
   });
 
+  it("names its columns, so a status there is plainly the other order's", () => {
+    renderCard([makeOrder(3)]);
+
+    const heads = screen.getAllByRole("columnheader").map((cell) => cell.textContent);
+    expect(heads).toEqual(["Order", "Ordered", "Its status", "Amount"]);
+  });
+
   it("says when this is the buyer's first order", () => {
     renderCard([]);
 

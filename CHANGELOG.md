@@ -4,11 +4,20 @@ All significant changes to the Anvero project.
 
 ---
 
-## 2026-09-26
+## 2026-09-27
+
+### 🕓 The status history is never empty
+
+- An order's status history ends with the status it was imported with ("Zaimportowane z Allegro jako W realizacji"),
+  so an order nothing has moved no longer shows "0". Works for every existing order, without a migration.
+- The buyer's other orders on an order's page have column headings, so their statuses are not mistaken for this
+  order's.
 
 ### 🖨 The To make list prints on A4
 
 - Printing the To make page asks for A4, instead of whatever paper the default printer has (a label printer's).
+
+## 2026-09-26
 
 ### 🧭 A new Dashboard, opened after logging in; the app status moves into Settings
 

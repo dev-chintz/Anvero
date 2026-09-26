@@ -37,6 +37,9 @@ function Folded({
   );
 }
 
+// "ALLEGRO" as a name: "Allegro"
+const channelName = (source: string) => source.charAt(0) + source.slice(1).toLowerCase();
+
 function StatusHistoryList({ order, history }: { order: OrderWithDetails; history: OrderStatusChange[] }) {
   const { t, formatDateTime } = useTranslation();
 
@@ -59,15 +62,25 @@ function StatusHistoryList({ order, history }: { order: OrderWithDetails; histor
             {STATUS_ICON[entry.to_status]}
           </span>
           <time dateTime={entry.changed_at}>{formatDateTime(entry.changed_at)}</time>
-          <span className="status-history-move">
-            <span className={`badge badge-${entry.from_status.toLowerCase()}`}>
-              {t(`status.${entry.from_status}`)}
+          {entry.from_status ? (
+            <span className="status-history-move">
+              <span className={`badge badge-${entry.from_status.toLowerCase()}`}>
+                {t(`status.${entry.from_status}`)}
+              </span>
+              <span aria-hidden="true">→</span>
+              <span className={`badge badge-${entry.to_status.toLowerCase()}`}>
+                {t(`status.${entry.to_status}`)}
+              </span>
             </span>
-            <span aria-hidden="true">→</span>
-            <span className={`badge badge-${entry.to_status.toLowerCase()}`}>
-              {t(`status.${entry.to_status}`)}
+          ) : (
+            // the last entry: the status the order came into Anvero with
+            <span className="status-history-move">
+              {t("history.first", { source: channelName(order.source) })}
+              <span className={`badge badge-${entry.to_status.toLowerCase()}`}>
+                {t(`status.${entry.to_status}`)}
+              </span>
             </span>
-          </span>
+          )}
           {entry.changed_by && (
             <span className="status-history-author">{t("history.by", { user: entry.changed_by })}</span>
           )}

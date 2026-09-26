@@ -26,7 +26,16 @@ export function BuyerOrdersCard({ orders, embedded = false }: { orders: Order[];
             {tc("buyerOrders.count", orders.length)}
             {orders.length >= BUYER_ORDERS_LIMIT && ` ${t("buyerOrders.limited")}`}
           </p>
+          {/* named columns, so a status here is plainly another order's, not this one's */}
           <table>
+            <thead>
+              <tr>
+                <th scope="col">{t("buyerOrders.col.order")}</th>
+                <th scope="col">{t("buyerOrders.col.ordered")}</th>
+                <th scope="col">{t("buyerOrders.col.status")}</th>
+                <th scope="col" className="numeric">{t("buyerOrders.col.amount")}</th>
+              </tr>
+            </thead>
             <tbody>
               {orders.map((order) => (
                 <tr key={order.id}>

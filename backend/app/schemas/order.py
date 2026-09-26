@@ -397,7 +397,8 @@ class OrderListResponse(BaseModel):
 
 class OrderStatusHistoryRead(BaseModel):
     id: uuid.UUID
-    from_status: OrderStatus
+    # null on the last entry, the status the order came into Anvero with (not a stored row)
+    from_status: OrderStatus | None
     to_status: OrderStatus
     changed_at: UtcDateTime
     # email of the user who made the change; null for changes recorded before

@@ -872,14 +872,21 @@ nothing.
 
 ## `GET /api/v1/orders/{id}/history`
 
-Returns the order's status transitions, most recent first:
+Returns the order's status transitions, most recent first, and last the
+status the order came into Anvero with:
 
 ```json
-[{"id": "...", "from_status": "NEW", "to_status": "CONFIRMED", "changed_at": "...", "changed_by": "operator@example.com"}]
+[
+  {"id": "...", "from_status": "NEW", "to_status": "CONFIRMED", "changed_at": "...", "changed_by": "operator@example.com"},
+  {"id": "<the order's id>", "from_status": null, "to_status": "NEW", "changed_at": "<the order's created_at>", "changed_by": null}
+]
 ```
 
-An unknown order id returns 404, so it is distinguishable from an order that
-has never changed status, which returns an empty list.
+The last entry is never empty and is not a stored row: `from_status` is
+`null`, `to_status` is the oldest transition's `from_status` (or the current
+status when nothing has moved it), `changed_at` is the order's `created_at`,
+and `id` is the order's own id. An order that has never changed status returns
+that one entry. An unknown order id returns 404.
 
 `changed_by` is the email of the user who made the change. It is `null` for
 changes recorded before logins existed, and for a user whose account has been

@@ -1457,3 +1457,12 @@ search box in the header, adding an order by hand. Shift-click range ticking.
 **Rationale:** Printed with no page size, the browser used the default printer's paper, which on the owner's machine is the label printer's, so the list came out on a label. A named page keeps the size to this page: labels are PDFs opened in a tab of their own and keep theirs.
 
 **Consequences:** The paper size cannot be changed in the print dialog for this page; a browser without named pages (Chrome before 85) falls back to the printer's default.
+
+
+## 2026-09-27 — The status history ends with the status the order came in with
+
+**Decision:** `GET /orders/{id}/history` appends one entry after the transitions: the status the order came into Anvero with (`from_status: null`, dated `created_at`, no author, the order's own id), shown as "Imported from Allegro as In progress". It is worked out when asked, not stored: every transition records the status it left, so the first status is the oldest row's `from_status`, or the current status when there is none. The buyer's other orders on an order's page get column headings, the status one named "Its status".
+
+**Rationale:** An order imported straight into "In progress" had an empty history ("0"), and right under it the buyer's other orders showed a "Delivered" badge with nothing saying whose it was; the owner read it as this order's history.
+
+**Consequences:** The history is never empty, and its count on the order page is at least 1. Being derived, it needed no migration and covers every existing order at once; a status changed without a history row would make it wrong, and none does (`OrderRepository.update_status` is the only writer of `orders.status`). `from_status` is now nullable in the API (`API.md`).

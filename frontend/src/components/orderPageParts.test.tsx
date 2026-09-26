@@ -445,6 +445,19 @@ describe("the folded sections", () => {
     ]);
   });
 
+  it("end the history with the status the order was imported with", () => {
+    renderMore({
+      history: [
+        { id: "h1", from_status: OrderStatus.NEW, to_status: OrderStatus.CONFIRMED, changed_at: "2026-09-18T10:00:00Z", changed_by: null },
+        { id: "o1", from_status: null, to_status: OrderStatus.NEW, changed_at: "2026-09-17T10:00:00Z", changed_by: null },
+      ],
+    });
+
+    const items = screen.getAllByRole("listitem").filter((item) => item.classList.contains("status-history-item"));
+    expect(items).toHaveLength(2);
+    expect(items[1]).toHaveTextContent(/Imported from \w+ as\s*New/);
+  });
+
   it("show the fees as a sum beside their name", () => {
     renderMore({
       billing: {

@@ -267,6 +267,10 @@ export const en = {
   // filters
   "filters.search": "🔍 Search: order number, buyer, product or SKU, city, parcel locker, tracking number...",
   "buyerOrders.title": "The buyer's other orders",
+  "buyerOrders.col.order": "Order",
+  "buyerOrders.col.ordered": "Ordered",
+  "buyerOrders.col.status": "Its status",
+  "buyerOrders.col.amount": "Amount",
   "buyerOrders.none": "This buyer's first order here.",
   "buyerOrders.limited": "Only the latest 20 are shown.",
   "buyerOrders.count.one": "{count} other order",
@@ -361,6 +365,7 @@ export const en = {
   "history.title": "Status history",
   "history.empty": "No status changes yet. Created as {status} on {date}.",
   "history.by": "by {user}",
+  "history.first": "Imported from {source} as",
 
   // order details panel
   "details.yourNote": "Your note",
@@ -1214,6 +1219,10 @@ export const pl: Record<MessageKey, string> & Record<string, string> = {
 
   "filters.search": "🔍 Szukaj: numer zamówienia, kupujący, produkt lub SKU, miasto, paczkomat, nr przesyłki...",
   "buyerOrders.title": "Inne zamówienia kupującego",
+  "buyerOrders.col.order": "Zamówienie",
+  "buyerOrders.col.ordered": "Złożone",
+  "buyerOrders.col.status": "Jego status",
+  "buyerOrders.col.amount": "Kwota",
   "buyerOrders.none": "To pierwsze zamówienie tego kupującego.",
   "buyerOrders.limited": "Pokazane są tylko najnowsze 20.",
   "buyerOrders.count.one": "{count} inne zamówienie",
@@ -1309,6 +1318,7 @@ export const pl: Record<MessageKey, string> & Record<string, string> = {
   "history.title": "Historia statusów",
   "history.empty": "Brak zmian statusu. Utworzone ze statusem: {status}, {date}.",
   "history.by": "przez {user}",
+  "history.first": "Zaimportowane z {source} jako",
 
   "details.yourNote": "Twoja notatka",
   "details.buyerMessage": "Wiadomość od kupującego",

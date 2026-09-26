@@ -241,12 +241,18 @@ def test_status_change_is_recorded_in_history():
 
     assert response.status_code == 200
     history = response.json()
-    assert len(history) == 2
+    assert len(history) == 3
     # most recent first
     assert history[0]["from_status"] == "CONFIRMED"
     assert history[0]["to_status"] == "SHIPPED"
     assert history[1]["from_status"] == "NEW"
     assert history[1]["to_status"] == "CONFIRMED"
+    # and last, the status it came in with
+    assert history[2]["from_status"] is None
+    assert history[2]["to_status"] == "NEW"
+    assert history[2]["id"] == created["id"]
+    assert history[2]["changed_at"] == created["created_at"]
+    assert history[2]["changed_by"] is None
 
 
 def test_history_records_who_made_the_change():
@@ -263,8 +269,13 @@ def test_history_records_who_made_the_change():
     assert history[0]["changed_by"] == OPERATOR_EMAIL
 
 
-def test_history_is_empty_for_an_unchanged_order():
-    """An order still in its original status has no transitions."""
+def _first_status_only(history, status="NEW"):
+    """The history of an order nothing has moved: only the status it came in with."""
+    return [(entry["from_status"], entry["to_status"]) for entry in history] == [(None, status)]
+
+
+def test_history_of_an_unchanged_order_is_its_first_status():
+    """An order still in its original status has no transitions, only the status it came in with."""
     created = client.post(
         "/api/v1/orders", json=_order_payload(external_id="HIST-2")
     ).json()
@@ -272,7 +283,7 @@ def test_history_is_empty_for_an_unchanged_order():
     response = client.get(f"/api/v1/orders/{created['id']}/history")
 
     assert response.status_code == 200
-    assert response.json() == []
+    assert _first_status_only(response.json())
 
 
 def test_setting_the_same_status_records_nothing():
@@ -286,7 +297,7 @@ def test_setting_the_same_status_records_nothing():
     )
 
     assert response.status_code == 200
-    assert client.get(f"/api/v1/orders/{created['id']}/history").json() == []
+    assert _first_status_only(client.get(f"/api/v1/orders/{created['id']}/history").json())
 
 
 def test_history_for_unknown_order_is_404():
@@ -309,7 +320,7 @@ def test_rejected_status_change_records_nothing():
     )
 
     assert client.get(f"/api/v1/orders/{created['id']}").json()["status"] == "NEW"
-    assert client.get(f"/api/v1/orders/{created['id']}/history").json() == []
+    assert _first_status_only(client.get(f"/api/v1/orders/{created['id']}/history").json())
 
 
 def _flag_cancelled_on_marketplace(order_id):
@@ -1467,7 +1478,7 @@ def test_marking_does_not_touch_the_status_or_its_history():
     client.patch(f"/api/v1/orders/{order['id']}/marks", json={"starred": True})
 
     assert client.get(f"/api/v1/orders/{order['id']}").json()["status"] == "NEW"
-    assert client.get(f"/api/v1/orders/{order['id']}/history").json() == []
+    assert _first_status_only(client.get(f"/api/v1/orders/{order['id']}/history").json())
 
 
 def test_the_list_can_be_narrowed_to_starred_or_flagged_orders():
@@ -1602,7 +1613,7 @@ def test_a_note_does_not_touch_the_status_the_history_or_the_marketplace_note():
     assert detail["status"] == "NEW"
     assert detail["seller_note"] == "Regular customer, ship first"
     assert detail["internal_note"] == "mine"
-    assert client.get(f"/api/v1/orders/{order['id']}/history").json() == []
+    assert _first_status_only(client.get(f"/api/v1/orders/{order['id']}/history").json())
 
 
 def test_the_list_does_not_carry_the_note():

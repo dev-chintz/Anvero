@@ -5,7 +5,7 @@ from fastapi import HTTPException, status
 
 from app.models.order import Order, OrderSource, OrderStatus, OrderStatusHistory
 from app.repositories.order_repository import OrderQueue, OrderRepository, OrderSort
-from app.schemas.order import OrderCreate
+from app.schemas.order import OrderCreate, OrderStatusHistoryRead
 from app.services.order_details import apply_details
 
 
@@ -155,22 +155,40 @@ class OrderService:
             return order
         return self.repository.restore(order)
 
-    def get_status_history(self, order_id: uuid.UUID) -> list[OrderStatusHistory]:
-        """List an order's status transitions, most recent first.
+    def get_status_history(
+        self, order_id: uuid.UUID
+    ) -> list[OrderStatusHistory | OrderStatusHistoryRead]:
+        """List an order's status transitions, most recent first, ending with
+        the status it came into Anvero with.
+
+        That first status is not a stored row: every transition records the
+        status it left, so it is the oldest row's `from_status`, or the current
+        status when nothing has moved it. It is dated `created_at`, has no
+        author and no `from_status`, and takes the order's own id.
 
         Args:
             order_id: The internal primary key of the order.
 
         Raises:
-            HTTPException: 404 if no order exists with that id, so an unknown
-                id is distinguishable from an order that never moved.
+            HTTPException: 404 if no order exists with that id.
 
         Returns:
-            The recorded transitions; empty if the order is still in the
-            status it was created with.
+            The recorded transitions, then the first status; never empty.
         """
-        self.get_order(order_id)
-        return self.repository.list_status_history(order_id)
+        order = self.get_order(order_id)
+        history: list[OrderStatusHistory | OrderStatusHistoryRead] = list(
+            self.repository.list_status_history(order_id)
+        )
+        first = history[-1].from_status if history else order.status
+        history.append(
+            OrderStatusHistoryRead(
+                id=order.id,
+                from_status=None,
+                to_status=first,
+                changed_at=order.created_at,
+            )
+        )
+        return history
 
     def list_orders(
         self,
