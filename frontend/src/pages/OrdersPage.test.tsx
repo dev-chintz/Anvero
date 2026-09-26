@@ -111,7 +111,7 @@ beforeEach(() => {
     pending: 1,
     cancellation_warnings: 0,
     queues: { to_make: 4, unpaid: 1, to_ship: 2, late: 3 },
-    by_status: { NEW: 1, CONFIRMED: 6 },
+    by_status: { NEW: 1, CONFIRMED: 6, SHIPPED: 34, DELIVERED: 3 },
     by_source: { ALLEGRO: 1 },
   });
   vi.mocked(integrationsApi.allegroStatus).mockResolvedValue({
@@ -673,6 +673,50 @@ describe("the quick button for orders in progress", () => {
     await screen.findByRole("button", { name: "Deleted" });
 
     expect(screen.getByRole("button", { name: "In progress 6" })).toHaveAttribute("aria-pressed", "false");
+  });
+});
+
+describe("the quick buttons for shipped and delivered orders", () => {
+  it("come after the queues, with how many orders have each status", async () => {
+    renderAt("/orders");
+    await screen.findByRole("button", { name: "Shipped 34" });
+    const nav = screen.getByRole("navigation", { name: "Work queues" });
+
+    const tabs = Array.from(nav.querySelectorAll("button")).map((b) => b.textContent?.trim());
+    // after the last queue, ahead of Starred, Flagged and Deleted
+    expect(tabs.slice(-5, -3)).toEqual(["Shipped 34", "Delivered 3"]);
+    expect(tabs[tabs.length - 6]).toMatch(/^Past deadline/);
+  });
+
+  it("ask for the orders in that status only, and show themselves pressed", async () => {
+    renderAt("/orders");
+    fireEvent.click(await screen.findByRole("button", { name: "Delivered 3" }));
+
+    await waitFor(() =>
+      expect(ordersApi.list).toHaveBeenLastCalledWith(
+        expect.objectContaining({ status: "DELIVERED", queue: undefined, skip: 0 }),
+      ),
+    );
+    expect(screen.getByRole("button", { name: "Delivered 3" })).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByRole("button", { name: "Shipped 34" })).toHaveAttribute("aria-pressed", "false");
+    expect(screen.getByTestId("where")).toHaveTextContent("status=DELIVERED");
+  });
+
+  it("show 0 for a status no order has", async () => {
+    vi.mocked(ordersApi.stats).mockResolvedValue({
+      total_orders: 1,
+      total_revenue: "45.49",
+      this_week: 1,
+      pending: 1,
+      cancellation_warnings: 0,
+      queues: { to_make: 0, unpaid: 0, to_ship: 0, late: 0 },
+      by_status: { CONFIRMED: 6 },
+      by_source: {},
+    });
+    renderAt("/orders");
+
+    expect(await screen.findByRole("button", { name: "Shipped 0" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Delivered 0" })).toBeInTheDocument();
   });
 });
 

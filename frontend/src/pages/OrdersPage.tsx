@@ -32,6 +32,8 @@ function storedPageSize(): number {
 
 // the statuses with a quick button of their own beside the queues, in the order shown
 const QUICK_STATUSES = [OrderStatus.NEW, OrderStatus.CONFIRMED];
+// and the ones an order ends in, shown after the queues
+const FINISHED_STATUSES = [OrderStatus.SHIPPED, OrderStatus.DELIVERED];
 
 interface OrdersPageProps {
   addToast?: (message: string, type?: 'success' | 'error' | 'info' | 'warning') => void;
@@ -342,6 +344,25 @@ export function OrdersPage({ addToast }: OrdersPageProps) {
     addToast?.(t('orders.filtersCleared'), 'info');
   };
 
+  // a quick button for one status, with how many orders have it
+  const statusTab = (quickStatus: OrderStatus) => (
+    <button
+      key={quickStatus}
+      type="button"
+      className="queue-tab"
+      aria-pressed={!deleted && !queue && status === quickStatus}
+      onClick={() => showQuickly({ status: quickStatus })}
+    >
+      {t(`status.${quickStatus}`)}
+      {stats?.by_status && (
+        <>
+          {' '}
+          <span className="queue-count">{stats.by_status[quickStatus] ?? 0}</span>
+        </>
+      )}
+    </button>
+  );
+
   return (
     <div className="orders-page">
       <header className="page-header">
@@ -375,23 +396,7 @@ export function OrdersPage({ addToast }: OrdersPageProps) {
             {t('queue.all')}
           </button>
           {/* what has just arrived and what is being made are asked for most, so each has a button of its own */}
-          {QUICK_STATUSES.map((quickStatus) => (
-            <button
-              key={quickStatus}
-              type="button"
-              className="queue-tab"
-              aria-pressed={!deleted && !queue && status === quickStatus}
-              onClick={() => showQuickly({ status: quickStatus })}
-            >
-              {t(`status.${quickStatus}`)}
-              {stats?.by_status && (
-                <>
-                  {' '}
-                  <span className="queue-count">{stats.by_status[quickStatus] ?? 0}</span>
-                </>
-              )}
-            </button>
-          ))}
+          {QUICK_STATUSES.map(statusTab)}
           {Object.values(OrderQueue).map((q) => (
             <button
               key={q}
@@ -409,6 +414,8 @@ export function OrdersPage({ addToast }: OrdersPageProps) {
               )}
             </button>
           ))}
+          {/* where an order ends up, the two Allegro statuses after "sent" */}
+          {FINISHED_STATUSES.map(statusTab)}
           <button
             type="button"
             className="queue-tab"
