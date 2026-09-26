@@ -67,8 +67,7 @@ class ErliAdapter:
             "import; narrow the window and run it again"
         )
 
-    @staticmethod
-    def _map(raw_orders: list[dict]) -> list[OrderCreate]:
+    def _map(self, raw_orders: list[dict]) -> list[OrderCreate]:
         orders: list[OrderCreate] = []
         for raw in raw_orders:
             try:
@@ -76,4 +75,22 @@ class ErliAdapter:
             except OrderMappingError as exc:
                 # one unusable order must not cost the rest of the page
                 logger.warning("Skipping Erli order that could not be mapped: %s", exc)
+        self._attach_item_images(orders)
         return orders
+
+    def _attach_item_images(self, orders: list[OrderCreate]) -> None:
+        """Fetch each item's picture, one call per distinct product in the page.
+
+        Best-effort: fetch_product_image never raises, so a picture that could
+        not be read just leaves that item without one.
+        """
+        images_by_product: dict[str, str | None] = {}
+        for order in orders:
+            for item in order.items:
+                if not item.offer_id:
+                    continue
+                if item.offer_id not in images_by_product:
+                    images_by_product[item.offer_id] = self._client.fetch_product_image(
+                        item.offer_id
+                    )
+                item.image_url = images_by_product[item.offer_id]

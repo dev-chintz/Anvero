@@ -9,12 +9,14 @@ does not rotate, so there is nothing to store between runs.
 import logging
 from datetime import UTC, datetime
 from typing import Any
+from urllib.parse import quote
 
 import httpx2
 
 from app.core.config import settings
 from app.integrations.base import (
     IntegrationAuthError,
+    IntegrationError,
     IntegrationNotConfigured,
     IntegrationUnavailable,
 )
@@ -83,11 +85,36 @@ class ErliClient:
             raise IntegrationUnavailable("Erli order search did not return a list")
         return [order for order in payload if isinstance(order, dict)]
 
+    def fetch_product_image(self, external_id: str) -> str | None:
+        """Return the product's first picture, or None if it cannot be read.
+
+        Failure never raises: a picture is not needed for an order to be valid,
+        so a deleted product, a refused request or a network error costs the
+        item its thumbnail, not the import. GET /products/{externalId} returns
+        the product with `images`, a list of `{"url": ...}`; `externalId` is
+        the seller's own product id, which the order's item carries.
+        """
+        try:
+            payload = self._request("GET", f"/products/{quote(external_id, safe='')}", None, "Erli product")
+        except IntegrationError as exc:
+            logger.warning("Erli product %s: image unavailable: %s", external_id, exc)
+            return None
+        images = payload.get("images") if isinstance(payload, dict) else None
+        if isinstance(images, list) and images and isinstance(images[0], dict):
+            url = images[0].get("url")
+            if isinstance(url, str) and url:
+                return url
+        return None
+
     def _post(self, path: str, body: dict[str, Any], what: str) -> Any:
+        return self._request("POST", path, body, what)
+
+    def _request(self, method: str, path: str, body: dict[str, Any] | None, what: str) -> Any:
         if not self.is_configured:
             raise IntegrationNotConfigured("ERLI_API_KEY is not set")
         try:
-            response = self._http.post(
+            response = self._http.request(
+                method,
                 f"{self._api_url}{path}",
                 json=body,
                 headers={

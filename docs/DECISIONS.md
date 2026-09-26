@@ -1403,3 +1403,12 @@ search box in the header, adding an order by hand. Shift-click range ticking.
 **Rationale:** The owner makes InPost labels for Allegro orders in the Manager Paczek and prints them there. ShipX cannot list or print shipments made in the Manager Paczek, so printing them from Anvero is not possible; making them in Anvero is, and replaces the trip to the Manager Paczek. Making a parcel costs money and sends a real one, so it is held to the same safe mode as every other write, and the sandbox is the default until the owner has seen it work.
 
 **Consequences:** Parcels the Manager Paczek made stay outside Anvero's InPost list (their numbers still import from Allegro). An order that already has a tracking number is refused a new parcel, to avoid two parcels for one order. Locker deliveries only; courier shipments, insurance and cash on delivery are not built. The connection has not run against InPost: the batch labels request, the shipment status words and whether `sending_method` is needed are unconfirmed until a sandbox token is tried.
+
+
+## 2026-09-26 — Erli's pictures are read from its product, like Allegro's from its offer
+
+**Decision:** `ErliClient.fetch_product_image(external_id)` calls `GET /products/{externalId}` and returns the first of the product's `images` (`[{"url": ...}]`); `ErliAdapter` sets `OrderItemCreate.image_url` from it, one call per distinct product in a page. `externalId` is what the order's item already carries as `offer_id`. It never raises: a picture that cannot be read leaves the item without one, as with Allegro (`fetch_offer_image`).
+
+**Rationale:** Erli's order items carry no picture, so Erli orders showed a blank where Allegro's showed a thumbnail. The product endpoint is in Erli's published description and, tried against the real service on 2026-09-26, answered 200 with `https://i.erli.pl/...webp` addresses.
+
+**Consequences:** Orders imported before this have no picture until they are read again: a plain import reads only what changed, so a backfill (`python scripts/import_erli.py --days N`) fills them. The import makes one more request per distinct product.

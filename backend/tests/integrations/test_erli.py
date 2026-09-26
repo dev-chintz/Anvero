@@ -313,6 +313,8 @@ def test_pages_by_cursor_until_a_short_page():
     ]
 
     def handler(request):
+        if request.method == "GET":  # a product's picture, not a page of orders
+            return httpx2.Response(404)
         afters.append(json.loads(request.content)["pagination"].get("after"))
         return httpx2.Response(200, json=pages[len(afters) - 1])
 
@@ -339,3 +341,76 @@ def test_an_unmappable_order_is_skipped_not_fatal():
     (fetched,) = list(adapter.iter_order_pages())
 
     assert [order.external_id for order in fetched] == ["erli-1001"]
+
+
+# --- pictures -----------------------------------------------------------------
+
+
+def test_reads_a_products_first_picture_by_its_external_id():
+    seen = {}
+
+    def handler(request: httpx2.Request) -> httpx2.Response:
+        seen["method"] = request.method
+        seen["url"] = str(request.url)
+        seen["auth"] = request.headers.get("Authorization")
+        return httpx2.Response(
+            200, json={"images": [{"url": "https://img/1.jpg"}, {"url": "https://img/2.jpg"}]}
+        )
+
+    assert _client(handler).fetch_product_image("prod 77/a") == "https://img/1.jpg"
+    assert seen["method"] == "GET"
+    assert seen["url"] == f"{API_URL}/products/prod%2077%2Fa"
+    assert seen["auth"] == "Bearer key-123"
+
+
+@pytest.mark.parametrize(
+    "response",
+    [
+        httpx2.Response(404),
+        httpx2.Response(401),
+        httpx2.Response(200, json={}),
+        httpx2.Response(200, json={"images": []}),
+        httpx2.Response(200, json={"images": ["https://img/1.jpg"]}),
+        httpx2.Response(200, json={"images": [{"url": ""}]}),
+        httpx2.Response(200, json=["not", "an", "object"]),
+    ],
+)
+def test_a_picture_that_cannot_be_read_is_none_not_an_error(response):
+    assert _client(lambda request: response).fetch_product_image("prod-77") is None
+
+
+def test_an_unreachable_erli_costs_only_the_picture():
+    def handler(request):
+        raise httpx2.ConnectError("down", request=request)
+
+    assert _client(handler).fetch_product_image("prod-77") is None
+
+
+def test_items_get_their_pictures_one_request_per_product():
+    products = []
+
+    def handler(request):
+        if request.method == "GET":
+            products.append(request.url.path.rsplit("/", 1)[-1])
+            return httpx2.Response(200, json={"images": [{"url": "https://img/prod-77.jpg"}]})
+        return httpx2.Response(200, json=[_order(id="erli-1"), _order(id="erli-2")])
+
+    adapter = ErliAdapter(client=_client(handler))
+    (fetched,) = list(adapter.iter_order_pages())
+
+    assert products == ["prod-77"]
+    assert [item.image_url for order in fetched for item in order.items] == [
+        "https://img/prod-77.jpg",
+        "https://img/prod-77.jpg",
+    ]
+
+
+def test_an_item_without_a_picture_is_still_imported():
+    def handler(request):
+        if request.method == "GET":
+            return httpx2.Response(404)
+        return httpx2.Response(200, json=[_order()])
+
+    (fetched,) = list(ErliAdapter(client=_client(handler)).iter_order_pages())
+
+    assert [item.image_url for item in fetched[0].items] == [None]
