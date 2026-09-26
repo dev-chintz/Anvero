@@ -13,7 +13,10 @@ All significant changes to the Anvero project.
   what it took from the proceeds. The fees figure opens the period's orders with their fees and the share taken.
 - A **Products** tab: each product's sales, its share of the fees and what is left, sortable and searchable. It shows,
   for instance, the products where Allegro's minimum commission per unit takes over a third of the price.
-- Allegro only for now; Erli's fees and payouts, product costs and payouts are the next steps.
+- Erli's fees (commission, payment handling, delivery) and its payouts to the bank are read at every Erli import
+  and shown beside Allegro's; the check against the marketplaces now runs over everything read, where both agree
+  to the grosz (Allegro 939.43 zł, Erli 205.30 zł). Run `alembic upgrade head` on each machine.
+- Next: Allegro's payouts, the cost of making a product, advertising.
 
 ### 🕓 The status history is never empty
 

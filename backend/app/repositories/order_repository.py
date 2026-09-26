@@ -19,8 +19,9 @@ from app.models.order import (
     OrderStatus,
     OrderStatusHistory,
     PaymentType,
+    Payout,
 )
-from app.schemas.order import BillingEntryCreate
+from app.schemas.order import BillingEntryCreate, PayoutCreate
 
 PENDING_STATUSES = (OrderStatus.NEW, OrderStatus.CONFIRMED, OrderStatus.READY_FOR_SHIPMENT)
 TO_MAKE_STATUSES = (OrderStatus.NEW, OrderStatus.CONFIRMED)
@@ -327,6 +328,28 @@ class OrderRepository:
                     continue
                 known.add(entry.external_id)
                 self.db.add(BillingEntry(**entry.model_dump()))
+                added += 1
+        self.db.commit()
+        return added
+
+    def add_payouts(self, payouts: list[PayoutCreate]) -> int:
+        """Store the payouts not stored yet; returns how many were new."""
+        added = 0
+        for start in range(0, len(payouts), 500):
+            chunk = payouts[start : start + 500]
+            known = {
+                (source, external_id)
+                for source, external_id in self.db.execute(
+                    select(Payout.source, Payout.external_id).where(
+                        Payout.external_id.in_([p.external_id for p in chunk])
+                    )
+                )
+            }
+            for payout in chunk:
+                if (payout.source, payout.external_id) in known:
+                    continue
+                known.add((payout.source, payout.external_id))
+                self.db.add(Payout(**payout.model_dump()))
                 added += 1
         self.db.commit()
         return added

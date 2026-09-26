@@ -53,12 +53,13 @@ def summary(date_from: date, date_to: date, db: Session = Depends(get_db)):
     sales, previous_sales = finance.sales_by_source(date_from, date_to), finance.sales_by_source(previous_from, previous_to)
     fees, previous_fees = finance.fees_by_type(date_from, date_to), finance.fees_by_type(previous_from, previous_to)
     settled = finance.settled(date_from, date_to)
+    paid_out = finance.paid_out(date_from, date_to)
 
     def fees_of(table, source):
         return sum((amount for (s, _), (_, amount) in table.items() if s == source), ZERO)
 
     sources = sorted(
-        {*sales, *previous_sales, *(s for s, _ in fees), *(s for s, _ in previous_fees)},
+        {*sales, *previous_sales, *(s for s, _ in fees), *(s for s, _ in previous_fees), *paid_out},
         key=lambda s: s.value,
     )
     by_source = [
@@ -69,6 +70,7 @@ def summary(date_from: date, date_to: date, db: Session = Depends(get_db)):
             fees=fees_of(fees, source),
             previous_sales=previous_sales.get(source, (ZERO, 0))[0],
             previous_fees=fees_of(previous_fees, source),
+            paid_out=paid_out.get(source),
         )
         for source in sources
     ]
@@ -86,11 +88,14 @@ def summary(date_from: date, date_to: date, db: Session = Depends(get_db)):
         key=lambda row: (-row.fees, -row.previous_fees, row.type_id),
     )
     credentials = IntegrationCredentialRepository(db)
+    unsettled = finance.unsettled()
     settlements = [
         Settlement(
             source=source,
             fees=fees_of(fees, source),
             settled=settled.get(source, ZERO),
+            unsettled=unsettled.get(source, (ZERO, None))[0],
+            held_since=unsettled.get(source, (ZERO, None))[1],
             synced_at=credentials.last_billing_synced_at(source.value),
         )
         for source in OrderSource
@@ -108,6 +113,7 @@ def summary(date_from: date, date_to: date, db: Session = Depends(get_db)):
         previous_sales=sum((row.previous_sales for row in by_source), ZERO),
         previous_orders=sum(n for _, n in previous_sales.values()),
         previous_fees=sum((row.previous_fees for row in by_source), ZERO),
+        paid_out=sum(paid_out.values(), ZERO) if paid_out else None,
         by_source=by_source,
         by_type=by_type,
         settlements=settlements,

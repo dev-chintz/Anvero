@@ -440,6 +440,35 @@ class BillingEntry(Base):
     order_external_id: Mapped[str | None] = mapped_column(String(255), index=True)
     offer_id: Mapped[str | None] = mapped_column(String(255))
     offer_name: Mapped[str | None] = mapped_column(String(500))
+    # the marketplace taking its fees out of the proceeds (Allegro's "Pobranie
+    # opłat z wpływów", Erli's "pobranie opłaty"): the fees paid, not a fee
+    is_settlement: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=False, server_default=false()
+    )
+
+
+class Payout(Base):
+    """Money a marketplace sent to the seller's bank account."""
+
+    __tablename__ = "payouts"
+    __table_args__ = (
+        UniqueConstraint("source", "external_id", name="uq_payouts_source_external_id"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        Uuid(as_uuid=True),
+        primary_key=True,
+        default=uuid.uuid4,
+    )
+    source: Mapped[OrderSource] = mapped_column(
+        Enum(OrderSource, native_enum=False, length=32), nullable=False
+    )
+    external_id: Mapped[str] = mapped_column(String(255), nullable=False)
+    paid_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, index=True)
+    amount: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False)
+    currency: Mapped[str] = mapped_column(String(3), nullable=False)
+    # who carried it out, e.g. PayU
+    operator: Mapped[str | None] = mapped_column(String(64))
 
 
 class OrderAddress(Base):

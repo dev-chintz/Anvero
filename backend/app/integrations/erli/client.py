@@ -27,6 +27,9 @@ REQUEST_TIMEOUT_SECONDS = 30.0
 
 # Erli's maximum for one page of orders
 MAX_PAGE_SIZE = 200
+# and for one page of its billing account, and of payouts
+BILLING_PAGE_SIZE = 500
+PAYOUT_PAGE_SIZE = 200
 
 
 def erli_timestamp(value: datetime) -> str:
@@ -105,6 +108,52 @@ class ErliClient:
             if isinstance(url, str) and url:
                 return url
         return None
+
+    def fetch_billing_types(self) -> list[dict[str, Any]]:
+        """Erli's dictionary of billing entry types (GET /dictionaries/billingEntryTypes)."""
+        payload = self._request("GET", "/dictionaries/billingEntryTypes", None, "Erli billing types")
+        if not isinstance(payload, list):
+            raise IntegrationUnavailable("Erli billing types did not return a list")
+        return [item for item in payload if isinstance(item, dict)]
+
+    def fetch_billing_entries(
+        self, since: datetime, before_id: int | None = None, limit: int = BILLING_PAGE_SIZE
+    ) -> list[dict[str, Any]]:
+        """One page of the billing account since `since`, newest id first.
+
+        Erli sorts this list only by id, descending; `before_id` continues
+        below the last id of the previous page.
+        """
+        pagination: dict[str, Any] = {"sortField": "id", "order": "DESC", "limit": limit}
+        if before_id is not None:
+            pagination["after"] = before_id
+        payload = self._post(
+            "/billing/company/entries",
+            {"pagination": pagination, "simpleFilter": {"fromOccurredAt": erli_timestamp(since)}},
+            "Erli billing entries",
+        )
+        if not isinstance(payload, list):
+            raise IntegrationUnavailable("Erli billing entries did not return a list")
+        return [item for item in payload if isinstance(item, dict)]
+
+    def search_payouts(
+        self, since: datetime, after_id: int | None = None, limit: int = PAYOUT_PAGE_SIZE
+    ) -> list[dict[str, Any]]:
+        """One page of payouts made since `since`, by id ascending."""
+        pagination: dict[str, Any] = {"sortField": "id", "order": "ASC", "limit": limit}
+        if after_id is not None:
+            pagination["after"] = after_id
+        payload = self._post(
+            "/payments/payouts/_search",
+            {
+                "pagination": pagination,
+                "filter": {"field": "createdAt", "operator": ">=", "value": erli_timestamp(since)},
+            },
+            "Erli payouts",
+        )
+        if not isinstance(payload, list):
+            raise IntegrationUnavailable("Erli payouts did not return a list")
+        return [item for item in payload if isinstance(item, dict)]
 
     def _post(self, path: str, body: dict[str, Any], what: str) -> Any:
         return self._request("POST", path, body, what)

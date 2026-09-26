@@ -990,6 +990,8 @@ export interface FinanceSourceMoney {
   fees: string;
   previous_sales: string;
   previous_fees: string;
+  /** Sent to the bank in the period; null for a marketplace whose payouts are not read. */
+  paid_out?: string | null;
 }
 
 export interface FinanceFeeType {
@@ -1005,6 +1007,9 @@ export interface FinanceSettlement {
   source: OrderSource;
   fees: string;
   settled: string;
+  /** Fees not yet taken from the proceeds, over everything read since `held_since`. */
+  unsettled: string;
+  held_since: string | null;
   synced_at: string | null;
 }
 
@@ -1020,6 +1025,8 @@ export interface FinanceSummary {
   previous_sales: string;
   previous_orders: number;
   previous_fees: string;
+  /** The payouts of the marketplaces whose payouts are read; null when none is. */
+  paid_out?: string | null;
   by_source: FinanceSourceMoney[];
   by_type: FinanceFeeType[];
   settlements: FinanceSettlement[];

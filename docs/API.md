@@ -805,9 +805,9 @@ All three take `date_from` and `date_to` (calendar days in the business
 timezone, both included, at most 366 days; `date_to` before `date_from` is
 `422`) and require a login. Amounts are decimal strings in `PLN`; orders and
 fees in another currency are left out. **Fees are positive**: what the
-marketplace took, less any fee it refunded. Allegro's "Pobranie opłat z
-wpływów" (`PAD`), the fees taken out of the proceeds, is a settlement and never
-a fee. An order counts as sold when it was placed in the period and is neither
+marketplace took, less any fee it refunded. The marketplace taking its fees
+out of the proceeds (Allegro's `PAD`, Erli's `PAYM` and the other entries
+stored with `is_settlement`) is a settlement and never a fee. An order counts as sold when it was placed in the period and is neither
 deleted nor cancelled (in Anvero or on the marketplace).
 
 `/summary` counts sales by the day ordered and fees by the day the marketplace
@@ -818,15 +818,22 @@ length just before (`previous_from`, `previous_to`):
 {"date_from": "2026-09-01", "date_to": "2026-09-27", "previous_from": "2026-08-05", "previous_to": "2026-08-31",
  "currency": "PLN", "sales": "3398.81", "orders": 62, "fees": "939.43",
  "previous_sales": "0.00", "previous_orders": 0, "previous_fees": "0.00",
- "by_source": [{"source": "ALLEGRO", "sales": "3271.78", "orders": 58, "fees": "939.43", "previous_sales": "0.00", "previous_fees": "0.00"}],
+ "paid_out": "121.50",
+ "by_source": [{"source": "ALLEGRO", "sales": "3271.78", "orders": 58, "fees": "939.43", "previous_sales": "0.00", "previous_fees": "0.00", "paid_out": null},
+               {"source": "ERLI", "sales": "127.03", "orders": 4, "fees": "124.13", "previous_sales": "0.00", "previous_fees": "0.00", "paid_out": "121.50"}],
  "by_type": [{"source": "ALLEGRO", "type_id": "SUC", "type_name": "Prowizja od sprzedaży", "fees": "628.12", "previous_fees": "0.00"}],
- "settlements": [{"source": "ALLEGRO", "fees": "939.43", "settled": "939.43", "synced_at": "2026-09-26T22:30:58Z"}]}
+ "settlements": [{"source": "ERLI", "fees": "124.13", "settled": "145.11", "unsettled": "0.00", "held_since": "2026-07-31T17:03:18Z", "synced_at": "..."}]}
 ```
 
-`by_type` is largest first. `settlements` has a row for each marketplace whose
-fees or settlements are held or that has read its fees: the fees in the period,
-what it took from the proceeds in the period (`settled`), and when its fees
-were last read.
+`by_type` is largest first. `paid_out` is what reached the bank in the period
+(by the day paid), per marketplace and in all; it is `null` for a marketplace
+whose payouts are not read (Allegro today) and at the top when none is.
+`settlements` has a row for each marketplace whose fees or settlements are held
+or that has read its fees: the fees in the period, what it took from the
+proceeds in the period (`settled`), and `unsettled`, the fees not yet taken
+over everything held since `held_since`. A month can split a fee from its
+settlement (Erli takes the fees of a month's last days in the next), so the two
+period figures need not agree while `unsettled` is 0.
 
 `/orders` takes the orders placed in the period and every fee booked for each,
 whenever it was booked; `sort` is `newest` (default) or `share` (the largest

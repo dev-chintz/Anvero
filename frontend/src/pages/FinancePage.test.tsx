@@ -26,14 +26,21 @@ function summary(overrides: Partial<FinanceSummary> = {}): FinanceSummary {
     previous_fees: "160.00",
     by_source: [
       { source: OrderSource.ALLEGRO, sales: "900.00", orders: 9, fees: "240.00", previous_sales: "800.00", previous_fees: "160.00" },
-      { source: OrderSource.ERLI, sales: "100.00", orders: 1, fees: "10.00", previous_sales: "0.00", previous_fees: "0.00" },
+      { source: OrderSource.ERLI, sales: "100.00", orders: 1, fees: "10.00", previous_sales: "0.00", previous_fees: "0.00", paid_out: "65.96" },
     ],
     by_type: [
       { source: OrderSource.ALLEGRO, type_id: "SUC", type_name: "Prowizja od sprzedaży", fees: "180.00", previous_fees: "150.00" },
       { source: OrderSource.ALLEGRO, type_id: "HB4", type_name: "Opłata za dostawę InPost", fees: "60.00", previous_fees: "10.00" },
     ],
     settlements: [
-      { source: OrderSource.ALLEGRO, fees: "240.00", settled: "240.00", synced_at: "2026-09-26T22:30:00Z" },
+      {
+        source: OrderSource.ALLEGRO,
+        fees: "240.00",
+        settled: "240.00",
+        unsettled: "0.00",
+        held_since: "2026-09-18T03:30:00Z",
+        synced_at: "2026-09-26T22:30:00Z",
+      },
     ],
     ...overrides,
   };
@@ -121,20 +128,36 @@ describe("the summary", () => {
     expect(rows[1]).toHaveTextContent("▲ 500%");
   });
 
-  it("says whether the fees match what the marketplace took from the proceeds", async () => {
+  it("says whether everything read has been taken from the proceeds", async () => {
     renderAt();
     const card = await screen.findByRole("region", { name: "Agreement with the marketplace" });
-    expect(card).toHaveTextContent("Matches");
+    expect(card).toHaveTextContent("All settled");
+    expect(card).toHaveTextContent("Everything since");
   });
 
-  it("says by how much they differ when they do", async () => {
+  it("says how much is not yet taken when something is, even if the month's figures differ", async () => {
     vi.mocked(financeApi.summary).mockResolvedValue(
-      summary({ settlements: [{ source: OrderSource.ALLEGRO, fees: "240.00", settled: "200.00", synced_at: null }] }),
+      summary({
+        settlements: [
+          { source: OrderSource.ALLEGRO, fees: "240.00", settled: "260.00", unsettled: "12.50", held_since: null, synced_at: null },
+        ],
+      }),
     );
     renderAt();
     const card = await screen.findByRole("region", { name: "Agreement with the marketplace" });
-    expect(card).toHaveTextContent("Differs by 40.00 PLN");
+    expect(card).toHaveTextContent("12.50 PLN not yet taken");
     expect(card).toHaveTextContent("never");
+  });
+});
+
+describe("the channels", () => {
+  it("show what reached the bank only for a marketplace whose payouts are read", async () => {
+    renderAt();
+    const card = await screen.findByRole("region", { name: "By channel" });
+    const erli = within(card).getByText("Erli").closest("div")!;
+    const allegro = within(card).getByText("Allegro").closest("div")!;
+    expect(erli).toHaveTextContent("paid out 65.96 PLN");
+    expect(allegro).not.toHaveTextContent("paid out");
   });
 });
 

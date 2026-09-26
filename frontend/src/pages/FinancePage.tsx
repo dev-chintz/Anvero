@@ -260,6 +260,9 @@ function Summary({ from, to, period }: { from: string; to: string; period: Perio
                       <span className="finance-fee">
                         −{money(num(row.fees))} · {oneDecimal(rowShare)}%
                       </span>
+                      {row.paid_out != null && (
+                        <span className="finance-paid">{t('finance.paidOut', { amount: money(num(row.paid_out)) })}</span>
+                      )}
                     </dd>
                   </div>
                 );
@@ -271,7 +274,7 @@ function Summary({ from, to, period }: { from: string; to: string; period: Perio
             <section className="card tone-green" aria-labelledby="finance-check">
               <h2 id="finance-check">{t('finance.check')}</h2>
               {data.settlements.map((row) => {
-                const matches = Math.abs(num(row.fees) - num(row.settled)) < 0.005;
+                const matches = Math.abs(num(row.unsettled)) < 0.005;
                 return (
                   <dl key={row.source} className="finance-list">
                     <div>
@@ -283,11 +286,15 @@ function Summary({ from, to, period }: { from: string; to: string; period: Perio
                       <dd>{money(num(row.settled))}</dd>
                     </div>
                     <div>
-                      <dt>{t('finance.checkResult')}</dt>
+                      <dt>
+                        {row.held_since
+                          ? t('finance.checkSince', { date: formatDate(row.held_since) })
+                          : t('finance.checkResult')}
+                      </dt>
                       <dd className={matches ? 'finance-ok' : 'finance-diff'}>
                         {matches
                           ? t('finance.checkMatches')
-                          : t('finance.checkDiffers', { amount: money(num(row.fees) - num(row.settled)) })}
+                          : t('finance.checkUnsettled', { amount: money(num(row.unsettled)) })}
                       </dd>
                     </div>
                     <div>

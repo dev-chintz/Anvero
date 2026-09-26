@@ -230,6 +230,13 @@ button.finance-kpi.is-open {
   color: var(--fee);
 }
 
+/* what reached the bank account, under a channel's figures */
+.finance-paid {
+  font-weight: 500;
+  font-size: 0.8rem;
+  color: var(--tone-green-fg);
+}
+
 .finance-ok {
   color: var(--tone-green-fg);
 }

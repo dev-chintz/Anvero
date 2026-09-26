@@ -118,6 +118,19 @@ class BillingEntryCreate(BaseModel):
     order_external_id: str | None = _text(255)
     offer_id: str | None = _text(255)
     offer_name: str | None = _text(500)
+    # the marketplace taking its fees out of the proceeds, not a fee itself
+    is_settlement: bool = False
+
+
+class PayoutCreate(BaseModel):
+    """Money a marketplace sent to the seller's bank account."""
+
+    source: OrderSource
+    external_id: str = Field(min_length=1, max_length=255)
+    paid_at: UtcDateTime
+    amount: Decimal = Field(max_digits=12, decimal_places=2)
+    currency: str = Field(min_length=3, max_length=3)
+    operator: str | None = _text(64)
 
 
 class BillingEntryRead(BaseModel):

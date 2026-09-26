@@ -731,6 +731,34 @@ the recorded sync point, like Allegro's. Erli's `/inbox` (an event stream of
 new and changed orders) was not used: the order search needs no
 acknowledgement step and matches how the Allegro import already works.
 
+### Fees and payouts
+
+After the orders, like Allegro's billing (same sync point,
+`last_billing_synced_at`, same best-effort rule), an import reads Erli's
+billing account and payouts. **Checked against the real service on
+2026-09-27.**
+
+- `GET /dictionaries/billingEntryTypes`, every import: each kind's
+  `fiscalFunction` says what it is. `plusCharges` are fees (commission `COMM`,
+  payment handling `COKS`, delivery `SHIP`, subscription, promotion…),
+  `minusCharges` fees given back (a rebate used on the commission, `CRUC`),
+  `plusPayments` Erli taking the fees from the proceeds (`PAYM`, stored with
+  `is_settlement`). The other kinds (rebates set aside, amounts blocked, money
+  added for campaigns) move money between Erli's own sub-accounts and are not
+  stored; a kind the dictionary does not name is logged.
+- `POST /billing/company/entries` with `simpleFilter.fromOccurredAt`, sorted by
+  `id` descending (the only sort Erli offers), 500 a page, each page below the
+  previous page's last id. Amounts are in grosze; `orderId` is Erli's order id
+  (the order's `external_id`), `productId` Erli's item id.
+- `POST /payments/payouts/_search` with `createdAt >=`, by `id` ascending, 200
+  a page: the payouts to the bank (`operator` `PAYU`), into `payouts`.
+- `/billing/company/rebates` is not read: the rebates used already appear in
+  the billing account as `CRUC`.
+
+On the owner's account, everything read from 31 July to 26 September: fees
+205.30 zł, taken from the proceeds 205.30 zł. The first read went back 120
+days by hand; later imports resume from the sync point.
+
 ### Status mapping
 
 Erli's `status` covers buying (`pending`, `purchased`, `cancelled`,

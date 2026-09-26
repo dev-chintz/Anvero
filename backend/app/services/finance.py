@@ -11,9 +11,9 @@ Two bases, as the marketplaces' own finance screens use them:
   says what that order (or product) left.
 
 A fee is a billing entry with a negative amount; a refund of a fee is positive
-and lowers the total. What the marketplace moves between accounts to settle the
-fees (`SETTLEMENT_TYPES`) is not a fee and is left out: counted in, it would
-bring the fees to zero.
+and lowers the total. The marketplace taking its fees out of the proceeds (an
+entry marked `is_settlement` by its adapter) is not a fee and is left out:
+counted in, it would bring the fees to zero.
 """
 
 import uuid
@@ -27,21 +27,21 @@ from sqlalchemy.orm import Session, selectinload
 
 from app.core.config import settings
 from app.core.order_number import format_order_number
-from app.models.order import BillingEntry, Order, OrderSource, OrderStatus
+from app.models.order import BillingEntry, Order, OrderSource, OrderStatus, Payout
 
-# Allegro's "Pobranie opłat z wpływów": the fees taken out of the seller's
-# proceeds, i.e. the fees paid, not charged again
-SETTLEMENT_TYPES = frozenset({"PAD"})
+# the commission, and what is given back of it: Allegro's SUC; Erli's
+# commission, its correction and the rebates used on it
+COMMISSION_TYPES = frozenset({"SUC", "COMM", "COCR", "CRUC", "CRUS", "CRCO"})
 
 ZERO = Decimal("0.00")
 
 
 def fee_kind(type_id: str, type_name: str | None) -> str:
     """"commission", "delivery" or "other", for the columns of the orders table."""
-    if type_id == "SUC":
+    if type_id in COMMISSION_TYPES:
         return "commission"
     name = (type_name or "").lower()
-    if "dostaw" in name or "delivery" in name or "shipping" in name:
+    if any(word in name for word in ("dostaw", "przesył", "delivery", "shipping")):
         return "delivery"
     return "other"
 
@@ -122,7 +122,7 @@ class FinanceService:
 
     def _is_fee(self):
         return (
-            BillingEntry.type_id.notin_(SETTLEMENT_TYPES),
+            BillingEntry.is_settlement.is_(False),
             BillingEntry.currency == self.currency,
         )
 
@@ -160,12 +160,46 @@ class FinanceService:
             .where(
                 BillingEntry.occurred_at >= start,
                 BillingEntry.occurred_at < end,
-                BillingEntry.type_id.in_(SETTLEMENT_TYPES),
+                BillingEntry.is_settlement.is_(True),
                 BillingEntry.currency == self.currency,
             )
             .group_by(BillingEntry.source)
         ).all()
         return {source: Decimal(total).quantize(ZERO) for source, total in rows}
+
+    def unsettled(self) -> dict[OrderSource, tuple[Decimal, datetime]]:
+        """Per marketplace, the fees it has not yet taken from the proceeds, over
+        everything read, and since when that is.
+
+        A month can end between a fee and its settlement (Erli takes the fees of
+        the last days of a month in the next), so the check is made over all
+        that is held, where the two meet.
+        """
+        rows = self.db.execute(
+            select(
+                BillingEntry.source,
+                func.coalesce(func.sum(BillingEntry.amount), 0),
+                func.min(BillingEntry.occurred_at),
+            )
+            .where(BillingEntry.currency == self.currency)
+            .group_by(BillingEntry.source)
+        ).all()
+        # fees are negative and settlements positive, so what is owed is minus their sum
+        return {source: (-Decimal(total).quantize(ZERO), since) for source, total, since in rows}
+
+    def paid_out(self, date_from: date, date_to: date) -> dict[OrderSource, Decimal]:
+        """What each marketplace sent to the bank in the period; a marketplace whose
+        payouts are read but made none in the period has 0, one never read is absent."""
+        start, end = self._bounds(date_from, date_to)
+        read = set(self.db.scalars(select(Payout.source).distinct()))
+        rows = dict(
+            self.db.execute(
+                select(Payout.source, func.coalesce(func.sum(Payout.amount), 0))
+                .where(Payout.paid_at >= start, Payout.paid_at < end, Payout.currency == self.currency)
+                .group_by(Payout.source)
+            ).all()
+        )
+        return {source: Decimal(rows.get(source, 0)).quantize(ZERO) for source in read}
 
     # ---- per order and per product ----
 
@@ -219,7 +253,8 @@ class FinanceService:
     def products(self, date_from: date, date_to: date) -> list[ProductMoney]:
         """What each product sold in the period and what its fees came to.
 
-        A fee that names an offer goes to the items of that offer in its order; a
+        A fee that names an offer (Allegro's offer, Erli's item id) goes to the
+        items of that offer in its order; a
         fee that names none (the delivery) is shared among the order's items by
         their value. A product is its SKU, else its offer, else its name, as on
         the To make page. The order's delivery charge to the buyer is not a
@@ -239,7 +274,11 @@ class FinanceService:
             shares = [ZERO for _ in items]
             for entry in entries_by_order.get((order.source, order.external_id), []):
                 fee = -entry.amount
-                matching = [i for i, item in enumerate(items) if entry.offer_id and item.offer_id == entry.offer_id]
+                matching = [
+                    i
+                    for i, item in enumerate(items)
+                    if entry.offer_id and entry.offer_id in (item.offer_id, item.external_id)
+                ]
                 targets = matching or list(range(len(items)))
                 base = sum((values[i] for i in targets), ZERO)
                 for i in targets:

@@ -92,6 +92,13 @@ def test_maps_a_charge_with_its_order():
     assert (entry.external_id, entry.type_id, entry.order_external_id) == ("E1", "SUC", "ORDER-1")
     assert entry.amount == Decimal("-8.50")
     assert entry.occurred_at == datetime(2026, 9, 20, 10, 27, 17, 412000, tzinfo=UTC)
+    assert entry.is_settlement is False
+
+
+def test_the_fees_taken_from_the_proceeds_are_a_settlement_not_a_fee():
+    entry = map_billing_entry(_raw(order_id=None, type_id="PAD"))
+
+    assert entry is not None and entry.is_settlement is True
 
 
 def test_an_entry_that_names_no_order_is_still_kept():

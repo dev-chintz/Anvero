@@ -126,7 +126,17 @@ a fee positive) and `currency`, `order_external_id` (the marketplace's order
 id, for the types that name one; indexed) and `offer_id`, `offer_name`. There
 is deliberately no foreign key to `orders`: an entry may be read before its
 order is, or belong to none (a subscription, an advertising fee). It is tied
-to an order by `(source, order_external_id)`.
+to an order by `(source, order_external_id)`. `is_settlement` (added by
+`d8b3f1a6c925`, false by default) marks the marketplace taking its fees out of
+the proceeds (Allegro's `PAD`, Erli's `plusPayments` kinds such as `PAYM`):
+the fees paid, which the Finance page leaves out of the fees. For Erli,
+`offer_id` holds Erli's item id (`productId`), which is the item's
+`external_id`.
+
+`payouts`: money a marketplace sent to the seller's bank account, one row per
+payout, never changed once stored. `source`, `external_id` (unique together),
+`paid_at` (indexed), `amount`, `currency`, `operator` (e.g. `PAYU`). Read from
+Erli since 2026-09-27; Allegro's are not read yet. Added by `d8b3f1a6c925`.
 
 `message_threads` and `messages`: one buyer-seller conversation each, and its
 messages, read from a marketplace's Message Center (plan B2, `INTEGRATIONS.md`,

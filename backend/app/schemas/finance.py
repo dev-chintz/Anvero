@@ -18,6 +18,8 @@ class SourceMoney(BaseModel):
     # the fees in the period before, for the comparison
     previous_sales: Decimal
     previous_fees: Decimal
+    # sent to the bank in the period; null for a marketplace whose payouts are not read
+    paid_out: Decimal | None = None
 
 
 class FeeTypeMoney(BaseModel):
@@ -31,11 +33,15 @@ class FeeTypeMoney(BaseModel):
 
 class Settlement(BaseModel):
     """What a marketplace took out of the proceeds to pay its fees, beside the fees
-    booked in the same period, and when its fees were last read."""
+    booked in the same period; what is still unsettled over everything read, since
+    when; and when its fees were last read."""
 
     source: OrderSource
     fees: Decimal
     settled: Decimal
+    # fees not yet taken from the proceeds, over all entries held; 0 when all are
+    unsettled: Decimal
+    held_since: UtcDateTime | None
     synced_at: UtcDateTime | None
 
 
@@ -51,6 +57,8 @@ class FinanceSummary(BaseModel):
     previous_sales: Decimal
     previous_orders: int
     previous_fees: Decimal
+    # the payouts of the marketplaces whose payouts are read; null when none is
+    paid_out: Decimal | None = None
     by_source: list[SourceMoney]
     by_type: list[FeeTypeMoney]
     settlements: list[Settlement]

@@ -3,11 +3,23 @@ from collections.abc import Iterator
 from datetime import datetime
 
 from app.integrations.base import IntegrationUnavailable
-from app.integrations.erli.client import MAX_PAGE_SIZE, ErliClient, erli_timestamp
+from app.integrations.erli.billing import (
+    is_known_other,
+    map_billing_entry,
+    map_billing_types,
+    map_payout,
+)
+from app.integrations.erli.client import (
+    BILLING_PAGE_SIZE,
+    MAX_PAGE_SIZE,
+    PAYOUT_PAGE_SIZE,
+    ErliClient,
+    erli_timestamp,
+)
 from app.integrations.erli.mapper import OrderMappingError, map_order
 from app.integrations.mapping import KnownImages, attach_item_images
 from app.models.order import OrderSource
-from app.schemas.order import OrderCreate
+from app.schemas.order import BillingEntryCreate, OrderCreate, PayoutCreate
 
 logger = logging.getLogger(__name__)
 
@@ -68,6 +80,57 @@ class ErliAdapter:
             f"Erli returned more than {MAX_PAGES * MAX_PAGE_SIZE} orders for one "
             "import; narrow the window and run it again"
         )
+
+    def fetch_billing_entries(self, since: datetime) -> list[BillingEntryCreate]:
+        """The fees and settlements on Erli's billing account since `since`, all pages.
+
+        Raises rather than returning part of them if a page fails, so the
+        caller does not record a complete read it did not make. Entries of a
+        kind Erli names but that is neither (a rebate set aside, an amount
+        blocked) are left out quietly; one Erli does not name is logged.
+        """
+        types = map_billing_types(self._client.fetch_billing_types())
+        entries: list[BillingEntryCreate] = []
+        unknown: set[str] = set()
+        before_id: int | None = None
+        for _ in range(MAX_PAGES):
+            raw = self._client.fetch_billing_entries(since, before_id, BILLING_PAGE_SIZE)
+            for item in raw:
+                entry = map_billing_entry(item, types)
+                if entry is not None:
+                    entries.append(entry)
+                elif not is_known_other(item, types):
+                    unknown.add(str(item.get("type")))
+            if len(raw) < BILLING_PAGE_SIZE:
+                break
+            last = raw[-1].get("id")
+            if not isinstance(last, int):
+                raise IntegrationUnavailable(
+                    "Erli returned a full page of billing entries without an id to continue from"
+                )
+            before_id = last
+        else:
+            raise IntegrationUnavailable(
+                "Erli returned too many billing entries; narrow the window and run it again"
+            )
+        if unknown:
+            logger.warning("Erli billing entries of unknown kinds left out: %s", ", ".join(sorted(unknown)))
+        return entries
+
+    def fetch_payouts(self, since: datetime) -> list[PayoutCreate]:
+        """The payouts to the seller's bank account made since `since`, all pages."""
+        payouts: list[PayoutCreate] = []
+        after_id: int | None = None
+        for _ in range(MAX_PAGES):
+            raw = self._client.search_payouts(since, after_id, PAYOUT_PAGE_SIZE)
+            payouts.extend(p for p in (map_payout(item) for item in raw) if p is not None)
+            if len(raw) < PAYOUT_PAGE_SIZE:
+                return payouts
+            last = raw[-1].get("id")
+            if not isinstance(last, int):
+                raise IntegrationUnavailable("Erli returned a full page of payouts without an id to continue from")
+            after_id = last
+        raise IntegrationUnavailable("Erli returned too many payouts; narrow the window and run it again")
 
     def _map(self, raw_orders: list[dict]) -> list[OrderCreate]:
         orders: list[OrderCreate] = []

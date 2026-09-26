@@ -16,6 +16,7 @@ from app.models.order import (
     OrderStatus,
     OrderStatusHistory,
     PaymentType,
+    Payout,
 )
 from app.models.production_check import ProductionCheck
 from app.models.shipping_label import LabelStatus, ShippingLabel
@@ -46,6 +47,7 @@ __all__ = [
     "OrderStatus",
     "OrderStatusHistory",
     "PaymentType",
+    "Payout",
     "PickupStatus",
     "ProductionCheck",
     "ShippingLabel",

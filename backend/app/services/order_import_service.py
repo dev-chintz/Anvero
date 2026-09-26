@@ -190,6 +190,12 @@ class OrderImportService:
             )
             entries = fetch(since)
             added = self.repository.add_billing_entries(entries)
+            # the payouts to the seller's bank, where the marketplace gives them,
+            # ride on the same sync point: both come from its billing
+            fetch_payouts = getattr(self.adapter, "fetch_payouts", None)
+            if fetch_payouts is not None:
+                payouts = fetch_payouts(since)
+                logger.info("Payouts read: %d, %d new", len(payouts), self.repository.add_payouts(payouts))
             self.credentials.set_last_billing_synced_at(provider, started_at - SYNC_OVERLAP)
             logger.info("Billing entries read: %d, %d new", len(entries), added)
         except Exception:

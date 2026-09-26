@@ -201,6 +201,10 @@ def _moment(raw: Any) -> datetime | None:
     return (moment if moment.tzinfo else moment.replace(tzinfo=UTC)).astimezone(UTC)
 
 
+# "Pobranie opłat z wpływów": Allegro taking its fees out of the proceeds
+SETTLEMENT_TYPES = frozenset({"PAD"})
+
+
 def map_billing_entry(raw: dict[str, Any]) -> BillingEntryCreate | None:
     """One item of GET /billing/billing-entries, or None if it cannot be used.
 
@@ -228,6 +232,7 @@ def map_billing_entry(raw: dict[str, Any]) -> BillingEntryCreate | None:
             "order_external_id": _text(_obj(raw.get("order")).get("id")),
             "offer_id": _text(_obj(raw.get("offer")).get("id")),
             "offer_name": _text(_obj(raw.get("offer")).get("name")),
+            "is_settlement": _text(entry_type.get("id")) in SETTLEMENT_TYPES,
         },
     )
 

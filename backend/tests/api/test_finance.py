@@ -14,7 +14,7 @@ from app.db.base import Base
 from app.db.session import get_db
 from app.main import app
 from app.models.integration import IntegrationCredential
-from app.models.order import BillingEntry, Order, OrderItem, OrderSource, OrderStatus
+from app.models.order import BillingEntry, Order, OrderItem, OrderSource, OrderStatus, Payout
 from app.repositories.user_repository import UserRepository
 from app.schemas.user import UserCreate
 from app.services.finance import fee_kind, previous_period
@@ -61,6 +61,7 @@ def setup_function():
     db = TestingSessionLocal()
     try:
         db.query(BillingEntry).delete()
+        db.query(Payout).delete()
         db.query(OrderItem).delete()
         db.query(Order).delete()
         db.query(IntegrationCredential).delete()
@@ -74,6 +75,7 @@ def _order(
     ordered_at: datetime,
     source: OrderSource = OrderSource.ALLEGRO,
     items: list[tuple[str, int, str, str | None]] = (),
+    item_ids: list[str] | None = None,
     **fields,
 ) -> str:
     """An order and its items (name, quantity, unit price, offer id); returns its marketplace id."""
@@ -92,7 +94,14 @@ def _order(
         )
         for position, (name, quantity, price, offer_id) in enumerate(items):
             order.items.append(
-                OrderItem(position=position, name=name, quantity=quantity, unit_price=Decimal(price), offer_id=offer_id)
+                OrderItem(
+                    position=position,
+                    name=name,
+                    quantity=quantity,
+                    unit_price=Decimal(price),
+                    offer_id=offer_id,
+                    external_id=item_ids[position] if item_ids else None,
+                )
             )
         db.add(order)
         db.commit()
@@ -109,6 +118,7 @@ def _fee(
     order: str | None = None,
     offer: str | None = None,
     source: OrderSource = OrderSource.ALLEGRO,
+    settlement: bool = False,
 ) -> None:
     db = TestingSessionLocal()
     try:
@@ -123,6 +133,7 @@ def _fee(
                 currency="PLN",
                 order_external_id=order,
                 offer_id=offer,
+                is_settlement=settlement,
             )
         )
         db.commit()
@@ -148,6 +159,12 @@ def test_fee_kinds():
     assert fee_kind("SUC", "Prowizja od sprzedaży") == "commission"
     assert fee_kind("HB4", "Opłata za dostawę InPost") == "delivery"
     assert fee_kind("NSP", "Opłata za wyróżnienie") == "other"
+    # Erli's
+    assert fee_kind("COMM", "naliczenie prowizji") == "commission"
+    assert fee_kind("CRUC", "wykorzystanie rabatu transakcyjnego") == "commission"
+    assert fee_kind("SHIP", "metoda dostawy ERLI.pl") == "delivery"
+    assert fee_kind("SHAO", "dodatkowe koszty obsługi przesyłek wg taryfy Operatora") == "delivery"
+    assert fee_kind("COKS", "naliczenie dodatkowej opłaty za obsługę płatności") == "other"
 
 
 def test_summary_counts_sales_by_order_date_and_fees_by_booking_date():
@@ -180,14 +197,30 @@ def test_summary_counts_sales_by_order_date_and_fees_by_booking_date():
 def test_summary_leaves_out_the_fees_settled_from_proceeds_but_reports_them():
     placed = _order("100.00", _day(9, 10))
     _fee("-12.00", _day(9, 10), order=placed)
-    _fee("12.00", _day(9, 10, 13), type_id="PAD", type_name="Pobranie opłat z wpływów")
+    _fee("12.00", _day(9, 10, 13), type_id="PAD", type_name="Pobranie opłat z wpływów", settlement=True)
 
     body = client.get("/api/v1/finance/summary", params=SEPTEMBER).json()
 
     assert Decimal(body["fees"]) == Decimal("12.00")
     (allegro,) = body["settlements"]
     assert (Decimal(allegro["fees"]), Decimal(allegro["settled"])) == (Decimal("12.00"), Decimal("12.00"))
+    assert Decimal(allegro["unsettled"]) == Decimal("0.00")
     assert "PAD" not in {row["type_id"] for row in body["by_type"]}
+
+
+def test_the_check_is_made_over_everything_read_as_a_month_can_split_a_fee_from_its_settlement():
+    placed = _order("50.00", _day(8, 31))
+    # the fee on the last day of August, taken from the proceeds on 1 September
+    _fee("-10.00", _day(8, 31, 20), order=placed)
+    _fee("10.00", _day(9, 1, 6), type_id="PAD", type_name="Pobranie opłat z wpływów", settlement=True)
+    _fee("-3.00", _day(9, 2), order=placed)
+
+    (allegro,) = client.get("/api/v1/finance/summary", params=SEPTEMBER).json()["settlements"]
+
+    assert (Decimal(allegro["fees"]), Decimal(allegro["settled"])) == (Decimal("3.00"), Decimal("10.00"))
+    # over everything read, only the 3.00 of 2 September is still to be taken
+    assert Decimal(allegro["unsettled"]) == Decimal("3.00")
+    assert allegro["held_since"].startswith("2026-08-31")
 
 
 def test_summary_leaves_out_cancelled_and_deleted_orders():
@@ -264,3 +297,57 @@ def test_products_get_their_offers_fees_and_a_share_of_the_rest():
     assert Decimal(heart["fees"]) == Decimal("27.90")
     assert Decimal(plate["fees"]) == Decimal("2.31")
     assert Decimal(heart["fees"]) + Decimal(plate["fees"]) == Decimal("30.21")
+
+
+def _payout(amount: str, paid_at: datetime, source: OrderSource = OrderSource.ERLI) -> None:
+    db = TestingSessionLocal()
+    try:
+        db.add(
+            Payout(
+                source=source,
+                external_id=str(uuid.uuid4()),
+                paid_at=paid_at,
+                amount=Decimal(amount),
+                currency="PLN",
+                operator="PAYU",
+            )
+        )
+        db.commit()
+    finally:
+        db.close()
+
+
+def test_payouts_count_by_the_day_paid_for_the_marketplaces_that_give_them():
+    _order("100.00", _day(9, 10))
+    _payout("43.59", _day(9, 1))
+    _payout("22.37", _day(9, 26))
+    _payout("10.00", _day(8, 20))
+
+    body = client.get("/api/v1/finance/summary", params=SEPTEMBER).json()
+
+    assert Decimal(body["paid_out"]) == Decimal("65.96")
+    by_source = {row["source"]: row for row in body["by_source"]}
+    assert Decimal(by_source["ERLI"]["paid_out"]) == Decimal("65.96")
+    # Allegro's payouts are not read, so it has none to show rather than a zero
+    assert by_source["ALLEGRO"]["paid_out"] is None
+
+
+def test_without_any_payout_read_there_is_no_total():
+    _order("100.00", _day(9, 10))
+    assert client.get("/api/v1/finance/summary", params=SEPTEMBER).json()["paid_out"] is None
+
+
+def test_an_erli_fee_goes_to_the_item_it_names_by_its_id():
+    placed = _order(
+        "42.51",
+        _day(9, 26),
+        source=OrderSource.ERLI,
+        items=[("Baza", 1, "30.00", "112093_656974184_0"), ("Tabliczka", 1, "12.51", "112093_656974185_0")],
+        item_ids=["345921069", "345921070"],
+    )
+    _fee("-8.58", _day(9, 26), type_id="COMM", type_name="naliczenie prowizji", order=placed, offer="345921069", source=OrderSource.ERLI)
+
+    items = client.get("/api/v1/finance/products", params=SEPTEMBER).json()["items"]
+
+    by_name = {row["name"]: Decimal(row["fees"]) for row in items}
+    assert by_name == {"Baza": Decimal("8.58"), "Tabliczka": Decimal("0.00")}
