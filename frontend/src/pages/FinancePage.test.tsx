@@ -24,8 +24,9 @@ function summary(overrides: Partial<FinanceSummary> = {}): FinanceSummary {
     previous_sales: "800.00",
     previous_orders: 8,
     previous_fees: "160.00",
+    previous_complete: true,
     by_source: [
-      { source: OrderSource.ALLEGRO, sales: "900.00", orders: 9, fees: "240.00", previous_sales: "800.00", previous_fees: "160.00" },
+      { source: OrderSource.ALLEGRO, sales: "900.00", orders: 9, fees: "240.00", previous_sales: "800.00", previous_fees: "160.00", previous_complete: true },
       { source: OrderSource.ERLI, sales: "100.00", orders: 1, fees: "10.00", previous_sales: "0.00", previous_fees: "0.00", paid_out: "65.96" },
     ],
     by_type: [
@@ -294,5 +295,24 @@ describe("fees booked under two codes with one name", () => {
     expect(rows).toHaveLength(2);
     expect(rows[0]).toHaveTextContent("218.06 PLN");
     expect(rows[1]).toHaveTextContent("Abonament profesjonalny");
+  });
+});
+
+describe("a period before that Anvero holds only part of", () => {
+  it("is not compared with", async () => {
+    vi.mocked(financeApi.summary).mockResolvedValue(
+      summary({
+        previous_complete: false,
+        by_source: [
+          { source: OrderSource.ALLEGRO, sales: "900.00", orders: 9, fees: "240.00", previous_sales: "40.00", previous_fees: "6.00", previous_complete: false },
+        ],
+      }),
+    );
+    renderAt();
+
+    const figures = await screen.findByRole("region", { name: "The period in figures" });
+    expect(figures).not.toHaveTextContent("▲");
+    expect(within(screen.getByRole("region", { name: "What the fees went on" })).queryByText(/▲|▼/)).toBeNull();
+    expect(screen.getByText(/No comparison with the period before/)).toBeInTheDocument();
   });
 });

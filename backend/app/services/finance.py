@@ -137,6 +137,28 @@ class FinanceService:
         ).all()
         return {source: (Decimal(total).quantize(ZERO), count) for source, total, count in rows}
 
+    def fees_without_order(self, date_from: date, date_to: date) -> Decimal:
+        """The fees booked in the period that name no order: the subscription and
+        the like, which come once a month rather than with each sale."""
+        start, end = self._bounds(date_from, date_to)
+        total = self.db.scalar(
+            select(func.coalesce(func.sum(BillingEntry.amount), 0)).where(
+                BillingEntry.occurred_at >= start,
+                BillingEntry.occurred_at < end,
+                BillingEntry.order_external_id.is_(None),
+                *self._is_fee(),
+            )
+        )
+        return -Decimal(total).quantize(ZERO)
+
+    def held_from(self, since: datetime | None) -> date | None:
+        """The first whole day held, in the business timezone, from the earliest entry read."""
+        if since is None:
+            return None
+        zone = ZoneInfo(settings.business_timezone)
+        moment = since if since.tzinfo else since.replace(tzinfo=UTC)
+        return (moment.astimezone(zone) + timedelta(days=1)).date()
+
     def delivery_paid(self, date_from: date, date_to: date) -> dict[OrderSource, Decimal]:
         """What the buyers paid for delivery in the orders sold in the period."""
         start, end = self._bounds(date_from, date_to)

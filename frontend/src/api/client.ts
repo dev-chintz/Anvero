@@ -995,6 +995,8 @@ export interface FinanceSourceMoney {
   /** What the buyers paid for delivery (part of `sales`), and the delivery fees booked. */
   delivery_paid?: string;
   delivery_fees?: string;
+  /** Whether the period before is wholly held, so a comparison with it means something. */
+  previous_complete?: boolean;
 }
 
 export interface FinanceFeeType {
@@ -1032,6 +1034,9 @@ export interface FinanceSummary {
   paid_out?: string | null;
   delivery_paid?: string;
   delivery_fees?: string;
+  /** The fees in the period that name no order: the subscription and the like. */
+  fees_without_order?: string;
+  previous_complete?: boolean;
   by_source: FinanceSourceMoney[];
   by_type: FinanceFeeType[];
   settlements: FinanceSettlement[];

@@ -165,8 +165,11 @@ function Summary({ from, to, period }: { from: string; to: string; period: Perio
   const fees = num(data.fees);
   const left = sales - fees;
   const share = sales ? (fees / sales) * 100 : 0;
-  const previousShare = num(data.previous_sales) ? (num(data.previous_fees) / num(data.previous_sales)) * 100 : null;
-  const salesChange = change(sales, num(data.previous_sales));
+  // a comparison with a period Anvero holds only part of reads as a leap of thousands of percent
+  const comparable = data.previous_complete === true;
+  const previousShare =
+    comparable && num(data.previous_sales) ? (num(data.previous_fees) / num(data.previous_sales)) * 100 : null;
+  const salesChange = comparable ? change(sales, num(data.previous_sales)) : null;
   // delivery passes through: the buyer pays it into the sale, the marketplace charges it as a fee;
   // set aside, what is left is what the marketplace takes for selling
   const deliveryPaid = num(data.delivery_paid ?? 0);
@@ -178,12 +181,14 @@ function Summary({ from, to, period }: { from: string; to: string; period: Perio
     to: formatDate(data.previous_to),
   });
 
-  // for the month so far: the fees at the pace of the days gone
+  // for the month so far: the fees of the sales at the pace of the days gone, and those that come
+  // once a month (the subscription) as they are
   let forecast: number | null = null;
   if (period === 'month') {
     const today = new Date();
     const daysInMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
-    forecast = (fees / today.getDate()) * daysInMonth;
+    const once = num(data.fees_without_order ?? 0);
+    forecast = once + ((fees - once) / today.getDate()) * daysInMonth;
   }
 
   return (
@@ -258,6 +263,9 @@ function Summary({ from, to, period }: { from: string; to: string; period: Perio
             </span>
           </div>
           <FeeBars summary={data} money={money} compared={compared} />
+          {forecast !== null && (
+            <p className="finance-forecast">{t('finance.forecast', { amount: money(forecast) })}</p>
+          )}
         </section>
 
         <div className="finance-side">
@@ -266,6 +274,9 @@ function Summary({ from, to, period }: { from: string; to: string; period: Perio
             <dl className="finance-list">
               {data.by_source.map((row) => {
                 const rowShare = num(row.sales) ? (num(row.fees) / num(row.sales)) * 100 : 0;
+                const rowGoods = num(row.sales) - num(row.delivery_paid ?? 0);
+                const rowDeliveryFees = num(row.delivery_fees ?? 0);
+                const rowShareGoods = rowGoods > 0 && rowDeliveryFees > 0 ? ((num(row.fees) - rowDeliveryFees) / rowGoods) * 100 : null;
                 return (
                   <div key={row.source} className="finance-channel">
                     <dt>
@@ -279,6 +290,9 @@ function Summary({ from, to, period }: { from: string; to: string; period: Perio
                       <span className="finance-fee">
                         {signed(num(row.fees))} · {oneDecimal(rowShare)}%
                       </span>
+                      {rowShareGoods !== null && (
+                        <span className="finance-muted">{t('finance.feesShareGoods', { share: oneDecimal(rowShareGoods) })}</span>
+                      )}
                       {row.paid_out != null && (
                         <span className="finance-paid">{t('finance.paidOut', { amount: money(num(row.paid_out)) })}</span>
                       )}
@@ -363,15 +377,15 @@ function Summary({ from, to, period }: { from: string; to: string; period: Perio
                   </dl>
                 );
               })}
-              {forecast !== null && (
-                <p className="finance-forecast">{t('finance.forecast', { amount: money(forecast) })}</p>
-              )}
             </section>
           )}
         </div>
       </div>
 
-      <p className="finance-basis">{t('finance.basis')}</p>
+      <p className="finance-basis">
+        {t('finance.basis')}
+        {!comparable && <> {t('finance.noComparison')}</>}
+      </p>
     </>
   );
 }
@@ -402,6 +416,8 @@ function FeeBars({
         : row,
     );
   }
+  // the change is shown only where the period before is wholly held for that marketplace
+  const comparable = new Set(summary.by_source.filter((s) => s.previous_complete).map((s) => s.source));
   const rows = [...merged.values()]
     .filter((row) => num(row.fees) !== 0 || num(row.previous_fees) !== 0)
     .sort((a, b) => num(b.fees) - num(a.fees));
@@ -410,7 +426,7 @@ function FeeBars({
   return (
     <ul className="finance-bars">
       {rows.map((row) => {
-        const diff = change(num(row.fees), num(row.previous_fees));
+        const diff = comparable.has(row.source) ? change(num(row.fees), num(row.previous_fees)) : null;
         return (
           <li key={`${row.source}-${row.type_id}`}>
             <span className="finance-bar-name" title={`${channelName(row.source)}: ${row.type_name ?? row.type_id}`}>

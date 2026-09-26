@@ -23,6 +23,8 @@ class SourceMoney(BaseModel):
     # what the buyers paid for delivery (part of `sales`), and the delivery fees booked
     delivery_paid: Decimal = Decimal("0.00")
     delivery_fees: Decimal = Decimal("0.00")
+    # whether the period before is wholly held, so a comparison with it means something
+    previous_complete: bool = False
 
 
 class FeeTypeMoney(BaseModel):
@@ -64,6 +66,10 @@ class FinanceSummary(BaseModel):
     paid_out: Decimal | None = None
     delivery_paid: Decimal = Decimal("0.00")
     delivery_fees: Decimal = Decimal("0.00")
+    # the fees in the period that name no order (the subscription and the like)
+    fees_without_order: Decimal = Decimal("0.00")
+    # the period before is wholly held for every marketplace
+    previous_complete: bool = False
     by_source: list[SourceMoney]
     by_type: list[FeeTypeMoney]
     settlements: list[Settlement]

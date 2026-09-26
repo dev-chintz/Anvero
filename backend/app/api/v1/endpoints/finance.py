@@ -55,6 +55,12 @@ def summary(date_from: date, date_to: date, db: Session = Depends(get_db)):
     settled = finance.settled(date_from, date_to)
     paid_out = finance.paid_out(date_from, date_to)
     delivery_paid = finance.delivery_paid(date_from, date_to)
+    unsettled = finance.unsettled()
+
+    def previous_complete(source) -> bool:
+        # the fees are held from the first entry read; the orders were read from the same point
+        first = finance.held_from(unsettled.get(source, (ZERO, None))[1])
+        return first is not None and first <= previous_from
 
     def fees_of(table, source):
         return sum((amount for (s, _), (_, amount) in table.items() if s == source), ZERO)
@@ -80,6 +86,7 @@ def summary(date_from: date, date_to: date, db: Session = Depends(get_db)):
             paid_out=paid_out.get(source),
             delivery_paid=delivery_paid.get(source, ZERO),
             delivery_fees=delivery_fees_of(source),
+            previous_complete=previous_complete(source),
         )
         for source in sources
     ]
@@ -97,7 +104,6 @@ def summary(date_from: date, date_to: date, db: Session = Depends(get_db)):
         key=lambda row: (-row.fees, -row.previous_fees, row.type_id),
     )
     credentials = IntegrationCredentialRepository(db)
-    unsettled = finance.unsettled()
     settlements = [
         Settlement(
             source=source,
@@ -125,6 +131,8 @@ def summary(date_from: date, date_to: date, db: Session = Depends(get_db)):
         paid_out=sum(paid_out.values(), ZERO) if paid_out else None,
         delivery_paid=sum((row.delivery_paid for row in by_source), ZERO),
         delivery_fees=sum((row.delivery_fees for row in by_source), ZERO),
+        fees_without_order=finance.fees_without_order(date_from, date_to),
+        previous_complete=bool(by_source) and all(row.previous_complete for row in by_source),
         by_source=by_source,
         by_type=by_type,
         settlements=settlements,

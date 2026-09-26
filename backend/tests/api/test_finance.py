@@ -242,6 +242,31 @@ def test_the_check_is_made_over_everything_read_as_a_month_can_split_a_fee_from_
     assert allegro["held_since"].startswith("2026-08-31")
 
 
+def test_a_comparison_counts_only_when_the_period_before_is_wholly_held():
+    placed = _order("100.00", _day(9, 10))
+    _fee("-12.00", _day(9, 10), order=placed)
+
+    body = client.get("/api/v1/finance/summary", params=SEPTEMBER).json()
+    # the fees are held from 10 September: August is not
+    assert body["previous_complete"] is False
+    assert body["by_source"][0]["previous_complete"] is False
+
+    _fee("-1.00", _day(7, 30))
+    body = client.get("/api/v1/finance/summary", params=SEPTEMBER).json()
+    assert body["previous_complete"] is True
+
+
+def test_the_fees_naming_no_order_are_reported_apart():
+    placed = _order("100.00", _day(9, 10))
+    _fee("-12.00", _day(9, 10), order=placed)
+    _fee("-199.00", _day(9, 14), type_id="SB2", type_name="Abonament profesjonalny")
+
+    body = client.get("/api/v1/finance/summary", params=SEPTEMBER).json()
+
+    assert Decimal(body["fees_without_order"]) == Decimal("199.00")
+    assert Decimal(body["fees"]) == Decimal("211.00")
+
+
 def test_summary_leaves_out_cancelled_and_deleted_orders():
     _order("100.00", _day(9, 10))
     _order("70.00", _day(9, 10), status=OrderStatus.CANCELLED)
