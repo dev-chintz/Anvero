@@ -416,8 +416,11 @@ the first time `ALLEGRO_INITIAL_IMPORT_DAYS` back.
   Allegro's developer panel; a connection made before it was added must be
   made again to carry it. Without it the read is refused, logged, and the
   import (fees included) goes on.
-- **Not verified:** built from Allegro's OpenAPI specification
-  (`PaymentOperations`, `PayoutOperation`); no real response has been seen.
+- **Checked against the real account on 2026-09-27:** a refusal before the
+  scope was added ("Allegro denied access to payment operations"), then 21
+  September payouts as documented, operator `AF`. September was read back to
+  30 August by hand, since the first read reaches back only the initial window.
+  No `PAYOUT_CANCEL` has been seen.
 
 ### Known limits
 

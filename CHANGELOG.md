@@ -21,8 +21,8 @@ All significant changes to the Anvero project.
 - Erli's older orders (from 31 July) imported, so every Erli fee has its order.
 - Allegro's subscription counts among the fees; Allegro's fees and orders are read back to 30 August (189 orders now).
   One fee booked under two codes is one row.
-- Allegro's payouts are read too (needs the `allegro:api:payments:read` scope on the Allegro application; not yet
-  seen on the real account). Payouts are read in a step of their own, so a refusal never holds the fees back.
+- Allegro's payouts are read too (needs the `allegro:api:payments:read` scope on the Allegro application, added and
+  the account reconnected on 2026-09-27; September: 5,716.57 zł in 21 payouts). Payouts are read in a step of their own, so a refusal never holds the fees back.
 - Next: the cost of making a product, advertising.
 
 ### 🕓 The status history is never empty
