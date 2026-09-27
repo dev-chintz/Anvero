@@ -170,17 +170,24 @@ export function OrderItemsCard({ order }: { order: OrderWithDetails }) {
               </tr>
             </thead>
             <tbody>
-              {order.items.map((item) => (
+              {order.items.map((item) => {
+                const nameAndSku = (
+                  <span>
+                    {item.name}
+                    {item.sku && <span className="order-item-sku">{t("details.sku", { sku: item.sku })}</span>}
+                  </span>
+                );
+                return (
                 <tr key={item.id}>
                   <td>
                     <div className="item-name-cell">
-                      {item.image_url && <ItemThumb src={item.image_url} className="item-thumb" />}
-                      <span>
-                        {item.name}
-                        {item.sku && (
-                          <span className="order-item-sku">{t("details.sku", { sku: item.sku })}</span>
-                        )}
-                      </span>
+                      {item.image_url ? (
+                        <ItemThumb src={item.image_url} className="item-thumb">
+                          {nameAndSku}
+                        </ItemThumb>
+                      ) : (
+                        nameAndSku
+                      )}
                     </div>
                   </td>
                   <td className="numeric">{item.quantity}</td>
@@ -189,7 +196,8 @@ export function OrderItemsCard({ order }: { order: OrderWithDetails }) {
                     {formatCents(toCents(item.unit_price) * item.quantity)}
                   </td>
                 </tr>
-              ))}
+                );
+              })}
             </tbody>
             <tfoot>
               <tr>

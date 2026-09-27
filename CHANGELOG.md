@@ -6,6 +6,14 @@ All significant changes to the Anvero project.
 
 ## 2026-09-27
 
+### 🖼️ An item's zoom-on-hover covers its whole row, not just the thumbnail
+
+- `ItemThumb` now shows the enlarged picture while the pointer is over the thumbnail **or**
+  its name and SKU, wherever it is used (the order page's item list, Dashboard, Finance,
+  Production). Hovering the small thumbnail alone put the pointer, and so the enlarged
+  picture beside it, right over the SKU next to it - hovering anywhere across the wider area
+  now lets the picture land clear of it in practice.
+
 ### 🧾 The order page: items across the full width, one grid for the rest
 
 - **Pozycje** is now its own full-width row instead of sharing a narrow main column. **Dostawa,

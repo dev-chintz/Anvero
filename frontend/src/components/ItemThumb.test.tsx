@@ -67,6 +67,20 @@ describe("an item's thumbnail", () => {
     expect(preview()?.style.top).toBe("480px");
   });
 
+  it("also shows the large picture while the pointer is over its children, not only the thumbnail", () => {
+    const { getByText } = render(
+      <ItemThumb src="https://img.example/a.jpg" className="small">
+        <span>Nazwa produktu</span>
+      </ItemThumb>,
+    );
+
+    fireEvent.mouseEnter(getByText("Nazwa produktu"), { clientX: 300, clientY: 400 });
+    expect(preview()).not.toBeNull();
+
+    fireEvent.mouseLeave(getByText("Nazwa produktu"));
+    expect(preview()).toBeNull();
+  });
+
   it("is drawn on the page, outside whatever holds the thumbnail", () => {
     const { container } = render(
       <div style={{ overflow: "hidden" }}>

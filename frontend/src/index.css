@@ -729,6 +729,12 @@ select.status-select {
   font: inherit;
 }
 
+/* ItemThumb's own wrapper: never a box of its own, so a caller passing it no children (most of
+   them) gets exactly the layout it had before children existed. */
+.item-thumb-hover {
+  display: contents;
+}
+
 /* The large picture shown while the pointer is over an item's thumbnail
    (ItemThumb.tsx): drawn on the page, so no table can cut it off. */
 .thumb-preview {
