@@ -48,6 +48,22 @@ describe("OrderItemsCard, packing progress", () => {
     expect(screen.getByRole("row", { name: /Scrapki Serduszko/ })).toHaveClass("order-item-packed");
   });
 
+  it("clicking the product name packs the whole line at once, for a many-unit line", () => {
+    const onPackingChange = vi.fn().mockResolvedValue(undefined);
+    render(<OrderItemsCard order={order([item({ quantity: 8, packed_quantity: 0 })])} onPackingChange={onPackingChange} />);
+
+    fireEvent.click(screen.getByText("Scrapki Serduszko"));
+    expect(onPackingChange).toHaveBeenCalledWith(0, 8);
+  });
+
+  it("clicking the product name again unpacks a fully packed line", () => {
+    const onPackingChange = vi.fn().mockResolvedValue(undefined);
+    render(<OrderItemsCard order={order([item({ quantity: 8, packed_quantity: 8 })])} onPackingChange={onPackingChange} />);
+
+    fireEvent.click(screen.getByText("Scrapki Serduszko"));
+    expect(onPackingChange).toHaveBeenCalledWith(0, 0);
+  });
+
   it("the + button packs one more, up to the ordered quantity, then is disabled", () => {
     const onPackingChange = vi.fn().mockResolvedValue(undefined);
     render(<OrderItemsCard order={order([item({ quantity: 2, packed_quantity: 1 })])} onPackingChange={onPackingChange} />);

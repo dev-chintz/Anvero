@@ -17,7 +17,9 @@ All significant changes to the Anvero project.
   the item's line position rather than its own id so a re-import (which replaces every item row
   wholesale) does not wipe it. Cleared once the order ships, is delivered or is cancelled. See
   `docs/DECISIONS.md`, "Packing progress, per line".
-- 15 new/changed backend tests (954 passing); 8 new frontend tests (583 passing).
+- Clicking the product name (or its thumbnail) packs the whole line in one click instead of
+  reaching for the + stepper one unit at a time; clicking it again unpacks it.
+- 15 new/changed backend tests (954 passing); 10 new frontend tests (585 passing).
 
 ### 🖼️ An item's zoom-on-hover covers its whole row, not just the thumbnail
 

@@ -1603,3 +1603,10 @@ through the one chokepoint, `OrderRepository.update_status`, so a single clause 
 item; the on-screen order list is untouched. Never sent to a marketplace. A line the marketplace
 later reports at a different quantity keeps whatever was ticked, capped at the new quantity by
 `OrderService.set_item_packing`'s own validation on the next write, not retroactively.
+
+**Also (2026-09-27, the owner tried it):** clicking the product name (or its thumbnail) packs
+the whole line in one go - `quantity`, not one more - and clicking it again unpacks it; the +/−
+stepper is for the odd one left over, not for reaching a many-unit line's total one click at a
+time. The cell is a `<button>` now, reset back to plain text and thumbnail with no button chrome
+of its own; `ItemThumb`'s zoom-on-hover (`docs/CHANGELOG.md`, "An item's zoom-on-hover covers its
+whole row") still works nested inside it.

@@ -220,7 +220,13 @@ export function OrderItemsCard({
                   return (
                     <tr key={item.id} className={done ? "order-item-packed" : undefined}>
                       <td>
-                        <div className="item-name-cell">
+                        <button
+                          type="button"
+                          className="item-name-cell"
+                          onClick={() => changePacking(item.position, done ? 0 : item.quantity)}
+                          disabled={saving === item.position}
+                          title={t(done ? "details.packingUndoAll" : "details.packingAll")}
+                        >
                           {item.image_url ? (
                             <ItemThumb src={item.image_url} className="item-thumb">
                               {nameAndSku}
@@ -228,7 +234,7 @@ export function OrderItemsCard({
                           ) : (
                             nameAndSku
                           )}
-                        </div>
+                        </button>
                       </td>
                       <td className="numeric">{item.quantity}</td>
                       <td className="numeric">{formatCents(toCents(item.unit_price))}</td>

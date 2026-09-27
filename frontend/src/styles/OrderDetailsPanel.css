@@ -120,10 +120,29 @@
   color: var(--color-muted);
 }
 
+/* a <button> now (clicking it packs, or unpacks, the whole line at once), styled back down
+   to plain text and a thumbnail: no button chrome of its own */
 .item-name-cell {
   display: flex;
   align-items: center;
   gap: 0.5rem;
+  border: none;
+  background: none;
+  padding: 0;
+  margin: 0;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  border-radius: var(--radius);
+}
+
+.item-name-cell:hover:not(:disabled) {
+  background: var(--color-surface-alt);
+}
+
+.item-name-cell:disabled {
+  cursor: default;
 }
 
 /* Packing progress: how many of each line an operator has gathered into the parcel so far
