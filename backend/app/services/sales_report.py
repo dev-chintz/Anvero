@@ -1,18 +1,24 @@
 """The non-invoiced sales report: ported from a standalone tool (`docs/RITEVO.md`'s sibling,
 `temp/`, kept out of this repository) that classified an Allegro CSV export for accounting.
 
-Only its two APPROVED business decisions are implemented, exactly as it registered them
-(`temp/sales-report-v2/BUSINESS_DECISIONS.md`, BD-001/BD-015 and BD-002):
+Three rules, in the ported tool's own priority order:
 
 - A complete company invoice (name, street, postal code, city, country and tax id all present)
-  excludes an order as `COMPANY`. This is checked first and is never open to a manual override,
-  the same as in the ported tool ("Priorytet 1 jest automatyczny").
+  excludes an order as `COMPANY`. Checked first and never open to a manual override, the same as
+  in the ported tool ("Priorytet 1 jest automatyczny") — `BUSINESS_DECISIONS.md` BD-001/BD-015.
 - An order the marketplace shows cancelled or suspended, and that was never paid in full,
-  excludes as `OUT_OF_SCOPE`.
-- Everything else is `MANUAL_REVIEW`. The ported tool's code also has a third path, qualifying a
-  paid, sent, uninvoiced-or-personally-invoiced order as `RETAIL` on its own — but that path has
-  no entry in its own `BUSINESS_DECISIONS.md` register, so it is a leftover of the tool's first
-  version, not an approved rule, and is deliberately left out here (`docs/DECISIONS.md`).
+  excludes as `OUT_OF_SCOPE` (BD-002).
+- An order paid in full, in PLN, shipped, and with no invoice or only a personal one (a name,
+  never a company name or tax id) qualifies as `RETAIL` on its own (`PAY-001`). The ported tool's
+  own code has this rule (`qualifyV1` in `js/business/rules/rule-utils.js`) without an entry in
+  its `BUSINESS_DECISIONS.md` register — a gap in that tool's own governance, not evidence the
+  rule is wrong: its `RULE_REFINEMENT_REPORT.md` shows it is what kept "for review" small in
+  practice (74 of 614 orders on its June baseline). Approved here on 2026-09-27 after the owner
+  saw the gap for themselves (`docs/DECISIONS.md`). "Shipped" is read off Anvero's own status
+  (`SHIPPED`/`DELIVERED`), not the marketplace's raw label as the ported tool did (`SENT`
+  literally): Anvero's own status collapses the marketplace's wider vocabulary to the same effect
+  the ported tool got from a CSV export that only ever held `SENT`, `CANCELLED` or `SUSPENDED`.
+- Everything else is `MANUAL_REVIEW`, never guessed further.
 
 A row's `included`/`category` can be overridden by an operator (`SalesReportOverride`), except a
 `COMPANY` row from the first rule.
@@ -26,7 +32,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 
 from app.core.order_number import format_order_number
-from app.models.order import AddressType, Order, OrderSource
+from app.models.order import AddressType, Order, OrderSource, OrderStatus
 from app.models.sales_report import SalesReportOverride
 from app.schemas.sales_report import (
     SalesReportCategory,
@@ -35,8 +41,12 @@ from app.schemas.sales_report import (
     SalesReportSummary,
 )
 
-# what a completed sale, for the second rule, must at least clear
+# what a completed sale, for the second and third rules, must at least clear
 ZERO = Decimal("0.00")
+
+# "shipped", for the third rule: Anvero's own status, which already collapses the marketplace's
+# wider vocabulary (DATABASE.md, "marketplace_status_label") to the distinction the rule needs
+SHIPPED_STATUSES = frozenset({OrderStatus.SHIPPED, OrderStatus.DELIVERED})
 
 
 @dataclass(frozen=True)
@@ -50,10 +60,14 @@ class OrderFacts:
     amount: Decimal
     currency: str
     buyer_login: str | None
+    # Anvero's own status: NEW/CONFIRMED/READY_FOR_SHIPMENT/SHIPPED/DELIVERED/CANCELLED
+    status: OrderStatus
     # the marketplace's own status word, unmapped (Anvero's own five statuses collapse
     # distinctions this rule needs, e.g. Allegro's SUSPENDED)
     marketplace_status_label: str | None
     paid_amount: Decimal | None
+    invoice_first_name: str | None
+    invoice_last_name: str | None
     invoice_company_name: str | None
     invoice_street: str | None
     invoice_postal_code: str | None
@@ -87,8 +101,37 @@ def _is_cancelled_or_suspended_unpaid(facts: OrderFacts) -> bool:
     return facts.paid_amount < facts.amount
 
 
+def _is_named_personal_invoice(facts: OrderFacts) -> bool:
+    return bool(facts.invoice_first_name or facts.invoice_last_name) and not facts.invoice_company_name and not facts.invoice_tax_id
+
+
+def _has_no_invoice_data(facts: OrderFacts) -> bool:
+    return not any(
+        (
+            facts.invoice_first_name,
+            facts.invoice_last_name,
+            facts.invoice_company_name,
+            facts.invoice_street,
+            facts.invoice_postal_code,
+            facts.invoice_city,
+            facts.invoice_country_code,
+            facts.invoice_tax_id,
+        )
+    )
+
+
+def _qualifies_paid_and_shipped(facts: OrderFacts) -> bool:
+    if facts.status not in SHIPPED_STATUSES:
+        return False
+    if facts.currency != "PLN" or facts.amount <= ZERO:
+        return False
+    if facts.paid_amount is None or facts.paid_amount < facts.amount:
+        return False
+    return _has_no_invoice_data(facts) or _is_named_personal_invoice(facts)
+
+
 def classify(facts: OrderFacts) -> Classification:
-    """The two approved rules, in the ported tool's own priority order, else manual review."""
+    """The approved rules, in the ported tool's own priority order, else manual review."""
     if _is_complete_company_invoice(facts):
         return Classification(
             category=SalesReportCategory.COMPANY,
@@ -103,6 +146,14 @@ def classify(facts: OrderFacts) -> Classification:
             included=False,
             reason="Anulowane lub zawieszone u marketplace'u, a sprzedaż nie została w pełni opłacona",
             rule_id="SEL-001",
+            overridable=True,
+        )
+    if _qualifies_paid_and_shipped(facts):
+        return Classification(
+            category=SalesReportCategory.RETAIL,
+            included=True,
+            reason="Opłacone w całości, wysłane, w PLN, bez faktury firmowej",
+            rule_id="PAY-001",
             overridable=True,
         )
     return Classification(
@@ -150,8 +201,11 @@ class SalesReportService:
                 amount=order.total_amount,
                 currency=order.currency,
                 buyer_login=order.customer_login,
+                status=order.status,
                 marketplace_status_label=order.marketplace_status_label,
                 paid_amount=order.paid_amount,
+                invoice_first_name=invoice.first_name if invoice else None,
+                invoice_last_name=invoice.last_name if invoice else None,
                 invoice_company_name=invoice.company_name if invoice else None,
                 invoice_street=invoice.street if invoice else None,
                 invoice_postal_code=invoice.postal_code if invoice else None,

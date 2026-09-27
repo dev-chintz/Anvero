@@ -66,19 +66,26 @@ def setup_function():
         db.close()
 
 
-def _order(total: str, paid: str | None, status_label: str, invoice: dict | None = None) -> str:
+def _order(
+    total: str,
+    paid: str | None,
+    status_label: str,
+    invoice: dict | None = None,
+    status: OrderStatus = OrderStatus.CONFIRMED,
+    currency: str = "PLN",
+) -> str:
     db = TestingSessionLocal()
     try:
         external_id = f"form-{uuid.uuid4()}"
         order = Order(
             external_id=external_id,
             source=OrderSource.ALLEGRO,
-            status=OrderStatus.CONFIRMED,
+            status=status,
             customer_email="buyer@example.com",
             customer_login="buyer1",
             total_amount=Decimal(total),
             paid_amount=Decimal(paid) if paid is not None else None,
-            currency="PLN",
+            currency=currency,
             ordered_at=datetime(2026, 6, 15, tzinfo=UTC),
             marketplace_status_label=status_label,
         )
@@ -127,6 +134,23 @@ def test_orders_without_an_approved_rule_are_manual_review():
     body = response.json()
     assert body["items"][0]["category"] == "MANUAL_REVIEW"
     assert body["items"][0]["included"] is False
+
+
+def test_orders_qualifies_a_paid_shipped_uninvoiced_order_as_retail():
+    _order("50.00", "50.00", "SENT", status=OrderStatus.SHIPPED)
+    response = client.get("/api/v1/sales-report/orders", params=JUNE)
+    body = response.json()
+    assert body["summary"] == {"total": 1, "retail": 1, "company": 0, "out_of_scope": 0, "manual_review": 0}
+    row = body["items"][0]
+    assert row["category"] == "RETAIL"
+    assert row["included"] is True
+    assert row["rule_id"] == "PAY-001"
+
+
+def test_orders_does_not_qualify_as_retail_before_shipping():
+    _order("50.00", "50.00", "SENT", status=OrderStatus.CONFIRMED)
+    response = client.get("/api/v1/sales-report/orders", params=JUNE)
+    assert response.json()["items"][0]["category"] == "MANUAL_REVIEW"
 
 
 def test_override_flips_inclusion_and_is_returned_on_the_next_read():

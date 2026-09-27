@@ -875,26 +875,26 @@ Ported from a standalone tool (`DECISIONS.md`, "Non-invoiced sales report, porte
 Anvero's own imported orders for accounting, without a CSV upload (that path is not built).
 `date_from`/`date_to` as Finance's (at most 366 days), plus an optional `source`.
 
-Only the ported tool's two **approved** business decisions are applied; everything else is
-`MANUAL_REVIEW` rather than guessed:
+Only the ported tool's **approved** business decisions are applied, in this order; everything else
+is `MANUAL_REVIEW` rather than guessed:
 
 - A complete company invoice (name, street, postal code, city, country and tax id all present on
   the order's invoice address) excludes it as `COMPANY` (`INV-001`). Never open to an override.
 - An order whose `marketplace_status_label` is `CANCELLED` or `SUSPENDED` and that was never paid
   in full excludes as `OUT_OF_SCOPE` (`SEL-001`).
+- An order paid in full, in PLN, shipped (Anvero's own status `SHIPPED` or `DELIVERED`), with no
+  invoice or only a named personal one (a name present, never a company name or tax id) qualifies
+  as `RETAIL`, included on its own (`PAY-001`).
 
 ```json
 {"date_from": "2026-06-01", "date_to": "2026-06-30",
- "summary": {"total": 128, "retail": 0, "company": 14, "out_of_scope": 6, "manual_review": 108},
+ "summary": {"total": 128, "retail": 96, "company": 14, "out_of_scope": 6, "manual_review": 12},
  "items": [{"order_id": "...", "order_label": "AN-000231", "source": "ALLEGRO", "order_external_id": "...",
    "ordered_at": "...Z", "buyer_login": "kasia91", "amount": "122.95", "currency": "PLN",
-   "category": "MANUAL_REVIEW", "included": false, "reason": "...", "rule_id": "REV-001",
+   "category": "RETAIL", "included": true, "reason": "...", "rule_id": "PAY-001",
    "overridden": false, "override_note": null}]}
 ```
 
-`retail` is always 0 today: the ported tool's code also auto-includes a paid, sent,
-uninvoiced-or-personally-invoiced order as `RETAIL` on its own, but that path has no entry in the
-tool's own decision register, so it is left for manual review here, not guessed (`DECISIONS.md`).
 `buyer_login` is the only personal data the row carries, never a name, address or phone
 (`ROADMAP.md`, "GDPR (RODO): to do").
 

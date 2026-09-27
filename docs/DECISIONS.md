@@ -1546,7 +1546,8 @@ further than its approved decisions - it auto-includes a paid, sent, uninvoiced-
 order as `RETAIL` on its own - but that path has no entry in `BUSINESS_DECISIONS.md`, so by the
 tool's own rule ("No Business Rule may be implemented without an APPROVED Business Decision") it
 should not have shipped either. Anvero does not repeat that: every order without a decided category
-lands in `MANUAL_REVIEW`, so `retail` is 0 in every report today.
+lands in `MANUAL_REVIEW`, so `retail` was 0 in every report at first - until the owner saw how large
+that left "for review" and asked for that very rule back; see "PAY-001 approved" below, the same day.
 
 The report reads Anvero's own already-imported orders (no CSV upload yet); the owner also wants an
 upload path for orders outside Anvero, and asked to expand which of the tool's 24 open decisions
@@ -1557,3 +1558,12 @@ API (`API.md`, "Non-invoiced sales report, ported"). Excel and PDF export, and r
 directly, are not built yet. The report's export carries only what accounting needs - order,
 source, date, the buyer's login, amount, category, inclusion, reason and rule id - never a name,
 address, phone or e-mail (`ROADMAP.md`, "GDPR (RODO): to do").
+
+
+## 2026-09-27 — PAY-001 approved: paid, shipped, uninvoiced order qualifies as RETAIL
+
+**Decision (owner):** Approve the third rule the ported tool's own code already applied without an entry in its `BUSINESS_DECISIONS.md` register (`qualifyV1`, see "Non-invoiced sales report, ported" above): an order paid in full, in PLN, shipped (Anvero's own status `SHIPPED` or `DELIVERED`), with no invoice or only a named personal one (a name present, never a company name or tax id) qualifies as `RETAIL`, included in the report, on its own (`PAY-001`). Priority stays the ported tool's own: `INV-001` (company invoice) first, then `SEL-001` (cancelled/suspended, unpaid), then `PAY-001`, else `MANUAL_REVIEW`.
+
+**Rationale:** The owner ran the report against Anvero's own September orders and found "do weryfikacji" far larger than what they remembered from using the ported tool day to day. `temp/sales-report-v2/RULE_REFINEMENT_REPORT.md` explains the gap: on the ported tool's real June baseline (614 orders), only 74 needed manual review, because `qualifyV1` already qualified the rest as `RETAIL` - a rule the owner had in fact been relying on, just never formally registered. Anvero now registers it.
+
+**Consequences:** "Shipped" is read off Anvero's own status, not the marketplace's raw `marketplace_status_label` as the ported tool's literal `SellerStatus === "SENT"` did: that label's vocabulary is wider on Anvero (e.g. `READY_FOR_PICKUP`) than the CSV export the ported tool read, which only ever held `SENT`, `CANCELLED` or `SUSPENDED`. Anvero's own status collapses that the same way and is the operator's own last word on an order (`DATABASE.md`, "marketplace_status_label"). `PAY-001` rows are open to a manual override, like `SEL-001`'s and `MANUAL_REVIEW`'s; `INV-001` stays the only rule an override cannot reach.

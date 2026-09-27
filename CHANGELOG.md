@@ -9,13 +9,16 @@ All significant changes to the Anvero project.
 ### 🧮 A non-invoiced sales report, backend
 
 - Ported from a standalone tool the owner built earlier: `GET /api/v1/sales-report/orders`
-  classifies Anvero's own imported orders for accounting, applying only that tool's two
-  **approved** business decisions (a complete company invoice excludes; a cancelled/suspended
-  order never paid in full excludes as out of scope) - everything else stays `MANUAL_REVIEW`
-  rather than guessed, unlike a third path the tool's own code had without an approved decision
-  behind it. An operator can override a row (`PUT`/`DELETE .../override`, kept by marketplace and
-  order id so it survives a re-import) and export the result as CSV (UTF-8 with a BOM, guarded
-  against spreadsheet formulas, only the columns accounting needs - no address, phone or e-mail).
+  classifies Anvero's own imported orders for accounting: a complete company invoice excludes
+  (`INV-001`); a cancelled/suspended order never paid in full excludes as out of scope (`SEL-001`);
+  a paid, shipped, uninvoiced-or-personally-invoiced order qualifies as `RETAIL` on its own
+  (`PAY-001`, approved the same day once the owner noticed how large "for review" was without it -
+  the ported tool's own code already relied on this rule, without an entry in its decision
+  register). Everything else stays `MANUAL_REVIEW` rather than guessed further. An operator can
+  override a row (`PUT`/`DELETE .../override`, kept by marketplace and order id so it survives a
+  re-import; a company-invoice row cannot be) and export the result as CSV (UTF-8 with a BOM,
+  guarded against spreadsheet formulas, only the columns accounting needs - no address, phone or
+  e-mail).
 - New table `sales_report_overrides` (migration `a2f4c8e1b937`); run `alembic upgrade head`.
 - A **Raport bezrachunkowy** page (own place in the menu): a period and source filter, four KPI
   tiles, a table of classified orders with a side panel for one order (why it was classified that
