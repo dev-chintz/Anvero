@@ -17,6 +17,7 @@ import { OrderAttentionBar } from "./OrderAttentionBar";
 import { OrderFactsCard } from "./OrderFactsCard";
 import { OrderHeader } from "./OrderHeader";
 import { OrderInternalNote } from "./OrderInternalNote";
+import { OrderMessagesCard } from "./OrderMessagesCard";
 import { OrderMoreSections } from "./OrderMoreSections";
 import { OrderNoteDialog, type OrderNoteKind } from "./OrderNoteDialog";
 import { OrderShippingCard } from "./OrderShippingCard";
@@ -316,6 +317,8 @@ export function OrderDetail() {
                 <OrderBuyerCard order={order} />
               </aside>
             </div>
+
+            <OrderMessagesCard key={order.id} order={order} />
 
             <OrderMoreSections
               order={order}

@@ -171,19 +171,15 @@ describe("the footer of the menu", () => {
 });
 
 describe("the menu's sections", () => {
-  it("has Integrations, before Settings, leading to their own page", () => {
+  it("has no section for Integrations: they are a tab of Settings", () => {
     renderSidebar();
 
     const links = within(screen.getByRole("navigation"))
       .getAllByRole("link")
       .map((link) => link.getAttribute("href"));
 
-    expect(links).toContain("/integrations");
-    expect(links.indexOf("/integrations")).toBeLessThan(links.indexOf("/settings"));
-    expect(screen.getByRole("link", { name: /Integrations/ })).toHaveAttribute(
-      "href",
-      "/integrations",
-    );
+    expect(links).not.toContain("/integrations");
+    expect(links).toContain("/settings");
   });
 });
 

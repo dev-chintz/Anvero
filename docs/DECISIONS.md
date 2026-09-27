@@ -1511,3 +1511,12 @@ search box in the header, adding an order by hand. Shift-click range ticking.
 **Rationale:** The owner saw Erli's payouts on the Finance page and not Allegro's. Allegro needs a scope of its own for payments (`allegro:api:payments:read`); read with the fees, a refusal would have rolled the fees back and kept their sync point from moving at every import. The latest stored payout is a sync point that needs no column, and reading a week back catches a payout cancelled after it was read.
 
 **Consequences:** Not yet checked against the real account: the first import after a restart shows whether the application has the scope (the log says so if not; then add the scope in Allegro's developer panel and connect the account again). Until a payout is read, the Finance page shows none for Allegro rather than 0. A cancelled payout lowers the period of its cancelling, not of the payout.
+
+
+## 2026-09-27 — Integrations move into Settings as a tab
+
+**Decision (owner):** The Integrations page is no longer a page of its own: it is the second tab of Settings (`/settings?tab=integrations`, the chosen integration in `&integration=`). The menu entry is removed; `/integrations` redirects to the tab. This replaces the page decided on 2026-09-25 ("Integrations are a page of their own").
+
+**Rationale:** Accounts, keys and the sender are set up once and rarely touched again, so they do not earn a place in the menu; Settings already holds the App status tab on the same reasoning.
+
+**Consequences:** Links to set something up point at the tab. The component `Integrations` stays, without its own heading.

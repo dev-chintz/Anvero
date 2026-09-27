@@ -5,7 +5,7 @@ import { Settings } from "./Settings";
 
 // the safe-mode card has its own tests; here only the page's structure matters
 vi.mock("../components/SafeModeSettings", () => ({ SafeModeSettings: () => <p>safe-card</p> }));
-// the integrations are on their own page: none of their cards may turn up here
+// the integrations are a tab of their own: none of their cards may turn up on the general one
 vi.mock("../components/AllegroSettings", () => ({ AllegroSettings: () => <p>allegro-card</p> }));
 vi.mock("../components/ErliSettings", () => ({ ErliSettings: () => <p>erli-card</p> }));
 vi.mock("../components/InpostSettings", () => ({ InpostSettings: () => <p>inpost-card</p> }));
@@ -157,6 +157,17 @@ describe("the appearance choice", () => {
 
     fireEvent.click(screen.getByRole("tab", { name: "General" }));
     expect(screen.getByRole("region", { name: "Appearance and language" })).toBeInTheDocument();
+  });
+
+  it("shows the integrations in their tab, keeping the tab when one is chosen", () => {
+    renderIt({ at: "/settings?tab=integrations" });
+
+    expect(screen.getByRole("tab", { name: "Integrations" })).toHaveAttribute("aria-selected", "true");
+    expect(screen.queryByRole("region", { name: "Appearance and language" })).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("tab", { name: /Erli/ }));
+    expect(screen.getByRole("tab", { name: "Integrations" })).toHaveAttribute("aria-selected", "true");
+    expect(screen.getByText("erli-card")).toBeInTheDocument();
   });
 
   it("marks the status tab with the colour of how the app stands", () => {

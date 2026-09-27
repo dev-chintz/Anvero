@@ -6,6 +6,19 @@ All significant changes to the Anvero project.
 
 ## 2026-09-27
 
+### 💬 The buyer's conversation on the order page
+
+- A **Messages** card on the order shows the whole thread with the buyer (every thread with that buyer, as the marketplace names no order in a thread,
+  oldest message first) and the reply form, the same as in the Inbox; it is absent when there is no thread.
+  The messages and the form are one component shared with the Inbox (`ThreadConversation`). No backend change:
+  threads are found by the buyer's login (Allegro's threads name no order) through the existing search.
+
+### 🔌 Integrations moved into Settings
+
+- Integrations are a tab of **Settings** (between General and App status); the menu entry is gone. `/integrations` still
+  works and leads to the tab, keeping the chosen integration. Links from the orders page, the status page and the label
+  cards go to `/settings?tab=integrations`.
+
 ### 💰 A Finance page
 
 - **Finanse** in the menu: sales, marketplace fees and what is left for this month, last month or 7/30/90 days, each

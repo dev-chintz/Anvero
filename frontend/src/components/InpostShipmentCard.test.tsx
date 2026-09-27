@@ -153,7 +153,7 @@ describe("InpostShipmentCard", () => {
     vi.mocked(inpostApi.status).mockResolvedValue(status({ configured: false }));
     renderCard();
 
-    expect(await screen.findByRole("link", { name: /Integracje|Integrations/ })).toHaveAttribute("href", "/integrations");
+    expect(await screen.findByRole("link", { name: /Integracje|Integrations/ })).toHaveAttribute("href", "/settings?tab=integrations");
     expect(screen.queryByRole("button", { name: /Utwórz przesyłkę InPost|Create InPost parcel/ })).toBeNull();
   });
 

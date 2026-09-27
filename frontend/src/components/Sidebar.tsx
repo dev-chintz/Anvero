@@ -109,7 +109,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onToggle }) => {
       hint: t('nav.badge.inbox', { count: counts.unreadMessages ?? 0 }),
     },
     { path: '/finance', label: t('nav.finance'), icon: '💰' },
-    { path: '/integrations', label: t('nav.integrations'), icon: '🔌' },
     {
       path: '/settings',
       label: t('nav.settings'),

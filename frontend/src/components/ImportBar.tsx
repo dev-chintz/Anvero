@@ -203,7 +203,7 @@ export function ImportBar({ addToast, onImported }: ImportBarProps) {
       {nothingConnected && (
         <p className="import-bar-hint">
           {t('orders.notConnectedBefore')}
-          <Link to="/integrations">{t('orders.notConnectedLink')}</Link>
+          <Link to="/settings?tab=integrations">{t('orders.notConnectedLink')}</Link>
           {t('orders.notConnectedAfter')}
         </p>
       )}

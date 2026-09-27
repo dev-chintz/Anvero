@@ -34,7 +34,7 @@ function Where() {
   return <p data-testid="where">{`${location.pathname}${location.search}`}</p>;
 }
 
-function renderIt(entry = "/integrations") {
+function renderIt(entry = "/settings?tab=integrations") {
   return render(
     <MemoryRouter initialEntries={[entry]}>
       <Where />
@@ -89,11 +89,10 @@ beforeEach(() => {
 });
 
 describe("Integrations page", () => {
-  it("has its title and a subtitle under it, in one header", () => {
+  it("has no title of its own: it is a tab of Settings", () => {
     renderIt();
 
-    const header = screen.getByRole("heading", { level: 1, name: "Integrations" }).closest("header");
-    expect(header).toHaveTextContent("Marketplaces and carriers Anvero is connected to");
+    expect(screen.queryByRole("heading", { level: 1 })).toBeNull();
   });
 
   it("has a tile for each integration, in order", () => {
@@ -168,7 +167,7 @@ describe("Integrations page", () => {
   });
 
   it("tints the panel with the colour of the channel chosen", () => {
-    renderIt("/integrations?integration=erli");
+    renderIt("/settings?tab=integrations&integration=erli");
 
     expect(screen.getByRole("tabpanel")).toHaveClass("tone-erli");
   });
@@ -230,18 +229,18 @@ describe("Integrations page", () => {
     expect(tile(/Allegro/)).toHaveAttribute("aria-selected", "false");
     expect(within(screen.getByRole("tabpanel")).getByText("erli-card")).toBeInTheDocument();
     expect(screen.queryByText("allegro-card")).toBeNull();
-    expect(screen.getByTestId("where")).toHaveTextContent("/integrations?integration=erli");
+    expect(screen.getByTestId("where")).toHaveTextContent("/settings?tab=integrations&integration=erli");
   });
 
   it("opens the one the address names", () => {
-    renderIt("/integrations?integration=inpost");
+    renderIt("/settings?tab=integrations&integration=inpost");
 
     expect(tile(/InPost/)).toHaveAttribute("aria-selected", "true");
     expect(within(screen.getByRole("tabpanel")).getByText("inpost-card")).toBeInTheDocument();
   });
 
   it("opens the sender and parcel form under its longer name", () => {
-    renderIt("/integrations?integration=sender");
+    renderIt("/settings?tab=integrations&integration=sender");
 
     const panel = screen.getByRole("tabpanel");
     expect(within(panel).getByRole("heading", { name: "Sender and default parcel" })).toBeInTheDocument();
@@ -249,13 +248,13 @@ describe("Integrations page", () => {
   });
 
   it("opens Allegro for an address that names nothing it knows", () => {
-    renderIt("/integrations?integration=nonsense");
+    renderIt("/settings?tab=integrations&integration=nonsense");
 
     expect(tile(/Allegro/)).toHaveAttribute("aria-selected", "true");
   });
 
   it("repeats the state of the chosen one in the head of its panel", async () => {
-    renderIt("/integrations?integration=erli");
+    renderIt("/settings?tab=integrations&integration=erli");
 
     const panel = screen.getByRole("tabpanel");
     await waitFor(() => expect(panel).toHaveTextContent("API key set (…lyLu)"));

@@ -190,7 +190,7 @@ export function ShippingLabelCard({ order, onChanged, embedded = false }: Shippi
 
       {!standing && !cashOnDelivery && settings && !settings.sender && (
         <p className="order-muted">
-          {t("label.needsSender")} <Link to="/integrations">{t("label.settingsLink")}</Link>
+          {t("label.needsSender")} <Link to="/settings?tab=integrations">{t("label.settingsLink")}</Link>
         </p>
       )}
 

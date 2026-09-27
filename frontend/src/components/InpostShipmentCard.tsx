@@ -177,7 +177,7 @@ export function InpostShipmentCard({ order, onChanged, embedded = false }: Inpos
 
       {!standing && !configured && (
         <p className="order-muted">
-          {t("inpost.needsSettings")} <Link to="/integrations">{t("label.settingsLink")}</Link>
+          {t("inpost.needsSettings")} <Link to="/settings?tab=integrations">{t("label.settingsLink")}</Link>
         </p>
       )}
 

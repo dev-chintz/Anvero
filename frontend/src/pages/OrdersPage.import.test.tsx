@@ -251,7 +251,7 @@ describe("the import button", () => {
 
     expect(await screen.findByRole("link", { name: "connect one in Integrations" })).toHaveAttribute(
       "href",
-      "/integrations",
+      "/settings?tab=integrations",
     );
     expect(screen.getByRole("button", { name: "Import orders" })).toBeDisabled();
   });

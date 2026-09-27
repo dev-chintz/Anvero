@@ -190,7 +190,7 @@ function SummaryBar({ status, checkedAt }: { status: AppStatus; checkedAt: strin
           {attention.map((item) => (
             <li key={`${item.source}-${item.code}`}>
               {item.source}: {problemText(item.code, t)}{' '}
-              <Link to={`/integrations?integration=${item.source.toLowerCase()}`}>
+              <Link to={`/settings?tab=integrations&integration=${item.source.toLowerCase()}`}>
                 {t('appStatus.settingsLink')} →
               </Link>
             </li>
@@ -259,7 +259,7 @@ function StatusTile({
         </details>
       )}
       {settingsLink && state !== 'ok' && (
-        <Link to="/integrations" className="status-settings-link">
+        <Link to="/settings?tab=integrations" className="status-settings-link">
           {t('appStatus.settingsLink')} →
         </Link>
       )}

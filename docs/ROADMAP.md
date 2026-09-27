@@ -540,3 +540,38 @@ Sources: Allegro's Wysyłam z Allegro tutorial on `developer.allegro.pl`;
 `allegro/allegro-api` issues #10157 (ShipX token in Wysyłam z Allegro) and #599
 (InPost transaction id); Erli's `swagger.json` read on 2026-09-25; Xprinter's
 product pages (XP-420B).
+
+## GDPR (RODO): to do (reviewed 2026-09-27)
+
+Not legal advice: a review of what the code holds against the owner's duties, to settle with a lawyer or a
+data protection officer. Nothing here is built yet.
+
+**Personal data held:** buyers' names, e-mail, phone, login, company, delivery and billing addresses, tax id, pickup
+point, the buyer's message on an order, and the Message Center threads (598 read so far); users' logins and
+password hashes.
+
+**Already fine:** passwords are hashed, every page and endpoint needs a login, tokens expire, buyers' logins and
+addresses are not written to the application log, the database is on the owner's own NAS.
+
+**To do, in this order:**
+
+1. **Retention and anonymization.** Decide how long orders (accounting requires years) and messages (shorter) are
+   kept, then anonymize the personal fields of older orders and messages instead of only hiding them
+   (`orders.deleted_at`; "No purge is offered", `DECISIONS.md` 2026-09-25). Record the periods in `DECISIONS.md`.
+2. **Access, portability, erasure of one person.** A script in `backend/scripts/` (like `create_user.py`) that
+   exports everything held about one buyer (by login or e-mail: orders, addresses, messages, labels) and another that
+   anonymizes them, keeping what accounting still needs.
+3. **Secrets and backups.** The Allegro refresh token and the Erli key sit in plain text in the database
+   (`INTEGRATIONS.md`), so a backup holds both with the personal data: encrypt the backups and the tokens; state in
+   `DEPLOYMENT.md` how HTTPS is provided on the NAS.
+4. **Personal data in addresses.** The order search and the Inbox's "open order" link put a name or an order number
+   in the URL (`/orders?search=`), so in the browser history: keep it in page state instead, or accept it and say so.
+5. **Who looked at what.** Status changes record the user; reads do not. Decide whether a log of who opened a
+   buyer's data is needed once there is a second login.
+6. **Write it down in `docs/`.** A GDPR page: what is held and why, the retention periods, how a request is answered,
+   who the data is passed to.
+
+**For the owner, outside the code:** the register of processing activities and the legal bases (contract, tax duty);
+the information given to buyers; data processing agreements with whoever receives data (InPost labels carry the
+recipient's address and phone, carriers, the accountant); the procedure for a breach (report to UODO within 72 hours);
+who has access to the NAS and the VPN.

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { BrowserRouter, Navigate, Outlet, Route, Routes } from 'react-router-dom';
+import { BrowserRouter, Navigate, Outlet, Route, Routes, useLocation } from 'react-router-dom';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { Sidebar } from './components/Sidebar';
 import { SafeModeBanner } from './components/SafeModeBanner';
@@ -13,7 +13,6 @@ import { LoginPage } from './pages/LoginPage';
 import { OrdersPage } from './pages/OrdersPage';
 import { ProductionPage } from './pages/ProductionPage';
 import { InboxPage } from './pages/InboxPage';
-import { Integrations } from './pages/Integrations';
 import { Settings } from './pages/Settings';
 import { LabelsPage } from './pages/LabelsPage';
 import { AfterSalesPage } from './pages/AfterSalesPage';
@@ -30,6 +29,14 @@ function NotFound() {
       <p>{t('error.notFoundPage')}</p>
     </div>
   );
+}
+
+// the integrations are a tab of Settings now; the old address still leads to it, keeping the one chosen
+function IntegrationsRedirect() {
+  const { search } = useLocation();
+  const params = new URLSearchParams(search);
+  params.set('tab', 'integrations');
+  return <Navigate to={`/settings?${params}`} replace />;
 }
 
 interface LayoutProps {
@@ -125,7 +132,7 @@ export default function App() {
 
                 <Route path="/inbox" element={<InboxPage />} />
                 <Route path="/finance" element={<FinancePage />} />
-                <Route path="/integrations" element={<Integrations />} />
+                <Route path="/integrations" element={<IntegrationsRedirect />} />
                 <Route
                   path="/settings"
                   element={<Settings isDarkMode={isDarkMode} onThemeToggle={toggleTheme} />}

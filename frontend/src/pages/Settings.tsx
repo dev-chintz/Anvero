@@ -3,14 +3,16 @@ import { SafeModeSettings } from '../components/SafeModeSettings';
 import { useAppHealth } from '../hooks/useAppHealth';
 import { useTranslation, LANGUAGES, languageName, type Language } from '../i18n';
 import { useSafeMode } from '../safeMode/SafeModeContext';
+import { Integrations } from './Integrations';
 import { StatusPage } from './StatusPage';
 import '../styles/SettingsPage.css';
 
-// Settings holds what belongs to the application itself; everything that connects it to
-// a marketplace or a carrier is on the Integrations page. Its second tab is the application's
-// status: looked at when something is wrong, not every day, so it has no place in the menu.
+// Settings holds what belongs to the application itself and, in a tab of its own, everything that
+// connects it to a marketplace or a carrier. Its last tab is the application's status: looked at
+// when something is wrong, not every day, so it has no place in the menu.
 
-type Tab = 'general' | 'status';
+type Tab = 'general' | 'integrations' | 'status';
+const TABS: Tab[] = ['general', 'integrations', 'status'];
 
 interface SettingsProps {
   isDarkMode: boolean;
@@ -35,11 +37,13 @@ export const Settings: React.FC<SettingsProps> = ({ isDarkMode, onThemeToggle })
   const { safeMode } = useSafeMode();
   // the tab is in the address, so a link (the menu's dot, the dashboard's chip) can open it
   const [params, setParams] = useSearchParams();
-  const tab: Tab = params.get('tab') === 'status' ? 'status' : 'general';
+  const requested = params.get('tab');
+  const tab: Tab = TABS.find((id) => id === requested) ?? 'general';
   const { summary } = useAppHealth(tab);
   const showTab = (next: Tab) => setParams(next === 'general' ? {} : { tab: next }, { replace: true });
   const tabs: { id: Tab; label: string }[] = [
     { id: 'general', label: t('settings.tab.general') },
+    { id: 'integrations', label: t('settings.tab.integrations') },
     { id: 'status', label: t('settings.tab.status') },
   ];
 
@@ -72,7 +76,11 @@ export const Settings: React.FC<SettingsProps> = ({ isDarkMode, onThemeToggle })
         ))}
       </div>
 
-      {tab === 'status' ? (
+      {tab === 'integrations' ? (
+        <div role="tabpanel" id="settings-panel-integrations" aria-labelledby="settings-tab-integrations">
+          <Integrations />
+        </div>
+      ) : tab === 'status' ? (
         <div role="tabpanel" id="settings-panel-status" aria-labelledby="settings-tab-status">
           <StatusPage embedded />
         </div>

@@ -124,7 +124,7 @@ describe("the application status page", () => {
     expect(within(allegro).getByText("something_newer")).toBeInTheDocument();
     expect(within(allegro).getByText("token rejected")).toBeInTheDocument();
     expect(within(allegro).getByText("Set to every 15 min, but not running")).toBeInTheDocument();
-    expect(within(allegro).getByRole("link", { name: /Integrations/ })).toHaveAttribute("href", "/integrations");
+    expect(within(allegro).getByRole("link", { name: /Integrations/ })).toHaveAttribute("href", "/settings?tab=integrations");
   });
 
   it("shows the message sync schedule apart from the import schedule", async () => {
@@ -227,9 +227,9 @@ describe("the summary bar", () => {
     expect(within(bar).getByText(/Erli: No import has run yet/)).toBeInTheDocument();
     const links = within(bar).getAllByRole("link", { name: /Integrations/ });
     expect(links.map((link) => link.getAttribute("href"))).toEqual([
-      "/integrations?integration=allegro",
-      "/integrations?integration=allegro",
-      "/integrations?integration=erli",
+      "/settings?tab=integrations&integration=allegro",
+      "/settings?tab=integrations&integration=allegro",
+      "/settings?tab=integrations&integration=erli",
     ]);
   });
 

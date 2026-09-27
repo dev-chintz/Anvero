@@ -125,7 +125,7 @@ describe("the label card", () => {
     vi.mocked(shippingApi.settings).mockResolvedValue({ sender: null, default_package: null });
     renderCard();
 
-    expect(await screen.findByRole("link", { name: "Integrations" })).toHaveAttribute("href", "/integrations");
+    expect(await screen.findByRole("link", { name: "Integrations" })).toHaveAttribute("href", "/settings?tab=integrations");
     expect(screen.queryByRole("button", { name: "Buy label" })).not.toBeInTheDocument();
   });
 

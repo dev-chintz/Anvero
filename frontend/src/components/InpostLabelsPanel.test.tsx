@@ -190,6 +190,6 @@ describe("InpostLabelsPanel", () => {
     vi.mocked(inpostApi.status).mockResolvedValue({ ...connected, configured: false });
     renderPanel();
 
-    expect(await screen.findByRole("link", { name: /Integracje|Integrations/ })).toHaveAttribute("href", "/integrations");
+    expect(await screen.findByRole("link", { name: /Integracje|Integrations/ })).toHaveAttribute("href", "/settings?tab=integrations");
   });
 });

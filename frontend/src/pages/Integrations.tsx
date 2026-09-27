@@ -18,6 +18,7 @@ function isIntegration(value: string | null): value is IntegrationId {
 
 /**
  * Everything that connects Anvero to a marketplace or a carrier: accounts, keys, sender, parcels.
+ * It is a tab of Settings, so it has no title of its own and keeps the address's other parameters.
  *
  * A tile for each with how it stands, so the state of all of them is seen at once; the one chosen
  * (and remembered in the address) opens its settings below.
@@ -39,14 +40,7 @@ export const Integrations: React.FC = () => {
     t(id === 'sender' && level === 'ok' ? 'integrations.state.set' : `integrations.state.${level}`);
 
   return (
-    <div className="settings-page integrations-page">
-      <header className="page-header">
-        <div className="page-header-text">
-          <h1>{t('integrations.title')}</h1>
-          <p className="subtitle">{t('integrations.subtitle')}</p>
-        </div>
-      </header>
-
+    <div className="integrations-page">
       <ImportScheduleSettings />
 
       <div className="integration-tiles" role="tablist" aria-label={t('integrations.tilesLabel')}>
@@ -61,7 +55,11 @@ export const Integrations: React.FC = () => {
               aria-selected={id === selected}
               aria-controls="integration-panel"
               className={`integration-tile channel-${id}${id === selected ? ' is-selected' : ''}`}
-              onClick={() => setSearchParams({ integration: id }, { replace: true })}
+              onClick={() =>
+                setSearchParams((prev) => new URLSearchParams({ ...Object.fromEntries(prev), integration: id }), {
+                  replace: true,
+                })
+              }
             >
               <span className="integration-tile-head">
                 <span className="channel-avatar" aria-hidden="true">
