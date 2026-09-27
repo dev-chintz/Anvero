@@ -1,0 +1,125 @@
+/* The non-invoiced sales report: KPI tiles, a table, and a side panel for one order's detail.
+   Cards, bands, tones and the table are the shared ones (theme.css, index.css); this file lays
+   out what is specific to this page. */
+
+.sales-report-page {
+  padding: 2rem;
+}
+
+.sales-report-filters {
+  display: flex;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.sales-report-filters label {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--color-muted-strong);
+}
+
+.sales-report-filters input,
+.sales-report-filters select {
+  font-size: 0.85rem;
+  font-weight: 500;
+  text-transform: none;
+  letter-spacing: normal;
+}
+
+.sales-report-kpis {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 1rem;
+  margin: 1.25rem 0;
+}
+
+.sales-report-figure {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--color-heading);
+  margin-top: 0.25rem;
+}
+
+.sales-report-body {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.25rem;
+  align-items: start;
+}
+
+.sales-report-body.has-detail {
+  grid-template-columns: minmax(0, 1fr) 340px;
+}
+
+.sales-report-export {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.sales-report-table tbody tr {
+  cursor: pointer;
+}
+
+.sales-report-table tbody tr.is-selected {
+  background: var(--tone-teal-bg);
+}
+
+.sales-report-table .cell-sub {
+  display: block;
+  color: var(--color-muted);
+  font-size: 0.8rem;
+}
+
+.sales-report-chip {
+  display: inline-block;
+  padding: 0.15rem 0.55rem;
+  border-radius: 999px;
+  background: var(--band-bg);
+  color: var(--band-fg);
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.sales-report-detail-when {
+  color: var(--color-muted);
+  font-size: 0.8rem;
+  margin-top: 0.15rem;
+}
+
+.sales-report-detail-section {
+  border-top: 1px solid var(--color-divider);
+  padding-top: 0.75rem;
+  margin-top: 0.75rem;
+}
+
+.sales-report-detail-section p {
+  margin: 0.35rem 0 0;
+  font-size: 0.85rem;
+}
+
+.sales-report-detail-actions {
+  border-top: 1px solid var(--color-divider);
+  padding-top: 0.75rem;
+  margin-top: 0.75rem;
+  display: flex;
+  gap: 0.5rem;
+}
+
+.sales-report-detail-actions button {
+  flex: 1;
+}
+
+@media (max-width: 900px) {
+  .sales-report-body.has-detail {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .sales-report-kpis {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}

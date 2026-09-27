@@ -1092,3 +1092,70 @@ export const financeApi = {
     return request(`/finance/products?${query.toString()}`);
   },
 };
+
+export type SalesReportCategory = "RETAIL" | "COMPANY" | "OUT_OF_SCOPE" | "MANUAL_REVIEW";
+
+export interface SalesReportRow {
+  order_id: string | null;
+  order_label: string | null;
+  source: OrderSource;
+  order_external_id: string;
+  ordered_at: string;
+  /** The buyer's login only, never their name, address or phone. */
+  buyer_login: string | null;
+  amount: string;
+  currency: string;
+  category: SalesReportCategory;
+  included: boolean;
+  reason: string;
+  rule_id: string | null;
+  overridden: boolean;
+  override_note: string | null;
+}
+
+export interface SalesReportSummary {
+  total: number;
+  retail: number;
+  company: number;
+  out_of_scope: number;
+  manual_review: number;
+}
+
+export interface SalesReportList {
+  date_from: string;
+  date_to: string;
+  summary: SalesReportSummary;
+  items: SalesReportRow[];
+}
+
+export const salesReportApi = {
+  orders(dateFrom: string, dateTo: string, source?: OrderSource): Promise<SalesReportList> {
+    const query = new URLSearchParams({ date_from: dateFrom, date_to: dateTo });
+    if (source) query.set("source", source);
+    return request<SalesReportList>(`/sales-report/orders?${query.toString()}`);
+  },
+
+  exportCsv(dateFrom: string, dateTo: string, source?: OrderSource): Promise<Blob> {
+    const query = new URLSearchParams({ date_from: dateFrom, date_to: dateTo, format: "csv" });
+    if (source) query.set("source", source);
+    return request<Blob>(`/sales-report/orders/export?${query.toString()}`, { blob: true });
+  },
+
+  setOverride(
+    source: OrderSource,
+    orderExternalId: string,
+    included: boolean,
+    note?: string,
+  ): Promise<{ ok: boolean }> {
+    return request(`/sales-report/orders/${source}/${encodeURIComponent(orderExternalId)}/override`, {
+      method: "PUT",
+      body: JSON.stringify({ included, note: note || null }),
+    });
+  },
+
+  clearOverride(source: OrderSource, orderExternalId: string): Promise<{ ok: boolean }> {
+    return request(`/sales-report/orders/${source}/${encodeURIComponent(orderExternalId)}/override`, {
+      method: "DELETE",
+    });
+  },
+};

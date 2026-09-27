@@ -72,6 +72,10 @@ are days in the business timezone, `BUSINESS_TIMEZONE`, default
 | `GET` | `/api/v1/finance/summary` | a period's sales, marketplace fees by kind and by channel, beside the period before, and the check against what the marketplace took from proceeds |
 | `GET` | `/api/v1/finance/orders` | the orders placed in a period, each with every fee booked for it, by kind |
 | `GET` | `/api/v1/finance/products` | each product sold in a period with its share of its orders' fees |
+| `GET` | `/api/v1/sales-report/orders` | Anvero's own orders in a period, classified for the non-invoiced sales report |
+| `GET` | `/api/v1/sales-report/orders/export` | the same, as a CSV file |
+| `PUT` | `/api/v1/sales-report/orders/{source}/{order_external_id}/override` | an operator's manual include/exclude decision on one order |
+| `DELETE` | `/api/v1/sales-report/orders/{source}/{order_external_id}/override` | back to the automatic decision |
 | `GET` | `/api/v1/orders/{id}/after-sales` | the cases on one order, open or not, newest first |
 | `POST` | `/api/v1/integrations/allegro/after-sales/sync` | read returns, claims and disputes from Allegro; rate limited to 6 per minute per IP |
 | `POST` | `/api/v1/integrations/allegro/messages/sync` | read new and changed Message Center threads; rate limited to 6 per minute per IP |
@@ -864,6 +868,45 @@ charge is not a product's):
 {"items": [{"key": "sku:D1797", "name": "...", "sku": "D1797", "offer_id": "...", "image_url": "...",
   "quantity": 11, "orders": 9, "sales": "323.07", "fees": "55.88"}]}
 ```
+
+## Non-invoiced sales report: `GET /api/v1/sales-report/orders`, `/export`, `PUT`/`DELETE .../override`
+
+Ported from a standalone tool (`DECISIONS.md`, "Non-invoiced sales report, ported"): classifies
+Anvero's own imported orders for accounting, without a CSV upload (that path is not built).
+`date_from`/`date_to` as Finance's (at most 366 days), plus an optional `source`.
+
+Only the ported tool's two **approved** business decisions are applied; everything else is
+`MANUAL_REVIEW` rather than guessed:
+
+- A complete company invoice (name, street, postal code, city, country and tax id all present on
+  the order's invoice address) excludes it as `COMPANY` (`INV-001`). Never open to an override.
+- An order whose `marketplace_status_label` is `CANCELLED` or `SUSPENDED` and that was never paid
+  in full excludes as `OUT_OF_SCOPE` (`SEL-001`).
+
+```json
+{"date_from": "2026-06-01", "date_to": "2026-06-30",
+ "summary": {"total": 128, "retail": 0, "company": 14, "out_of_scope": 6, "manual_review": 108},
+ "items": [{"order_id": "...", "order_label": "AN-000231", "source": "ALLEGRO", "order_external_id": "...",
+   "ordered_at": "...Z", "buyer_login": "kasia91", "amount": "122.95", "currency": "PLN",
+   "category": "MANUAL_REVIEW", "included": false, "reason": "...", "rule_id": "REV-001",
+   "overridden": false, "override_note": null}]}
+```
+
+`retail` is always 0 today: the ported tool's code also auto-includes a paid, sent,
+uninvoiced-or-personally-invoiced order as `RETAIL` on its own, but that path has no entry in the
+tool's own decision register, so it is left for manual review here, not guessed (`DECISIONS.md`).
+`buyer_login` is the only personal data the row carries, never a name, address or phone
+(`ROADMAP.md`, "GDPR (RODO): to do").
+
+`PUT .../override` (`{"included": true, "note": "..."}`) records an operator's manual decision,
+kept by marketplace and its own order id so it survives a re-import; `DELETE` removes it. An
+override cannot reach a row `INV-001` excluded: the row's `category` and `rule_id` stay the
+automatic ones even after an override, only `included` and `overridden` change.
+
+`/export?format=csv` (only `csv` today; another value is `422`) is the same rows as a UTF-8 file
+with a BOM, a value that would open as a spreadsheet formula (`=`, `+`, `@`, a leading `-`)
+prefixed with `'`. Only order, source, date, buyer login, amount, category, inclusion, reason and
+rule id: no address, phone or e-mail.
 
 ## `GET /api/v1/orders/{id}/buyer-orders`
 

@@ -6,6 +6,23 @@ All significant changes to the Anvero project.
 
 ## 2026-09-27
 
+### 🧮 A non-invoiced sales report, backend
+
+- Ported from a standalone tool the owner built earlier: `GET /api/v1/sales-report/orders`
+  classifies Anvero's own imported orders for accounting, applying only that tool's two
+  **approved** business decisions (a complete company invoice excludes; a cancelled/suspended
+  order never paid in full excludes as out of scope) - everything else stays `MANUAL_REVIEW`
+  rather than guessed, unlike a third path the tool's own code had without an approved decision
+  behind it. An operator can override a row (`PUT`/`DELETE .../override`, kept by marketplace and
+  order id so it survives a re-import) and export the result as CSV (UTF-8 with a BOM, guarded
+  against spreadsheet formulas, only the columns accounting needs - no address, phone or e-mail).
+- New table `sales_report_overrides` (migration `a2f4c8e1b937`); run `alembic upgrade head`.
+- A **Raport bezrachunkowy** page (own place in the menu): a period and source filter, four KPI
+  tiles, a table of classified orders with a side panel for one order (why it was classified that
+  way, and the include/exclude buttons for a row open to it), and a CSV download. Excel and PDF
+  buttons are shown disabled, and reading an uploaded CSV for orders outside Anvero is still to
+  come (`DECISIONS.md`, "Non-invoiced sales report, ported").
+
 ### 💬 The buyer's conversation on the order page
 
 - A **Messages** card on the order shows the whole thread with the buyer (every thread with that buyer, as the marketplace names no order in a thread,

@@ -1520,3 +1520,40 @@ search box in the header, adding an order by hand. Shift-click range ticking.
 **Rationale:** Accounts, keys and the sender are set up once and rarely touched again, so they do not earn a place in the menu; Settings already holds the App status tab on the same reasoning.
 
 **Consequences:** Links to set something up point at the tab. The component `Integrations` stays, without its own heading.
+
+
+## 2026-09-27 — Non-invoiced sales report, ported from a standalone tool
+
+**Decision (owner):** Port a standalone browser tool the owner built earlier (kept under `temp/`,
+out of this repository) into Anvero as a new page, "Raport bezrachunkowy" (own place in the menu,
+mockup A — list with a side drawer, chosen from three drawn for the owner). It classifies orders
+for the accountant into a non-invoiced sales report. Only the tool's own **approved** business
+decisions are ported (`temp/sales-report-v2/BUSINESS_DECISIONS.md`, BD-001/BD-015 and BD-002):
+
+- A complete company invoice (name, street, postal code, city, country and tax id on the invoice
+  address) excludes the order as `COMPANY`, never open to a manual override.
+- An order the marketplace shows cancelled or suspended, never paid in full, excludes as
+  `OUT_OF_SCOPE`.
+- Everything else is `MANUAL_REVIEW`: the tool's own 24-decision register (`06_DECISIONS_REQUIRED.md`
+  in it) leaves the report's definition, the amount source, currency, NIP handling, duplicates and
+  returns unresolved, and its code must not guess them either.
+
+An operator can override a `MANUAL_REVIEW` or `OUT_OF_SCOPE` row (`sales_report_overrides`, kept
+by `(source, order_external_id)` like `billing_entries`), and export the result as CSV.
+
+**Rationale:** The tool's own code (`qualifyV1` in `js/business/rules/rule-utils.js`) actually goes
+further than its approved decisions - it auto-includes a paid, sent, uninvoiced-or-personally-invoiced
+order as `RETAIL` on its own - but that path has no entry in `BUSINESS_DECISIONS.md`, so by the
+tool's own rule ("No Business Rule may be implemented without an APPROVED Business Decision") it
+should not have shipped either. Anvero does not repeat that: every order without a decided category
+lands in `MANUAL_REVIEW`, so `retail` is 0 in every report today.
+
+The report reads Anvero's own already-imported orders (no CSV upload yet); the owner also wants an
+upload path for orders outside Anvero, and asked to expand which of the tool's 24 open decisions
+are approved once this is in use. Both are follow-ups, not part of this decision.
+
+**Consequences:** A new table, `sales_report_overrides` (migration `a2f4c8e1b937`); a new page and
+API (`API.md`, "Non-invoiced sales report, ported"). Excel and PDF export, and reading a CSV file
+directly, are not built yet. The report's export carries only what accounting needs - order,
+source, date, the buyer's login, amount, category, inclusion, reason and rule id - never a name,
+address, phone or e-mail (`ROADMAP.md`, "GDPR (RODO): to do").

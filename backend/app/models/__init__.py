@@ -19,6 +19,7 @@ from app.models.order import (
     Payout,
 )
 from app.models.production_check import ProductionCheck
+from app.models.sales_report import SalesReportOverride
 from app.models.shipping_label import LabelStatus, ShippingLabel
 from app.models.user import User
 
@@ -50,6 +51,7 @@ __all__ = [
     "Payout",
     "PickupStatus",
     "ProductionCheck",
+    "SalesReportOverride",
     "ShippingLabel",
     "User",
     "WriteOutcome",

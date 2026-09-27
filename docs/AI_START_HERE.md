@@ -49,6 +49,8 @@ Allegro's published specification and never run against a real account).
 
 **Shipping analysis (2026-09-25):** how the business ships and a proposed plan for labels (Allegro's InPost through Wysyłam z Allegro, Erli's own parcel API, printing from the NAS straight to the networked Xprinter) are in `ROADMAP.md`, "Shipping and labels: analysis and proposed plan". Not decided and not built; the owner will refine it. It found that the direct InPost path above would probably pay for Smart parcels from the InPost balance, so it should not be used for Allegro orders.
 
+**Non-invoiced sales report (2026-09-27):** a page, own menu entry, ported from a standalone tool the owner built earlier, classifies Anvero's own imported orders for accounting. Only the tool's two approved rules decide a row (a complete company invoice excludes; a cancelled/suspended order never paid in full excludes); everything else is `MANUAL_REVIEW`, with an operator override and a CSV export. See `DECISIONS.md`, "Non-invoiced sales report, ported". Excel/PDF export and reading an uploaded CSV are not built; never checked in the browser.
+
 **Open task:** the first deployment to the NAS is prepared but not yet run; see "PICK UP HERE" in `PROJECT_STATUS.md` and `DEPLOYMENT.md`.
 
 Backend and frontend both run. See PROJECT_STATUS.md for the sprint-by-sprint
@@ -63,7 +65,7 @@ breakdown; the short version:
   history.
 - Allegro adapter, import script, an import endpoint and a button, one
   import at a time.
-- 880 backend and 523 frontend tests passing.
+- 933 backend and 566 frontend tests passing.
 - The order opens as a page of its own with back and next/previous arrows, the
   list shows each order's items, the menu shows what waits, and a new interface
   language is a dictionary file and one line (`DECISIONS.md`, 2026-09-24).

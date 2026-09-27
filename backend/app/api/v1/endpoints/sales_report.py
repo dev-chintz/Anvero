@@ -1,0 +1,66 @@
+"""The non-invoiced sales report: `docs/DECISIONS.md`, "Non-invoiced sales report, ported"."""
+
+from datetime import date
+
+from fastapi import APIRouter, Depends, HTTPException, Response
+from sqlalchemy.orm import Session
+
+from app.core.security import get_current_user
+from app.db.session import get_db
+from app.models.order import OrderSource
+from app.models.user import User
+from app.schemas.sales_report import SalesReportList, SalesReportOverrideIn
+from app.services.sales_report import SalesReportService
+from app.services.sales_report_export import to_csv
+
+router = APIRouter(prefix="/sales-report", tags=["Sales report"], dependencies=[Depends(get_current_user)])
+
+MAX_DAYS = 366
+
+
+def _period(date_from: date, date_to: date) -> tuple[date, date]:
+    if date_to < date_from:
+        raise HTTPException(status_code=422, detail="date_to is before date_from")
+    if (date_to - date_from).days + 1 > MAX_DAYS:
+        raise HTTPException(status_code=422, detail=f"A period may be at most {MAX_DAYS} days")
+    return date_from, date_to
+
+
+@router.get("/orders", response_model=SalesReportList)
+def orders(date_from: date, date_to: date, source: OrderSource | None = None, db: Session = Depends(get_db)):
+    """Classify Anvero's own imported orders placed in the period. No CSV upload: that path is
+    not built yet (`ROADMAP.md`)."""
+    date_from, date_to = _period(date_from, date_to)
+    return SalesReportService(db).from_orders(date_from, date_to, source)
+
+
+@router.get("/orders/export")
+def export(date_from: date, date_to: date, source: OrderSource | None = None, format: str = "csv", db: Session = Depends(get_db)):
+    date_from, date_to = _period(date_from, date_to)
+    if format != "csv":
+        # Excel and PDF are not built yet (ROADMAP.md); say so rather than silently giving CSV
+        raise HTTPException(status_code=422, detail="Only format=csv is available so far")
+    report = SalesReportService(db).from_orders(date_from, date_to, source)
+    return Response(
+        content=to_csv(report),
+        media_type="text/csv",
+        headers={"Content-Disposition": f'attachment; filename="raport-bezrachunkowy-{date_from}-{date_to}.csv"'},
+    )
+
+
+@router.put("/orders/{source}/{order_external_id}/override")
+def set_override(
+    source: OrderSource,
+    order_external_id: str,
+    body: SalesReportOverrideIn,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    SalesReportService(db).set_override(source, order_external_id, body.included, body.note, current_user.id)
+    return {"ok": True}
+
+
+@router.delete("/orders/{source}/{order_external_id}/override")
+def clear_override(source: OrderSource, order_external_id: str, db: Session = Depends(get_db)):
+    SalesReportService(db).clear_override(source, order_external_id)
+    return {"ok": True}

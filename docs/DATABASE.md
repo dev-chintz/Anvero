@@ -21,7 +21,8 @@ The model will be deployed via migrations after framework selection, but a commo
 Migrations currently create `users`, `orders`, `order_items`,
 `order_addresses`, `order_shipments`, `billing_entries`,
 `order_status_history`, `integration_credentials`, `message_threads`,
-`messages` and `after_sales_cases`. `integration` and `customer` are still targets.
+`messages`, `after_sales_cases`, `payouts` and `sales_report_overrides`.
+`integration` and `customer` are still targets.
 
 `orders` deviates from the target shape while there are no integrations to
 point at:
@@ -137,6 +138,14 @@ the fees paid, which the Finance page leaves out of the fees. For Erli,
 payout, never changed once stored. `source`, `external_id` (unique together),
 `paid_at` (indexed), `amount`, `currency`, `operator` (e.g. `PAYU`). Read from
 Erli and Allegro since 2026-09-27 (Allegro's from `/payments/payment-operations`; a cancelled payout is a second row, `<id>:cancel`, negative). Added by `d8b3f1a6c925`.
+
+`sales_report_overrides` (added by `a2f4c8e1b937`): an operator's manual include/exclude decision
+on one order for the non-invoiced sales report (`API.md`, "Non-invoiced sales report, ported"),
+kept by `(source, order_external_id)` (unique together), like `billing_entries` - so it survives a
+re-import and, once a CSV-upload path exists, reaches a row read from a file the same way.
+`included` (boolean), `note` (nullable), `created_by_user_id` (nullable, `SET NULL` on delete).
+Never holds a row for an order a complete company invoice already excludes: that decision is not
+open to an override (`DECISIONS.md`).
 
 `message_threads` and `messages`: one buyer-seller conversation each, and its
 messages, read from a marketplace's Message Center (plan B2, `INTEGRATIONS.md`,

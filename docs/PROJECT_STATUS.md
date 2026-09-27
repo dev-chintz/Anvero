@@ -43,7 +43,7 @@ folder, and one was restored from that copy into a scratch database as a test.
   remains the no-setup default for a fresh clone)
 - Health endpoint and first order model — done
 - Minimal order list interface — done
-- Automated tests for core flows — done (880 backend, 523 frontend passing
+- Automated tests for core flows — done (933 backend, 566 frontend passing
   across the suite as of 2026-09-25)
 
 ---
@@ -134,6 +134,12 @@ Returns, claims and disputes (plan B4, `INTEGRATIONS.md`, "Returns and claims") 
 Billing entries (fees, `INTEGRATIONS.md`, "Fees") have been read from the owner's real Allegro account since 2026-09-27, and Erli's billing and payouts from the real Erli the same day. Allegro's payouts (`INTEGRATIONS.md`, "Payouts") were read from the real account on 2026-09-27, once `allegro:api:payments:read` had been added to the application and the account connected again: 21 payouts in September, all through Allegro Finance (`AF`), none cancelled, so `PAYOUT_CANCEL` has not been seen.
 
 Buyer messages (plan B2, `INTEGRATIONS.md`, "Buyer messages") made their first real call on 2026-09-24, to production Allegro, and were answered `422 Incorrect limit or offset`: the page size was 100 where the Message Center allows 20. Fixed (`MESSAGING_PAGE_SIZE`), and the specification, fetched that day from `developer.allegro.pl/swagger.yaml`, confirmed the sort order, the scope name and the message shape, and gave a message's direction as a field (`author.isInterlocutor`). Still unseen: a successful read (the retry after the fix was not run), a reply, and the link of a thread to its order, which the public thread schema does not carry (`INTEGRATIONS.md`). Safe mode has been on throughout, so nothing has reached a real buyer. Erli is not read: no messaging endpoint was found in its public API.
+
+The non-invoiced sales report (`DECISIONS.md`, "Non-invoiced sales report, ported") was checked
+with backend and frontend tests only, never in the browser and never against real data by an
+accountant: `retail` is always 0 today (only a company invoice or a cancelled/unpaid order
+decides a row on its own; everything else is `MANUAL_REVIEW`), Excel and PDF export answer `422`,
+and there is no CSV-upload path yet for orders outside Anvero.
 
 One backend test failure was found while working on the above, unrelated to it: `tests/services/test_order_import_service.py::test_the_recorded_point_is_the_start_of_the_run_less_a_small_overlap` compared a naive and an aware datetime and only failed on SQLite; fixed on 2026-09-24 by normalising with `_as_utc` (636 pass on SQLite). A second, unrelated bug was found and fixed: `OrderRepository.list_buyer_orders` and `.list_in_queue_with_items`, added by plan A3, had a `-> list[Order]` return annotation evaluated *after* a method literally named `list` in the same class body, so Python resolved `list` to that method instead of the builtin and the whole backend failed to import (`TypeError: 'function' object is not subscriptable`) — moved both methods earlier in the file; no behaviour changed. Worth checking whether this broke every backend since plan A3 landed earlier the same day. The same mistake came back in `AfterSalesRepository.list` (a `list[...]` annotation after a method named `list`), which stopped the backend from starting on Python 3.13 while CI (3.14, deferred annotations) stayed green; fixed on 2026-09-24 with `from __future__ import annotations`. Any class with a method named after a builtin it also uses in annotations can do this: run the suite on 3.13 as well as 3.14.
 

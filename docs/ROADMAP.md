@@ -575,3 +575,14 @@ addresses are not written to the application log, the database is on the owner's
 the information given to buyers; data processing agreements with whoever receives data (InPost labels carry the
 recipient's address and phone, carriers, the accountant); the procedure for a breach (report to UODO within 72 hours);
 who has access to the NAS and the VPN.
+
+## A competitor to learn from: Ritevo (mapped 2026-09-27)
+
+`RITEVO.md` maps the panel of Ritevo, a competing order manager with the same marketplaces and carriers. Ideas
+taken from it, none decided or built:
+
+- **Packing assistant:** scan the EAN of each item in order, then the waybill, with keyboard shortcuts.
+- **Own statuses** for orders and for messages, beyond Anvero's fixed ones.
+- **Automatic actions** ("conditions, then steps"): this is the "Rules" row above.
+- **Message templates** (canned replies), already in the "Messages, further" list above.
+- **Invoice, correction and receipt** with their own numbering, and KSeF / wFirma.
