@@ -184,14 +184,22 @@ The 2026-09-24 order-list work (`DECISIONS.md`, "Open orders are read again ever
 
 ## Next Milestone
 
-**PICK UP HERE (2026-09-21): first deployment to the NAS.** Everything is
-written and pushed but has never run: `docs/DEPLOYMENT.md` is the step-by-step,
-to be done with the owner at the NAS. Start by checking that the *Publish
-images* workflow (GitHub, Actions) went green and the two images exist under
-the account's Packages; if it failed, fix the Dockerfiles/workflow first. Then
-the owner needs, at the NAS: access for it to pull the images (public packages
-or a `read:packages` token), the LAN address and password for `DATABASE_URL`,
-and a new `SECRET_KEY`. Only that one backend may run the scheduled import.
+**First deployment to the NAS is done (2026-09-27).** Running in Container
+Station on the QNAP (`domowy`), reached at `http://NAS_ADDRESS:8081` (not
+8080 - the NAS's own `apache_proxy` already held it). The backend reaches the
+database by joining its stack's Docker network and addressing it by container
+name, not the NAS's LAN address, which timed out from inside a container
+(`DEPLOYMENT.md`, `DECISIONS.md`). Health check, login and the shared accounts
+were confirmed working. Not yet reconciled: whether updates on the NAS go
+through the published GHCR images (the documented path) or a local
+`docker compose build` from a git clone on the NAS (used this session) - see
+`DEPLOYMENT.md`, "Updating".
+
+**PICK UP HERE (2026-09-27): automatic update detection and deployment.**
+Right now updating the NAS is manual and its exact mechanism is unconfirmed
+(see above). Planned: a webhook or polling check for new commits, a button in
+Settings to trigger an update, and `/api/v1/admin/updates/*` endpoints behind
+it (`ROADMAP.md`, "Somewhere to run").
 
 **Feature work after that (agreed 2026-09-24):** the feature plan at the end
 of `ROADMAP.md`, modelled on AlleIntegrator. Its first stage (work queues,
@@ -282,4 +290,4 @@ PostgreSQL 17, SQLite (no-setup default for a fresh clone)
 
 ## Last Update
 
-2026-09-24
+2026-09-27

@@ -6,6 +6,28 @@ All significant changes to the Anvero project.
 
 ## 2026-09-27
 
+### 🚀 First deployment to the NAS
+
+- Anvero is running in Container Station on the QNAP NAS, at
+  `http://NAS_ADDRESS:8081` (port 8080 was already taken by the NAS's own
+  `apache_proxy`). The backend reaches the shared PostgreSQL by joining its
+  Docker network and addressing it by container name, since the two run as
+  separate `docker compose` stacks and the NAS did not route the LAN address
+  back into a container. `deploy/docker-compose.yml` is updated with both
+  fixes. See `docs/DEPLOYMENT.md` and `docs/DECISIONS.md`.
+- Nine leftover `alleintegrator-customer-*` containers and images from
+  earlier integration testing were removed from the NAS, reclaiming about
+  1 GB.
+- Left open: reconciling the update path actually used on the NAS (a git
+  clone built locally) with the documented one (recreate from the published
+  GHCR images); an automatic update/deployment mechanism is planned next.
+- Rotated the database password (the old one had been exposed in a chat
+  session) and patched the NAS's compose file with the same network fix as
+  above, so the join to the database's network now survives a recreate
+  instead of needing a manual `docker network connect` again each time. See
+  `docs/DECISIONS.md`. Every other machine's `backend/.env` needs the new
+  password copied in by hand.
+
 ### 📦 Packing progress, per line
 
 - The "to make" list now deducts what is already packed from what each product still needs: a

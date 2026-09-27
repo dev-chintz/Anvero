@@ -1619,3 +1619,74 @@ the same key packing itself uses. A product every waiting order's packed count a
 reaches `quantity: 0` and reads as made (`mark_done`'s own `ticked >= quantity` check passes
 at 0 with no tick at all) - it still appears on the list, foldable under "Hide made" like a
 manually ticked one, rather than disappearing outright, so packing and a manual tick behave alike.
+
+## 2026-09-27 — Automatic Update Deployment
+
+**Decision:** An application update deployment mechanism is planned, not yet implemented. Two
+approaches are being considered: webhook-based (push, triggered by GitHub on a new release) or
+polling-based (pull, checking for updates on an interval). The feature will be exposed through
+`GET /api/v1/admin/updates/` (read available updates, check current version) and
+`POST /api/v1/admin/updates/` (trigger deployment), accessible only to administrators. The UI
+will show update status and notifications in the Settings page, with an option to deploy on
+demand or on a schedule.
+
+**Rationale:** Automatic updates ensure the system stays patched and gains improvements without
+manual intervention at the NAS. The choice between webhook and polling will be made after
+evaluating the trade-offs: webhooks are faster and lighter but require the application to be
+reachable from GitHub; polling is simpler and works behind firewalls but adds latency and
+overhead. The endpoint scope (`/api/v1/admin/updates/`) mirrors the admin protection already in
+place for sensitive settings, so authentication and authorization reuse the existing login. Safe
+mode applies here: a deployment can be staged and tested before going live.
+
+## 2026-09-27 — First NAS Deployment: Port 8081, Backend Joins the Database's Network
+
+**Decision:** The NAS deployment (`DEPLOYMENT.md`) is reached at
+`http://NAS_ADDRESS:8081`, not 8080 as originally planned, and the backend
+container is joined to the PostgreSQL stack's own Docker network
+(`networks:` in `deploy/docker-compose.yml`), with `DATABASE_URL` pointing at
+the database container by name rather than the NAS's LAN address. While at
+it, nine leftover `alleintegrator-customer-*` containers and images from
+earlier integration testing were removed from the NAS, reclaiming about 1 GB.
+
+**Rationale:** Port 8080 is already bound by the NAS's own `apache_proxy`
+service, discovered when `docker compose up` failed with
+`address already in use`; 8081 is free and is now the permanent port. The
+database connection failed differently: the backend and the database run as
+two separate `docker compose` stacks, each getting its own default bridge
+network, so the backend could not resolve the database by container name, and
+connecting to the NAS's own LAN address from *inside* a container on this NAS
+timed out (`ConnectionTimeout`) rather than hairpinning back in, unlike a
+real machine on the network reaching the same published port. Joining the
+backend to the database's network and addressing it by container name
+sidesteps both the missing name resolution and the hairpin problem. This
+changes `deploy/docker-compose.yml` itself (port and an added `networks:`
+block), not just the NAS's local, gitignored copy, since both fixes would
+recur on every fresh deployment otherwise. Left open: which update path the
+NAS actually uses going forward (`DEPLOYMENT.md`, "Updating") - this session
+updated the running application over SSH from a git clone rather than through
+Container Station and the published GHCR images, and the two have not been
+reconciled.
+
+## 2026-09-27 — Database Password Rotated, and the Network Join Made to Survive a Recreate
+
+**Decision:** The `anvero` PostgreSQL role's password was rotated (the old
+one had been pasted into a chat session and so counted as exposed), and the
+NAS's `docker-compose.yml` was patched with the same `networks:` block now in
+`deploy/docker-compose.yml` (see above), so that `docker compose up`/
+`--force-recreate` on the backend keeps its join to the database stack's
+network instead of losing it, which is what had made the previous fix
+(a bare `docker network connect`) disappear on recreate and crash-loop the
+backend (`failed to resolve host 'anvero-db-db-1'`) until reconnected by
+hand. Confirmed by forcing a recreate: both networks (`anvero_default`,
+`anvero-db_default`) came back on their own, health passed immediately.
+
+**Rationale:** An assistant performing the rotation deliberately never held
+the new password as plaintext - it was generated, applied to PostgreSQL and
+written into the NAS's compose file in a single remote step, never in a
+command or file the assistant's own tooling could read back. That means the
+new password is known only to whoever reads it directly off the NAS (`grep
+DATABASE_URL` on the compose file, or Container Station's own view of it),
+not to this document or any chat log. Every other machine's `backend/.env`
+pointing at the shared database (`DEVELOPMENT.md`, "Shared database on the
+NAS") still has the old password and needs updating by hand from that same
+read, or it will stop connecting.

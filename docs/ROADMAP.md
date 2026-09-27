@@ -73,12 +73,16 @@ schedule only runs while the process does.
 ~~The database and a way back~~ Done: PostgreSQL lives on the NAS, dumped
 nightly and copied encrypted to Google Drive by Hybrid Backup Sync, and a
 restore from that copy has been tried (`DECISIONS.md`, `DEVELOPMENT.md`).
-What remains is the application itself, which still runs on a laptop, started
-by hand in two terminals, so nothing runs unattended (item 2 needs a process
-that stays up). Prepared 2026-09-21: containers for the NAS, published by
-GitHub Actions, reached over the home network and Tailscale
-(`DEPLOYMENT.md`, `DECISIONS.md`). Not done until the first deployment has
-actually run.
+~~What remains is the application itself, which still runs on a laptop~~ Done
+2026-09-27: containers for the NAS, published by GitHub Actions, reached over
+the home network and Tailscale at `http://NAS_ADDRESS:8081` (port 8080 was
+already taken on this NAS; `DEPLOYMENT.md`, `DECISIONS.md`). Left: updating
+the NAS today is manual, and which path it actually uses (rebuilding locally
+from a git clone, or recreating from the published GHCR images) is
+unreconciled - the next piece of work is automatic update detection (a
+webhook or polling check for new commits), a Settings button to trigger a
+deployment, and `/api/v1/admin/updates/*` behind it (`DECISIONS.md`,
+2026-09-27, "Automatic Update Deployment").
 
 ### 4. Shipments, so Anvero replaces the panel rather than mirroring it
 

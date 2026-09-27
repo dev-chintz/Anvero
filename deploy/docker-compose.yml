@@ -10,10 +10,14 @@ services:
     environment:
       ENVIRONMENT: production
       DEBUG: "false"
-      # the PostgreSQL container's own address from here: the NAS's LAN
-      # address and the published port 5432 (not "localhost", which is this
-      # container)
-      DATABASE_URL: postgresql+psycopg://anvero:CHANGE_ME@CHANGE_ME_NAS_LAN_ADDRESS:5432/anvero
+      # the PostgreSQL container's own name on its stack's Docker network, not
+      # the NAS's LAN address: this container and the database container
+      # belong to two separate `docker compose` stacks, each with its own
+      # default network, and this NAS did not route the LAN address back into
+      # a container (connection timeout) the way it does for other machines
+      # on the network (`DEPLOYMENT.md`, `DECISIONS.md`, 2026-09-27) - hence
+      # `networks:` below joining the database stack's network
+      DATABASE_URL: postgresql+psycopg://anvero:CHANGE_ME@CHANGE_ME_DB_CONTAINER_NAME:5432/anvero
       # at least 32 random characters; a new value logs everyone out
       SECRET_KEY: CHANGE_ME
       # the backend imports from Allegro by itself; on for this backend only
@@ -26,6 +30,11 @@ services:
       timeout: 5s
       retries: 3
       start_period: 40s
+    networks:
+      - default
+      # the database stack's network, so the container name above resolves;
+      # replace with that stack's actual network name if it differs
+      - anvero-db_default
 
   web:
     image: ghcr.io/dev-chintz/anvero-web:latest
@@ -33,5 +42,11 @@ services:
     depends_on:
       - backend
     ports:
-      # the only port reachable from outside: http://NAS_ADDRESS:8080
-      - "8080:80"
+      # 8080 is taken on this NAS by its own apache_proxy service, so this
+      # deployment uses 8081 instead: http://NAS_ADDRESS:8081
+      # (`DEPLOYMENT.md`, `DECISIONS.md`, 2026-09-27)
+      - "8081:80"
+
+networks:
+  anvero-db_default:
+    external: true

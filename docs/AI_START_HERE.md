@@ -51,7 +51,15 @@ Allegro's published specification and never run against a real account).
 
 **Non-invoiced sales report (2026-09-27):** a page, own menu entry, ported from a standalone tool the owner built earlier, classifies Anvero's own imported orders for accounting. Three rules decide a row (a complete company invoice excludes; a cancelled/suspended order never paid in full excludes; a paid, shipped, uninvoiced-or-personally-invoiced order qualifies as RETAIL - approved the same day the owner saw the ported tool's own code already relied on it); everything else is `MANUAL_REVIEW`, with an operator override and a CSV export. See `DECISIONS.md`, "Non-invoiced sales report, ported" and "PAY-001 approved". Opened in the browser against the owner's real orders. Excel/PDF export and reading an uploaded CSV are not built.
 
-**Open task:** the first deployment to the NAS is prepared but not yet run; see "PICK UP HERE" in `PROJECT_STATUS.md` and `DEPLOYMENT.md`.
+**NAS deployment (2026-09-27):** done. Running at `http://NAS_ADDRESS:8081`
+(not 8080 - taken on this NAS), backend reaching the database over a joined
+Docker network by container name rather than the NAS's LAN address. See
+`DEPLOYMENT.md` and `DECISIONS.md` for what differed from the written plan.
+
+**Open task:** automatic update detection and a Settings button to trigger a
+deployment update, since today's update path on the NAS is manual and not
+fully reconciled with the documented one; see "PICK UP HERE" in
+`PROJECT_STATUS.md` and `DEPLOYMENT.md`, "Updating".
 
 Backend and frontend both run. See PROJECT_STATUS.md for the sprint-by-sprint
 breakdown; the short version:
