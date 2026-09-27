@@ -21,6 +21,7 @@ import { OrderMessagesCard } from "./OrderMessagesCard";
 import { OrderMoreSections } from "./OrderMoreSections";
 import { OrderNoteDialog, type OrderNoteKind } from "./OrderNoteDialog";
 import { OrderShippingCard } from "./OrderShippingCard";
+import { useOrderMessageThreads } from "../hooks/useOrderMessageThreads";
 import "../styles/OrderPage.css";
 
 export function OrderDetail() {
@@ -45,6 +46,7 @@ export function OrderDetail() {
   const [markError, setMarkError] = useState<string | null>(null);
   // the buyer's message or the seller's note being read in its window
   const [openNote, setOpenNote] = useState<OrderNoteKind | null>(null);
+  const [messageThreads, setMessageThreads] = useOrderMessageThreads(order);
 
   const loadWrites = (orderId: string) =>
     Promise.resolve()
@@ -281,44 +283,41 @@ export function OrderDetail() {
               onRestore={() => changeDeleted("restore")}
             />
 
-            <OrderAttentionBar order={order} onOpenNote={setOpenNote} />
+            <OrderAttentionBar order={order} onOpenNote={setOpenNote} messageCount={messageThreads?.length ?? 0} />
 
             <AfterSalesCard orderId={order.id} />
 
-            <div className="order-columns">
-              <div className="order-main">
-                <OrderItemsCard order={order} />
-                <OrderAddressCards order={order} />
-                <OrderShippingCard
-                  key={order.id}
-                  order={order}
-                  isDeleted={isDeleted}
-                  onChanged={() => {
-                    ordersApi.get(order.id).then(setOrder).catch(() => undefined);
-                    loadWrites(order.id);
-                  }}
-                  onAdded={(result: OrderChangeResult) => {
-                    setOrder(result);
-                    loadWrites(result.id);
-                  }}
-                />
-              </div>
+            <OrderItemsCard order={order} />
 
-              <aside className="order-side">
-                <OrderPaymentCard order={order} />
-                <OrderFactsCard
-                  order={order}
-                  saving={saving}
-                  saveError={saveError}
-                  writeNote={writeNote}
-                  isDeleted={isDeleted}
-                  onStatusChange={handleStatusChange}
-                />
-                <OrderBuyerCard order={order} />
-              </aside>
+            <div className="order-details-grid">
+              <OrderAddressCards order={order} />
+              <OrderPaymentCard order={order} />
+              <OrderFactsCard
+                order={order}
+                saving={saving}
+                saveError={saveError}
+                writeNote={writeNote}
+                isDeleted={isDeleted}
+                onStatusChange={handleStatusChange}
+              />
+              <OrderBuyerCard order={order} />
             </div>
 
-            <OrderMessagesCard key={order.id} order={order} />
+            <OrderShippingCard
+              key={`shipping-${order.id}`}
+              order={order}
+              isDeleted={isDeleted}
+              onChanged={() => {
+                ordersApi.get(order.id).then(setOrder).catch(() => undefined);
+                loadWrites(order.id);
+              }}
+              onAdded={(result: OrderChangeResult) => {
+                setOrder(result);
+                loadWrites(result.id);
+              }}
+            />
+
+            <OrderMessagesCard threads={messageThreads} onThreadsChange={setMessageThreads} />
 
             <OrderMoreSections
               order={order}
@@ -329,7 +328,7 @@ export function OrderDetail() {
             />
 
             <OrderInternalNote
-              key={order.id}
+              key={`note-${order.id}`}
               orderId={order.id}
               note={order.internal_note ?? null}
               onSaved={(saved) => setOrder({ ...order, internal_note: saved.internal_note })}

@@ -257,36 +257,40 @@ button.attention-chip {
   color: #fde68a;
 }
 
-/* the cards in two columns: what is done to the order on the left, its facts on the right */
-.order-columns {
+/* Pozycje and Wysyłka are their own full-width rows; everything else - Dostawa, Faktura,
+   Płatność, Zamówienie, Kupujący - shares one grid, wrapping from 3 columns to 2 to 1.
+   OrderAddressCards renders Dostawa then Faktura as two cards of its own, so it takes no grid
+   cell itself (`display: contents`): its two children fall into this grid directly, ahead of
+   the payment/facts/buyer cards after it. `.order-detail` has no gap of its own between its
+   direct children (`index.css`), so each full-width block below carries its own margin. */
+.order-items {
+  margin-bottom: 1rem;
+}
+
+.order-details-grid {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 300px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 1rem;
   align-items: start;
-}
-
-.order-main,
-.order-side {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-  min-width: 0;
-}
-
-@media (max-width: 1000px) {
-  .order-columns {
-    grid-template-columns: minmax(0, 1fr);
-  }
+  margin-bottom: 1rem;
 }
 
 .order-address-cards {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 1rem;
+  display: contents;
+}
+
+.order-shipping {
+  margin-bottom: 1rem;
+}
+
+@media (max-width: 1100px) {
+  .order-details-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 @media (max-width: 640px) {
-  .order-address-cards {
+  .order-details-grid {
     grid-template-columns: minmax(0, 1fr);
   }
 }

@@ -75,6 +75,13 @@
   font-size: 0.8rem;
 }
 
+/* right-aligned with tabular digits, so amounts of different lengths still line up by their
+   ones place instead of drifting left-aligned from row to row */
+.sales-report-table .sales-report-amount {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
 .sales-report-chip {
   display: inline-block;
   padding: 0.15rem 0.55rem;

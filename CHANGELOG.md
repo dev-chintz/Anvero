@@ -6,6 +6,18 @@ All significant changes to the Anvero project.
 
 ## 2026-09-27
 
+### 🧾 The order page: items across the full width, one grid for the rest
+
+- **Pozycje** is now its own full-width row instead of sharing a narrow main column. **Dostawa,
+  Faktura, Płatność, Zamówienie** and **Kupujący** - the former sidebar plus the address cards -
+  now share one grid (3 columns, wrapping to 2 then 1); **Wysyłka** stays a full-width row below it.
+- The attention bar gets a new chip, **Wiadomości od kupującego (N)**, told apart from the
+  existing checkout-message chip: it counts real Message Center threads with the buyer (shared
+  with the Messages card lower on the page via `useOrderMessageThreads`, fetched once) and jumps
+  to that card (`#order-messages`) rather than opening a window.
+- Fixed in passing: `OrderShippingCard` and `OrderInternalNote` shared the literal key
+  `order.id`, which is invalid among React siblings (a console warning, harmless in practice).
+
 ### 🧮 A non-invoiced sales report, backend
 
 - Ported from a standalone tool the owner built earlier: `GET /api/v1/sales-report/orders`

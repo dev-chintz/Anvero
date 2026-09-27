@@ -7,6 +7,9 @@ interface OrderAttentionBarProps {
   order: OrderWithDetails;
   /** Opens the buyer's message or the seller's note in its window. */
   onOpenNote: (kind: OrderNoteKind) => void;
+  /** How many Message Center threads the buyer has, if any have loaded yet: a real
+   * conversation, told apart from `order.buyer_message`, the one-off note left at checkout. */
+  messageCount?: number;
 }
 
 /**
@@ -14,13 +17,18 @@ interface OrderAttentionBarProps {
  * a message from the buyer, a note. Only what is there is shown, so an ordinary order
  * has no bar at all.
  */
-export function OrderAttentionBar({ order, onOpenNote }: OrderAttentionBarProps) {
+export function OrderAttentionBar({ order, onOpenNote, messageCount = 0 }: OrderAttentionBarProps) {
   const { t, formatDateTime } = useTranslation();
   const urgency = dispatchUrgency(order);
   const unpaid = paymentState(order) === "unpaid";
 
   const hasAny =
-    (urgency && order.dispatch_by) || unpaid || order.buyer_message || order.seller_note || order.internal_note;
+    (urgency && order.dispatch_by) ||
+    unpaid ||
+    order.buyer_message ||
+    order.seller_note ||
+    order.internal_note ||
+    messageCount > 0;
   if (!hasAny) return null;
 
   return (
@@ -44,6 +52,15 @@ export function OrderAttentionBar({ order, onOpenNote }: OrderAttentionBarProps)
           <button type="button" className="attention-chip attention-info" onClick={() => onOpenNote("message")}>
             💬 {t("details.buyerMessage")}
           </button>
+        </li>
+      )}
+      {messageCount > 0 && (
+        // scrolls to the Messages card lower on the page, the same pattern as the internal
+        // note's chip below
+        <li>
+          <a href="#order-messages" className="attention-chip attention-info">
+            ✉️ {t("order.attention.messages", { count: messageCount })}
+          </a>
         </li>
       )}
       {order.seller_note && (

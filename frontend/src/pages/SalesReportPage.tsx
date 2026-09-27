@@ -166,7 +166,7 @@ export function SalesReportPage() {
                 <tr>
                   <th>{t('salesReport.table.order')}</th>
                   <th>{t('salesReport.table.buyer')}</th>
-                  <th>{t('salesReport.table.amount')}</th>
+                  <th className="sales-report-amount">{t('salesReport.table.amount')}</th>
                   <th>{t('salesReport.table.category')}</th>
                   <th>{t('salesReport.table.reason')}</th>
                 </tr>
@@ -180,7 +180,7 @@ export function SalesReportPage() {
                   >
                     <td>{row.order_label ?? row.order_external_id}</td>
                     <td className="cell-sub">{row.buyer_login ?? '—'}</td>
-                    <td>
+                    <td className="sales-report-amount">
                       {row.amount} {row.currency}
                     </td>
                     <td>

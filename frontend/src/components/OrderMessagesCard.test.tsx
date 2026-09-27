@@ -1,60 +1,53 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { describe, expect, it, vi } from "vitest";
 import { OrderMessagesCard } from "./OrderMessagesCard";
-import type { MessageThread, MessageThreadDetail } from "../api/client";
-import { OrderSource, type OrderWithDetails } from "../types/order";
+import type { MessageThreadDetail } from "../api/client";
+import { OrderSource } from "../types/order";
 
-vi.mock("../api/client", async () => {
-  const actual = await vi.importActual<typeof import("../api/client")>("../api/client");
-  return { ...actual, messagesApi: { threads: vi.fn(), thread: vi.fn(), reply: vi.fn() } };
-});
-
-const { messagesApi } = await import("../api/client");
-
-const order = { id: "o-1", external_id: "ext-1", source: OrderSource.ALLEGRO, customer_login: "Buyer1" } as OrderWithDetails;
-
-function thread(id: string, orderExternalId: string | null, text: string): MessageThreadDetail {
+function thread(text: string): MessageThreadDetail {
   return {
-    id,
+    id: "t1",
     source: OrderSource.ALLEGRO,
     interlocutor_login: "buyer1",
-    order_external_id: orderExternalId,
+    order_external_id: "ext-1",
     last_message_at: "2026-09-20T10:00:00Z",
     last_message_text: text,
     read: true,
     aside: false,
     messages: [
-      { id: `${id}-1`, direction: "IN", author_login: "buyer1", text, sent_at: "2026-09-20T10:00:00Z", created_in_anvero: false },
+      { id: "t1-1", direction: "IN", author_login: "buyer1", text, sent_at: "2026-09-20T10:00:00Z", created_in_anvero: false },
     ],
   };
 }
 
-const renderIt = () =>
+const renderIt = (threads: MessageThreadDetail[] | null, onThreadsChange = vi.fn()) =>
   render(
     <MemoryRouter>
-      <OrderMessagesCard order={order} />
+      <OrderMessagesCard threads={threads} onThreadsChange={onThreadsChange} />
     </MemoryRouter>,
   );
 
 describe("OrderMessagesCard", () => {
-  it("shows the buyer's thread and not that of another buyer whose nick merely contains it", async () => {
-    const mine = thread("t1", "ext-1", "Kiedy wyślecie paczkę?");
-    const other = { ...thread("t2", "ext-2", "Inny kupujący"), interlocutor_login: "buyer10" };
-    vi.mocked(messagesApi.threads).mockResolvedValue([mine, other] as MessageThread[]);
-    vi.mocked(messagesApi.thread).mockImplementation(async (id) => (id === "t1" ? mine : other));
-
-    renderIt();
-
-    expect(await screen.findByText("Kiedy wyślecie paczkę?")).toBeInTheDocument();
-    expect(screen.queryByText("Inny kupujący")).not.toBeInTheDocument();
-    expect(messagesApi.threads).toHaveBeenCalledWith({ search: "Buyer1" });
+  it("shows the given thread, anchored for the attention bar's chip", () => {
+    renderIt([thread("Kiedy wyślecie paczkę?")]);
+    expect(screen.getByText("Kiedy wyślecie paczkę?")).toBeInTheDocument();
+    expect(document.getElementById("order-messages")).toBeInTheDocument();
   });
 
-  it("shows nothing when the order has no thread", async () => {
-    vi.mocked(messagesApi.threads).mockResolvedValue([]);
-    const { container } = renderIt();
-    await waitFor(() => expect(messagesApi.threads).toHaveBeenCalled());
-    expect(container).toBeEmptyDOMElement();
+  it("shows nothing while loading (null) or when there is no thread", () => {
+    const { container: loading } = renderIt(null);
+    expect(loading).toBeEmptyDOMElement();
+    const { container: empty } = renderIt([]);
+    expect(empty).toBeEmptyDOMElement();
+  });
+
+  it("renders every given thread", () => {
+    const one = thread("Pierwszy wątek");
+    const two = { ...thread("Drugi wątek"), id: "t2" };
+    renderIt([one, two]);
+    expect(screen.getByText("Pierwszy wątek")).toBeInTheDocument();
+    expect(screen.getByText("Drugi wątek")).toBeInTheDocument();
+    expect(screen.getByText("Open in Inbox")).toBeInTheDocument();
   });
 });
