@@ -496,6 +496,7 @@ wholesale. `422` when `quantity` is negative or more than that line's own `quant
 an unknown order or an unknown position. Returns the order with its details, `packed_quantity`
 set on the changed item (0 on every item until set). Cleared automatically once the order reaches
 `SHIPPED`, `DELIVERED` or `CANCELLED`, whether by an operator or an import moving it there.
+`GET /orders/production` deducts it from what a product still needs to be made.
 
 ### Deleting an order
 
@@ -612,14 +613,17 @@ order is never in the list.
 Items are the same product when they share the seller's `sku`; without one,
 the listing (`offer_id`); without either, the `name`. The line's `name` and
 `offer_id` are those of the first item met. `quantity` is the sum over its
-orders, and an order with the product on two lines is listed once with both
-counted. Lines come in the order their product is first needed: `dispatch_by`
-is the earliest among the line's orders, lines without any deadline come last,
-oldest order first; each line's `orders` are in the same order. `order_count`
-counts the queue's orders, including any without items.
+orders **less what is already packed** into a parcel for that order
+(`docs/DECISIONS.md`, "Packing progress, per line": a unit already packed must
+already exist), and an order with the product on two lines is listed once with
+both counted. Lines come in the order their product is first needed:
+`dispatch_by` is the earliest among the line's orders, lines without any
+deadline come last, oldest order first; each line's `orders` are in the same
+order. `order_count` counts the queue's orders, including any without items.
 
 `done` says the line is made: it was ticked off (below) for at least as many as it
-asks for now, so an order that arrives later and raises `quantity` brings it back.
+asks for now, so an order that arrives later and raises `quantity` brings it back -
+or every order's packed count already covers it, with no tick needed.
 
 ## `PUT /api/v1/orders/production/checks`
 

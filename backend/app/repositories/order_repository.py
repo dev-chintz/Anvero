@@ -484,7 +484,9 @@ class OrderRepository:
                 )
             query = query.filter(Order.id.in_({row[0] for row in found}))
         return list(
-            query.options(selectinload(Order.items))
+            # .packing too: build_production_list deducts what is already packed from what
+            # still needs making
+            query.options(selectinload(Order.items), selectinload(Order.packing))
             .order_by(*self._ordering(OrderSort.AT_RISK))
             .all()
         )

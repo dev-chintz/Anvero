@@ -8,6 +8,10 @@ All significant changes to the Anvero project.
 
 ### 📦 Packing progress, per line
 
+- The "to make" list now deducts what is already packed from what each product still needs: a
+  unit already packed into a parcel must already exist, so it does not need making. A product
+  every waiting order's packed count already covers reaches 0 and reads as made on its own, the
+  same as a manual tick would, without needing one.
 - The order's item list gets a stepper per line ("N / M"), a card-level progress bar and a
   summary ("2 of 4 items packed · 26 of 31 pcs"): how many of each line an operator has
   physically gathered into the parcel for that order - a partly-ready basket waiting on the

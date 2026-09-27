@@ -33,7 +33,12 @@ def product_key(item: OrderItem) -> str:
 
 
 def build_production_list(orders: list[Order]) -> ProductionList:
-    """Group the items of `orders` by product.
+    """Group the items of `orders` by product, less what is already packed into a parcel.
+
+    An operator gathering an order's items ticks them packed on the order's own page
+    (`OrderItemPacking`), one line at a time; a unit already packed must already exist, so it
+    no longer needs making. A product every order's packed count already covers reaches 0 and
+    reads as made on its own, the same as a manual tick would (`mark_done`), without needing one.
 
     `orders` must come most urgent first: the lines keep the order in which
     their product is first needed, so the line with the earliest dispatch
@@ -42,7 +47,11 @@ def build_production_list(orders: list[Order]) -> ProductionList:
     """
     lines: dict[str, ProductionLine] = {}
     for order in orders:
+        packed_by_position = {row.position: row.packed_quantity for row in order.packing}
         for item in order.items:
+            packed = packed_by_position.get(item.position, 0)
+            needed = max(0, item.quantity - packed)
+
             key = product_key(item)
             line = lines.get(key)
             if line is None:
@@ -56,11 +65,11 @@ def build_production_list(orders: list[Order]) -> ProductionList:
                     dispatch_by=order.dispatch_by,
                     orders=[],
                 )
-            line.quantity += item.quantity
+            line.quantity += needed
             line.image_url = line.image_url or item.image_url
             # two lines of one order for the same product are one entry
             if line.orders and line.orders[-1].id == order.id:
-                line.orders[-1].quantity += item.quantity
+                line.orders[-1].quantity += needed
                 continue
             line.orders.append(
                 ProductionOrder(
@@ -68,7 +77,7 @@ def build_production_list(orders: list[Order]) -> ProductionList:
                     order_label=format_order_number(order.order_number),
                     source=order.source,
                     status=order.status,
-                    quantity=item.quantity,
+                    quantity=needed,
                     dispatch_by=order.dispatch_by,
                 )
             )

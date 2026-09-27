@@ -960,6 +960,32 @@ def test_the_production_list_adds_up_each_product_across_orders():
     assert mug["orders"][0]["status"] == "CONFIRMED"
 
 
+def test_packing_reduces_what_the_production_list_still_asks_for():
+    order = _to_make(
+        "prod-packed-some",
+        [{"name": "PROD Packed Mug", "sku": "PROD-PACKED-MUG", "quantity": 10, "unit_price": "10.00"}],
+    )
+    client.patch(f"/api/v1/orders/{order['id']}/items/0/packing", json={"quantity": 4})
+
+    lines = _production_lines("PROD Packed Mug")
+
+    assert lines[0]["quantity"] == 6
+    assert lines[0]["orders"][0]["quantity"] == 6
+
+
+def test_a_product_every_order_has_fully_packed_reads_as_made_without_a_manual_tick():
+    order = _to_make(
+        "prod-packed-all",
+        [{"name": "PROD Packed Plate", "sku": "PROD-PACKED-PLATE", "quantity": 5, "unit_price": "5.00"}],
+    )
+    client.patch(f"/api/v1/orders/{order['id']}/items/0/packing", json={"quantity": 5})
+
+    lines = _production_lines("PROD Packed Plate")
+
+    assert lines[0]["quantity"] == 0
+    assert lines[0]["done"] is True
+
+
 def test_without_a_code_items_group_by_listing_then_by_name():
     _to_make(
         "prod-nocode-1",

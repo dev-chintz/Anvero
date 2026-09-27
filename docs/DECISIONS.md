@@ -1610,3 +1610,12 @@ stepper is for the odd one left over, not for reaching a many-unit line's total 
 time. The cell is a `<button>` now, reset back to plain text and thumbnail with no button chrome
 of its own; `ItemThumb`'s zoom-on-hover (`docs/CHANGELOG.md`, "An item's zoom-on-hover covers its
 whole row") still works nested inside it.
+
+**Also (2026-09-27, the owner asked):** the "to make" list (`build_production_list`) now deducts
+what is already packed from what each product still needs: a unit already packed into a parcel
+must already exist, so it no longer needs making. Every order's `OrderItemPacking` rows are
+loaded alongside its items (`OrderRepository.list_in_queue_with_items`) and matched by position,
+the same key packing itself uses. A product every waiting order's packed count already covers
+reaches `quantity: 0` and reads as made (`mark_done`'s own `ticked >= quantity` check passes
+at 0 with no tick at all) - it still appears on the list, foldable under "Hide made" like a
+manually ticked one, rather than disappearing outright, so packing and a manual tick behave alike.
