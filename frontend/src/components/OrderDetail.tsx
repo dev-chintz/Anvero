@@ -44,6 +44,7 @@ export function OrderDetail() {
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [markError, setMarkError] = useState<string | null>(null);
+  const [packingError, setPackingError] = useState<string | null>(null);
   // the buyer's message or the seller's note being read in its window
   const [openNote, setOpenNote] = useState<OrderNoteKind | null>(null);
   const [messageThreads, setMessageThreads] = useOrderMessageThreads(order);
@@ -165,6 +166,18 @@ export function OrderDetail() {
     }
   };
 
+  // gathering into the parcel, one line at a time: the operator's own use, never sent to a
+  // marketplace, and cleared once the order ships (docs/DECISIONS.md, "Packing progress, per line")
+  const handlePacking = async (position: number, quantity: number) => {
+    if (!order) return;
+    setPackingError(null);
+    try {
+      setOrder(await ordersApi.setItemPacking(order.id, position, quantity));
+    } catch (err: unknown) {
+      setPackingError(err instanceof ApiError ? err.message : translate("order.packingFailed"));
+    }
+  };
+
   const isDeleted = !!order?.deleted_at;
 
   const handleStatusChange = async (nextStatus: OrderStatus) => {
@@ -235,6 +248,12 @@ export function OrderDetail() {
           </p>
         )}
 
+        {packingError && (
+          <p role="alert" className="error-message">
+            {packingError}
+          </p>
+        )}
+
         {ready && order.deleted_at && (
           <div role="status" className="warning-banner">
             {order.deleted_by
@@ -287,7 +306,7 @@ export function OrderDetail() {
 
             <AfterSalesCard orderId={order.id} />
 
-            <OrderItemsCard order={order} />
+            <OrderItemsCard order={order} onPackingChange={handlePacking} />
 
             <div className="order-details-grid">
               <OrderAddressCards order={order} />

@@ -6,6 +6,19 @@ All significant changes to the Anvero project.
 
 ## 2026-09-27
 
+### 📦 Packing progress, per line
+
+- The order's item list gets a stepper per line ("N / M"), a card-level progress bar and a
+  summary ("2 of 4 items packed · 26 of 31 pcs"): how many of each line an operator has
+  physically gathered into the parcel for that order - a partly-ready basket waiting on the
+  rest. A fully packed line dims with a checkmark. `PATCH
+  /api/v1/orders/{id}/items/{position}/packing`, new table `order_item_packing`
+  (migration `b4e6f9c2a831`; run `alembic upgrade head`), shared across every computer, kept by
+  the item's line position rather than its own id so a re-import (which replaces every item row
+  wholesale) does not wipe it. Cleared once the order ships, is delivered or is cancelled. See
+  `docs/DECISIONS.md`, "Packing progress, per line".
+- 15 new/changed backend tests (954 passing); 8 new frontend tests (583 passing).
+
 ### 🖼️ An item's zoom-on-hover covers its whole row, not just the thumbnail
 
 - `ItemThumb` now shows the enlarged picture while the pointer is over the thumbnail **or**

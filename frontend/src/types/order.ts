@@ -250,6 +250,12 @@ export interface OrderItem {
    * hand-entered order, an older import, or an offer whose picture could
    * not be read. */
   image_url: string | null;
+  /** The marketplace's own line order; what a packing PATCH names the item by, since it
+   * survives a re-import unlike `id`. */
+  position: number;
+  /** How many of `quantity` an operator has gathered into the parcel so far (own use,
+   * never sent to a marketplace); 0 until set, cleared once the order ships. */
+  packed_quantity: number;
 }
 
 /**

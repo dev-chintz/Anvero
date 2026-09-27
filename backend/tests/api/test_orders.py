@@ -1754,3 +1754,136 @@ def test_a_tick_nobody_has_touched_for_months_is_dropped_the_next_time_one_is_ma
         assert db.get(ProductionCheck, "sku:LONG-GONE") is None
     finally:
         db.close()
+
+
+# ---- Packing progress, per line (docs/DECISIONS.md, "Packing progress, per line") ----
+
+
+_packing_counter = [0]
+
+
+def _create_with_item(quantity: int = 15, **overrides) -> dict:
+    _packing_counter[0] += 1
+    overrides.setdefault("external_id", f"PACK-{_packing_counter[0]}")
+    return _create(
+        items=[{"name": "Scrapki Serduszko", "quantity": quantity, "unit_price": "1.42"}],
+        **overrides,
+    )
+
+
+def test_packing_needs_a_login():
+    some_id = "00000000-0000-0000-0000-000000000000"
+    assert (
+        anonymous.patch(f"/api/v1/orders/{some_id}/items/0/packing", json={"quantity": 1}).status_code
+        == 401
+    )
+
+
+def test_an_items_packed_quantity_starts_at_zero_and_can_be_set():
+    order = _create_with_item(quantity=15)
+    assert order["items"][0]["packed_quantity"] == 0
+
+    response = client.patch(f"/api/v1/orders/{order['id']}/items/0/packing", json={"quantity": 5})
+    assert response.status_code == 200
+    assert response.json()["items"][0]["packed_quantity"] == 5
+
+
+def test_setting_it_again_replaces_the_count_rather_than_adding_a_row():
+    order = _create_with_item(quantity=15)
+    client.patch(f"/api/v1/orders/{order['id']}/items/0/packing", json={"quantity": 5})
+
+    response = client.patch(f"/api/v1/orders/{order['id']}/items/0/packing", json={"quantity": 9})
+
+    assert response.json()["items"][0]["packed_quantity"] == 9
+    assert client.get(f"/api/v1/orders/{order['id']}").json()["items"][0]["packed_quantity"] == 9
+
+
+def test_packing_more_than_ordered_is_refused():
+    order = _create_with_item(quantity=15)
+
+    response = client.patch(f"/api/v1/orders/{order['id']}/items/0/packing", json={"quantity": 16})
+
+    assert response.status_code == 422
+    assert client.get(f"/api/v1/orders/{order['id']}").json()["items"][0]["packed_quantity"] == 0
+
+
+def test_packing_a_negative_quantity_is_refused():
+    order = _create_with_item(quantity=15)
+    assert (
+        client.patch(f"/api/v1/orders/{order['id']}/items/0/packing", json={"quantity": -1}).status_code
+        == 422
+    )
+
+
+def test_packing_an_unknown_position_is_404():
+    order = _create_with_item(quantity=15)
+    assert (
+        client.patch(f"/api/v1/orders/{order['id']}/items/1/packing", json={"quantity": 1}).status_code
+        == 404
+    )
+
+
+def test_packing_an_unknown_order_is_404():
+    some_id = "00000000-0000-0000-0000-000000000000"
+    assert (
+        client.patch(f"/api/v1/orders/{some_id}/items/0/packing", json={"quantity": 1}).status_code == 404
+    )
+
+
+def test_moving_to_shipped_clears_packing_progress():
+    order = _create_with_item(quantity=15)
+    client.patch(f"/api/v1/orders/{order['id']}/items/0/packing", json={"quantity": 5})
+
+    client.patch(f"/api/v1/orders/{order['id']}/status", json={"status": "SHIPPED"})
+
+    assert client.get(f"/api/v1/orders/{order['id']}").json()["items"][0]["packed_quantity"] == 0
+
+
+def test_moving_to_confirmed_leaves_packing_progress_alone():
+    order = _create_with_item(quantity=15)
+    client.patch(f"/api/v1/orders/{order['id']}/items/0/packing", json={"quantity": 5})
+
+    client.patch(f"/api/v1/orders/{order['id']}/status", json={"status": "CONFIRMED"})
+
+    assert client.get(f"/api/v1/orders/{order['id']}").json()["items"][0]["packed_quantity"] == 5
+
+
+def test_packing_progress_survives_a_re_import_that_replaces_the_items():
+    # a re-import replaces every OrderItem row wholesale, even when nothing about the item
+    # itself changed (app/services/order_details.py); packing is kept by position, not the
+    # item's own id, precisely so this does not wipe it
+    from app.models.order import Order
+    from app.schemas.order import (
+        Customer,
+        Delivery,
+        Invoice,
+        OrderDetails,
+        OrderItemCreate,
+        Payment,
+    )
+    from app.services.order_details import apply_details
+
+    order = _create_with_item(quantity=15)
+    client.patch(f"/api/v1/orders/{order['id']}/items/0/packing", json={"quantity": 5})
+
+    db = TestingSessionLocal()
+    try:
+        row = db.get(Order, uuid.UUID(order["id"]))
+        original_item_id = row.items[0].id
+        apply_details(
+            row,
+            OrderDetails(
+                customer=Customer(),
+                items=[OrderItemCreate(name="Scrapki Serduszko", quantity=15, unit_price=Decimal("1.42"))],
+                delivery=Delivery(),
+                payment=Payment(),
+                invoice=Invoice(),
+            ),
+        )
+        db.commit()
+        new_item_id = row.items[0].id
+        assert new_item_id != original_item_id, "the fixture no longer replaces items wholesale"
+    finally:
+        db.close()
+
+    assert client.get(f"/api/v1/orders/{order['id']}").json()["items"][0]["packed_quantity"] == 5

@@ -285,6 +285,16 @@ class Order(Base):
         cascade="all, delete-orphan",
     )
 
+    # kept by (order_id, item position), not the item's own id: a re-import
+    # replaces every OrderItem row wholesale (app/services/order_details.py),
+    # which would otherwise wipe an operator's packing progress on the very
+    # next scheduled sync
+    packing: Mapped[list["OrderItemPacking"]] = relationship(
+        back_populates="order",
+        cascade="all, delete-orphan",
+        order_by="OrderItemPacking.position",
+    )
+
     # loaded together with the order (one extra query per page, not one per
     # row), since the list shows the carrier and waybill in its own column
     shipments: Mapped[list["OrderShipment"]] = relationship(
@@ -547,6 +557,54 @@ class OrderStatusHistory(Base):
     @property
     def changed_by_email(self) -> str | None:
         return self.changed_by.email if self.changed_by is not None else None
+
+
+class OrderItemPacking(Base):
+    """How many of one order line an operator has physically gathered into the parcel for
+    this order - their own progress marker, shared across every computer, never sent to a
+    marketplace.
+
+    Kept by `(order_id, position)`, not `order_items.id`: an import replaces every item row
+    of an order wholesale (`app/services/order_details.py`), even when nothing about the item
+    itself changed, so keying by the item's own id would clear an operator's progress on the
+    next scheduled sync. `position` is the marketplace's own line order, stable across a
+    re-import of the same order. Cleared once the order reaches `SHIPPED`, `DELIVERED` or
+    `CANCELLED` (`OrderRepository.update_status`), whether the operator moved it there by hand
+    or a sync did: packing an order that has already gone is moot either way.
+    """
+
+    __tablename__ = "order_item_packing"
+    __table_args__ = (UniqueConstraint("order_id", "position", name="uq_order_item_packing_order_id_position"),)
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        Uuid(as_uuid=True),
+        primary_key=True,
+        default=uuid.uuid4,
+    )
+
+    order_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("orders.id", ondelete="CASCADE"),
+        index=True,
+        nullable=False,
+    )
+
+    position: Mapped[int] = mapped_column(Integer, nullable=False)
+
+    # how many units are gathered; the item's own `quantity` is the ceiling, enforced where
+    # this is written, not here
+    packed_quantity: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        onupdate=func.now(),
+        nullable=False,
+    )
+    updated_by_user_id: Mapped[int | None] = mapped_column(
+        ForeignKey("users.id", ondelete="SET NULL"), nullable=True
+    )
+
+    order: Mapped["Order"] = relationship(back_populates="packing")
 
 
 class Counter(Base):

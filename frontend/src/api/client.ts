@@ -353,6 +353,15 @@ export const ordersApi = {
     });
   },
 
+  /** How many of one line an operator has gathered into the parcel so far - their own
+   * progress, shared across every computer, never sent to a marketplace. */
+  setItemPacking(orderId: string, position: number, quantity: number): Promise<OrderWithDetails> {
+    return request<OrderWithDetails>(`/orders/${orderId}/items/${position}/packing`, {
+      method: "PATCH",
+      body: JSON.stringify({ quantity }),
+    });
+  },
+
   addShipment(
     orderId: string,
     shipment: { carrier_id: string; carrier_name?: string; waybill: string },

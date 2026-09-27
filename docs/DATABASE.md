@@ -21,7 +21,7 @@ The model will be deployed via migrations after framework selection, but a commo
 Migrations currently create `users`, `orders`, `order_items`,
 `order_addresses`, `order_shipments`, `billing_entries`,
 `order_status_history`, `integration_credentials`, `message_threads`,
-`messages`, `after_sales_cases`, `payouts` and `sales_report_overrides`.
+`messages`, `after_sales_cases`, `payouts`, `sales_report_overrides` and `order_item_packing`.
 `integration` and `customer` are still targets.
 
 `orders` deviates from the target shape while there are no integrations to
@@ -138,6 +138,15 @@ the fees paid, which the Finance page leaves out of the fees. For Erli,
 payout, never changed once stored. `source`, `external_id` (unique together),
 `paid_at` (indexed), `amount`, `currency`, `operator` (e.g. `PAYU`). Read from
 Erli and Allegro since 2026-09-27 (Allegro's from `/payments/payment-operations`; a cancelled payout is a second row, `<id>:cancel`, negative). Added by `d8b3f1a6c925`.
+
+`order_item_packing` (added by `b4e6f9c2a831`): how many of one order line an operator has
+physically gathered into the parcel for that order - their own use, kept by `(order_id,
+position)` (unique together), not `order_items.id`: an import replaces every item row of an
+order wholesale (`app/services/order_details.py`), which would otherwise wipe this on the next
+scheduled sync. `packed_quantity` (default 0), `updated_by_user_id` (nullable, `SET NULL` on
+delete). Cleared whenever the order's `status` reaches `SHIPPED`, `DELIVERED` or `CANCELLED`
+(`OrderRepository.update_status`) - the one chokepoint both a manual status change and an
+import's own auto-follow go through. Never sent to a marketplace.
 
 `sales_report_overrides` (added by `a2f4c8e1b937`): an operator's manual include/exclude decision
 on one order for the non-invoiced sales report (`API.md`, "Non-invoiced sales report, ported"),

@@ -485,6 +485,18 @@ read-only, it is never sent to a marketplace and no import touches it. It is in
 `GET /orders/{id}` only, not in the list. The status history and `updated_at` are
 untouched, and an order that is deleted can still be noted. `404` for an unknown id.
 
+### Packing progress, per line
+
+`PATCH /api/v1/orders/{id}/items/{position}/packing` records how many of one line an operator
+has physically gathered into the parcel so far - their own use, shared across every computer,
+never sent to a marketplace (`docs/DECISIONS.md`, "Packing progress, per line"). Body:
+`{"quantity": 5}`. `position` is the item's own `position` (its line order, in `GET
+/orders/{id}`'s `items`), not its `id`: stable across a re-import, which replaces every item row
+wholesale. `422` when `quantity` is negative or more than that line's own `quantity`; `404` for
+an unknown order or an unknown position. Returns the order with its details, `packed_quantity`
+set on the changed item (0 on every item until set). Cleared automatically once the order reaches
+`SHIPPED`, `DELIVERED` or `CANCELLED`, whether by an operator or an import moving it there.
+
 ### Deleting an order
 
 `DELETE /api/v1/orders/{id}` takes an order out of the application without

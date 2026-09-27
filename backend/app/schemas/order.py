@@ -84,6 +84,12 @@ class OrderItemCreate(BaseModel):
 
 class OrderItemRead(OrderItemCreate):
     id: uuid.UUID
+    # the marketplace's own line order, and what a packing PATCH names the item by
+    # (app/models/order.py, OrderItemPacking): stable across a re-import, unlike `id`
+    position: int
+    # how many of `quantity` an operator has gathered into the parcel so far; 0 until they
+    # mark any. Never sent to a marketplace, cleared once the order ships (`DECISIONS.md`)
+    packed_quantity: int = 0
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -239,6 +245,13 @@ class OrderMarksUpdate(BaseModel):
     flagged: bool | None = None
 
 
+class OrderItemPackingUpdate(BaseModel):
+    """How many of one line an operator has gathered so far; checked against that line's
+    own `quantity` where this is applied, not here."""
+
+    quantity: int = Field(ge=0)
+
+
 class OrderRead(OrderBase):
     id: uuid.UUID
     # Anvero's own number, continuous across sources and never reused
@@ -309,6 +322,7 @@ class OrderDetailRead(OrderRead, OrderDetails):
             or order.pickup_point_name
             or order.address(AddressType.PICKUP_POINT) is not None
         )
+        packed_by_position = {row.position: row.packed_quantity for row in order.packing}
         return cls(
             **base.model_dump(),
             customer=Customer(
@@ -318,7 +332,12 @@ class OrderDetailRead(OrderRead, OrderDetails):
                 company_name=order.customer_company_name,
                 phone=order.customer_phone,
             ),
-            items=[OrderItemRead.model_validate(item) for item in order.items],
+            items=[
+                OrderItemRead.model_validate(item).model_copy(
+                    update={"packed_quantity": packed_by_position.get(item.position, 0)}
+                )
+                for item in order.items
+            ],
             delivery=Delivery(
                 method=order.delivery_method,
                 cost=order.delivery_cost,

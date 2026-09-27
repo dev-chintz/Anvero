@@ -1576,3 +1576,30 @@ address, phone or e-mail (`ROADMAP.md`, "GDPR (RODO): to do").
 **Rationale:** The buyer's name is more identifying than the login the export carried until now, and the owner asked for it as the new default anyway — the owner's call to make as the report's data controller, not something to withhold on Anvero's own initiative. The picker still flags the more identifying fields (name, e-mail, phone, address) so choosing them stays a conscious act, and every other field (login, NIP, company name, amounts, the report's own classification) is available but off by default.
 
 **Consequences:** The export's personal data is now the owner's own choice per column, not fixed to a login. The chosen columns are remembered in the browser (`localStorage`, `salesReport.exportColumns`), not on the server — a per-operator, per-machine convenience, on or off with its own checkbox. Amounts in the CSV use a comma decimal separator (`62,69`), matching what the accountant already received. Excel and PDF exports, once built, take the same `columns` choice.
+
+
+## 2026-09-27 — Packing progress, per line
+
+**Decision (owner, from mockup F3):** Mark, on the order's own page, how many of each line an
+operator has physically gathered into the parcel for that order - not the "to make" queue
+(`production_checks`, per-product across every order, deliberately silent on which order a
+finished piece goes to), a separate concern: an order is often assembled from a partly-ready
+basket, waiting on the rest. A stepper per line ("N / M"), a card-level progress bar and a
+summary ("2 of 4 items packed · 26 of 31 pcs"); a fully packed line is dimmed with a checkmark.
+Shared across every computer (`order_item_packing`, `PATCH /orders/{id}/items/{position}/packing`),
+the same reasoning as the "to make" list: someone else, or another machine, may finish the order.
+
+**Rationale:** Kept by `(order_id, position)`, never `order_items.id`: a re-import replaces every
+item row of an order wholesale even when nothing about the item changed
+(`app/services/order_details.py`), so keying by the item's own id would silently wipe an
+operator's progress on the very next scheduled sync (every 15 minutes by default). `position` is
+the marketplace's own line order and survives a re-import of the same order. Cleared once the
+order reaches `SHIPPED`, `DELIVERED` or `CANCELLED`: packing an order that has already gone is
+moot, whether an operator moved it there by hand or an import's own auto-follow did - both funnel
+through the one chokepoint, `OrderRepository.update_status`, so a single clause there covers both.
+
+**Consequences:** New table `order_item_packing` (migration `b4e6f9c2a831`); run
+`alembic upgrade head`. `GET /orders/{id}` now carries `position` and `packed_quantity` on every
+item; the on-screen order list is untouched. Never sent to a marketplace. A line the marketplace
+later reports at a different quantity keeps whatever was ticked, capped at the new quantity by
+`OrderService.set_item_packing`'s own validation on the next write, not retroactively.

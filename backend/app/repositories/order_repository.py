@@ -14,6 +14,7 @@ from app.models.order import (
     Order,
     OrderAddress,
     OrderItem,
+    OrderItemPacking,
     OrderShipment,
     OrderSource,
     OrderStatus,
@@ -21,6 +22,10 @@ from app.models.order import (
     PaymentType,
     Payout,
 )
+
+# packing an order that has reached any of these is moot, whether an operator moved it there
+# by hand or a sync did (OrderItemPacking's own docstring)
+PACKING_CLEARED_AT = (OrderStatus.SHIPPED, OrderStatus.DELIVERED, OrderStatus.CANCELLED)
 from app.schemas.order import BillingEntryCreate, PayoutCreate
 
 PENDING_STATUSES = (OrderStatus.NEW, OrderStatus.CONFIRMED, OrderStatus.READY_FOR_SHIPMENT)
@@ -231,6 +236,24 @@ class OrderRepository:
         order.status_changed_at = self._to_db_datetime(datetime.now(UTC))
         if changed_by_user_id is not None:
             order.status_set_at = self._to_db_datetime(datetime.now(UTC))
+        if status in PACKING_CLEARED_AT:
+            self.db.query(OrderItemPacking).filter(OrderItemPacking.order_id == order.id).delete()
+        self.db.commit()
+        self.db.refresh(order)
+        return order
+
+    def set_item_packing(
+        self, order: Order, position: int, quantity: int, changed_by_user_id: int | None
+    ) -> Order:
+        """How many of the line at `position` are gathered so far; the operator's own
+        progress, kept by position rather than the item's own id (`OrderItemPacking`)."""
+        row = next((p for p in order.packing if p.position == position), None)
+        if row is None:
+            row = OrderItemPacking(order_id=order.id, position=position, packed_quantity=quantity)
+            self.db.add(row)
+        else:
+            row.packed_quantity = quantity
+        row.updated_by_user_id = changed_by_user_id
         self.db.commit()
         self.db.refresh(order)
         return order

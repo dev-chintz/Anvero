@@ -126,6 +126,69 @@
   gap: 0.5rem;
 }
 
+/* Packing progress: how many of each line an operator has gathered into the parcel so far
+   (OrderItemsCard in OrderDetailsPanel.tsx). Own use, never sent to a marketplace. */
+.order-packing-track {
+  height: 6px;
+  border-radius: 999px;
+  background: var(--tone-blue-bg);
+  overflow: hidden;
+  margin-bottom: 0.4rem;
+}
+
+.order-packing-fill {
+  height: 100%;
+  background: var(--color-accent);
+  transition: width 0.2s ease;
+}
+
+.order-packing-summary {
+  margin: 0 0 0.75rem;
+  font-size: 0.8rem;
+  color: var(--color-muted);
+}
+
+.order-item-packed {
+  opacity: 0.55;
+}
+
+.packing-stepper {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  padding: 0.15rem 0.5rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--color-text);
+  white-space: nowrap;
+}
+
+.packing-stepper.is-done {
+  background: var(--tone-green-bg);
+  border-color: var(--tone-green-fg);
+  color: var(--tone-green-fg);
+}
+
+.packing-stepper button {
+  width: 1.3rem;
+  height: 1.3rem;
+  padding: 0;
+  line-height: 1;
+  border-radius: 999px;
+}
+
+.packing-stepper button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.packing-check {
+  color: var(--tone-green-fg);
+  font-weight: 700;
+}
+
 /* The enlarged picture on hover is ItemThumb's, drawn on the page itself: scaled
    in place here, .order-items-scroll's overflow cut it off. */
 .item-thumb {

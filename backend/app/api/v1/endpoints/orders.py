@@ -17,6 +17,7 @@ from app.schemas.order import (
     OrderChangeResult,
     OrderCreate,
     OrderDetailRead,
+    OrderItemPackingUpdate,
     OrderListResponse,
     OrderMarksUpdate,
     OrderNoteUpdate,
@@ -198,6 +199,23 @@ def update_order_note(order_id: uuid.UUID, payload: OrderNoteUpdate, db: Session
     never touches it. An order that is deleted can still be noted."""
     service = OrderService(OrderRepository(db))
     return OrderDetailRead.from_order(service.set_internal_note(order_id, payload.note))
+
+
+@router.patch("/{order_id}/items/{position}/packing", response_model=OrderDetailRead)
+def update_item_packing(
+    order_id: uuid.UUID,
+    position: int,
+    payload: OrderItemPackingUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """How many of this line an operator has gathered into the parcel so far - their own
+    progress, shared across every computer, never sent to a marketplace. Cleared once the
+    order ships (`docs/DECISIONS.md`, "Packing progress, per line")."""
+    service = OrderService(OrderRepository(db))
+    return OrderDetailRead.from_order(
+        service.set_item_packing(order_id, position, payload.quantity, current_user.id)
+    )
 
 
 @router.delete("/{order_id}", response_model=OrderDetailRead)

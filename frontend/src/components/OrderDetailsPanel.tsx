@@ -136,10 +136,22 @@ function PaymentState({ order }: { order: OrderWithDetails }) {
   );
 }
 
-/** What was bought, with its prices and the order's total. */
-export function OrderItemsCard({ order }: { order: OrderWithDetails }) {
+/**
+ * What was bought, with its prices, the order's total, and each line's packing progress: how
+ * many an operator has physically gathered into the parcel so far - their own use, shared
+ * across every computer, never sent to a marketplace (`docs/DECISIONS.md`, "Packing progress,
+ * per line"). Cleared once the order ships, so a new order always starts unpacked.
+ */
+export function OrderItemsCard({
+  order,
+  onPackingChange,
+}: {
+  order: OrderWithDetails;
+  onPackingChange: (position: number, quantity: number) => Promise<void>;
+}) {
   const { delivery, currency } = order;
   const { t } = useTranslation();
+  const [saving, setSaving] = useState<number | null>(null);
 
   const itemsCents = order.items.reduce(
     (sum, item) => sum + toCents(item.unit_price) * item.quantity,
@@ -147,82 +159,136 @@ export function OrderItemsCard({ order }: { order: OrderWithDetails }) {
   );
   const deliveryCents = delivery.cost === null ? null : toCents(delivery.cost);
 
+  const totalQty = order.items.reduce((sum, item) => sum + item.quantity, 0);
+  const totalPacked = order.items.reduce(
+    (sum, item) => sum + Math.min(item.packed_quantity, item.quantity),
+    0,
+  );
+  const doneItems = order.items.filter((item) => item.packed_quantity >= item.quantity).length;
+  const packingProgress = totalQty > 0 ? Math.round((totalPacked / totalQty) * 100) : 0;
+
+  const changePacking = async (position: number, quantity: number) => {
+    setSaving(position);
+    try {
+      await onPackingChange(position, quantity);
+    } finally {
+      setSaving(null);
+    }
+  };
+
   return (
     <section className="order-card order-items" aria-label={t("details.items")}>
       <h2>{t("details.items")}</h2>
       {order.items.length === 0 ? (
         <p className="order-muted">{t("details.noItems")}</p>
       ) : (
-        <div className="order-items-scroll">
-          <table>
-            <thead>
-              <tr>
-                <th scope="col">{t("details.product")}</th>
-                <th scope="col" className="numeric">
-                  {t("details.qty")}
-                </th>
-                <th scope="col" className="numeric">
-                  {t("details.unitPrice", { currency })}
-                </th>
-                <th scope="col" className="numeric">
-                  {t("details.total", { currency })}
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {order.items.map((item) => {
-                const nameAndSku = (
-                  <span>
-                    {item.name}
-                    {item.sku && <span className="order-item-sku">{t("details.sku", { sku: item.sku })}</span>}
-                  </span>
-                );
-                return (
-                <tr key={item.id}>
-                  <td>
-                    <div className="item-name-cell">
-                      {item.image_url ? (
-                        <ItemThumb src={item.image_url} className="item-thumb">
-                          {nameAndSku}
-                        </ItemThumb>
-                      ) : (
-                        nameAndSku
-                      )}
-                    </div>
-                  </td>
-                  <td className="numeric">{item.quantity}</td>
-                  <td className="numeric">{formatCents(toCents(item.unit_price))}</td>
-                  <td className="numeric">
-                    {formatCents(toCents(item.unit_price) * item.quantity)}
-                  </td>
+        <>
+          <div className="order-packing-track" role="progressbar" aria-valuenow={packingProgress} aria-valuemin={0} aria-valuemax={100}>
+            <div className="order-packing-fill" style={{ width: `${packingProgress}%` }} />
+          </div>
+          <p className="order-packing-summary">
+            {t("details.packingSummary", { done: doneItems, of: order.items.length, packed: totalPacked, total: totalQty })}
+          </p>
+          <div className="order-items-scroll">
+            <table>
+              <thead>
+                <tr>
+                  <th scope="col">{t("details.product")}</th>
+                  <th scope="col" className="numeric">
+                    {t("details.qty")}
+                  </th>
+                  <th scope="col" className="numeric">
+                    {t("details.unitPrice", { currency })}
+                  </th>
+                  <th scope="col" className="numeric">
+                    {t("details.total", { currency })}
+                  </th>
+                  <th scope="col" className="numeric">
+                    {t("details.packed")}
+                  </th>
                 </tr>
-                );
-              })}
-            </tbody>
-            <tfoot>
-              <tr>
-                <th scope="row" colSpan={3}>
-                  {t("details.itemsRow")}
-                </th>
-                <td className="numeric">{formatCents(itemsCents)}</td>
-              </tr>
-              {deliveryCents !== null && (
+              </thead>
+              <tbody>
+                {order.items.map((item) => {
+                  const nameAndSku = (
+                    <span>
+                      {item.name}
+                      {item.sku && <span className="order-item-sku">{t("details.sku", { sku: item.sku })}</span>}
+                    </span>
+                  );
+                  const done = item.packed_quantity >= item.quantity;
+                  return (
+                    <tr key={item.id} className={done ? "order-item-packed" : undefined}>
+                      <td>
+                        <div className="item-name-cell">
+                          {item.image_url ? (
+                            <ItemThumb src={item.image_url} className="item-thumb">
+                              {nameAndSku}
+                            </ItemThumb>
+                          ) : (
+                            nameAndSku
+                          )}
+                        </div>
+                      </td>
+                      <td className="numeric">{item.quantity}</td>
+                      <td className="numeric">{formatCents(toCents(item.unit_price))}</td>
+                      <td className="numeric">
+                        {formatCents(toCents(item.unit_price) * item.quantity)}
+                      </td>
+                      <td className="numeric">
+                        <span className={`packing-stepper${done ? " is-done" : ""}`}>
+                          <button
+                            type="button"
+                            onClick={() => changePacking(item.position, Math.max(0, item.packed_quantity - 1))}
+                            disabled={saving === item.position || item.packed_quantity <= 0}
+                            aria-label={t("details.packingLess")}
+                          >
+                            −
+                          </button>
+                          {item.packed_quantity} / {item.quantity}
+                          {done && <span className="packing-check">✓</span>}
+                          <button
+                            type="button"
+                            onClick={() => changePacking(item.position, Math.min(item.quantity, item.packed_quantity + 1))}
+                            disabled={saving === item.position || item.packed_quantity >= item.quantity}
+                            aria-label={t("details.packingMore")}
+                          >
+                            +
+                          </button>
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+              <tfoot>
                 <tr>
                   <th scope="row" colSpan={3}>
-                    {t("details.delivery")}
+                    {t("details.itemsRow")}
                   </th>
-                  <td className="numeric">{formatCents(deliveryCents)}</td>
+                  <td className="numeric">{formatCents(itemsCents)}</td>
+                  <td />
                 </tr>
-              )}
-              <tr className="order-items-total">
-                <th scope="row" colSpan={3}>
-                  {t("details.orderTotal")}
-                </th>
-                <td className="numeric">{formatCents(toCents(order.total_amount))}</td>
-              </tr>
-            </tfoot>
-          </table>
-        </div>
+                {deliveryCents !== null && (
+                  <tr>
+                    <th scope="row" colSpan={3}>
+                      {t("details.delivery")}
+                    </th>
+                    <td className="numeric">{formatCents(deliveryCents)}</td>
+                    <td />
+                  </tr>
+                )}
+                <tr className="order-items-total">
+                  <th scope="row" colSpan={3}>
+                    {t("details.orderTotal")}
+                  </th>
+                  <td className="numeric">{formatCents(toCents(order.total_amount))}</td>
+                  <td />
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        </>
       )}
     </section>
   );

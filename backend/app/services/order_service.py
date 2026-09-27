@@ -148,6 +148,24 @@ class OrderService:
         """
         return self.repository.set_internal_note(self.get_order(order_id), note)
 
+    def set_item_packing(self, order_id: uuid.UUID, position: int, quantity: int, changed_by_user_id: int | None) -> Order:
+        """How many of the line at `position` an operator has gathered so far.
+
+        Raises:
+            HTTPException: 404 if no order, or no line at that position, exists.
+            HTTPException: 422 if `quantity` is negative or more than that line ordered.
+        """
+        order = self.get_order(order_id)
+        item = next((i for i in order.items if i.position == position), None)
+        if item is None:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No item at that position")
+        if quantity < 0 or quantity > item.quantity:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail=f"quantity must be between 0 and {item.quantity}",
+            )
+        return self.repository.set_item_packing(order, position, quantity, changed_by_user_id)
+
     def restore_order(self, order_id: uuid.UUID) -> Order:
         """Put a deleted order back in the lists. One in use is left as it is."""
         order = self.get_order(order_id)
