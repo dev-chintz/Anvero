@@ -1,18 +1,50 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
-import { describe, expect, it, vi } from "vitest";
-import type { SalesReportList, SalesReportRow } from "../api/client";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { SalesReportColumnList, SalesReportList, SalesReportRow } from "../api/client";
 import { OrderSource } from "../types/order";
 
 vi.mock("../api/client", async () => {
   const actual = await vi.importActual<typeof import("../api/client")>("../api/client");
   return {
     ...actual,
-    salesReportApi: { orders: vi.fn(), exportCsv: vi.fn(), setOverride: vi.fn(), clearOverride: vi.fn() },
+    salesReportApi: {
+      orders: vi.fn(),
+      exportCsv: vi.fn(),
+      setOverride: vi.fn(),
+      clearOverride: vi.fn(),
+      columns: vi.fn(),
+    },
   };
 });
 const { salesReportApi } = await import("../api/client");
 const { SalesReportPage } = await import("./SalesReportPage");
+
+function columnList(): SalesReportColumnList {
+  return {
+    default: ["lp", "ordered_at", "customer_name", "amount_paid"],
+    items: [
+      { key: "order_label", label: "Numer zamówienia" },
+      { key: "order_external_id", label: "Numer u marketplace'u" },
+      { key: "source", label: "Źródło" },
+      { key: "ordered_at", label: "Data zamówienia" },
+      { key: "customer_login", label: "Login" },
+      { key: "customer_name", label: "Imię i nazwisko" },
+      { key: "customer_email", label: "E-mail" },
+      { key: "customer_phone", label: "Telefon" },
+      { key: "invoice_company_name", label: "Nazwa firmy" },
+      { key: "invoice_tax_id", label: "NIP" },
+      { key: "invoice_address", label: "Adres" },
+      { key: "amount_total", label: "Kwota zamówienia (razem)" },
+      { key: "amount_paid", label: "Kwota zapłacona" },
+      { key: "currency", label: "Waluta" },
+      { key: "category", label: "Kategoria" },
+      { key: "included", label: "Uwzględnione" },
+      { key: "reason", label: "Powód" },
+      { key: "rule_id", label: "Reguła" },
+    ],
+  };
+}
 
 function row(overrides: Partial<SalesReportRow> = {}): SalesReportRow {
   return {
@@ -57,6 +89,11 @@ const renderPage = () =>
   );
 
 describe("SalesReportPage", () => {
+  beforeEach(() => {
+    localStorage.clear();
+    vi.mocked(salesReportApi.columns).mockResolvedValue(columnList());
+  });
+
   it("shows the summary and the rows, buyer login only", async () => {
     vi.mocked(salesReportApi.orders).mockResolvedValue(list([row()]));
     renderPage();
@@ -105,7 +142,7 @@ describe("SalesReportPage", () => {
     await waitFor(() => expect(salesReportApi.clearOverride).toHaveBeenCalledWith(OrderSource.ALLEGRO, "ext-1"));
   });
 
-  it("exports a CSV for the current period", async () => {
+  it("opens the column picker, defaulting to Lp./date/name/paid amount, and exports that choice", async () => {
     vi.mocked(salesReportApi.orders).mockResolvedValue(list([row()]));
     vi.mocked(salesReportApi.exportCsv).mockResolvedValue(new Blob(["a,b"], { type: "text/csv" }));
     URL.createObjectURL = vi.fn(() => "blob:csv");
@@ -114,7 +151,50 @@ describe("SalesReportPage", () => {
 
     await screen.findByText("AN-000231");
     fireEvent.click(screen.getByRole("button", { name: "CSV" }));
+
+    const dialog = await screen.findByRole("dialog");
+    expect(within(dialog).getAllByText("Data zamówienia").length).toBeGreaterThan(0);
+    expect(within(dialog).getAllByText("Imię i nazwisko").length).toBeGreaterThan(0);
+    expect(within(dialog).getAllByText("Kwota zapłacona").length).toBeGreaterThan(0);
+    // more identifying fields are flagged, not hidden
+    expect(within(dialog).getAllByText("personal data").length).toBeGreaterThan(0);
+
+    fireEvent.click(within(dialog).getByRole("button", { name: "CSV" }));
     await waitFor(() => expect(salesReportApi.exportCsv).toHaveBeenCalled());
+    const call = vi.mocked(salesReportApi.exportCsv).mock.calls[0];
+    expect(call[3]).toEqual(["lp", "ordered_at", "customer_name", "amount_paid"]);
+  });
+
+  it("lets an operator add and reorder a column, then remembers the choice", async () => {
+    vi.mocked(salesReportApi.orders).mockResolvedValue(list([row()]));
+    renderPage();
+
+    await screen.findByText("AN-000231");
+    fireEvent.click(screen.getByRole("button", { name: "CSV" }));
+    const dialog = await screen.findByRole("dialog");
+
+    fireEvent.click(within(dialog).getByLabelText("NIP"));
+    let stored = JSON.parse(localStorage.getItem("salesReport.exportColumns") ?? "[]");
+    expect(stored).toEqual(["ordered_at", "customer_name", "amount_paid", "invoice_tax_id"]);
+
+    const nipRow = within(dialog).getByLabelText("NIP").closest(".export-field-row") as HTMLElement;
+    fireEvent.click(within(nipRow).getByRole("button", { name: "Move up" }));
+    stored = JSON.parse(localStorage.getItem("salesReport.exportColumns") ?? "[]");
+    expect(stored).toEqual(["ordered_at", "customer_name", "invoice_tax_id", "amount_paid"]);
+  });
+
+  it("un-checking a default column drops it, and never touches Lp.", async () => {
+    vi.mocked(salesReportApi.orders).mockResolvedValue(list([row()]));
+    renderPage();
+
+    await screen.findByText("AN-000231");
+    fireEvent.click(screen.getByRole("button", { name: "CSV" }));
+    const dialog = await screen.findByRole("dialog");
+
+    expect(within(dialog).getByLabelText("No.")).toBeDisabled();
+    fireEvent.click(within(dialog).getByLabelText("Imię i nazwisko"));
+    const stored = JSON.parse(localStorage.getItem("salesReport.exportColumns") ?? "[]");
+    expect(stored).toEqual(["ordered_at", "amount_paid"]);
   });
 
   it("disables Excel and PDF, not built yet", async () => {

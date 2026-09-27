@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { ApiError, salesReportApi, type SalesReportList, type SalesReportRow } from '../api/client';
 import { downloadFile } from '../components/downloadFile';
+import { ExportColumnsDialog } from '../components/ExportColumnsDialog';
 import { useTranslation } from '../i18n';
 import { OrderSource } from '../types/order';
 import '../styles/SalesReportPage.css';
@@ -31,6 +32,7 @@ export function SalesReportPage() {
   const [error, setError] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [exporting, setExporting] = useState(false);
+  const [exportFormat, setExportFormat] = useState<'csv' | 'excel' | 'pdf' | null>(null);
 
   const load = () => {
     setError(null);
@@ -64,13 +66,15 @@ export function SalesReportPage() {
     }
   };
 
-  const exportCsv = async () => {
+  const runExport = async (format: 'csv' | 'excel' | 'pdf', columns: string[]) => {
+    if (format !== 'csv') return; // Excel and PDF are not built yet; the dialog keeps them disabled
     setExporting(true);
     try {
       await downloadFile(
-        () => salesReportApi.exportCsv(from, to, source || undefined),
+        () => salesReportApi.exportCsv(from, to, source || undefined, columns),
         `raport-bezrachunkowy-${from}-${to}.csv`,
       );
+      setExportFormat(null);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : t('error.network'));
     } finally {
@@ -141,7 +145,7 @@ export function SalesReportPage() {
           <div className="card-head">
             <h2>{from} – {to}</h2>
             <div className="sales-report-export">
-              <button type="button" onClick={exportCsv} disabled={exporting || !report?.items.length}>
+              <button type="button" onClick={() => setExportFormat('csv')} disabled={exporting || !report?.items.length}>
                 {t('salesReport.export.csv')}
               </button>
               <button type="button" disabled title={t('salesReport.export.notBuiltYet')}>
@@ -242,6 +246,10 @@ export function SalesReportPage() {
           </aside>
         )}
       </div>
+
+      {exportFormat && (
+        <ExportColumnsDialog initialFormat={exportFormat} onExport={runExport} onClose={() => setExportFormat(null)} />
+      )}
     </div>
   );
 }

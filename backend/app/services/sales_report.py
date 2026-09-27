@@ -177,6 +177,23 @@ class SalesReportService:
 
     def from_orders(self, date_from: date, date_to: date, source: OrderSource | None = None) -> SalesReportList:
         """Classify Anvero's own imported orders placed in the period; no CSV involved."""
+        pairs = self.classified_orders(date_from, date_to, source)
+        items = [row for _order, row in pairs]
+        summary = SalesReportSummary(
+            total=len(items),
+            retail=sum(1 for r in items if r.category is SalesReportCategory.RETAIL),
+            company=sum(1 for r in items if r.category is SalesReportCategory.COMPANY),
+            out_of_scope=sum(1 for r in items if r.category is SalesReportCategory.OUT_OF_SCOPE),
+            manual_review=sum(1 for r in items if r.category is SalesReportCategory.MANUAL_REVIEW),
+        )
+        return SalesReportList(date_from=date_from, date_to=date_to, summary=summary, items=items)
+
+    def classified_orders(
+        self, date_from: date, date_to: date, source: OrderSource | None = None
+    ) -> list[tuple[Order, SalesReportRow]]:
+        """The same classification as `from_orders`, paired with each order itself: what the CSV
+        export needs to fill columns `SalesReportRow` does not carry (a name, an e-mail, a NIP —
+        never in the JSON API's own row, kept to what the on-screen table needs)."""
         period_start = datetime.combine(date_from, time.min)
         period_end = datetime.combine(date_to, time.max)
 
@@ -191,7 +208,7 @@ class SalesReportService:
 
         overrides = self._overrides(source)
 
-        items: list[SalesReportRow] = []
+        pairs: list[tuple[Order, SalesReportRow]] = []
         for order in orders:
             invoice = order.address(AddressType.INVOICE)
             facts = OrderFacts(
@@ -225,34 +242,30 @@ class SalesReportService:
                 reason = override.note or ("Ręcznie uwzględnione mimo klasyfikacji" if included else "Ręcznie wykluczone mimo klasyfikacji")
                 overridden = True
 
-            items.append(
-                SalesReportRow(
-                    order_id=order.id,
-                    order_label=format_order_number(order.order_number),
-                    source=order.source,
-                    order_external_id=order.external_id,
-                    ordered_at=order.ordered_at,
-                    buyer_login=order.customer_login,
-                    amount=order.total_amount,
-                    currency=order.currency,
-                    category=category,
-                    included=included,
-                    reason=reason,
-                    rule_id=rule_id,
-                    overridden=overridden,
-                    override_note=override.note if override is not None else None,
+            pairs.append(
+                (
+                    order,
+                    SalesReportRow(
+                        order_id=order.id,
+                        order_label=format_order_number(order.order_number),
+                        source=order.source,
+                        order_external_id=order.external_id,
+                        ordered_at=order.ordered_at,
+                        buyer_login=order.customer_login,
+                        amount=order.total_amount,
+                        currency=order.currency,
+                        category=category,
+                        included=included,
+                        reason=reason,
+                        rule_id=rule_id,
+                        overridden=overridden,
+                        override_note=override.note if override is not None else None,
+                    ),
                 )
             )
 
-        items.sort(key=lambda row: row.ordered_at, reverse=True)
-        summary = SalesReportSummary(
-            total=len(items),
-            retail=sum(1 for r in items if r.category is SalesReportCategory.RETAIL),
-            company=sum(1 for r in items if r.category is SalesReportCategory.COMPANY),
-            out_of_scope=sum(1 for r in items if r.category is SalesReportCategory.OUT_OF_SCOPE),
-            manual_review=sum(1 for r in items if r.category is SalesReportCategory.MANUAL_REVIEW),
-        )
-        return SalesReportList(date_from=date_from, date_to=date_to, summary=summary, items=items)
+        pairs.sort(key=lambda pair: pair[1].ordered_at, reverse=True)
+        return pairs
 
     def set_override(self, source: OrderSource, order_external_id: str, included: bool, note: str | None, user_id: int | None) -> None:
         existing = self.db.execute(

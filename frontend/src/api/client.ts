@@ -1128,6 +1128,16 @@ export interface SalesReportList {
   items: SalesReportRow[];
 }
 
+export interface SalesReportColumn {
+  key: string;
+  label: string;
+}
+
+export interface SalesReportColumnList {
+  items: SalesReportColumn[];
+  default: string[];
+}
+
 export const salesReportApi = {
   orders(dateFrom: string, dateTo: string, source?: OrderSource): Promise<SalesReportList> {
     const query = new URLSearchParams({ date_from: dateFrom, date_to: dateTo });
@@ -1135,9 +1145,15 @@ export const salesReportApi = {
     return request<SalesReportList>(`/sales-report/orders?${query.toString()}`);
   },
 
-  exportCsv(dateFrom: string, dateTo: string, source?: OrderSource): Promise<Blob> {
+  /** Every column the export can be built from, and the owner's own default set. */
+  columns(): Promise<SalesReportColumnList> {
+    return request<SalesReportColumnList>("/sales-report/columns");
+  },
+
+  exportCsv(dateFrom: string, dateTo: string, source?: OrderSource, columns?: string[]): Promise<Blob> {
     const query = new URLSearchParams({ date_from: dateFrom, date_to: dateTo, format: "csv" });
     if (source) query.set("source", source);
+    if (columns && columns.length) query.set("columns", columns.join(","));
     return request<Blob>(`/sales-report/orders/export?${query.toString()}`, { blob: true });
   },
 

@@ -2,16 +2,25 @@
 
 from datetime import date
 
-from fastapi import APIRouter, Depends, HTTPException, Response
+from fastapi import APIRouter, Depends, HTTPException, Query, Response
 from sqlalchemy.orm import Session
 
 from app.core.security import get_current_user
 from app.db.session import get_db
 from app.models.order import OrderSource
 from app.models.user import User
-from app.schemas.sales_report import SalesReportList, SalesReportOverrideIn
+from app.schemas.sales_report import (
+    SalesReportColumnList,
+    SalesReportList,
+    SalesReportOverrideIn,
+)
 from app.services.sales_report import SalesReportService
-from app.services.sales_report_export import to_csv
+from app.services.sales_report_export import (
+    COLUMNS,
+    DEFAULT_COLUMNS,
+    resolve_columns,
+    to_csv,
+)
 
 router = APIRouter(prefix="/sales-report", tags=["Sales report"], dependencies=[Depends(get_current_user)])
 
@@ -34,15 +43,37 @@ def orders(date_from: date, date_to: date, source: OrderSource | None = None, db
     return SalesReportService(db).from_orders(date_from, date_to, source)
 
 
+@router.get("/columns", response_model=SalesReportColumnList)
+def columns():
+    """Every column the export can be built from, in the order the picker groups them, and the
+    default set (`docs/DECISIONS.md`, "Export columns, chosen by the owner")."""
+    return SalesReportColumnList(
+        items=[{"key": c.key, "label": c.label} for c in COLUMNS.values()],
+        default=DEFAULT_COLUMNS,
+    )
+
+
 @router.get("/orders/export")
-def export(date_from: date, date_to: date, source: OrderSource | None = None, format: str = "csv", db: Session = Depends(get_db)):
+def export(
+    date_from: date,
+    date_to: date,
+    source: OrderSource | None = None,
+    format: str = "csv",
+    columns: str | None = Query(default=None, description="Comma-separated column keys, in order; the default set when omitted"),
+    db: Session = Depends(get_db),
+):
     date_from, date_to = _period(date_from, date_to)
     if format != "csv":
         # Excel and PDF are not built yet (ROADMAP.md); say so rather than silently giving CSV
         raise HTTPException(status_code=422, detail="Only format=csv is available so far")
-    report = SalesReportService(db).from_orders(date_from, date_to, source)
+    chosen = [key for key in columns.split(",") if key] if columns else None
+    try:
+        resolved = resolve_columns(chosen)
+    except KeyError as exc:
+        raise HTTPException(status_code=422, detail=f"Unknown export column: {exc.args[0]}") from exc
+    pairs = SalesReportService(db).classified_orders(date_from, date_to, source)
     return Response(
-        content=to_csv(report),
+        content=to_csv(pairs, resolved),
         media_type="text/csv",
         headers={"Content-Disposition": f'attachment; filename="raport-bezrachunkowy-{date_from}-{date_to}.csv"'},
     )

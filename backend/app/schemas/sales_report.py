@@ -31,9 +31,9 @@ class SalesReportRow(BaseModel):
     source: OrderSource
     order_external_id: str
     ordered_at: datetime
-    # the buyer's login only, never their name, address or phone: enough for accounting to trace
-    # the order back on the marketplace, without the report carrying more personal data than it
-    # needs (`ROADMAP.md`, "GDPR (RODO): to do", point 4)
+    # the buyer's login only, never their name, address or phone: enough for the on-screen table
+    # to trace the order back on the marketplace. The export carries more, but only what the
+    # owner chose to include (`docs/DECISIONS.md`, "Export columns, chosen by the owner")
     buyer_login: str | None = None
     amount: Decimal
     currency: str
@@ -68,3 +68,17 @@ class SalesReportList(BaseModel):
 class SalesReportOverrideIn(BaseModel):
     included: bool
     note: str | None = None
+
+
+class SalesReportColumn(BaseModel):
+    key: str
+    label: str
+
+
+class SalesReportColumnList(BaseModel):
+    """Every column the CSV export can be built from, for the column picker; `default` is the
+    owner's own set, used when a request chooses none (`docs/DECISIONS.md`, "Export columns,
+    chosen by the owner")."""
+
+    items: list[SalesReportColumn]
+    default: list[str]

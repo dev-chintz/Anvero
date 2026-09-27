@@ -1,5 +1,6 @@
 """The non-invoiced sales report endpoints: reading Anvero's own orders, overriding one, exporting."""
 
+import csv
 import uuid
 from datetime import UTC, datetime
 from decimal import Decimal
@@ -201,35 +202,77 @@ def test_clearing_an_override_returns_to_the_automatic_decision():
     assert row["included"] is False
 
 
-def test_export_returns_a_utf8_bom_csv_with_a_guarded_buyer_login():
-    # a login starting with "=" must not be readable as a spreadsheet formula
+def _order_with_person(first_name: str, last_name: str, paid: str = "50.00", total: str = "50.00") -> str:
     db = TestingSessionLocal()
     try:
-        order = Order(
-            external_id=f"form-{uuid.uuid4()}",
-            source=OrderSource.ALLEGRO,
-            status=OrderStatus.CONFIRMED,
-            customer_email="buyer@example.com",
-            customer_login="=cmd|'/c calc'!A1",
-            total_amount=Decimal("50.00"),
-            paid_amount=Decimal("50.00"),
-            currency="PLN",
-            ordered_at=datetime(2026, 6, 15, tzinfo=UTC),
-            marketplace_status_label="SENT",
+        external_id = f"form-{uuid.uuid4()}"
+        db.add(
+            Order(
+                external_id=external_id,
+                source=OrderSource.ALLEGRO,
+                status=OrderStatus.CONFIRMED,
+                customer_email="buyer@example.com",
+                customer_login="buyer1",
+                customer_first_name=first_name,
+                customer_last_name=last_name,
+                total_amount=Decimal(total),
+                paid_amount=Decimal(paid),
+                currency="PLN",
+                ordered_at=datetime(2026, 6, 15, tzinfo=UTC),
+                marketplace_status_label="SENT",
+            )
         )
-        db.add(order)
         db.commit()
+        return external_id
     finally:
         db.close()
 
+
+def test_export_default_columns_are_lp_date_name_amount_paid():
+    _order_with_person("Jan", "Kowalski", paid="45.50", total="50.00")
     response = client.get("/api/v1/sales-report/orders/export", params={**JUNE, "format": "csv"})
     assert response.status_code == 200
     assert response.headers["content-type"].startswith("text/csv")
     assert response.content.startswith(b"\xef\xbb\xbf")
+    rows = list(csv.reader(response.content.decode("utf-8-sig").splitlines()))
+    assert rows[0] == ["Lp.", "Data zamówienia", "Imię i nazwisko", "Kwota zapłacona"]
+    # the amount actually paid, comma decimal separator, not the amount due
+    assert rows[1] == ["1", "15.06.2026", "Jan Kowalski", "45,50"]
+
+
+def test_export_a_name_starting_with_a_formula_character_is_guarded():
+    _order_with_person("=cmd|'/c calc'!A1", "Kowalski")
+    response = client.get("/api/v1/sales-report/orders/export", params={**JUNE, "format": "csv"})
     text = response.content.decode("utf-8-sig")
     assert "'=cmd" in text
+
+
+def test_export_accepts_a_chosen_column_set_and_order():
+    external_id = _order_with_person("Jan", "Kowalski")
+    response = client.get(
+        "/api/v1/sales-report/orders/export",
+        params={**JUNE, "format": "csv", "columns": "order_external_id,customer_login,amount_total,currency"},
+    )
+    rows = list(csv.reader(response.content.decode("utf-8-sig").splitlines()))
+    assert rows[0] == ["Numer u marketplace'u", "Login", "Kwota zamówienia (razem)", "Waluta"]
+    assert rows[1] == [external_id, "buyer1", "50,00", "PLN"]
+
+
+def test_export_refuses_an_unknown_column():
+    response = client.get("/api/v1/sales-report/orders/export", params={**JUNE, "format": "csv", "columns": "made_up"})
+    assert response.status_code == 422
 
 
 def test_export_refuses_a_format_not_built_yet():
     response = client.get("/api/v1/sales-report/orders/export", params={**JUNE, "format": "xlsx"})
     assert response.status_code == 422
+
+
+def test_columns_catalog_lists_every_column_and_the_default_set():
+    response = client.get("/api/v1/sales-report/columns")
+    assert response.status_code == 200
+    body = response.json()
+    keys = [item["key"] for item in body["items"]]
+    assert "customer_name" in keys
+    assert "amount_paid" in keys
+    assert body["default"] == ["lp", "ordered_at", "customer_name", "amount_paid"]

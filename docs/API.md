@@ -73,7 +73,8 @@ are days in the business timezone, `BUSINESS_TIMEZONE`, default
 | `GET` | `/api/v1/finance/orders` | the orders placed in a period, each with every fee booked for it, by kind |
 | `GET` | `/api/v1/finance/products` | each product sold in a period with its share of its orders' fees |
 | `GET` | `/api/v1/sales-report/orders` | Anvero's own orders in a period, classified for the non-invoiced sales report |
-| `GET` | `/api/v1/sales-report/orders/export` | the same, as a CSV file |
+| `GET` | `/api/v1/sales-report/orders/export` | the same, as a CSV file, with the columns and order chosen |
+| `GET` | `/api/v1/sales-report/columns` | every export column available, and the default set |
 | `PUT` | `/api/v1/sales-report/orders/{source}/{order_external_id}/override` | an operator's manual include/exclude decision on one order |
 | `DELETE` | `/api/v1/sales-report/orders/{source}/{order_external_id}/override` | back to the automatic decision |
 | `GET` | `/api/v1/orders/{id}/after-sales` | the cases on one order, open or not, newest first |
@@ -903,10 +904,28 @@ kept by marketplace and its own order id so it survives a re-import; `DELETE` re
 override cannot reach a row `INV-001` excluded: the row's `category` and `rule_id` stay the
 automatic ones even after an override, only `included` and `overridden` change.
 
-`/export?format=csv` (only `csv` today; another value is `422`) is the same rows as a UTF-8 file
-with a BOM, a value that would open as a spreadsheet formula (`=`, `+`, `@`, a leading `-`)
-prefixed with `'`. Only order, source, date, buyer login, amount, category, inclusion, reason and
-rule id: no address, phone or e-mail.
+`/export?format=csv` (only `csv` today; another value is `422`) is a UTF-8 file with a BOM, a
+value that would open as a spreadsheet formula (`=`, `+`, `@`, a leading `-`) prefixed with `'`,
+amounts with a comma decimal separator (`62,69`, matching the accountant's own earlier report,
+`DECISIONS.md`, "Export columns, chosen by the owner"). It takes `columns`, comma-separated keys
+in order (an unknown key is `422`); without it, the default is `lp,ordered_at,customer_name,
+amount_paid` — a running number, the order's date, the buyer's name and the amount actually paid.
+
+## `GET /api/v1/sales-report/columns`
+
+Every column the export can be built from, and the default set, for the column picker:
+
+```json
+{"default": ["lp", "ordered_at", "customer_name", "amount_paid"],
+ "items": [{"key": "order_label", "label": "Numer zamówienia"}, {"key": "customer_name", "label": "Imię i nazwisko"}, "..."]}
+```
+
+Labels are in Polish only, not localized with the interface: the report is for Polish accounting
+(NIP, faktura) regardless of the operator's chosen language. `lp` is not itself an order field (a
+running number the export gives each row) and is always first; every other key reads from the
+order, including ones the on-screen table does not show and `SalesReportRow` does not carry
+(`customer_name`, `customer_email`, `customer_phone`, `invoice_company_name`, `invoice_tax_id`,
+`invoice_address`, `amount_total`) — resolved only when actually exporting, never in `GET .../orders`.
 
 ## `GET /api/v1/orders/{id}/buyer-orders`
 

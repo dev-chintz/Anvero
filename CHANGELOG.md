@@ -17,9 +17,14 @@ All significant changes to the Anvero project.
   register). Everything else stays `MANUAL_REVIEW` rather than guessed further. An operator can
   override a row (`PUT`/`DELETE .../override`, kept by marketplace and order id so it survives a
   re-import; a company-invoice row cannot be) and export the result as CSV (UTF-8 with a BOM,
-  guarded against spreadsheet formulas, only the columns accounting needs - no address, phone or
-  e-mail).
+  guarded against spreadsheet formulas).
 - New table `sales_report_overrides` (migration `a2f4c8e1b937`); run `alembic upgrade head`.
+- **Export columns, chosen by the owner:** a picker lets an operator choose which columns go into
+  the CSV and in what order, from every field the order carries (`GET /api/v1/sales-report/columns`
+  lists them). The default - a running number, the order's date, the buyer's name and the amount
+  actually paid - matches the accountant's own earlier report. The more identifying fields (a
+  name, e-mail, phone, address) are flagged in the picker, not hidden; the choice is remembered in
+  the browser. See `DECISIONS.md`, "Export columns, chosen by the owner".
 - A **Raport bezrachunkowy** page (own place in the menu): a period and source filter, four KPI
   tiles, a table of classified orders with a side panel for one order (why it was classified that
   way, and the include/exclude buttons for a row open to it), and a CSV download. Excel and PDF
