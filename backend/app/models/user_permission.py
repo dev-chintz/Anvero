@@ -34,7 +34,7 @@ class UserPermission(Base):
     __tablename__ = "user_permissions"
     __table_args__ = (UniqueConstraint("user_id", "area", name="uq_user_permissions_user_area"),)
 
-    id: Mapped[int] = mapped_column(primary_key=True, index=True)
+    id: Mapped[int] = mapped_column(primary_key=True)
     user_id: Mapped[int] = mapped_column(
         ForeignKey("users.id", ondelete="CASCADE"),
         index=True,
