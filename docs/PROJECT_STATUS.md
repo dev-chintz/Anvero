@@ -129,7 +129,7 @@ The application status page (`GET /status`, the Status page) was checked in the 
 
 Labels through Wysyłam z Allegro (`INTEGRATIONS.md`) have never bought anything: safe mode has been on and no Allegro was reachable where they were built. Unverified: the `allegro:api:shipments:write` scope, the shape of Allegro's shipment (carrier and waybill), whether Allegro links the shipment to the order itself, and the label PDF request, including one request for many labels (the Labels page), and every courier pickup call (proposals, ordering, their shapes). The Settings section and the order's label card were checked in the browser on 2026-09-24 on a scratch SQLite database, with a label row made up by hand, and the Labels page the same way.
 
-Returns, claims and disputes (plan B4, `INTEGRATIONS.md`, "Returns and claims") were built from Allegro's published OpenAPI specification, read in full, and tested against payloads shaped like its examples: never against a real account. Unverified: that the application carries `allegro:api:disputes`, the 14 and 45 day rules (Allegro's API gives no deadline for a return), and whether the 45 days start at the declaration. Read only; every action is left.
+Returns, claims and disputes (plan B4, `INTEGRATIONS.md`, "Returns and claims") were built from Allegro's published OpenAPI specification, read in full, and tested against payloads shaped like its examples. First read against the real account, 2026-09-28: failed with a `406` (the disputes-and-claims call was missing the beta `Accept` header the endpoint needs); fixed, and a second read succeeded - 0 open issues, 10 closed issues, 10 customer returns (`DECISIONS.md`). Still unverified: the 14 and 45 day rules (Allegro's API gives no deadline for a return), whether the 45 days start at the declaration, and all of it against a real *open* case (none was open at the time of this read). Read only; every action is left.
 
 Billing entries (fees, `INTEGRATIONS.md`, "Fees") have been read from the owner's real Allegro account since 2026-09-27, and Erli's billing and payouts from the real Erli the same day. Allegro's payouts (`INTEGRATIONS.md`, "Payouts") were read from the real account on 2026-09-27, once `allegro:api:payments:read` had been added to the application and the account connected again: 21 payouts in September, all through Allegro Finance (`AF`), none cancelled, so `PAYOUT_CANCEL` has not been seen.
 
@@ -182,6 +182,20 @@ The 2026-09-24 order-list work (`DECISIONS.md`, "Open orders are read again ever
 
 ---
 
+Fixed on 2026-09-28, found from real orders on the shared database: 11 Allegro
+orders packed and marked ready by hand, then shipped through "Wysyłam z
+Allegro", stayed showing "ready to ship" in Anvero even though Allegro already
+said `SENT` - the guard against an in-flight import overwriting a status just
+set by hand was comparing against Allegro's own `updatedAt`, which does not
+reliably move for a fulfillment-only change, so it almost always blocked the
+marketplace's move, and once blocked the order never got another chance
+(`DECISIONS.md`, "Fixed: orders stuck showing 'ready to ship' after Allegro
+marked them sent"). The 11 were moved to `SHIPPED` directly on the shared
+database; **not yet deployed to the NAS**, which still needs a push to `main`
+and `docker compose pull && up -d`.
+
+---
+
 ## Next Milestone
 
 **First deployment to the NAS is done (2026-09-27).** Running in Container
@@ -190,16 +204,17 @@ Station on the QNAP (`domowy`), reached at `http://NAS_ADDRESS:8081` (not
 database by joining its stack's Docker network and addressing it by container
 name, not the NAS's LAN address, which timed out from inside a container
 (`DEPLOYMENT.md`, `DECISIONS.md`). Health check, login and the shared accounts
-were confirmed working. Not yet reconciled: whether updates on the NAS go
-through the published GHCR images (the documented path) or a local
-`docker compose build` from a git clone on the NAS (used this session) - see
-`DEPLOYMENT.md`, "Updating".
+were confirmed working. Confirmed: the NAS's application directory has no git clone and no
+build context, only the compose file pulling `ghcr.io` images, so updating it
+is `docker compose pull && docker compose up -d` (or Container Station's
+recreate) - see `DEPLOYMENT.md`, "Updating".
 
 **PICK UP HERE (2026-09-27): automatic update detection and deployment.**
-Right now updating the NAS is manual and its exact mechanism is unconfirmed
-(see above). Planned: a webhook or polling check for new commits, a button in
-Settings to trigger an update, and `/api/v1/admin/updates/*` endpoints behind
-it (`ROADMAP.md`, "Somewhere to run").
+Right now updating the NAS still means running that command by hand after a
+push to `main` goes green in Actions. Planned: a webhook or polling check for
+new commits, a button in Settings to trigger an update, and
+`/api/v1/admin/updates/*` endpoints behind it (`ROADMAP.md`, "Somewhere to
+run").
 
 **Feature work after that (agreed 2026-09-24):** the feature plan at the end
 of `ROADMAP.md`, modelled on AlleIntegrator. Its first stage (work queues,

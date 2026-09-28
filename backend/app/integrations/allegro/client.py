@@ -691,14 +691,16 @@ class AllegroClient:
     ) -> list[dict[str, Any]]:
         """One page of disputes and claims in the given statuses, newest opened first.
 
-        `GET /sale/issues` (scope `allegro:api:disputes`); the answer is
+        `GET /sale/issues` (beta, scope `allegro:api:disputes`); the answer is
         `{issues: [...]}`.
         """
         if not 1 <= limit <= MAX_PAGE_SIZE:
             raise ValueError(f"limit must be between 1 and {MAX_PAGE_SIZE}")
         params = [("status", status) for status in statuses]
         params += [("limit", str(limit)), ("offset", str(offset))]
-        payload = self._get_object("/sale/issues", "disputes and claims", params=params)
+        payload = self._get_object(
+            "/sale/issues", "disputes and claims", params=params, accept=BETA_ACCEPT_HEADER
+        )
         issues = payload.get("issues", [])
         if not isinstance(issues, list):
             raise IntegrationUnavailable("Allegro issues is not a list")

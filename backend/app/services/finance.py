@@ -290,7 +290,13 @@ class FinanceService:
         fee that names none (the delivery) is shared among the order's items by
         their value. A product is its SKU, else its offer, else its name, as on
         the To make page. The order's delivery charge to the buyer is not a
-        product's sale, so an item's sale is its price times its quantity.
+        product's sale, so an item's sale is its price times its quantity - but
+        what the buyer paid for delivery (`Order.delivery_cost`) offsets the
+        delivery-kind fees before they are split the same way, up to what was
+        actually booked, so a product is not shown losing money to a courier
+        fee the buyer already covered. A marketplace whose delivery fee is not
+        billed as its own fee (nothing booked) is left alone: there is nothing
+        to offset.
         """
         orders = self._orders_sold(date_from, date_to, with_items=True)
         entries_by_order: dict[tuple[OrderSource, str], list[BillingEntry]] = {}
@@ -304,8 +310,11 @@ class FinanceService:
                 continue
             values = [item.unit_price * item.quantity for item in items]
             shares = [ZERO for _ in items]
+            delivery_fee_total = ZERO
             for entry in entries_by_order.get((order.source, order.external_id), []):
                 fee = -entry.amount
+                if fee_kind(entry.type_id, entry.type_name) == "delivery":
+                    delivery_fee_total += fee
                 matching = [
                     i
                     for i, item in enumerate(items)
@@ -316,6 +325,12 @@ class FinanceService:
                 for i in targets:
                     part = fee * values[i] / base if base else fee / len(targets)
                     shares[i] += part
+            credit = min(order.delivery_cost or ZERO, delivery_fee_total) if delivery_fee_total > 0 else ZERO
+            if credit:
+                base = sum(values, ZERO)
+                for i in range(len(items)):
+                    part = credit * values[i] / base if base else credit / len(items)
+                    shares[i] -= part
             for item, value, share in zip(items, values, shares):
                 key = f"sku:{item.sku}" if item.sku else f"offer:{item.offer_id}" if item.offer_id else f"name:{item.name}"
                 product = products.get(key)

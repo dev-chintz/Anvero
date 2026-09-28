@@ -198,27 +198,32 @@ class ListAdapter:
         return self.orders
 
 
-def _import(session, status, updated_at, shipments=None):
+def _import(session, status, run_started_at, shipments=None):
     data = OrderCreate(
         external_id="form-1",
         source=OrderSource.ALLEGRO,
         status=status,
         customer_email="buyer@example.com",
         total_amount=Decimal("10.00"),
-        marketplace_updated_at=updated_at,
         shipments=shipments,
     )
-    OrderImportService(OrderRepository(session), ListAdapter([data])).import_orders()
+    OrderImportService(OrderRepository(session), ListAdapter([data]))._store(
+        [data], run_started_at=run_started_at
+    )
 
 
-def test_an_allegro_change_older_than_the_operators_does_not_undo_it(session):
+def test_a_fetch_already_stale_when_the_operator_acted_does_not_undo_it(session):
+    """Allegro's own `updatedAt` does not reliably move for a fulfillment-only
+    change (`INTEGRATIONS.md`), so the guard is against this run's own timing,
+    not against what Allegro claims: a run that started before the operator's
+    change might be carrying a stale snapshot, so it must not overwrite it."""
     order = _order(session)
+    run_started_at = datetime.now(UTC) - timedelta(minutes=1)
     OrderRepository(session).update_status(order, OrderStatus.READY_FOR_SHIPMENT, changed_by_user_id=None)
     order.status_set_at = datetime.now(UTC)
     session.commit()
 
-    # Allegro moved to PROCESSING a minute before the operator's change
-    _import(session, OrderStatus.CONFIRMED, datetime.now(UTC) - timedelta(minutes=1))
+    _import(session, OrderStatus.CONFIRMED, run_started_at)
 
     session.refresh(order)
     assert order.status is OrderStatus.READY_FOR_SHIPMENT
@@ -226,7 +231,7 @@ def test_an_allegro_change_older_than_the_operators_does_not_undo_it(session):
     assert order.marketplace_status is OrderStatus.CONFIRMED
 
 
-def test_an_allegro_change_after_the_operators_wins(session):
+def test_a_run_started_after_the_operators_change_follows_the_marketplace(session):
     order = _order(session)
     order.status_set_at = datetime.now(UTC) - timedelta(minutes=5)
     session.commit()

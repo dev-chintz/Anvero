@@ -242,7 +242,7 @@ def test_returns_are_asked_for_with_the_beta_version_and_the_period():
     assert (request.url.params["limit"], request.url.params["offset"]) == ("50", "100")
 
 
-def test_issues_are_asked_for_by_status_with_the_public_version():
+def test_issues_are_asked_for_by_status_with_the_beta_version():
     seen = []
     client = _client(_serving(lambda r: {"issues": [_claim(), _dispute()]}, seen))
 
@@ -251,7 +251,7 @@ def test_issues_are_asked_for_by_status_with_the_public_version():
     assert len(issues) == 2
     request = seen[0]
     assert request.url.path == "/sale/issues"
-    assert request.headers["accept"] != BETA_ACCEPT_HEADER
+    assert request.headers["accept"] == BETA_ACCEPT_HEADER
     assert request.url.params.get_list("status") == OPEN_ISSUE_STATUSES
 
 

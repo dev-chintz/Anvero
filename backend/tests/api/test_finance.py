@@ -343,6 +343,47 @@ def test_products_get_their_offers_fees_and_a_share_of_the_rest():
     assert Decimal(heart["fees"]) + Decimal(plate["fees"]) == Decimal("30.21")
 
 
+def test_a_products_delivery_fee_is_offset_by_what_the_buyer_paid_for_it():
+    """A courier fee larger than a cheap item's own price should not read as a loss
+    when the buyer's own delivery payment covers it (`docs/DECISIONS.md`, 2026-09-28)."""
+    placed = _order(
+        "19.48",
+        _day(9, 16),
+        items=[("Serce łapacz do aniołka", 1, "8.99", "offer-1")],
+        delivery_cost=Decimal("10.49"),
+    )
+    _fee("-3.36", _day(9, 16), type_id="SUC", order=placed, offer="offer-1")
+    _fee(
+        "-10.49", _day(9, 18), type_id="HLB", type_name="Opłata za dostawę DHL Allegro Delivery", order=placed
+    )
+
+    (item,) = client.get("/api/v1/finance/products", params=SEPTEMBER).json()["items"]
+
+    assert Decimal(item["sales"]) == Decimal("8.99")
+    # the delivery fee (-10.49) is fully offset by the buyer's own -10.49 payment;
+    # only the commission is left as a real cost
+    assert Decimal(item["fees"]) == Decimal("3.36")
+
+
+def test_the_delivery_credit_never_exceeds_the_delivery_fee_actually_booked():
+    """Delivery paid beyond the booked delivery fee (e.g. a cash-on-delivery surcharge)
+    must not manufacture a credit for other fees."""
+    placed = _order(
+        "30.00",
+        _day(9, 16),
+        items=[("Serduszko", 1, "10.00", "offer-1")],
+        delivery_cost=Decimal("20.00"),
+    )
+    _fee("-2.00", _day(9, 16), type_id="SUC", order=placed, offer="offer-1")
+    _fee("-8.00", _day(9, 16), type_id="HLB", type_name="Opłata za dostawę", order=placed)
+
+    (item,) = client.get("/api/v1/finance/products", params=SEPTEMBER).json()["items"]
+
+    # credit capped at the 8.00 delivery fee actually booked, not the 20.00 paid;
+    # left: 2.00 commission + 8.00 delivery - 8.00 credit = 2.00
+    assert Decimal(item["fees"]) == Decimal("2.00")
+
+
 def _payout(amount: str, paid_at: datetime, source: OrderSource = OrderSource.ERLI) -> None:
     db = TestingSessionLocal()
     try:

@@ -1663,9 +1663,13 @@ changes `deploy/docker-compose.yml` itself (port and an added `networks:`
 block), not just the NAS's local, gitignored copy, since both fixes would
 recur on every fresh deployment otherwise. Left open: which update path the
 NAS actually uses going forward (`DEPLOYMENT.md`, "Updating") - this session
-updated the running application over SSH from a git clone rather than through
-Container Station and the published GHCR images, and the two have not been
-reconciled.
+updated the running application over SSH from what it described as a git
+clone rather than through Container Station and the published GHCR images.
+**Resolved the same day:** the NAS's application directory holds only the
+compose file (no `.git`, no `build:` context), so `docker compose pull` /
+`up -d` against the published GHCR images is the only real update path; the
+earlier description must have referred to a different, no-longer-present
+location.
 
 ## 2026-09-27 — Database Password Rotated, and the Network Join Made to Survive a Recreate
 
@@ -1690,3 +1694,108 @@ not to this document or any chat log. Every other machine's `backend/.env`
 pointing at the shared database (`DEVELOPMENT.md`, "Shared database on the
 NAS") still has the old password and needs updating by hand from that same
 read, or it will stop connecting.
+
+## 2026-09-28 — A Product's Fees Are Credited for What the Buyer Paid for Delivery
+
+**Decision:** `FinanceService.products` (the Finance page's Products tab)
+now offsets a product's share of an order's delivery-kind fees by what the
+buyer paid for delivery (`Order.delivery_cost`), capped at the delivery fee
+actually booked for that order - never more, so a marketplace whose delivery
+fee is not billed as its own fee is left untouched. Found from a real
+example: SKU D2717 (a single cheap item, 8.99 PLN) showed `-4.86 PLN` left
+after a `-10.49 PLN` DHL courier fee and `-3.36 PLN` commission, which looked
+like the product itself lost money - but the buyer had paid exactly `10.49
+PLN` for that delivery (`Order.total_amount` was `19.48`), so the order as a
+whole made `+5.63 PLN`. The product view only ever showed the cost side.
+
+**Rationale:** `sales` at the order and summary level already includes what
+the buyer paid for delivery (`Order.total_amount`), netting correctly against
+the full delivery fee; the Products tab deliberately excludes delivery from
+a product's `sales` instead (a shared, order-level charge, not really any
+one product's sale), but had been including the *full* delivery fee as that
+product's cost regardless - the one place this stayed asymmetric. Crediting
+the fee instead of adding to `sales` keeps the "Sprzedaż" column meaning the
+product's own price, while "Zostaje" (sales − fees) now agrees with what the
+order itself actually left. The cap at what was actually booked matters
+because `delivery_cost` is what the buyer paid, which is not always what the
+marketplace later bills the seller for it (e.g. a cash-on-delivery
+surcharge): crediting beyond that would manufacture profit the fee entries
+never showed. Covered by
+`tests/api/test_finance.py::test_a_products_delivery_fee_is_offset_by_what_the_buyer_paid_for_it`
+and `::test_the_delivery_credit_never_exceeds_the_delivery_fee_actually_booked`
+(958 backend tests passing).
+
+## 2026-09-28 — Fixed: orders stuck showing "ready to ship" after Allegro marked them sent
+
+**Decision:** Amends "Writing to Allegro: the last change made in Anvero wins"
+(2026-09-24). `OrderImportService._set_by_hand_since` now compares
+`orders.status_set_at` against the *importing run's own start time*, not
+against the marketplace's `updatedAt` on the checkout form. Found from a real
+example: 11 real orders, packed and marked `READY_FOR_SHIPMENT` by hand, whose
+label had since gone out through "Wysyłam z Allegro" - Allegro had moved them
+to `SENT`, `orders.marketplace_status` already said so, but `orders.status`
+never followed, so the list kept showing them as waiting to ship.
+
+**Rationale:** `INTEGRATIONS.md` ("Every later import") already documents that
+Allegro's `updatedAt` does not reliably move for a fulfillment-only change (a
+parcel created, marked ready, or sent) - that is exactly why the import also
+re-asks about every open order regardless of the window. The by-hand guard
+used that same unreliable field as its "did Allegro move after the operator's
+change" signal, so for the normal pack-then-ship sequence it almost always
+saw a stale Allegro timestamp and concluded the operator's change was newer -
+permanently, since once `marketplace_status` is updated to match, the next
+import's `status_moved` check (comparing against the *previous* import's
+`marketplace_status`, per "The Anvero Status Follows Allegro") sees no further
+move and never retries. The run's own start time is Anvero's clock, not
+Allegro's, and still protects against the race the 2026-09-24 decision was
+written for: a fetch already in flight when the operator acts should not
+overwrite the newer choice with what it already had in hand.
+
+**Consequences:** The 11 stuck orders were moved to `SHIPPED` directly in the
+shared database (`scripts/reconcile_stuck_status.py --apply`, no author on the
+history entry, same as the importer's own auto-follow) rather than waiting for
+the next import, since fixing the code does not by itself unstick an order
+whose `marketplace_status` had already caught up. The script is kept for any
+order found stuck the same way later; it only ever moves an order *forward*
+along NEW → CONFIRMED → READY_FOR_SHIPMENT → SHIPPED → DELIVERED, never
+touches CANCELLED, and never moves one where Anvero's own status is already
+ahead of `marketplace_status` (the carrier-delivery auto-advance from
+2026-09-26 relies on being left alone). Not yet deployed to the NAS: this
+machine's local backend was restarted and the shared database corrected, but
+the NAS runs its own build from `ghcr.io` images and needs a push to `main`
+plus `docker compose pull && up -d` to pick up the fix. Covered by
+`tests/services/test_order_writes.py::test_a_fetch_already_stale_when_the_operator_acted_does_not_undo_it`
+and `::test_a_run_started_after_the_operators_change_follows_the_marketplace`
+(958 backend tests passing).
+
+## 2026-09-28 — Fixed: disputes and claims needed the beta Accept header
+
+**Decision:** `AllegroClient.fetch_issues` (`GET /sale/issues`) now sends
+`Accept: application/vnd.allegro.beta.v1+json`, the same beta header
+`fetch_customer_returns` already used. Found from the owner's first real
+click of "Wczytaj z Allegro" on the Returns and claims page (plan B4): Allegro
+answered `406`, "Request contains invalid data." `developer.allegro.pl`'s own
+tutorial for the endpoint confirms every resource under `/sale/issues` is
+beta.v1 and needs that header; the code had only ever sent Anvero's default
+`application/vnd.allegro.public.v1+json`, built without seeing a real
+response (`INTEGRATIONS.md`, "Returns and claims" said as much: "Nothing here
+has run against a real account"). The test guarding this
+(`test_issues_are_asked_for_by_status_with_the_public_version`) had been
+written to match that guess, asserting the header was *not* the beta one -
+renamed and inverted to assert it is.
+
+**Rationale:** No way to have caught this without a real response: the
+specification excerpt available while it was built did not show the header,
+and a fake transport in a test only confirms the code does what it was
+written to do. The fix is narrowly the header; the status filter, paging and
+the mapping were not touched and read correctly on the first real try.
+
+**Consequences:** Verified live against the owner's real Allegro account
+(read-only `GET`, no write): open issues (0), closed issues (10) and customer
+returns (10) all came back successfully. This is B4's first real run;
+`INTEGRATIONS.md`'s "Unverified" list for it (the 14/45-day rules, whether
+`WAREHOUSE_*` returns need the seller, a dispute with no `lastMessage`) still
+stands - only the read itself was confirmed, not those business rules against
+real cases. Covered by
+`tests/integrations/test_allegro_after_sales.py::test_issues_are_asked_for_by_status_with_the_beta_version`
+(958 backend tests passing, one renamed).

@@ -111,7 +111,11 @@ class OrderImportService:
         fetched.extend(held)
         rechecked = rechecked + held
         fetched.sort(key=lambda order: order.ordered_at or started_at)
-        result = self._store(fetched, rechecked={order.external_id for order in rechecked})
+        result = self._store(
+            fetched,
+            rechecked={order.external_id for order in rechecked},
+            run_started_at=started_at,
+        )
 
         if not self.credentials.set_last_synced_at(provider, started_at - SYNC_OVERLAP):
             logger.warning(
@@ -280,7 +284,10 @@ class OrderImportService:
         return self._store(self.adapter.fetch_orders(limit=limit, offset=offset))
 
     def _store(
-        self, orders: list[OrderCreate], rechecked: frozenset[str] | set[str] = frozenset()
+        self,
+        orders: list[OrderCreate],
+        rechecked: frozenset[str] | set[str] = frozenset(),
+        run_started_at: datetime | None = None,
     ) -> ImportResult:
         """Store orders that have already been fetched.
 
@@ -308,6 +315,7 @@ class OrderImportService:
         created = 0
         updated = 0
         cancellation_warnings = 0
+        run_started_at = run_started_at or datetime.now(UTC)
 
         for data in orders:
             cancelled = data.status is OrderStatus.CANCELLED
@@ -343,7 +351,7 @@ class OrderImportService:
 
             if not status_moved or data.status == existing.status:
                 continue
-            if self._set_by_hand_since(existing, data):
+            if self._set_by_hand_since(existing, run_started_at):
                 # the last change made in Anvero wins: the marketplace moved
                 # before the operator did, so this is not news to them
                 logger.info(
@@ -388,11 +396,20 @@ class OrderImportService:
         )
 
     @staticmethod
-    def _set_by_hand_since(existing: Order, data: OrderCreate) -> bool:
-        """The operator set the status after the marketplace last changed the order."""
-        if existing.status_set_at is None or data.marketplace_updated_at is None:
+    def _set_by_hand_since(existing: Order, run_started_at: datetime) -> bool:
+        """The operator set the status after this import run started reading Allegro.
+
+        Guards only against the race this run itself could cause: fetched data
+        that was already stale by the time the operator acted, which this run
+        would otherwise use to overwrite their newer choice. Compared against
+        Anvero's own clock, not the marketplace's `updatedAt` - Allegro does not
+        reliably bump that field for a fulfillment-only change (`INTEGRATIONS.md`),
+        so comparing against it left a status set by hand blocking every later
+        marketplace move as well, not just a racing one.
+        """
+        if existing.status_set_at is None:
             return False
-        return _as_utc(existing.status_set_at) >= data.marketplace_updated_at
+        return _as_utc(existing.status_set_at) >= run_started_at
 
     @staticmethod
     def _to_order(data: OrderCreate) -> Order:

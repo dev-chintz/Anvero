@@ -80,17 +80,18 @@ the `anvero` application and recreate it with the latest images (pull, then
 recreate). The backend migrates the database as it starts. To go back, put a
 commit's short hash in place of `latest` in the compose file and recreate.
 
-**Not yet reconciled with the above:** the 2026-09-27 deployment session
-updated the running application over SSH instead, from a git clone on the
-NAS at `/share/CACHEDEV1_DATA/Kopie/container-station-data/application/anvero/`:
-`git pull`, `docker compose build`, `docker compose up -d`. Whether that clone
-has a `build:` context (bypassing the published GHCR images and the Actions
-workflow entirely) or the checked-in `image:` references (in which case
-`build` was a no-op and `up -d` alone would have sufficed) is unconfirmed -
-check `deploy/docker-compose.yml` **as saved on the NAS**, which is not in
-Git, before relying on either update path. This gap is also why "automatic
-update detection and a Settings button to trigger it" is the next planned
-piece of deployment work (`ROADMAP.md`, "Somewhere to run").
+**Confirmed 2026-09-27:** the NAS's application directory
+(`/share/CACHEDEV1_DATA/Kopie/container-station-data/application/anvero/`)
+holds only `docker-compose.yml` (plus Container Station's own
+`docker-compose.resource.yml` for CPU/memory limits) - no git clone, no
+`build:` context. The above is the only real update path; an earlier session
+had instead run `git pull` and `docker compose build` there, but there is
+nothing to pull or build in that directory, so that must have targeted a
+different, no-longer-present location, or a misremembered command. Manually
+running `docker compose pull && docker compose up -d` (equivalent to
+Container Station's recreate) is the whole update, which is also why
+"automatic update detection and a Settings button to trigger it" is the next
+planned piece of deployment work (`ROADMAP.md`, "Somewhere to run").
 
 ## Creating a user or resetting a password
 

@@ -4,6 +4,45 @@ All significant changes to the Anvero project.
 
 ---
 
+## 2026-09-28
+
+### 💸 A product's fees are credited for what the buyer paid for delivery
+
+- The Finance page's Products tab no longer shows a cheap item as a loss just because a courier
+  fee larger than its own price was booked against it: the buyer's own delivery payment
+  (`Order.delivery_cost`) now offsets a product's share of the order's delivery-kind fees, capped
+  at the delivery fee actually booked so a marketplace that does not bill delivery as its own fee
+  is unaffected. Found on a real order (SKU D2717): it read `-4.86 PLN` left, though the order as
+  a whole made `+5.63 PLN` once the buyer's `10.49 PLN` delivery payment is counted, same as the
+  order and summary views already did. See `docs/DECISIONS.md`.
+- 2 new backend tests (958 passing).
+
+### 🐛 Fixed: orders stuck showing "ready to ship" after Allegro marked them sent
+
+- An order packed and marked ready by hand, then shipped through "Wysyłam z Allegro", could stay
+  showing "Gotowe do wysyłki" in Anvero forever even though Allegro already said `SENT`: the guard
+  meant to stop an in-flight import from overwriting a status just set by hand was comparing it
+  against Allegro's own `updatedAt`, which does not reliably move for a fulfillment-only change
+  (`docs/INTEGRATIONS.md`), so it almost always blocked the marketplace's move - and once blocked,
+  the stored `marketplace_status` had already caught up, so no later import ever retried. Now
+  compared against the importing run's own start time instead. 11 real orders found stuck this way
+  were moved to `SHIPPED` directly (`scripts/reconcile_stuck_status.py`). See `docs/DECISIONS.md`.
+- Fixed on this machine's shared database; the NAS deployment still needs a push and a
+  `docker compose pull && up -d` to run the corrected code.
+- Same 958 backend tests passing (2 renamed to match the new behavior, none added).
+
+### 🐛 Fixed: Returns and claims failed to load from Allegro with a 406
+
+- Clicking "Wczytaj z Allegro" on the Returns and claims page (plan B4) failed with `Allegro API
+  returned 406 for disputes and claims: Request contains invalid data.` - the disputes-and-claims
+  call (`GET /sale/issues`) was missing the beta `Accept` header the endpoint requires, unlike the
+  customer-returns call beside it which already had it. This was B4's first real click; fixed, and
+  a second real read succeeded: 0 open issues, 10 closed issues, 10 customer returns. See
+  `docs/DECISIONS.md`.
+- Same 958 backend tests passing (1 renamed to match Allegro's real requirement, none added).
+
+---
+
 ## 2026-09-27
 
 ### 🚀 First deployment to the NAS
@@ -18,9 +57,11 @@ All significant changes to the Anvero project.
 - Nine leftover `alleintegrator-customer-*` containers and images from
   earlier integration testing were removed from the NAS, reclaiming about
   1 GB.
-- Left open: reconciling the update path actually used on the NAS (a git
-  clone built locally) with the documented one (recreate from the published
-  GHCR images); an automatic update/deployment mechanism is planned next.
+- Confirmed the NAS's application directory has no git clone and no build
+  context, only the compose file pulling `ghcr.io` images - so
+  `docker compose pull && docker compose up -d` (or Container Station's
+  recreate) is the whole update, done by hand for now; an automatic
+  update/deployment mechanism is planned next.
 - Rotated the database password (the old one had been exposed in a chat
   session) and patched the NAS's compose file with the same network fix as
   above, so the join to the database's network now survives a recreate

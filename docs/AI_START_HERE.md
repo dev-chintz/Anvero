@@ -43,7 +43,10 @@ ordering a courier on the Labels page, and never used for real; cash on
 delivery is not shipped, so B1 is complete in code. B2, buyer messages, is
 started: see below. B4, returns and claims, is started: a read-only queue
 with deadlines, an alert on the order and a dashboard reminder, built from
-Allegro's published specification and never run against a real account).
+Allegro's published specification. Its first real read, on 2026-09-28,
+failed with a `406` until the disputes-and-claims call was given the beta
+Accept header the endpoint needs (`DECISIONS.md`); fixed, and a second real
+read succeeded: 0 open issues, 10 closed issues, 10 customer returns).
 
 **InPost (2026-09-25):** parcel locker shipments and their labels can be made through InPost's ShipX API, in bulk from the Labels page and on the order (`INTEGRATIONS.md`, "InPost"); built from the documentation, never run against InPost, and waiting for the owner's sandbox token and organization number, which they enter in Integrations.
 
@@ -57,9 +60,10 @@ Docker network by container name rather than the NAS's LAN address. See
 `DEPLOYMENT.md` and `DECISIONS.md` for what differed from the written plan.
 
 **Open task:** automatic update detection and a Settings button to trigger a
-deployment update, since today's update path on the NAS is manual and not
-fully reconciled with the documented one; see "PICK UP HERE" in
-`PROJECT_STATUS.md` and `DEPLOYMENT.md`, "Updating".
+deployment update, since today's update path on the NAS - confirmed to be
+`docker compose pull && up -d` against the published GHCR images, nothing
+else - is still done by hand; see "PICK UP HERE" in `PROJECT_STATUS.md` and
+`DEPLOYMENT.md`, "Updating".
 
 Backend and frontend both run. See PROJECT_STATUS.md for the sprint-by-sprint
 breakdown; the short version:
