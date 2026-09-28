@@ -257,21 +257,24 @@ button.attention-chip {
   color: #fde68a;
 }
 
-/* Pozycje and Wysyłka are their own full-width rows; everything else - Dostawa, Faktura,
-   Płatność, Zamówienie, Kupujący - shares one grid, wrapping from 3 columns to 2 to 1.
-   OrderAddressCards renders Dostawa then Faktura as two cards of its own, so it takes no grid
-   cell itself (`display: contents`): its two children fall into this grid directly, ahead of
-   the payment/facts/buyer cards after it. `.order-detail` has no gap of its own between its
-   direct children (`index.css`), so each full-width block below carries its own margin. */
+/* Pozycje is its own full-width row. Kupujący, Faktura and Dostawa share a 3-column
+   grid, of equal height (`align-items: stretch`) whatever each one's own content runs
+   to; OrderAddressCards renders Faktura then Dostawa as two cards of its own, so it
+   takes no grid cell itself (`display: contents`): its two children fall into the grid
+   directly, after Kupujący. Zamówienie, Płatność and Wysyłka follow together in one
+   summary bar (below) rather than as three cards of their own: on a real order every
+   one of them is a fact to skim, not a card to study, and three separate boxes read as
+   more important than that. `.order-detail` has no gap of its own between its direct
+   children (`index.css`), so each full-width block below carries its own margin. */
 .order-items {
   margin-bottom: 1rem;
 }
 
-.order-details-grid {
+.order-details-top {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 1rem;
-  align-items: start;
+  align-items: stretch;
   margin-bottom: 1rem;
 }
 
@@ -279,20 +282,133 @@ button.attention-chip {
   display: contents;
 }
 
-.order-shipping {
+/* one box for Płatność, Zamówienie and Wysyłka: no band of colour per fact, since
+   there are three of them side by side here already (and Wysyłka's own tabs still
+   need `.order-card`'s tones when its form opens); a divider between them stands in
+   for the band. Zamówienie and Płatność share the top line; Wysyłka is its own line
+   below, since it alone can grow (parcels, then a form to add one) without unbalancing
+   the two short facts beside it. */
+.order-summary-bar {
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  background: var(--color-bg);
+  overflow: hidden;
   margin-bottom: 1rem;
 }
 
+.order-summary-top {
+  display: flex;
+  flex-wrap: wrap;
+}
+
+.order-summary-bar .order-card {
+  border: none;
+  border-radius: 0;
+  background: none;
+  padding: 0.6rem 1rem;
+}
+
+.order-summary-top > .order-card {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.4rem 1.5rem;
+  flex: 1 1 auto;
+}
+
+.order-summary-top > .order-card + .order-card {
+  border-left: 1px solid var(--color-divider);
+}
+
+.order-summary-bar > .order-shipping {
+  border-top: 1px solid var(--color-divider);
+}
+
+.order-summary-bar .order-card > h2:first-child,
+.order-summary-bar .order-card > .order-card-head {
+  display: none;
+}
+
+.order-summary-top .fact-row {
+  gap: 0.4rem;
+}
+
+.order-summary-top .fact-list {
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 0.35rem 1.5rem;
+  margin: 0;
+}
+
+.order-summary-top .fact-list > div {
+  justify-content: flex-start;
+  gap: 0.35rem;
+}
+
+.order-summary-top .fact-list dd {
+  text-align: left;
+}
+
+.order-shipping-add-toggle {
+  padding: 0;
+  background: none;
+  border: none;
+  color: var(--color-accent);
+  font: inherit;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.order-shipping-add-toggle:hover {
+  text-decoration: underline;
+}
+
+@media (max-width: 640px) {
+  .order-summary-top {
+    flex-direction: column;
+  }
+
+  .order-summary-top > .order-card + .order-card {
+    border-left: none;
+    border-top: 1px solid var(--color-divider);
+  }
+}
+
 @media (max-width: 1100px) {
-  .order-details-grid {
+  .order-details-top {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
 @media (max-width: 640px) {
-  .order-details-grid {
+  .order-details-top {
     grid-template-columns: minmax(0, 1fr);
   }
+}
+
+/* a real brand mark (or, lacking one, the name alone) beside the delivery method, so the
+   carrier reads at a glance instead of from the sentence below it */
+.carrier-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 0.7rem;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+}
+
+.carrier-badge-logo {
+  width: 12px;
+  height: 12px;
+}
+
+.order-card-head-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
 }
 
 .order-card-head {
@@ -457,10 +573,14 @@ button.attention-chip {
 }
 
 .order-shipping,
-.order-delivery,
-.order-invoice {
+.order-delivery {
   --band-bg: var(--tone-teal-bg);
   --band-fg: var(--tone-teal-fg);
+}
+
+.order-invoice {
+  --band-bg: var(--tone-amber-bg);
+  --band-fg: var(--tone-amber-fg);
 }
 
 .order-payment.payment-paid {

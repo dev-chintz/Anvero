@@ -24,10 +24,16 @@ interface OrderShippingCardProps {
  * the ways to make another, one way at a time (a label bought through Allegro, an
  * InPost locker parcel, a tracking number typed in). Each way shows only when it can
  * apply to the order; when there is just the one, it is shown without the tabs.
+ *
+ * An order with a parcel already on it has nothing left to do here most of the time,
+ * so the ways to make another stay folded behind a button - shown open only while
+ * there is no parcel yet, since making the first one is the point of the card then.
  */
 export function OrderShippingCard({ order, onChanged, onAdded, isDeleted }: OrderShippingCardProps) {
   const { t } = useTranslation();
   const [chosen, setChosen] = useState<Way | null>(null);
+  const shipments = order.shipments ?? [];
+  const [addOpen, setAddOpen] = useState(shipments.length === 0);
 
   const ways: Way[] = [
     ...(order.source === OrderSource.ALLEGRO ? (["allegro"] as const) : []),
@@ -35,7 +41,6 @@ export function OrderShippingCard({ order, onChanged, onAdded, isDeleted }: Orde
     "own",
   ];
   const way = chosen && ways.includes(chosen) ? chosen : ways[0];
-  const shipments = order.shipments ?? [];
 
   return (
     <section className="order-card order-shipping" aria-label={t("order.shipping")}>
@@ -47,7 +52,13 @@ export function OrderShippingCard({ order, onChanged, onAdded, isDeleted }: Orde
         <p className="order-muted">{t("order.noParcels")}</p>
       )}
 
-      {!isDeleted && (
+      {!isDeleted && !addOpen && (
+        <button type="button" className="order-shipping-add-toggle" onClick={() => setAddOpen(true)}>
+          {t("order.addAnotherShipment")}
+        </button>
+      )}
+
+      {!isDeleted && addOpen && (
         <>
           {ways.length > 1 && (
             <div className="shipping-tabs" role="tablist" aria-label={t("order.shippingWays")}>

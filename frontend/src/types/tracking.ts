@@ -68,7 +68,7 @@ const TRACKING_PAGES: {
   },
 ];
 
-function wordsOf(text: string | null | undefined): string[] {
+export function wordsOf(text: string | null | undefined): string[] {
   return (text ?? "").toLowerCase().split(/[^a-z0-9]+/).filter(Boolean);
 }
 

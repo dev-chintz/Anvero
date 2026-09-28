@@ -272,8 +272,20 @@ itself onto the NAS in the first place) - the next push to `main` is the real
 test of the button end to end. This answers the older "automatic update
 detection and deployment" open task (`ROADMAP.md`, "Somewhere to run").
 
-**PICK UP HERE (2026-09-28):** next push to `main` - use the Settings, Updates
-button on the NAS instead of SSH, to confirm the button itself works.
+**Left from the updater setup:** next push to `main` - use the Settings,
+Updates button on the NAS instead of SSH, to confirm the button itself works.
+
+**PICK UP HERE (2026-09-28, evening): the order page's summary redesign,
+mid-flight.** A live design session with the owner (mockups shown in chat,
+not saved anywhere but this note - re-derive from the description below, not
+from chat history) reworked the order page's Zamówienie/Płatność/Wysyłka
+area twice in a row; the *second* round is approved and not yet built. Full
+plan, exact approved layout and file-by-file steps: `AI_HANDOFF.md`,
+"Current Priorities". Read that before touching `OrderHeader.tsx`,
+`OrderFactsCard.tsx`, `OrderDetailsPanel.tsx`, `OrderMoreSections.tsx`,
+`OrderShippingCard.tsx`, `OrderDetail.tsx` or `OrderPage.css` - there is
+mid-session, uncommitted work in all of them (`git status`) from the *first*
+round (a merged summary bar) that the second round partly undoes.
 
 **Feature work after that (agreed 2026-09-24):** the feature plan at the end
 of `ROADMAP.md`, modelled on AlleIntegrator. Its first stage (work queues,

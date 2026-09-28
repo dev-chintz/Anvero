@@ -3,6 +3,7 @@ import { PaymentType, paymentState } from "../types/order";
 import { formatNumber, useTranslation } from "../i18n";
 import { carrierLabel } from "../types/order";
 import type { Address, OrderWithDetails, Shipment } from "../types/order";
+import { CarrierBadge } from "./carrierBadge";
 import { ItemThumb } from "./ItemThumb";
 import { TrackingLink } from "./TrackingLink";
 import "../styles/OrderDetailsPanel.css";
@@ -338,12 +339,28 @@ export function OrderAddressCards({ order }: { order: OrderWithDetails }) {
 
   return (
     <div className="order-address-cards">
+      <section className="order-card order-invoice" aria-label={t("details.invoice")}>
+        <div className="order-card-head">
+          <h2>{t("details.invoice")}</h2>
+          {invoice.address && (
+            <CopyAddressButton address={invoice.address} label={t("order.copyAddress")} />
+          )}
+        </div>
+        <p className={invoice.required ? "order-invoice-required" : undefined}>
+          {invoice.required ? t("details.invoiceRequested") : t("details.noInvoice")}
+        </p>
+        {invoice.address && <AddressLines address={invoice.address} />}
+      </section>
+
       <section className="order-card order-delivery" aria-label={t("details.delivery")}>
         <div className="order-card-head">
           <h2>{t("details.delivery")}</h2>
-          {delivery.address && (
-            <CopyAddressButton address={delivery.address} label={t("order.copyAddress")} />
-          )}
+          <div className="order-card-head-actions">
+            <CarrierBadge deliveryMethod={delivery.method} />
+            {delivery.address && (
+              <CopyAddressButton address={delivery.address} label={t("order.copyAddress")} />
+            )}
+          </div>
         </div>
         {delivery.method && <p>{delivery.method}</p>}
         {delivery.pickup_point && (
@@ -362,19 +379,6 @@ export function OrderAddressCards({ order }: { order: OrderWithDetails }) {
         {!delivery.method && !delivery.address && !delivery.pickup_point && (
           <p className="order-muted">{t("details.noDelivery")}</p>
         )}
-      </section>
-
-      <section className="order-card order-invoice" aria-label={t("details.invoice")}>
-        <div className="order-card-head">
-          <h2>{t("details.invoice")}</h2>
-          {invoice.address && (
-            <CopyAddressButton address={invoice.address} label={t("order.copyAddress")} />
-          )}
-        </div>
-        <p className={invoice.required ? "order-invoice-required" : undefined}>
-          {invoice.required ? t("details.invoiceRequested") : t("details.noInvoice")}
-        </p>
-        {invoice.address && <AddressLines address={invoice.address} />}
       </section>
     </div>
   );

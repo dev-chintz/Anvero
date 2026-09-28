@@ -314,33 +314,38 @@ export function OrderDetail() {
 
             <OrderItemsCard order={order} onPackingChange={handlePacking} />
 
-            <div className="order-details-grid">
-              <OrderAddressCards order={order} />
-              <OrderPaymentCard order={order} />
-              <OrderFactsCard
-                order={order}
-                saving={saving}
-                saveError={saveError}
-                writeNote={writeNote}
-                isDeleted={isDeleted}
-                onStatusChange={handleStatusChange}
-              />
+            <div className="order-details-top">
               <OrderBuyerCard order={order} />
+              <OrderAddressCards order={order} />
             </div>
 
-            <OrderShippingCard
-              key={`shipping-${order.id}`}
-              order={order}
-              isDeleted={isDeleted}
-              onChanged={() => {
-                ordersApi.get(order.id).then(setOrder).catch(() => undefined);
-                loadWrites(order.id);
-              }}
-              onAdded={(result: OrderChangeResult) => {
-                setOrder(result);
-                loadWrites(result.id);
-              }}
-            />
+            <div className="order-summary-bar">
+              <div className="order-summary-top">
+                <OrderPaymentCard order={order} />
+                <OrderFactsCard
+                  order={order}
+                  saving={saving}
+                  saveError={saveError}
+                  writeNote={writeNote}
+                  isDeleted={isDeleted}
+                  onStatusChange={handleStatusChange}
+                />
+              </div>
+
+              <OrderShippingCard
+                key={`shipping-${order.id}`}
+                order={order}
+                isDeleted={isDeleted}
+                onChanged={() => {
+                  ordersApi.get(order.id).then(setOrder).catch(() => undefined);
+                  loadWrites(order.id);
+                }}
+                onAdded={(result: OrderChangeResult) => {
+                  setOrder(result);
+                  loadWrites(result.id);
+                }}
+              />
+            </div>
 
             <OrderMessagesCard threads={messageThreads} onThreadsChange={setMessageThreads} />
 
