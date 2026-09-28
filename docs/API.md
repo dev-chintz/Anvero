@@ -496,7 +496,8 @@ flat columns except the country: `status_changed_at` (when the status last
 changed, null for an order that has kept its first one, so the list counts from
 `ordered_at`), `delivery_country_code` (the delivery address's country, e.g.
 `PL`, null when none is recorded; the addresses are loaded for the whole page in
-one extra query), `paid_amount` (null when unknown), `invoice_required`,
+one extra query), `paid_amount` (null when unknown), `invoice_required`, `delivery_smart`
+(an Allegro Smart delivery, as `delivery.smart` in the detail),
 `has_buyer_message` and `has_seller_note` (whether there is one, never its text),
 and the two marks below.
 
@@ -1048,6 +1049,8 @@ absent is null.
 and order-level discounts can make them differ. `payment.type` is one of
 `ONLINE`, `BANK_TRANSFER`, `CASH_ON_DELIVERY`, `DEFERRED` and `OTHER`.
 `paid_amount` null means unknown, `"0.00"` means known to be unpaid.
+`delivery.smart` is true for an Allegro Smart delivery (the buyer's Smart
+subscription covers it); false otherwise, including for every other marketplace.
 
 `GET /api/v1/orders` does not include details; they are for one order at a
 time.

@@ -79,6 +79,7 @@ Columns on `orders`, one per order:
 | `buyer_message` | what the buyer wrote to the seller at checkout |
 | `seller_note` | the seller's own note on the order, written on the marketplace itself; read-only here |
 | `delivery_method`, `delivery_cost` | how it ships and what the buyer paid for that |
+| `delivery_smart` | an Allegro Smart delivery (the buyer's subscription covers it); not null, default false |
 | `pickup_point_id`, `pickup_point_name` | the parcel locker or pickup point, if any |
 | `payment_type` | `ONLINE`, `BANK_TRANSFER`, `CASH_ON_DELIVERY`, `DEFERRED` or `OTHER` |
 | `payment_provider` | the payment operator as the marketplace names it, e.g. `P24` |

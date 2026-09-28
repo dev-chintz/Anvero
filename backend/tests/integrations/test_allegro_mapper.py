@@ -348,6 +348,7 @@ def test_maps_delivery_and_its_address():
 
     assert delivery.method == "Kurier"
     assert delivery.cost == Decimal("15.00")
+    assert delivery.smart is False
     assert delivery.pickup_point is None
     address = delivery.address
     assert (address.first_name, address.last_name) == ("Anna", "Nowak")
@@ -358,6 +359,13 @@ def test_maps_delivery_and_its_address():
     )
     assert address.country_code == "PL"
     assert address.phone == "+48 600 300 400"
+
+
+def test_maps_an_allegro_smart_delivery():
+    form = _checkout_form()
+    form["delivery"]["smart"] = True
+
+    assert map_checkout_form(form).delivery.smart is True
 
 
 def test_maps_a_pickup_point():

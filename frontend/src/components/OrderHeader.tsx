@@ -1,7 +1,13 @@
 import { useEffect, useRef, useState } from "react";
-import { OrderStatus } from "../types/order";
+import {
+  OrderStatus,
+  dispatchUrgency,
+  marketplaceStatusDiffers,
+  marketplaceStatusText,
+} from "../types/order";
 import type { OrderWithDetails } from "../types/order";
 import { useTranslation } from "../i18n";
+import { SmartBadge } from "./smartBadge";
 
 /** The road an order normally takes; a cancelled one is off it. */
 export const STATUS_FLOW: readonly OrderStatus[] = [
@@ -12,11 +18,16 @@ export const STATUS_FLOW: readonly OrderStatus[] = [
   OrderStatus.DELIVERED,
 ];
 
+const STATUSES = Object.values(OrderStatus);
+
 /** The status after this one on the usual road; null for the last, and for a cancelled order. */
 export function nextStatus(status: OrderStatus): OrderStatus | null {
   const at = STATUS_FLOW.indexOf(status);
   return at >= 0 && at < STATUS_FLOW.length - 1 ? STATUS_FLOW[at + 1] : null;
 }
+
+// "ALLEGRO" as a name: "Allegro"
+const channelName = (source: string) => source.charAt(0) + source.slice(1).toLowerCase();
 
 // the name the marketplace gave, else the login, else the address: never a bare heading
 function buyerLabel(order: OrderWithDetails): string {
@@ -26,11 +37,15 @@ function buyerLabel(order: OrderWithDetails): string {
 
 interface OrderHeaderProps {
   order: OrderWithDetails;
-  /** A status change is under way: the next-step button waits. */
+  /** A status change is under way: the next-step button and the status picker wait. */
   saving: boolean;
+  saveError: string | null;
+  /** What became of the change on the marketplace's side, if it was for it. */
+  writeNote: { text: string; tone: string } | null;
   deleting: boolean;
   isDeleted: boolean;
-  onNextStep: (status: OrderStatus) => void;
+  /** Both the next-step button and the picker, which can set any status. */
+  onStatusChange: (status: OrderStatus) => void;
   onMarks: (marks: { starred?: boolean; flagged?: boolean }) => void;
   onDelete: () => void;
   onRestore: () => void;
@@ -38,26 +53,32 @@ interface OrderHeaderProps {
 
 /**
  * The top of an order's page: who and what it is, the star and flag, the one button
- * for the usual next step, the rest of the actions folded under a menu, and where the
- * order stands on its road.
+ * for the usual next step, the rest of the actions folded under a menu, where the
+ * order stands on its road, and under that the status itself: a picker that can set
+ * any status, how long the order has been in it, the deadline to send by, and what
+ * the marketplace says.
  */
 export function OrderHeader({
   order,
   saving,
+  saveError,
+  writeNote,
   deleting,
   isDeleted,
-  onNextStep,
+  onStatusChange,
   onMarks,
   onDelete,
   onRestore,
 }: OrderHeaderProps) {
-  const { t, formatDateTime, language } = useTranslation();
+  const { t, formatDateTime, formatRelative, language } = useTranslation();
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const next = nextStatus(order.status);
   const country = order.delivery.address?.country_code;
   const cancelled = order.status === OrderStatus.CANCELLED;
   const at = STATUS_FLOW.indexOf(order.status);
+  const since = order.status_changed_at ?? order.ordered_at;
+  const urgency = dispatchUrgency(order);
 
   // an open menu closes on Escape or a click anywhere outside it
   useEffect(() => {
@@ -110,6 +131,7 @@ export function OrderHeader({
           <div className="order-header-meta">
             <span className={`badge badge-${order.source.toLowerCase()}`}>{order.source}</span>
             {country && <span className="country-badge">{country.toUpperCase()}</span>}
+            <SmartBadge smart={order.delivery.smart} />
             <span className="order-muted">
               {t("order.placedOn", { when: formatDateTime(order.ordered_at) })}
             </span>
@@ -121,7 +143,7 @@ export function OrderHeader({
             <button
               type="button"
               className="order-next"
-              onClick={() => onNextStep(next)}
+              onClick={() => onStatusChange(next)}
               disabled={saving}
             >
               {t("order.nextStep", { status: t(`status.${next}`).toLocaleLowerCase(language) })} →
@@ -192,6 +214,69 @@ export function OrderHeader({
           ))
         )}
       </ol>
+
+      <div className="order-status-row">
+        <label htmlFor="order-status" className="sr-only">
+          {t("order.status")}
+        </label>
+        <select
+          id="order-status"
+          value={order.status}
+          disabled={saving || isDeleted}
+          onChange={(e) => onStatusChange(e.target.value as OrderStatus)}
+        >
+          {STATUSES.map((s) => (
+            <option key={s} value={s}>
+              {t(`status.${s}`)}
+            </option>
+          ))}
+        </select>
+        <span className="order-status-facts">
+          <span>
+            {t("order.inStatus")}{" "}
+            <strong title={formatDateTime(since)}>{formatRelative(since)}</strong>
+          </span>
+          {order.dispatch_by && (
+            <span>
+              {t("order.dispatchBy")}{" "}
+              <strong className={urgency ? `dispatch-${urgency}` : undefined}>
+                {formatDateTime(order.dispatch_by)}
+              </strong>
+            </span>
+          )}
+          {order.marketplace_status_label && (
+            <span>
+              {t("order.marketplaceStatusShort", {
+                source: channelName(order.source),
+                status: order.marketplace_status_label,
+              })}
+            </span>
+          )}
+        </span>
+        {saving && <span role="status">{t("order.saving")}</span>}
+      </div>
+      {saveError && (
+        <p role="alert" className="error-message">
+          {saveError}
+        </p>
+      )}
+      {writeNote && (
+        <p
+          role={writeNote.tone === "error" ? "alert" : "status"}
+          className={`write-note write-${writeNote.tone}`}
+        >
+          {writeNote.text}
+        </p>
+      )}
+      {marketplaceStatusDiffers(order) && (
+        <p className="field-note">
+          {t("order.marketplaceNote", {
+            source: order.source,
+            reported: marketplaceStatusText(order),
+            mapped: t(`status.${order.marketplace_status as OrderStatus}`),
+          })}
+        </p>
+      )}
     </header>
   );
 }

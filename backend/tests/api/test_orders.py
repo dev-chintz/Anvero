@@ -712,6 +712,7 @@ def test_an_order_without_details_has_the_same_shape_with_nulls():
     assert order["delivery"] == {
         "method": None,
         "cost": None,
+        "smart": False,
         "address": None,
         "pickup_point": None,
     }
@@ -1569,7 +1570,7 @@ def test_the_list_carries_the_facts_its_icons_are_drawn_from():
     _create(
         **_details_payload(
             external_id="FACTS-1",
-            delivery={"method": "DPD", "address": {"city": "Berlin", "country_code": "DE"}},
+            delivery={"method": "DPD", "smart": True, "address": {"city": "Berlin", "country_code": "DE"}},
         )
     )
     _create(external_id="FACTS-2")
@@ -1580,11 +1581,13 @@ def test_the_list_carries_the_facts_its_icons_are_drawn_from():
     assert with_details["delivery_country_code"] == "DE"
     assert Decimal(with_details["paid_amount"]) == Decimal("180.98")
     assert with_details["invoice_required"] is True
+    assert with_details["delivery_smart"] is True
     assert with_details["has_buyer_message"] is True
     assert with_details["has_seller_note"] is True
     assert bare["delivery_country_code"] is None
     assert bare["paid_amount"] is None
     assert bare["invoice_required"] is False
+    assert bare["delivery_smart"] is False
     assert bare["has_buyer_message"] is False
     assert bare["has_seller_note"] is False
 

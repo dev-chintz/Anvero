@@ -46,8 +46,8 @@ folder, and one was restored from that copy into a scratch database as a test.
   remains the no-setup default for a fresh clone)
 - Health endpoint and first order model — done
 - Minimal order list interface — done
-- Automated tests for core flows — done (1017 backend, 604 frontend passing
-  across the suite as of 2026-09-28)
+- Automated tests for core flows — done (1020 backend, 608 frontend passing
+  across the suite as of 2026-09-29)
 
 ---
 
@@ -99,6 +99,14 @@ re-imported. Production needs its own application and authorization; see
 ---
 
 ## Not yet verified
+
+Order page summary redesign (2026-09-29): not yet opened in a browser. To
+check, logged in by the owner: a Smart and a non-Smart order, one with no
+parcel and one with a parcel (the shipping form folded behind "+ Dodaj
+kolejną przesyłkę"), light and dark mode, and the Smart badge in the order
+list. Existing orders show no Smart badge until an import refreshes them, and
+whether Allegro really sends `delivery.smart: true` on a Smart order is taken
+from its documentation, not yet seen in a response.
 
 CI's `alembic check` failed on PostgreSQL from `b0bf5ee` (2026-09-28) until
 `2f55e98`: `UserPermission.id` declared an index no migration made. So no image
@@ -275,17 +283,12 @@ detection and deployment" open task (`ROADMAP.md`, "Somewhere to run").
 **Left from the updater setup:** next push to `main` - use the Settings,
 Updates button on the NAS instead of SSH, to confirm the button itself works.
 
-**PICK UP HERE (2026-09-28, evening): the order page's summary redesign,
-mid-flight.** A live design session with the owner (mockups shown in chat,
-not saved anywhere but this note - re-derive from the description below, not
-from chat history) reworked the order page's Zamówienie/Płatność/Wysyłka
-area twice in a row; the *second* round is approved and not yet built. Full
-plan, exact approved layout and file-by-file steps: `AI_HANDOFF.md`,
-"Current Priorities". Read that before touching `OrderHeader.tsx`,
-`OrderFactsCard.tsx`, `OrderDetailsPanel.tsx`, `OrderMoreSections.tsx`,
-`OrderShippingCard.tsx`, `OrderDetail.tsx` or `OrderPage.css` - there is
-mid-session, uncommitted work in all of them (`git status`) from the *first*
-round (a merged summary bar) that the second round partly undoes.
+**Order page summary redesign (2026-09-29): built, awaiting the owner's look.**
+Round two of the 2026-09-28 design session is in (`DECISIONS.md`, 2026-09-29):
+status picker and facts in the header, payment folded after the status
+history, shipping its own card again, an Allegro Smart badge from the new
+`orders.delivery_smart`. Tests and type-check pass; the page itself has not
+been seen in a browser - see "Not yet verified".
 
 **Feature work after that (agreed 2026-09-24):** the feature plan at the end
 of `ROADMAP.md`, modelled on AlleIntegrator. Its first stage (work queues,

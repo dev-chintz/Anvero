@@ -177,6 +177,49 @@
   color: #dc2626;
 }
 
+/* under the road: the status itself, settable to any status, with its facts on one line */
+.order-status-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--color-divider);
+  font-size: 0.85rem;
+}
+
+.order-status-facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 0;
+  color: var(--color-muted);
+}
+
+.order-status-facts > span + span::before {
+  content: "·";
+  margin: 0 0.5rem;
+}
+
+.order-status-facts strong {
+  color: var(--color-text);
+  font-weight: 600;
+}
+
+.order-status-facts .dispatch-late {
+  color: #b91c1c;
+}
+
+.order-status-facts .dispatch-soon {
+  color: #b45309;
+}
+
+.order-header > .error-message,
+.order-header > .write-note,
+.order-header > .field-note {
+  margin: 0.5rem 0 0;
+}
+
 /* what needs a look: only what is there */
 .order-attention {
   display: flex;
@@ -282,73 +325,6 @@ button.attention-chip {
   display: contents;
 }
 
-/* one box for Płatność, Zamówienie and Wysyłka: no band of colour per fact, since
-   there are three of them side by side here already (and Wysyłka's own tabs still
-   need `.order-card`'s tones when its form opens); a divider between them stands in
-   for the band. Zamówienie and Płatność share the top line; Wysyłka is its own line
-   below, since it alone can grow (parcels, then a form to add one) without unbalancing
-   the two short facts beside it. */
-.order-summary-bar {
-  border: 1px solid var(--color-border);
-  border-radius: 10px;
-  background: var(--color-bg);
-  overflow: hidden;
-  margin-bottom: 1rem;
-}
-
-.order-summary-top {
-  display: flex;
-  flex-wrap: wrap;
-}
-
-.order-summary-bar .order-card {
-  border: none;
-  border-radius: 0;
-  background: none;
-  padding: 0.6rem 1rem;
-}
-
-.order-summary-top > .order-card {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 0.4rem 1.5rem;
-  flex: 1 1 auto;
-}
-
-.order-summary-top > .order-card + .order-card {
-  border-left: 1px solid var(--color-divider);
-}
-
-.order-summary-bar > .order-shipping {
-  border-top: 1px solid var(--color-divider);
-}
-
-.order-summary-bar .order-card > h2:first-child,
-.order-summary-bar .order-card > .order-card-head {
-  display: none;
-}
-
-.order-summary-top .fact-row {
-  gap: 0.4rem;
-}
-
-.order-summary-top .fact-list {
-  flex-direction: row;
-  flex-wrap: wrap;
-  gap: 0.35rem 1.5rem;
-  margin: 0;
-}
-
-.order-summary-top .fact-list > div {
-  justify-content: flex-start;
-  gap: 0.35rem;
-}
-
-.order-summary-top .fact-list dd {
-  text-align: left;
-}
-
 .order-shipping-add-toggle {
   padding: 0;
   background: none;
@@ -363,17 +339,6 @@ button.attention-chip {
   text-decoration: underline;
 }
 
-@media (max-width: 640px) {
-  .order-summary-top {
-    flex-direction: column;
-  }
-
-  .order-summary-top > .order-card + .order-card {
-    border-left: none;
-    border-top: 1px solid var(--color-divider);
-  }
-}
-
 @media (max-width: 1100px) {
   .order-details-top {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -384,25 +349,6 @@ button.attention-chip {
   .order-details-top {
     grid-template-columns: minmax(0, 1fr);
   }
-}
-
-/* a real brand mark (or, lacking one, the name alone) beside the delivery method, so the
-   carrier reads at a glance instead of from the sentence below it */
-.carrier-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 2px 8px;
-  border-radius: 4px;
-  font-size: 0.7rem;
-  font-weight: 500;
-  letter-spacing: 0.01em;
-  white-space: nowrap;
-}
-
-.carrier-badge-logo {
-  width: 12px;
-  height: 12px;
 }
 
 .order-card-head-actions {
@@ -566,7 +512,6 @@ button.attention-chip {
    The card and its band are in theme.css; a card's tone says what it is: blue for the order
    itself, teal for sending it, green or red for the money, amber for notes. */
 .order-items,
-.order-facts,
 .order-buyer {
   --band-bg: var(--tone-blue-bg);
   --band-fg: var(--tone-blue-fg);

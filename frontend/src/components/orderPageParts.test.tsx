@@ -5,7 +5,6 @@ import { ApiError } from "../api/client";
 import { OrderSource, OrderStatus, PaymentType, type OrderWithDetails } from "../types/order";
 import { OrderAttentionBar } from "./OrderAttentionBar";
 import { OrderAddressCards, OrderPaymentCard } from "./OrderDetailsPanel";
-import { OrderFactsCard } from "./OrderFactsCard";
 import { OrderHeader, nextStatus } from "./OrderHeader";
 import { OrderInternalNote } from "./OrderInternalNote";
 import { OrderMoreSections } from "./OrderMoreSections";
@@ -73,7 +72,7 @@ describe("nextStatus", () => {
 describe("the header of the order page", () => {
   function renderHeader(order: OrderWithDetails, props: Record<string, unknown> = {}) {
     const handlers = {
-      onNextStep: vi.fn(),
+      onStatusChange: vi.fn(),
       onMarks: vi.fn(),
       onDelete: vi.fn(),
       onRestore: vi.fn(),
@@ -82,6 +81,8 @@ describe("the header of the order page", () => {
       <OrderHeader
         order={order}
         saving={false}
+        saveError={null}
+        writeNote={null}
         deleting={false}
         isDeleted={false}
         {...handlers}
@@ -106,9 +107,11 @@ describe("the header of the order page", () => {
       <OrderHeader
         order={details({ customer: { login: "ola_k", first_name: null, last_name: null, company_name: null, phone: null } })}
         saving={false}
+        saveError={null}
+        writeNote={null}
         deleting={false}
         isDeleted={false}
-        onNextStep={vi.fn()}
+        onStatusChange={vi.fn()}
         onMarks={vi.fn()}
         onDelete={vi.fn()}
         onRestore={vi.fn()}
@@ -122,16 +125,16 @@ describe("the header of the order page", () => {
   });
 
   it("offers the next step in one button, and takes it", () => {
-    const { onNextStep } = renderHeader(details({ status: OrderStatus.CONFIRMED }));
+    const { onStatusChange } = renderHeader(details({ status: OrderStatus.CONFIRMED }));
 
     fireEvent.click(screen.getByRole("button", { name: /Mark as ready to ship/ }));
 
-    expect(onNextStep).toHaveBeenCalledWith(OrderStatus.READY_FOR_SHIPMENT);
+    expect(onStatusChange).toHaveBeenCalledWith(OrderStatus.READY_FOR_SHIPMENT);
   });
 
   it("has no next step for a delivered or a cancelled order", () => {
     const { unmount } = render(
-      <OrderHeader order={details({ status: OrderStatus.DELIVERED })} saving={false} deleting={false} isDeleted={false} onNextStep={vi.fn()} onMarks={vi.fn()} onDelete={vi.fn()} onRestore={vi.fn()} />,
+      <OrderHeader order={details({ status: OrderStatus.DELIVERED })} saving={false} saveError={null} writeNote={null} deleting={false} isDeleted={false} onStatusChange={vi.fn()} onMarks={vi.fn()} onDelete={vi.fn()} onRestore={vi.fn()} />,
     );
     expect(screen.queryByRole("button", { name: /Mark as/ })).toBeNull();
     unmount();
@@ -142,7 +145,7 @@ describe("the header of the order page", () => {
 
   it("makes the next step wait while a change is under way, and for a deleted order offers none", () => {
     const { unmount } = render(
-      <OrderHeader order={details()} saving deleting={false} isDeleted={false} onNextStep={vi.fn()} onMarks={vi.fn()} onDelete={vi.fn()} onRestore={vi.fn()} />,
+      <OrderHeader order={details()} saving saveError={null} writeNote={null} deleting={false} isDeleted={false} onStatusChange={vi.fn()} onMarks={vi.fn()} onDelete={vi.fn()} onRestore={vi.fn()} />,
     );
     expect(screen.getByRole("button", { name: /Mark as/ })).toBeDisabled();
     unmount();
@@ -288,17 +291,21 @@ describe("what needs attention on the order page", () => {
   });
 });
 
-describe("the facts card", () => {
-  function renderFacts(order: OrderWithDetails, props: Record<string, unknown> = {}) {
+describe("the status row under the road", () => {
+  function renderHeader(order: OrderWithDetails, props: Record<string, unknown> = {}) {
     const onStatusChange = vi.fn();
     render(
-      <OrderFactsCard
+      <OrderHeader
         order={order}
         saving={false}
         saveError={null}
         writeNote={null}
+        deleting={false}
         isDeleted={false}
         onStatusChange={onStatusChange}
+        onMarks={vi.fn()}
+        onDelete={vi.fn()}
+        onRestore={vi.fn()}
         {...props}
       />,
     );
@@ -306,21 +313,26 @@ describe("the facts card", () => {
   }
 
   it("sets any status, not only the usual next one", () => {
-    const { onStatusChange } = renderFacts(details());
+    const { onStatusChange } = renderHeader(details());
 
     fireEvent.change(screen.getByLabelText("Status"), { target: { value: OrderStatus.CANCELLED } });
 
     expect(onStatusChange).toHaveBeenCalledWith(OrderStatus.CANCELLED);
   });
 
-  it("locks the status of a deleted order", () => {
-    renderFacts(details(), { isDeleted: true });
+  it("locks the status while a change is under way, and of a deleted order", () => {
+    const { unmount } = render(
+      <OrderHeader order={details()} saving saveError={null} writeNote={null} deleting={false} isDeleted={false} onStatusChange={vi.fn()} onMarks={vi.fn()} onDelete={vi.fn()} onRestore={vi.fn()} />,
+    );
+    expect(screen.getByLabelText("Status")).toBeDisabled();
+    unmount();
 
+    renderHeader(details(), { isDeleted: true });
     expect(screen.getByLabelText("Status")).toBeDisabled();
   });
 
-  it("says how long the order has been in its status, and by what date", () => {
-    renderFacts(
+  it("says how long the order has been in its status", () => {
+    renderHeader(
       details({ status_changed_at: new Date(Date.now() - 2 * 86_400_000).toISOString() }),
     );
 
@@ -329,24 +341,52 @@ describe("the facts card", () => {
 
   it("shows the deadline and what the marketplace says, only when there are any", () => {
     const { unmount } = render(
-      <OrderFactsCard order={details()} saving={false} saveError={null} writeNote={null} isDeleted={false} onStatusChange={vi.fn()} />,
+      <OrderHeader order={details()} saving={false} saveError={null} writeNote={null} deleting={false} isDeleted={false} onStatusChange={vi.fn()} onMarks={vi.fn()} onDelete={vi.fn()} onRestore={vi.fn()} />,
     );
-    expect(screen.queryByText("Send by")).toBeNull();
-    expect(screen.queryByText("Status on ALLEGRO")).toBeNull();
+    expect(screen.queryByText(/Send by/)).toBeNull();
+    expect(screen.queryByText(/^Allegro: /)).toBeNull();
     unmount();
 
-    renderFacts(
+    renderHeader(
       details({ dispatch_by: new Date(Date.now() + 5 * 86_400_000).toISOString(), marketplace_status_label: "PROCESSING" }),
     );
-    expect(screen.getByText("Send by")).toBeInTheDocument();
-    expect(screen.getByText("Status on ALLEGRO")).toBeInTheDocument();
-    expect(screen.getByText("PROCESSING")).toBeInTheDocument();
+    expect(screen.getByText(/Send by/)).toBeInTheDocument();
+    expect(screen.getByText("Allegro: PROCESSING")).toBeInTheDocument();
   });
 
-  it("shows what became of a change on the marketplace's side", () => {
-    renderFacts(details(), { writeNote: { text: "Held back by safe mode", tone: "info" } });
+  it("shows what became of a change, and why it failed", () => {
+    renderHeader(details(), {
+      writeNote: { text: "Held back by safe mode", tone: "info" },
+      saveError: "Could not save",
+    });
 
     expect(screen.getByRole("status")).toHaveTextContent("Held back by safe mode");
+    expect(screen.getByRole("alert")).toHaveTextContent("Could not save");
+  });
+});
+
+describe("the Allegro Smart badge", () => {
+  const smart = (on: boolean) =>
+    details({ delivery: { ...details().delivery, smart: on } });
+
+  it("shows in the header and on the delivery card for a Smart delivery", () => {
+    const { unmount } = render(
+      <OrderHeader order={smart(true)} saving={false} saveError={null} writeNote={null} deleting={false} isDeleted={false} onStatusChange={vi.fn()} onMarks={vi.fn()} onDelete={vi.fn()} onRestore={vi.fn()} />,
+    );
+    expect(screen.getByText("Smart!")).toBeInTheDocument();
+    unmount();
+
+    render(<OrderAddressCards order={smart(true)} />);
+    expect(within(screen.getByRole("region", { name: "Delivery" })).getByText("Smart!")).toBeInTheDocument();
+  });
+
+  it("is absent otherwise", () => {
+    render(
+      <OrderHeader order={smart(false)} saving={false} saveError={null} writeNote={null} deleting={false} isDeleted={false} onStatusChange={vi.fn()} onMarks={vi.fn()} onDelete={vi.fn()} onRestore={vi.fn()} />,
+    );
+    render(<OrderAddressCards order={details()} />);
+
+    expect(screen.queryByText("Smart!")).toBeNull();
   });
 });
 
@@ -420,11 +460,35 @@ describe("the folded sections", () => {
     expect(folded().every((section) => !(section as HTMLDetailsElement).open)).toBe(true);
   });
 
-  it("always hold the history and the technical data", () => {
+  it("always hold the history, the payment and the technical data", () => {
     renderMore();
 
-    const names = folded().map((section) => section.querySelector("summary")?.textContent);
-    expect(names).toEqual(["Status history0", "Technical data"]);
+    const names = folded().map((section) => section.querySelector("summary")?.textContent ?? "");
+    expect(names).toHaveLength(3);
+    expect(names[0]).toBe("Status history0");
+    expect(names[1]).toMatch(/^Payment45[.,]49/);
+    expect(names[2]).toBe("Technical data");
+  });
+
+  it("fold the payment right after the history, with its state inside", () => {
+    renderMore({
+      order: details({
+        payment_type: PaymentType.ONLINE,
+        paid_amount: "0.00",
+        payment: { type: PaymentType.ONLINE, provider: "P24", paid_amount: "0.00", paid_at: null },
+      }),
+    });
+
+    const payment = folded()[1];
+    expect(payment.querySelector("summary")).toHaveTextContent(/^Payment0[.,]00/);
+    expect(within(payment as HTMLElement).getByRole("group", { name: "Payment" })).toHaveClass("payment-unpaid");
+    expect(payment).toHaveTextContent("P24");
+  });
+
+  it("leave the payment's summary empty while what was paid is unknown", () => {
+    renderMore({ order: details({ payment: { type: null, provider: null, paid_amount: null, paid_at: null } }) });
+
+    expect(folded()[1].querySelector("summary")?.textContent).toBe("Payment");
   });
 
   it("count what is inside without opening it", () => {
@@ -437,7 +501,7 @@ describe("the folded sections", () => {
     });
 
     const names = folded().map((section) => section.querySelector("summary")?.textContent);
-    expect(names).toEqual([
+    expect(names.filter((name) => !name?.startsWith("Payment"))).toEqual([
       "Status history1",
       "The buyer's other orders0",
       "Sent to the marketplace1",

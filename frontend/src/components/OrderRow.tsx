@@ -13,6 +13,7 @@ import { translate, useTranslation } from "../i18n";
 import { carrierLabel } from "../types/order";
 import type { OrderLinkState } from "./orderLinkState";
 import { ItemThumb } from "./ItemThumb";
+import { SmartBadge } from "./smartBadge";
 import type { OrderNoteKind } from "./OrderNoteDialog";
 import { TrackingLink } from "./TrackingLink";
 
@@ -329,6 +330,7 @@ export function OrderRow({
         </div>
       </td>
       <td className="shipping-cell">
+        <SmartBadge smart={order.delivery_smart} />
         {shipments.length === 0 ? (
           <span className="cell-placeholder" aria-label={t("orders.shippingNotTracked")}>
             —

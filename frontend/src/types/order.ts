@@ -74,6 +74,8 @@ export interface Order {
   /** What has been paid; null when unknown. */
   paid_amount?: string | null;
   invoice_required?: boolean;
+  /** An Allegro Smart delivery, as `delivery.smart` in the detail. */
+  delivery_smart?: boolean;
   has_buyer_message?: boolean;
   has_seller_note?: boolean;
   /**
@@ -280,6 +282,8 @@ export interface OrderWithDetails extends Order {
   delivery: {
     method: string | null;
     cost: string | null;
+    /** Allegro Smart: the buyer's subscription covers the delivery. Optional because a backend older than the field omits it. */
+    smart?: boolean;
     address: Address | null;
     pickup_point: {
       id: string | null;

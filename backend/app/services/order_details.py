@@ -25,6 +25,7 @@ def apply_details(order: Order, details: OrderDetails) -> None:
     pickup_point = delivery.pickup_point
     order.delivery_method = delivery.method
     order.delivery_cost = delivery.cost
+    order.delivery_smart = delivery.smart
     order.pickup_point_id = pickup_point.id if pickup_point else None
     order.pickup_point_name = pickup_point.name if pickup_point else None
     order.dispatch_by = details.dispatch_by

@@ -7,14 +7,8 @@ import type { Order, OrderBilling, OrderStatusChange, OrderWithDetails } from ".
 import { translate, useTranslation } from "../i18n";
 import { AfterSalesCard } from "./AfterSalesCard";
 import { describeWrite } from "./marketplaceWrite";
-import {
-  OrderAddressCards,
-  OrderBuyerCard,
-  OrderItemsCard,
-  OrderPaymentCard,
-} from "./OrderDetailsPanel";
+import { OrderAddressCards, OrderBuyerCard, OrderItemsCard } from "./OrderDetailsPanel";
 import { OrderAttentionBar } from "./OrderAttentionBar";
-import { OrderFactsCard } from "./OrderFactsCard";
 import { OrderHeader } from "./OrderHeader";
 import { OrderInternalNote } from "./OrderInternalNote";
 import { OrderMessagesCard } from "./OrderMessagesCard";
@@ -300,9 +294,11 @@ export function OrderDetail() {
             <OrderHeader
               order={order}
               saving={saving}
+              saveError={saveError}
+              writeNote={writeNote}
               deleting={deleting}
               isDeleted={isDeleted}
-              onNextStep={handleStatusChange}
+              onStatusChange={handleStatusChange}
               onMarks={handleMarks}
               onDelete={() => changeDeleted("delete")}
               onRestore={() => changeDeleted("restore")}
@@ -319,33 +315,19 @@ export function OrderDetail() {
               <OrderAddressCards order={order} />
             </div>
 
-            <div className="order-summary-bar">
-              <div className="order-summary-top">
-                <OrderPaymentCard order={order} />
-                <OrderFactsCard
-                  order={order}
-                  saving={saving}
-                  saveError={saveError}
-                  writeNote={writeNote}
-                  isDeleted={isDeleted}
-                  onStatusChange={handleStatusChange}
-                />
-              </div>
-
-              <OrderShippingCard
-                key={`shipping-${order.id}`}
-                order={order}
-                isDeleted={isDeleted}
-                onChanged={() => {
-                  ordersApi.get(order.id).then(setOrder).catch(() => undefined);
-                  loadWrites(order.id);
-                }}
-                onAdded={(result: OrderChangeResult) => {
-                  setOrder(result);
-                  loadWrites(result.id);
-                }}
-              />
-            </div>
+            <OrderShippingCard
+              key={`shipping-${order.id}`}
+              order={order}
+              isDeleted={isDeleted}
+              onChanged={() => {
+                ordersApi.get(order.id).then(setOrder).catch(() => undefined);
+                loadWrites(order.id);
+              }}
+              onAdded={(result: OrderChangeResult) => {
+                setOrder(result);
+                loadWrites(result.id);
+              }}
+            />
 
             <OrderMessagesCard threads={messageThreads} onThreadsChange={setMessageThreads} />
 

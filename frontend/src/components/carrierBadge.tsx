@@ -4,6 +4,7 @@ import dhlLogo from "../assets/carriers/dhl.svg";
 import dpdLogo from "../assets/carriers/dpd.svg";
 import fedexLogo from "../assets/carriers/fedex.svg";
 import upsLogo from "../assets/carriers/ups.svg";
+import "../styles/CarrierBadge.css";
 
 /**
  * Puts a name and, where one is on hand, a real brand mark on the delivery

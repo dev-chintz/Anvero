@@ -256,6 +256,8 @@ class Order(Base):
 
     delivery_method: Mapped[str | None] = mapped_column(String(255))
     delivery_cost: Mapped[Decimal | None] = mapped_column(Numeric(12, 2))
+    # Allegro Smart: the buyer's subscription covers the delivery
+    delivery_smart: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, server_default=false())
     pickup_point_id: Mapped[str | None] = mapped_column(String(255))
     pickup_point_name: Mapped[str | None] = mapped_column(String(255))
     # the latest moment the seller has promised to hand the parcel over, as

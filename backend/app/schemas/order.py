@@ -168,6 +168,8 @@ class PickupPoint(BaseModel):
 class Delivery(BaseModel):
     method: str | None = _text(255)
     cost: Decimal | None = _amount()
+    # Allegro Smart: the buyer's subscription covers the delivery
+    smart: bool = False
     address: Address | None = None
     pickup_point: PickupPoint | None = None
 
@@ -289,6 +291,8 @@ class OrderRead(OrderBase):
     delivery_country_code: str | None = None
     paid_amount: Decimal | None = None
     invoice_required: bool = False
+    # Allegro Smart delivery, for the list's Smart badge
+    delivery_smart: bool = False
     has_buyer_message: bool = False
     has_seller_note: bool = False
     # set while an operator has deleted the order; such an order is in no list
@@ -345,6 +349,7 @@ class OrderDetailRead(OrderRead, OrderDetails):
             delivery=Delivery(
                 method=order.delivery_method,
                 cost=order.delivery_cost,
+                smart=order.delivery_smart,
                 address=_address(order, AddressType.DELIVERY),
                 pickup_point=(
                     PickupPoint(

@@ -4,6 +4,20 @@ All significant changes to the Anvero project.
 
 ---
 
+## 2026-09-29
+
+### 🧾 Order page: status in the header, payment folded away, Allegro Smart badge
+
+- The status picker and its facts (time in the status, send-by deadline, Allegro's own status)
+  moved into the order header, on a row under the step pills; the separate "Zamówienie" card is
+  gone.
+- Payment is now a folded "Płatność" section right after the status history, with the amount paid
+  beside its name; shipping is its own card again.
+- A "Smart!" badge marks Allegro Smart deliveries in the header, on the delivery card and in the
+  order list. Read from Allegro's `delivery.smart`, stored in the new `orders.delivery_smart`
+  column (migration `b3e8d1f4a627`). See `docs/DECISIONS.md`.
+- Backend 1020, frontend 608 tests passing. Not yet checked in a browser.
+
 ## 2026-09-28
 
 ### 💸 A product's fees are credited for what the buyer paid for delivery

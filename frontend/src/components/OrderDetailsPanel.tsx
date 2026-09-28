@@ -4,6 +4,7 @@ import { formatNumber, useTranslation } from "../i18n";
 import { carrierLabel } from "../types/order";
 import type { Address, OrderWithDetails, Shipment } from "../types/order";
 import { CarrierBadge } from "./carrierBadge";
+import { SmartBadge } from "./smartBadge";
 import { ItemThumb } from "./ItemThumb";
 import { TrackingLink } from "./TrackingLink";
 import "../styles/OrderDetailsPanel.css";
@@ -357,6 +358,7 @@ export function OrderAddressCards({ order }: { order: OrderWithDetails }) {
           <h2>{t("details.delivery")}</h2>
           <div className="order-card-head-actions">
             <CarrierBadge deliveryMethod={delivery.method} />
+            <SmartBadge smart={delivery.smart} />
             {delivery.address && (
               <CopyAddressButton address={delivery.address} label={t("order.copyAddress")} />
             )}
@@ -384,17 +386,30 @@ export function OrderAddressCards({ order }: { order: OrderWithDetails }) {
   );
 }
 
-/** How the buyer pays and whether it has been paid. */
-export function OrderPaymentCard({ order }: { order: OrderWithDetails }) {
+/**
+ * How the buyer pays and whether it has been paid. `embedded` drops the card's own
+ * chrome and title, for the folded "Payment" section that already names it.
+ */
+export function OrderPaymentCard({ order, embedded = false }: { order: OrderWithDetails; embedded?: boolean }) {
   const { t } = useTranslation();
   // the card's colour says how the payment stands: green paid, red not, plain when unknown
   const state = paymentState(order);
+  const stateClass = state ? ` payment-${state}` : "";
+
+  if (embedded) {
+    return (
+      <div role="group" className={`embedded-card order-payment${stateClass}`} aria-label={t("details.payment")}>
+        <PaymentState order={order} />
+        {order.payment.type && <p className="order-muted">{t(`payment.type.${order.payment.type}`)}</p>}
+        {order.payment.provider && (
+          <p className="order-muted">{t("details.via", { provider: order.payment.provider })}</p>
+        )}
+      </div>
+    );
+  }
 
   return (
-    <section
-      className={`order-card order-payment${state ? ` payment-${state}` : ""}`}
-      aria-label={t("details.payment")}
-    >
+    <section className={`order-card order-payment${stateClass}`} aria-label={t("details.payment")}>
       <h2>{t("details.payment")}</h2>
       <PaymentState order={order} />
       {order.payment.type && <p className="order-muted">{t(`payment.type.${order.payment.type}`)}</p>}

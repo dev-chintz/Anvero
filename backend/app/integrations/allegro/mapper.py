@@ -370,6 +370,7 @@ def map_details(checkout_form: dict[str, Any]) -> OrderDetails:
         {
             "method": _text(_obj(delivery.get("method")).get("name")),
             "cost": _amount(delivery.get("cost")),
+            "smart": delivery.get("smart") is True,
             "address": _address(
                 external_id,
                 "delivery address",
