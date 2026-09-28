@@ -1,8 +1,10 @@
-import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { UpdatesSettings } from "./UpdatesSettings";
 import { UpdateBanner } from "../components/UpdateBanner";
+import { progressOf } from "../components/UpdateProgress";
+import type { UpdateStep } from "../hooks/useUpdateRun";
 import type { UpdateStatus } from "../api/client";
 
 let role = "admin";
@@ -104,7 +106,8 @@ describe("the Updates tab", () => {
 
     expect(confirm).toHaveBeenCalled();
     expect(updatesApi.start).toHaveBeenCalled();
-    expect(screen.getByText(/Updating to bbbbbbb/)).toBeInTheDocument();
+    expect(screen.getByRole("dialog", { name: "Updating Anvero to bbbbbbb" })).toBeInTheDocument();
+    expect(screen.getByRole("progressbar", { name: "Update progress" })).toBeInTheDocument();
     await act(async () => {
       vi.advanceTimersByTime(3_000);
     });
@@ -120,16 +123,180 @@ describe("the Updates tab", () => {
     expect(updatesApi.start).not.toHaveBeenCalled();
   });
 
-  it("shows what a failed update printed", async () => {
+  it("lists what was installed, who started it, and why one failed", async () => {
     vi.mocked(updatesApi.get).mockResolvedValue(
       status({
-        updater: { running: false, started_at: null, finished_at: "2026-09-28T12:00:00Z", result: "failed", log: "pull access denied" },
+        history: [
+          {
+            id: "h2",
+            from_commit: "aaaaaaa",
+            to_commit: "ccccccc",
+            started_at: "2026-09-28T12:00:00Z",
+            finished_at: "2026-09-28T12:00:10Z",
+            result: "failed",
+            via: "settings",
+            started_by: "admin@example.com",
+            detail: "pull access denied",
+          },
+          {
+            id: "h1",
+            from_commit: "9999999",
+            to_commit: "aaaaaaa",
+            started_at: "2026-09-27T12:00:00Z",
+            finished_at: "2026-09-27T12:01:30Z",
+            result: "ok",
+            via: "settings",
+            started_by: "admin@example.com",
+            detail: null,
+          },
+          {
+            id: "h0",
+            from_commit: null,
+            to_commit: "9999999",
+            started_at: "2026-09-26T12:00:00Z",
+            finished_at: "2026-09-26T12:00:00Z",
+            result: "ok",
+            via: "outside",
+            started_by: null,
+            detail: null,
+          },
+        ],
       }),
     );
     render(<UpdatesSettings />);
 
-    expect(await screen.findByText(/The last update failed/)).toBeInTheDocument();
-    expect(screen.getByText("pull access denied")).toBeInTheDocument();
+    const history = await screen.findByRole("region", { name: "Update history" });
+    const rows = within(history).getAllByRole("row").slice(1);
+    expect(rows).toHaveLength(3);
+    expect(rows[0]).toHaveTextContent("aaaaaaa → ccccccc");
+    expect(rows[0]).toHaveTextContent("Failed");
+    expect(within(rows[0]).getByText("pull access denied")).toBeInTheDocument();
+    expect(rows[1]).toHaveTextContent("admin@example.com");
+    expect(rows[1]).toHaveTextContent("Done · took 1:30");
+    expect(rows[2]).toHaveTextContent("outside Settings");
+  });
+});
+
+describe("an update under way", () => {
+  const running = (overrides = {}) => ({
+    running: true,
+    started_at: null,
+    finished_at: null,
+    result: null,
+    log: null,
+    ...overrides,
+  });
+
+  async function startUpdate() {
+    vi.mocked(updatesApi.start).mockResolvedValue(status());
+    vi.spyOn(window, "confirm").mockReturnValue(true);
+    render(<UpdatesSettings />);
+    const button = await screen.findByRole("button", { name: "Update to bbbbbbb" });
+    vi.useFakeTimers();
+    fireEvent.click(button);
+    await act(async () => {
+      await Promise.resolve();
+    });
+  }
+
+  const step = async () =>
+    act(async () => {
+      vi.advanceTimersByTime(3_000);
+      await Promise.resolve();
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+  const current = () => screen.getByRole("dialog").querySelector("[aria-current='step']");
+
+  it("makes everything under it unreachable, and goes through its steps", async () => {
+    const root = document.createElement("div");
+    root.id = "root";
+    document.body.appendChild(root);
+    vi.mocked(updatesApi.get).mockResolvedValue(status());
+    await startUpdate();
+
+    expect(root).toHaveAttribute("inert");
+    expect(current()).toHaveTextContent("Asking the updater");
+
+    vi.mocked(healthApi.get).mockResolvedValue({ status: "ok", commit: "aaaaaaa" });
+    vi.mocked(updatesApi.get).mockResolvedValue(status({ updater: running() }));
+    await step();
+    expect(current()).toHaveTextContent("Downloading the new version");
+
+    // the backend is away while its container is recreated
+    vi.mocked(healthApi.get).mockRejectedValue(new Error("offline"));
+    await step();
+    expect(current()).toHaveTextContent("Restarting the application");
+
+    root.remove();
+  });
+
+  it("says so when the updater fails, and lets go of the application on closing", async () => {
+    const root = document.createElement("div");
+    root.id = "root";
+    document.body.appendChild(root);
+    vi.mocked(updatesApi.get).mockResolvedValue(status());
+    await startUpdate();
+
+    vi.mocked(healthApi.get).mockResolvedValue({ status: "ok", commit: "aaaaaaa" });
+    vi.mocked(updatesApi.get).mockResolvedValue(
+      status({
+        updater: running({ running: false, result: "failed", finished_at: new Date(Date.now() + 1_000).toISOString(), log: "manifest unknown" }),
+      }),
+    );
+    await step();
+
+    expect(screen.getByText(/The update failed/)).toBeInTheDocument();
+    expect(screen.getByText("manifest unknown")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Close" }));
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(root).not.toHaveAttribute("inert");
+
+    root.remove();
+  });
+
+  it("follows an update another tab started", async () => {
+    vi.mocked(healthApi.get).mockResolvedValue({ status: "ok", commit: "aaaaaaa" });
+    vi.mocked(updatesApi.get).mockResolvedValue(
+      status({
+        history: [
+          {
+            id: "h1",
+            from_commit: "aaaaaaa",
+            to_commit: "bbbbbbb",
+            started_at: new Date().toISOString(),
+            finished_at: null,
+            result: null,
+            via: "settings",
+            started_by: "admin@example.com",
+            detail: null,
+          },
+        ],
+      }),
+    );
+    render(<UpdatesSettings />);
+
+    expect(await screen.findByRole("dialog", { name: "Updating Anvero to bbbbbbb" })).toBeInTheDocument();
+  });
+});
+
+describe("the progress bar", () => {
+  const run = (step: UpdateStep, inStep: number) => ({
+    target: "bbbbbbb",
+    startedAt: 0,
+    step,
+    stepSince: 1_000_000 - inStep,
+    outcome: null,
+  });
+
+  it("creeps within a step without passing its end, and is full once the version is up", () => {
+    expect(progressOf(run("downloading", 0), 1_000_000)).toBe(8);
+    const later = progressOf(run("downloading", 300_000), 1_000_000);
+    expect(later).toBeGreaterThan(55);
+    expect(later).toBeLessThanOrEqual(65);
+    expect(progressOf(run("restarting", 0), 1_000_000)).toBe(65);
+    expect(progressOf(run("finishing", 0), 1_000_000)).toBe(100);
   });
 });
 

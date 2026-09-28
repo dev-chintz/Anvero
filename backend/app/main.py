@@ -1,4 +1,5 @@
 import asyncio
+import logging
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
@@ -11,7 +12,9 @@ from app.api.v1.router import router as api_router
 from app.core.config import ensure_secret_key, settings
 from app.core.logging import setup_logging
 from app.core.rate_limit import limiter
+from app.db.session import SessionLocal
 from app.services.retention import run_retention_daily
+from app.services.update_history import note_running_version
 from app.services.updates import run_update_checks
 from app.services.schedule import default_jobs, run_jobs
 
@@ -22,8 +25,20 @@ ensure_secret_key(settings.secret_key)
 
 
 
+def _note_running_version() -> None:
+    """Close the update that brought this version, or write down one that came
+    another way (services/update_history.py). Never keeps the backend from starting."""
+    try:
+        with SessionLocal() as db:
+            note_running_version(db, settings.app_commit or None)
+    except Exception:
+        logging.getLogger(__name__).exception("Could not write the running version to the update history")
+
+
 @asynccontextmanager
 async def lifespan(_: FastAPI) -> AsyncIterator[None]:
+    if settings.app_commit:
+        await asyncio.to_thread(_note_running_version)
     # the imports and message syncs the backend starts by itself; the interval
     # is read from the database on every round (services/schedule.py)
     # and, apart from them, the daily erasure of personal data past its

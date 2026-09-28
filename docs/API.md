@@ -1111,7 +1111,9 @@ which it does only for a commit whose Checks passed. The backend knows its own f
 {"current": "716c908", "latest": "a1b2c3d", "available": true, "behind": 2,
  "changes": [{"sha": "a1b2c3d", "title": "...", "date": "...Z"}],
  "checked_at": "...Z", "error": null, "can_update": true,
- "updater": {"running": false, "started_at": "...", "finished_at": "...", "result": "ok", "log": "..."}}
+ "updater": {"running": false, "started_at": "...", "finished_at": "...", "result": "ok", "log": "..."},
+ "history": [{"id": "...", "from_commit": "716c908", "to_commit": "a1b2c3d", "started_at": "...Z",
+   "finished_at": "...Z", "result": "ok", "via": "settings", "started_by": "admin@example.com", "detail": null}]}
 ```
 
 `current` is null off a published image (a developer's machine), and then nothing is
@@ -1120,11 +1122,18 @@ is why the last check failed; what was known before is kept. `can_update` is fal
 without `UPDATER_TOKEN`, and `updater` is null when the updater is not set up or does
 not answer.
 
+`history` is what the backend ran before, newest first, at most 20 (`DATABASE.md`,
+`app_updates`): `result` null while an update is under way, `via` `outside` for a
+version reached other than by the button (then `started_by` is null). An open
+update is closed on the next `GET` as `failed` once the updater reports its run
+failed, or after 20 minutes without the new version starting.
+
 `POST` asks the updater to pull the images and recreate the backend and web
 containers, and answers `202` at once; `409` when nothing newer is published,
 `502` naming why when the updater is not set up, cannot be reached, refuses the token
-or is already running. The backend is then away for a minute or two; the page waits
-for `GET /health` to name the new `commit`, then reloads.
+or is already running (the refused attempt is kept in `history` as `failed`). The
+backend is then away for a minute or two; the page waits for `GET /health` to name
+the new `commit`, then reloads.
 
 ## Conventions
 

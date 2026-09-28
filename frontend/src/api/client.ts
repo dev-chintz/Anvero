@@ -1225,6 +1225,25 @@ export interface UpdateStatus {
   error: string | null;
   can_update: boolean;
   updater: UpdaterRun | null;
+  /** Newest first. Optional because a backend older than the field omits it. */
+  history?: UpdateHistoryEntry[];
+}
+
+/** One change of the running version. */
+export interface UpdateHistoryEntry {
+  id: string;
+  /** Short commits; from is null for the first version the database saw. */
+  from_commit: string | null;
+  to_commit: string;
+  started_at: string;
+  /** Null while under way. */
+  finished_at: string | null;
+  /** "ok" or "failed"; null while under way. */
+  result: string | null;
+  /** "settings" for the button, "outside" for a version reached another way. */
+  via: string;
+  started_by: string | null;
+  detail: string | null;
 }
 
 export const updatesApi = {

@@ -1,33 +1,41 @@
-import { useEffect, useRef, useState } from 'react';
-import { ApiError, healthApi, updatesApi } from '../api/client';
+import { useEffect, useState } from 'react';
+import { ApiError, updatesApi, type UpdateHistoryEntry } from '../api/client';
 import { SettingRow } from '../components/SettingRow';
+import { UpdateProgress } from '../components/UpdateProgress';
+import { useUpdateRun } from '../hooks/useUpdateRun';
 import { useUpdateStatus } from '../hooks/useUpdateStatus';
 import { useTranslation } from '../i18n';
+import '../styles/UpdateProgress.css';
 
-// how often the page asks whether the new version is up, and for how long
-const POLL_MS = 3_000;
-const GIVE_UP_MS = 10 * 60_000;
-
-type Phase = 'idle' | 'updating' | 'timeout';
+const secondsTaken = (entry: UpdateHistoryEntry) =>
+  entry.finished_at
+    ? Math.max(0, Math.round((Date.parse(entry.finished_at) - Date.parse(entry.started_at)) / 1000))
+    : null;
 
 /**
- * Which version runs, whether a newer one is published and what it changes, and
- * the button that installs it (`docs/DEPLOYMENT.md`, "Updating from Settings").
- * While the updater works the backend is away; the page waits for `/health` to
- * name the new version and then reloads itself, so the new interface is loaded
- * too. Only an administrator sees this tab (Settings.tsx).
+ * Which version runs, whether a newer one is published and what it changes, the
+ * button that installs it, and what was installed before (`docs/DEPLOYMENT.md`,
+ * "Updating from Settings"). While the updater works the backend is away; the
+ * progress stays over the whole application until `/health` names the new version,
+ * then the page reloads itself, so the new interface is loaded too. Only an
+ * administrator sees this tab (Settings.tsx).
  */
 export function UpdatesSettings() {
   const { t, formatDateTime } = useTranslation();
   const { status, reload } = useUpdateStatus(true);
+  const { run, start, close } = useUpdateRun();
   const [checking, setChecking] = useState(false);
-  const [phase, setPhase] = useState<Phase>('idle');
+  const [starting, setStarting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const timer = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  useEffect(() => () => {
-    if (timer.current) clearInterval(timer.current);
-  }, []);
+  const history = status?.history ?? [];
+  const underWay = history.find((entry) => entry.result === null && entry.via === 'settings');
+
+  // an update already under way (started in another tab, or before a reload) is followed too
+  useEffect(() => {
+    if (underWay && !run) start(underWay.to_commit, Date.parse(underWay.started_at));
+    // only when a different update shows up, not on every answer
+  }, [underWay?.id]);
 
   const checkNow = async () => {
     setChecking(true);
@@ -41,43 +49,33 @@ export function UpdatesSettings() {
     }
   };
 
-  const waitFor = (target: string) => {
-    const started = Date.now();
-    timer.current = setInterval(() => {
-      if (Date.now() - started > GIVE_UP_MS) {
-        if (timer.current) clearInterval(timer.current);
-        setPhase('timeout');
-        return;
-      }
-      healthApi
-        .get()
-        .then((health) => {
-          if (health.commit === target) {
-            if (timer.current) clearInterval(timer.current);
-            window.location.reload();
-          }
-        })
-        // the backend is away while its container is recreated
-        .catch(() => undefined);
-    }, POLL_MS);
-  };
-
   const update = async () => {
     if (!status?.latest || !window.confirm(t('updates.confirm', { version: status.latest }))) return;
     setError(null);
+    setStarting(true);
     try {
       await updatesApi.start();
-      setPhase('updating');
-      waitFor(status.latest);
+      start(status.latest);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : t('updates.startFailed'));
+      // the refused attempt is in the history now
+      void reload().catch(() => undefined);
+    } finally {
+      setStarting(false);
     }
   };
 
-  const lastRun = status?.updater;
+  const closeRun = () => {
+    close();
+    void reload().catch(() => undefined);
+  };
+
+  const busy = starting || !!run;
 
   return (
     <div className="updates-settings">
+      {run && <UpdateProgress run={run} onClose={closeRun} />}
+
       <section className="settings-section card tone-blue" aria-label={t('updates.title')}>
         <h2>{t('updates.title')}</h2>
 
@@ -97,7 +95,7 @@ export function UpdatesSettings() {
               }
             >
               <code>{status.latest ?? t('updates.unknown')}</code>{' '}
-              <button type="button" onClick={checkNow} disabled={checking || phase === 'updating'}>
+              <button type="button" onClick={checkNow} disabled={checking || busy}>
                 {checking ? t('updates.checking') : t('updates.checkNow')}
               </button>
             </SettingRow>
@@ -108,15 +106,7 @@ export function UpdatesSettings() {
               </p>
             )}
 
-            {phase === 'updating' ? (
-              <p role="status" className="update-progress">
-                {t('updates.updating', { version: status.latest ?? '' })}
-              </p>
-            ) : phase === 'timeout' ? (
-              <p role="alert" className="error-message">
-                {t('updates.timeout')}
-              </p>
-            ) : status.available ? (
+            {status.available ? (
               <div className="update-available">
                 <p>
                   <span className="status-dot is-ok" aria-hidden="true" />{' '}
@@ -133,8 +123,8 @@ export function UpdatesSettings() {
                   </ul>
                 )}
                 {status.can_update ? (
-                  <button type="button" onClick={update}>
-                    {t('updates.install', { version: status.latest ?? '' })}
+                  <button type="button" onClick={update} disabled={busy}>
+                    {starting ? t('updates.starting') : t('updates.install', { version: status.latest ?? '' })}
                   </button>
                 ) : (
                   <p className="setting-row-help">{t('updates.cannotUpdate')}</p>
@@ -153,20 +143,75 @@ export function UpdatesSettings() {
                 {error}
               </p>
             )}
-
-            {lastRun?.result === 'failed' && phase === 'idle' && (
-              <details className="update-log">
-                <summary>
-                  {t('updates.lastFailed', {
-                    when: lastRun.finished_at ? formatDateTime(lastRun.finished_at) : '',
-                  })}
-                </summary>
-                <pre>{lastRun.log}</pre>
-              </details>
-            )}
           </>
         )}
       </section>
+
+      {status && (
+        <section className="settings-section card" aria-label={t('updates.historyTitle')}>
+          <h2>{t('updates.historyTitle')}</h2>
+          {history.length === 0 ? (
+            <p className="setting-row-help">{t('updates.historyEmpty')}</p>
+          ) : (
+            <table className="update-history">
+              <thead>
+                <tr>
+                  <th scope="col">{t('updates.historyWhen')}</th>
+                  <th scope="col">{t('updates.historyVersion')}</th>
+                  <th scope="col">{t('updates.historyWho')}</th>
+                  <th scope="col">{t('updates.historyResult')}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {history.map((entry) => {
+                  const took = secondsTaken(entry);
+                  return (
+                    <tr key={entry.id}>
+                      <td>{formatDateTime(entry.started_at)}</td>
+                      <td>
+                        {entry.from_commit ? (
+                          <>
+                            <code>{entry.from_commit}</code> → <code>{entry.to_commit}</code>
+                          </>
+                        ) : (
+                          <code>{entry.to_commit}</code>
+                        )}
+                      </td>
+                      <td>
+                        {entry.via === 'settings'
+                          ? (entry.started_by ?? t('updates.historyDeletedUser'))
+                          : t('updates.historyOutside')}
+                      </td>
+                      <td>
+                        {entry.result === 'ok' ? (
+                          <span className="update-result-ok">
+                            {t('updates.historyOk')}
+                            {entry.via === 'settings' && took !== null
+                              ? ` · ${t('updates.historyTook', { time: `${Math.floor(took / 60)}:${String(took % 60).padStart(2, '0')}` })}`
+                              : null}
+                          </span>
+                        ) : entry.result === 'failed' ? (
+                          <>
+                            <span className="update-result-failed">{t('updates.historyFailed')}</span>
+                            {entry.detail && (
+                              <details className="update-log">
+                                <summary>{t('updates.whatItPrinted')}</summary>
+                                <pre>{entry.detail}</pre>
+                              </details>
+                            )}
+                          </>
+                        ) : (
+                          <span className="update-result-running">{t('updates.historyRunning')}</span>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          )}
+        </section>
+      )}
     </div>
   );
 }

@@ -1,0 +1,178 @@
+/* An update under way (UpdateProgress.tsx): over everything, the rest inert under it. */
+
+.update-progress-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 3000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  background: rgba(0, 0, 0, 0.5);
+}
+
+body.app-updating {
+  overflow: hidden;
+}
+
+.update-progress-dialog {
+  width: min(30rem, 100%);
+  padding: 1.25rem 1.5rem;
+  background: var(--color-bg);
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.35);
+}
+
+.update-progress-dialog h2 {
+  margin: 0 0 1rem;
+  font-size: 1.1rem;
+}
+
+.update-progress-bar {
+  height: 10px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--color-surface-alt);
+}
+
+.update-progress-bar > div {
+  height: 100%;
+  border-radius: inherit;
+  background: var(--color-accent);
+  transition: width 0.5s ease;
+}
+
+.update-progress-bar.is-stopped > div {
+  background: var(--color-error);
+}
+
+.update-progress-meta {
+  display: flex;
+  justify-content: space-between;
+  margin: 0.35rem 0 1rem;
+  font-size: 0.8rem;
+  color: var(--color-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.update-progress-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  margin: 0 0 1rem;
+  padding: 0;
+  list-style: none;
+  font-size: 0.9rem;
+  color: var(--color-muted);
+}
+
+.update-progress-steps li {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.update-progress-mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.4rem;
+  height: 1.4rem;
+  border: 1px solid var(--color-border);
+  border-radius: 50%;
+  font-size: 0.75rem;
+}
+
+.update-progress-steps .is-done {
+  color: var(--color-text);
+}
+
+.update-progress-steps .is-done .update-progress-mark {
+  background: var(--tone-green-bg);
+  border-color: var(--tone-green-fg);
+  color: var(--tone-green-fg);
+}
+
+.update-progress-steps .is-current {
+  color: var(--color-text);
+  font-weight: 600;
+}
+
+.update-progress-steps .is-current .update-progress-mark {
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+  animation: update-progress-pulse 1.4s ease-in-out infinite;
+}
+
+.update-progress-steps .is-failed {
+  color: var(--color-error);
+  font-weight: 600;
+}
+
+.update-progress-steps .is-failed .update-progress-mark {
+  border-color: var(--color-error);
+}
+
+.update-progress-note {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--color-muted);
+}
+
+@keyframes update-progress-pulse {
+  50% {
+    box-shadow: 0 0 0 4px color-mix(in srgb, var(--color-accent) 25%, transparent);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .update-progress-bar > div {
+    transition: none;
+  }
+
+  .update-progress-steps .is-current .update-progress-mark {
+    animation: none;
+  }
+}
+
+/* the history on the Updates tab */
+.update-history {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+
+.update-history th,
+.update-history td {
+  padding: 0.45rem 0.5rem;
+  border-bottom: 1px solid var(--color-divider);
+  text-align: left;
+  vertical-align: top;
+}
+
+.update-history th {
+  font-weight: 600;
+  color: var(--color-muted);
+}
+
+.update-history .update-result-ok {
+  color: var(--tone-green-fg);
+  font-weight: 600;
+}
+
+.update-history .update-result-failed {
+  color: var(--color-error);
+  font-weight: 600;
+}
+
+.update-history .update-result-running {
+  color: var(--color-accent);
+  font-weight: 600;
+}
+
+.update-history details summary {
+  cursor: pointer;
+  color: var(--color-muted);
+}

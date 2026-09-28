@@ -119,8 +119,11 @@ Setting it up, once:
 What happens on the button: the backend asks the updater (`http://updater:8080`,
 no published port, the token), which runs
 `docker compose -f /project/docker-compose.yml pull backend web` and
-`up -d --no-deps backend web`. The backend migrates as it starts, as always. If a
-run fails, Settings, Updates shows what it printed. The updater never recreates
+`up -d --no-deps backend web`. The backend migrates as it starts, as always. While
+it runs, the page shows the steps and a progress bar over the whole application,
+which cannot be used meanwhile. Every update, and every version the backend finds
+itself on at start, is in Settings, Updates, "Update history"; a failed run shows
+what it printed there. The updater never recreates
 itself; a newer updater image is taken up by recreating the application by hand,
 which is also the way back: put a commit's short hash in place of `latest` and
 recreate.

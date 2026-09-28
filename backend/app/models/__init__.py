@@ -1,4 +1,5 @@
 from app.models.after_sales import AfterSalesCase, CaseAction, CaseKind
+from app.models.app_update import AppUpdate
 from app.models.courier_pickup import CourierPickup, PickupStatus
 from app.models.inpost_shipment import InpostShipment
 from app.models.integration import IntegrationCredential, IntegrationSettings
@@ -29,6 +30,7 @@ __all__ = [
     "AddressType",
     "AfterSalesCase",
     "AppSetting",
+    "AppUpdate",
     "BillingEntry",
     "CaseAction",
     "CaseKind",
@@ -51,9 +53,9 @@ __all__ = [
     "OrderStatus",
     "OrderStatusHistory",
     "PaymentType",
+    "Payout",
     "PermissionArea",
     "PermissionLevel",
-    "Payout",
     "PickupStatus",
     "ProductionCheck",
     "SalesReportOverride",

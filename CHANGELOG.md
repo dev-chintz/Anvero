@@ -6,6 +6,13 @@ All significant changes to the Anvero project.
 
 ## 2026-09-29
 
+### 🔄 Update history and progress
+
+- Settings, Updates lists every update: when, which versions, who started it, and how it ended
+  (new `app_updates` table, migration `ff7e747a62f2`).
+- Pressing "Update" shows the steps, a progress bar and the time elapsed over the whole
+  application, which cannot be used until the new version is running. See `docs/DECISIONS.md`.
+
 ### 🏷️ An order's fees name the item they are for
 
 - Each commission on the order page's marketplace fees shows the SKU of the item it was charged

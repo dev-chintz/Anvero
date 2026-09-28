@@ -46,7 +46,7 @@ folder, and one was restored from that copy into a scratch database as a test.
   remains the no-setup default for a fresh clone)
 - Health endpoint and first order model — done
 - Minimal order list interface — done
-- Automated tests for core flows — done (1022 backend, 609 frontend passing
+- Automated tests for core flows — done (1031 backend, 613 frontend passing
   across the suite as of 2026-09-29)
 
 ---
@@ -99,6 +99,11 @@ re-imported. Production needs its own application and authorization; see
 ---
 
 ## Not yet verified
+
+Update history and progress (2026-09-29): tested with fakes only. The first real
+check is the update after the one that installs this code on the NAS: the
+dialog's steps and bar, the application inert meanwhile, and the history row
+closed by the new backend.
 
 Order page summary redesign (2026-09-29): not yet opened in a browser. To
 check, logged in by the owner: a Smart and a non-Smart order, one with no

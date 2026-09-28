@@ -103,6 +103,26 @@ def test_starting_asks_the_updater(monkeypatch):
     assert asked == [True]
 
 
+def test_the_history_shows_who_started_an_update_and_a_refused_one(monkeypatch):
+    _state(monkeypatch, current="c" * 40, latest="d" * 40)
+    headers = _auth("admin")
+    monkeypatch.setattr(updates, "start_update", lambda: None)
+    client.post("/api/v1/admin/updates", headers=headers)
+
+    def fail():
+        raise UpdateError("An update is already running")
+
+    monkeypatch.setattr(updates, "start_update", fail)
+    client.post("/api/v1/admin/updates", headers=headers)
+
+    history = client.get("/api/v1/admin/updates", headers=headers).json()["history"]
+    refused, started = history[0], history[1]
+    assert (started["from_commit"], started["to_commit"], started["via"]) == ("ccccccc", "ddddddd", "settings")
+    assert started["result"] is None and started["finished_at"] is None
+    assert started["started_by"].endswith("@example.com")
+    assert (refused["result"], refused["detail"]) == ("failed", "An update is already running")
+
+
 def test_nothing_to_install_is_a_conflict(monkeypatch):
     _state(monkeypatch, latest="a" * 40)
 

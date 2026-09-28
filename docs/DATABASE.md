@@ -21,7 +21,8 @@ The model will be deployed via migrations after framework selection, but a commo
 Migrations currently create `users`, `user_permissions`, `orders`, `order_items`,
 `order_addresses`, `order_shipments`, `billing_entries`,
 `order_status_history`, `integration_credentials`, `message_threads`,
-`messages`, `after_sales_cases`, `payouts`, `sales_report_overrides` and `order_item_packing`.
+`messages`, `after_sales_cases`, `payouts`, `sales_report_overrides`, `order_item_packing`
+and `app_updates`.
 `integration` and `customer` are still targets.
 
 `orders` deviates from the target shape while there are no integrations to
@@ -267,6 +268,15 @@ the latest token has to be kept between runs:
 | `last_synced_at` | where the next import resumes: when the last one that fetched everything started, less five minutes; null until one has, and reset by a re-authorization, since another seller account has another order history |
 | `account_login` | the connected seller's login, read once when the account is connected; only a label |
 | `updated_at` | last rotation |
+
+`app_updates` is the history of the version the backend runs (Settings,
+Updates): `from_commit` and `to_commit` (full commits; from is null for the
+first version the database saw), `started_at`, `started_by_user_id` (null
+outside Settings, or once the account is deleted), `finished_at` and `result`
+(`ok` or `failed`, both null while under way), `via` (`settings` for the
+button, `outside` for a version the backend found itself on at start) and
+`detail` (why it failed). A row from the button is written when it is pressed
+and closed by the new backend on its first start.
 
 `app_settings` holds settings an operator changes in the interface, one row
 per key: `key` (primary key), `value` (text), `updated_at`,
