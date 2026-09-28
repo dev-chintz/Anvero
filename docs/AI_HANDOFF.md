@@ -95,8 +95,9 @@ refine it before anything is built; its open questions come first.
    `scripts/authorize_allegro.py` for the one-time authorization exists; the
    sandbox accounts and application are the owner's to create.
 2. The sandbox import is done: authorized and a real order imported twice on
-   2026-09-17, through the script, on the SQLite machine. Production Allegro
-   needs its own application, User-Agent and authorization (INTEGRATIONS.md).
+   2026-09-17, through the script, on the SQLite machine. Since 2026-09-25
+   production Allegro (and Erli) are connected on the owner's real accounts
+   and importing real orders; see PROJECT_STATUS.md, "Not yet verified".
    The interface button was checked against the sandbox too.
 
 ---

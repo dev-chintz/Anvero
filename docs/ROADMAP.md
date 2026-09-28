@@ -381,7 +381,7 @@ item is scoped when it is taken up.
 | Safe mode | Done, with a log of what was held back and a banner |
 | Application status, integrations | The Status page. **Missing:** a card per channel, several Allegro accounts |
 | Settings | Sender, parcel, Allegro, Erli, safe mode, language. **Missing:** notifications (e-mail, webhook), shop details, SMTP, printer, sync intervals in the interface (today `.env`), a data package |
-| People, roles, change log | **Missing:** one login. The status history and the write log partly stand in |
+| People, roles, change log | Accounts, roles (admin/user) and per-area permissions, done 2026-09-28. **Missing:** a change log beyond the existing status history and write log |
 | Other channels (Empik, OLX, PrestaShop, WooCommerce) | Not built. Erli is built and waits for a key |
 
 ### Suggested order
@@ -429,7 +429,11 @@ specification. Each of these is listed under "Not yet verified" in
 ### Open questions that change the plan
 
 - More than one Allegro account? AlleIntegrator handles several; Anvero, one.
-- Will anyone besides the owner log in? Roles and a change log depend on it.
+- ~~Will anyone besides the owner log in? Roles and a change log depend on it.~~
+  Answered 2026-09-28: yes, and accounts now have a role (admin/user) and,
+  for a user, per-area permissions (`DECISIONS.md`, "Accounts Get a Role and
+  Per-Area Permissions"). A change log beyond the existing status history and
+  marketplace-writes log is still not built.
 - ~~Which label printer?~~ A thermal Xprinter on the home network, the same
   network as the NAS (answered 2026-09-25; model and label size still to be
   given, see the shipping analysis below).

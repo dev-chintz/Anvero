@@ -84,10 +84,12 @@ breakdown; the short version:
   `DATABASE_URL` in `backend/.env` to see which one a machine uses. Away from
   home the NAS is reachable only through a VPN (`DEVELOPMENT.md`).
 
-The Allegro import **has** now run against the real API, in the Allegro
-Sandbox: one order imported and re-imported on 2026-09-17. Production
-Allegro is the next step and needs its own application, its own one-time
-authorization and the owner's seller account. See INTEGRATIONS.md.
+The Allegro import first ran against the real API in the Allegro Sandbox, on
+2026-09-17. Since 2026-09-25 both Allegro and Erli are connected on the
+owner's real, production accounts and import real orders (Allegro also its
+buyer messages) on the usual schedule - safe mode has stayed on throughout,
+so nothing has been written back to either marketplace. See
+PROJECT_STATUS.md, "Not yet verified", and INTEGRATIONS.md.
 
 Treat anything in the "Not yet verified" section of PROJECT_STATUS.md as
 unproven, however finished the code looks.

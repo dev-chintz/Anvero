@@ -24,8 +24,11 @@ Foundation
 
 Sprints 2, 3 and 4 are delivered. PostgreSQL is connected on the main
 machine: the migrations and the full test suite run on it. The Allegro
-import has now run against the real API in the Allegro Sandbox, so what
-remains is the same on production Allegro, with the owner's seller account.
+import first ran against the real API in the Allegro Sandbox; since
+2026-09-25 both Allegro and Erli are connected on the owner's real,
+production accounts and import real orders (and, for Allegro, buyer
+messages) - see "Not yet verified" below for what that has and has not
+covered.
 
 Since 2026-09-18 the development database is one shared PostgreSQL 17 on the
 owner's NAS, which every machine reaches through `DATABASE_URL` in its own
@@ -113,6 +116,18 @@ The same order was then imported a third time from the interface, with the
 stored refresh token was replaced again, and no duplicate appeared. So both
 ways of importing have now run against the real API.
 
+**Since 2026-09-25 (Friday), Allegro and Erli are connected on the owner's
+real, production accounts** (not the Sandbox), confirmed by the owner
+2026-09-28: orders import from both, and Allegro's buyer messages, on the
+usual 15-minute schedule. Safe mode has stayed on throughout, so nothing has
+been written back to either marketplace - every "Writing to Allegro" and
+"never bought/sent" note below still stands for what leaves Anvero, only not
+for what comes in. Returns, claims and disputes have not been checked this
+way and, unlike orders and messages, have no automatic schedule at all
+(`app/services/schedule.py`'s `default_jobs()` lists only Allegro orders,
+Erli orders and Allegro messages): the sync only runs when the button in the
+interface is clicked.
+
 The NAS deployment (`DEPLOYMENT.md`) and the automatic update (every 15 minutes by default for Allegro, Erli and messages, set in Integrations, backends taking turns by a lease, `DECISIONS.md`) have not run: the Dockerfiles, the compose file and the publish workflow were written without Docker or GitHub Actions to try them on, and the scheduled path was only checked up to "skips when no account is connected" on a machine without one.
 
 Shipments and carrier tracking (`INTEGRATIONS.md`) were built from Allegro's documentation and tested against fakes only: no real response has been seen, and whether the application's scopes allow the two endpoints is unknown.
@@ -121,7 +136,7 @@ The dispatch deadline (`dispatch_by`, `INTEGRATIONS.md`, "Dispatch deadline") is
 
 The InPost integration (`INTEGRATIONS.md`, "InPost") has never run against InPost: no token has been used, and it was built from ShipX's documentation and tested against fakes. Unconfirmed in particular: that `sending_method` is not required, that InPost chooses the offer itself, the batch labels request, and the status words after `confirmed`. Its migration `e9b4c2a7d5f1` was applied to the shared PostgreSQL on 2026-09-25: the other machines need `alembic upgrade head`. The Settings card, the Labels tab and the not-connected state were opened in the browser; nothing beyond that. The shipping analysis of the same day (`ROADMAP.md`, "Shipping and labels: analysis and proposed plan") found it would probably pay for Allegro Smart parcels from the InPost balance: keep it off for Allegro orders until that plan is settled.
 
-The Erli import (`INTEGRATIONS.md`, "Erli") has never run: no API key has been used, and it was built from Erli's published OpenAPI description and tested against fakes. Unconfirmed in particular: that amounts are in grosze, the status mapping, and how soon Erli fills in the buyer's email.
+The Erli import (`INTEGRATIONS.md`, "Erli") was built from Erli's published OpenAPI description and tested against fakes before it had ever run for real; since 2026-09-25 it runs against the owner's real shop (see above). Still unconfirmed from that: that amounts are in grosze, the status mapping, and how soon Erli fills in the buyer's email - the owner has not reported checking those specifically, only that orders come in.
 
 Writing to Allegro (status and tracking number, `INTEGRATIONS.md`, "Writing to Allegro") has never sent anything: safe mode has been on. Unverified: that the application carries the `allegro:api:orders:write` scope, that Allegro accepts the status transitions as mapped, and the carrier ids. Safe mode itself was checked in the browser on 2026-09-24 (banner, Settings, the confirmation), without switching it off on the shared database.
 
@@ -133,7 +148,7 @@ Returns, claims and disputes (plan B4, `INTEGRATIONS.md`, "Returns and claims") 
 
 Billing entries (fees, `INTEGRATIONS.md`, "Fees") have been read from the owner's real Allegro account since 2026-09-27, and Erli's billing and payouts from the real Erli the same day. Allegro's payouts (`INTEGRATIONS.md`, "Payouts") were read from the real account on 2026-09-27, once `allegro:api:payments:read` had been added to the application and the account connected again: 21 payouts in September, all through Allegro Finance (`AF`), none cancelled, so `PAYOUT_CANCEL` has not been seen.
 
-Buyer messages (plan B2, `INTEGRATIONS.md`, "Buyer messages") made their first real call on 2026-09-24, to production Allegro, and were answered `422 Incorrect limit or offset`: the page size was 100 where the Message Center allows 20. Fixed (`MESSAGING_PAGE_SIZE`), and the specification, fetched that day from `developer.allegro.pl/swagger.yaml`, confirmed the sort order, the scope name and the message shape, and gave a message's direction as a field (`author.isInterlocutor`). Still unseen: a successful read (the retry after the fix was not run), a reply, and the link of a thread to its order, which the public thread schema does not carry (`INTEGRATIONS.md`). Safe mode has been on throughout, so nothing has reached a real buyer. Erli is not read: no messaging endpoint was found in its public API.
+Buyer messages (plan B2, `INTEGRATIONS.md`, "Buyer messages") made their first real call on 2026-09-24, to production Allegro, and were answered `422 Incorrect limit or offset`: the page size was 100 where the Message Center allows 20. Fixed (`MESSAGING_PAGE_SIZE`), and the specification, fetched that day from `developer.allegro.pl/swagger.yaml`, confirmed the sort order, the scope name and the message shape, and gave a message's direction as a field (`author.isInterlocutor`). Since 2026-09-25 it runs successfully against the owner's real account on the usual schedule (see "Not yet verified" above), so the retry after the fix did succeed. Still unseen: a reply, and the link of a thread to its order, which the public thread schema does not carry (`INTEGRATIONS.md`). Safe mode has been on throughout, so nothing has reached a real buyer. Erli is not read: no messaging endpoint was found in its public API.
 
 The non-invoiced sales report (`DECISIONS.md`, "Non-invoiced sales report, ported" and "PAY-001
 approved") was opened in the browser against the owner's real September orders on 2026-09-27: 185
@@ -179,6 +194,22 @@ The 2026-09-25 list and menu work (`DECISIONS.md`, "Ideas from BaseLinker") was 
 ---
 
 The 2026-09-24 order-list work (`DECISIONS.md`, "Open orders are read again every import") was checked on the real orders: an import after the change stored parcels for all 12 open orders, the sticky scrollbar and the thumbnail preview were exercised in the browser (the hover by a simulated pointer event, the scroll by moving the bar). Not seen: the automatic import running on its own for a while (this machine's `.env`, which is not in Git, now has `ALLEGRO_IMPORT_INTERVAL_MINUTES=15`; a second backend on the same database must not set it, and the NAS deployment will need it set there instead), and the paging choices past the second page (there are only 48 orders).
+
+---
+
+The 2026-09-28 roles-and-permissions work (`DECISIONS.md`, "Accounts Get a Role and Per-Area
+Permissions") was checked in the browser only on a scratch SQLite database with made-up accounts
+(an admin and a limited "user" granted `orders:manage` and `messages:view`): the Users tab's list,
+its permission grid reading and saving correctly, and creating a new account. **Its migration
+`c2a6f9e3b184` has not been applied to the shared PostgreSQL**, so a backend with this code cannot
+serve that database until `alembic upgrade head` is run on it - blocked on this machine's
+`backend/.env` still holding the PostgreSQL password from before the 2026-09-27 rotation (see
+`DECISIONS.md`, "Database Password Rotated"), which the owner will update from home. Not seen: the
+tab on the owner's own real account or real data, a "user" role account actually logged in and
+clicking through the interface with the sidebar's sections hidden by its grants (checked only by
+the backend's own tests and by reading the code), and the production frontend build (`npm run
+build`) - only the Vite dev server was used. No end-to-end browser test exists for it yet, only
+`pytest` and Vitest component tests.
 
 ---
 
@@ -229,7 +260,10 @@ Sandbox. Agreed plan, in order:
    database has not been tried yet. Importing from
    the interface button was checked too. Left from this step, when there is
    a reason: a cancelled order and an order with several line items.
-3. **Production Allegro** with the owner's seller account, same steps.
+3. ~~**Production Allegro** with the owner's seller account, same steps.~~
+   Connected and importing since 2026-09-25 ("Not yet verified" above); what
+   the sandbox did not cover (below) still applies, and every write is still
+   untried for real (safe mode has stayed on).
 4. **What real data will likely demand:** ~~importing every page and only
    what changed~~ done 2026-09-21 (first import: last 7 days, then only new
    or changed orders, all pages; `DECISIONS.md`); what remains is a
