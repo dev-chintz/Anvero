@@ -1799,3 +1799,74 @@ stands - only the read itself was confirmed, not those business rules against
 real cases. Covered by
 `tests/integrations/test_allegro_after_sales.py::test_issues_are_asked_for_by_status_with_the_beta_version`
 (958 backend tests passing, one renamed).
+
+## 2026-09-28 — Accounts Get a Role and Per-Area Permissions
+
+**Decision:** `users` gets a `role` column (`admin` or `user`, plain strings
+like `payment_type` rather than a database enum, since the list of what a
+role means can grow) and a new `user_permissions` table (migration
+`c2a6f9e3b184`), one row per `(user_id, area)`: `area` is one of `orders`,
+`messages`, `after_sales`, `labels`, `finance`, `integrations` - the same six
+areas Settings groups the application into - and `level` is `view` or
+`manage` (`manage` satisfies a `view` check too). An admin needs no rows: it
+passes every check outright. A new `require_permission(area, level)`
+dependency (`app/core/permissions.py`) replaces the plain "logged in" gate on
+every router except `auth` and `health`; `API.md`'s "Users, roles and
+permissions" section lists which area and level each endpoint needs.
+Settings gets a "Users" tab, visible only to an admin: a list of accounts on
+the left and the one chosen open on the right (`docs/STYLE_GUIDE.md`), where
+an admin creates an account (typing its password directly, like
+`scripts/create_user.py` already did - there is still no self-service
+registration), and sets its role, active state and, for a "user", a grid of
+the six areas each with a three-way choice (none, view, manage). The
+migration set every account that already existed to `admin`, and
+`UserCreate.role` still defaults to `admin` (matching the script's own
+`--role` default), so every caller written before roles existed - the whole
+test suite included - keeps the full access it always had; only a "user"
+account created from the new Users tab, which always sends `role`
+explicitly, starts out limited. An admin cannot demote or deactivate the
+account that would leave zero active admins (`UserService.update_user`),
+checked against every other admin account, not just the ones created this
+session.
+
+**Rationale:** The owner asked for two account types (administrator, user),
+permissions on the user kind assignable per area of the application, and
+several people working from different accounts at the same time; the last
+part needed no new work, since logins are independent JWTs with no shared
+session lock already. Three permission granularities were on the table (per
+area, per exact action, or a flat view/full split); the owner chose per area,
+coarse enough that the settings screen stays a short grid rather than dozens
+of checkboxes, matching how the application's own pages are already grouped.
+Two of Integrations' own endpoints - the Allegro messages and after-sales
+syncs - are gated by the `messages` and `after_sales` areas instead of
+`integrations`, since triggering them is naturally part of managing those
+areas, not the marketplace connection itself; every other Integrations
+endpoint, including safe mode, needs `integrations`. A JWT lasts up to eight
+hours and cannot be revoked early (`API.md`); the owner accepted that a
+deactivated or downgraded account's already-issued token still works until
+it expires, rather than building session revocation now. A regression
+surfaced during manual verification: replacing a user's whole permission set
+in one request, keeping some areas and adding another, violated the
+`(user_id, area)` uniqueness before the old rows were gone, because clearing
+a SQLAlchemy collection and appending replacements in the same flush queues
+the inserts before the deletes; `UserRepository.replace_permissions` now
+flushes the clear before appending (test:
+`test_replacing_permissions_while_keeping_some_of_the_same_areas`).
+
+
+## 2026-09-28 — Retention periods and erasure (GDPR)
+
+**Decision (owner, from the plan put to them):** Buyers' personal data is erased once it has no purpose left, by a daily run in the backend and not only by hand: orders five years after the end of the year in which their tax was due (in practice: an order from year Y is anonymized on 1 January of Y+7, Polish time); message threads two years after their last message; after-sales cases two years after they were opened, once closed; what Anvero sent to a marketplace (`marketplace_writes`) two years after it was sent, or with its order. Erasing is anonymizing, not deleting: `anonymized_at` is set on the row (migration `a7d4e2c9f136`), the fields that name, reach or quote a person are emptied (`customer_email` becomes `''`, being required), and numbers, dates, amounts, items and the delivery country stay. An import or sync no longer touches an anonymized order or case; a thread the buyer writes in again is a new contact and kept from then, the old messages staying erased. One buyer's request is answered by `scripts/export_person.py` and `scripts/anonymize_person.py`, found by login or e-mail; erasing on request keeps a company invoice's name, tax id and address while the tax period runs, and the daily run erases those after it. The list's search moves out of the address into the history entry's state. Integration secrets are encrypted when `SECRETS_KEY` is set, plain text otherwise. Reads are not logged; a sales report export with a personal column is.
+
+**Rationale:** The owner chose each period and the automatic run from the options offered. The order period counts from the year the tax was *due*, not the year of the order, because the statute of limitations does (Ordynacja podatkowa art. 70 and 86): counting from the order's year would erase December's orders while their income tax could still be examined, one year early. Anonymizing rather than deleting keeps past figures and reports whole and keeps an import from bringing the order back, which a deleted row could not stop. The run is its own loop, not a job of the import schedule, so switching imports off does not stop data from ageing out, and it needs no lease: anonymizing twice is harmless. The search is often a buyer's name or login, and an address holding it stays in the browser's history and suggestions; the state survives reloads and "back" like the rest. `SECRETS_KEY` is opt-in because every backend sharing a database needs the same key and losing it means authorizing Allegro again: turning it on is the owner's step, with the key in the password manager, not something a deployment should do silently. Reads are not logged because with a few accounts on a private network such a log would be one more copy of who bought what; bulk exports are the way data leaves, so those are.
+
+**Consequences:** `GDPR.md` is the description of what is held, the periods and how a request is answered; `DATABASE.md` and `API.md` carry the new column and field. The retention run writes `retention_last_run` to `app_settings`. `OrderRead.customer_email` is a plain string in responses (an anonymized order's is empty). The first run on the NAS will erase threads quiet for over two years, if any were read from Allegro's history. A restored backup needs the retention run and the erasures answered since then run again; the owner keeps the register of requests outside Anvero.
+
+
+## 2026-09-28 — Updates from Settings
+
+**Decision (owner chose the look, variant C of three mockups):** The plan of 2026-09-27 ("Automatic Update Deployment") is built as polling, not a webhook. A version is a commit on `main` whose `anvero-backend` and `anvero-web` images are both on GHCR; the backend knows its own from `APP_COMMIT`, baked into the image by the publish workflow, and every 30 minutes reads the newest 20 commits from GitHub's public API and asks GHCR anonymously which is the newest published. An administrator sees a banner above every page ("An Anvero update is available", closable until the next version) that only points at a new Settings tab, Updates, where the versions, the commits in between and the button are. The button asks a third container, `updater` (its own image, `updater/`), to run `docker compose pull backend web` and `up -d --no-deps backend web` against the NAS's own compose file; the page then waits for `/health` to name the new commit and reloads itself. `GET`/`POST /api/v1/admin/updates` are administrator only.
+
+**Rationale:** A webhook needs the NAS reachable from GitHub, which it deliberately is not (`DEPLOYMENT.md`, "Limits"); polling a public repository needs no token and no open port, and half an hour's delay is nothing for an update someone clicks anyway. A commit counts only once its images exist, because that is what can be installed and what passed the checks - a commit on `main` alone could be a failing one, as the three commits of this morning were. The button is only in Settings, not on the banner, so nobody takes the application down for a minute with a slip in the middle of packing. A container cannot recreate itself, so something outside it must; the updater holds the Docker socket, which is root on the NAS, so it is kept to the minimum: no published port, a token of at least 32 characters, two fixed commands, and it never recreates itself (a run would cut itself short). Recreating from the compose file on the NAS, rather than from the Docker API, recreates the containers exactly as Container Station created them.
+
+**Consequences:** Updating needs the published images; a NAS building from a clone gets the banner but its button would recreate from GHCR. Rolling back stays manual (a commit's short hash in place of `latest`, recreate). A new updater image is taken up only by recreating the application by hand. `/health` now carries `commit`, which is public, as the repository is.

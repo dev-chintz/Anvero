@@ -3,9 +3,11 @@ import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
 import { isNarrowWindow } from '../hooks/useSidebarOpen';
 import { useAppHealth } from '../hooks/useAppHealth';
+import { hasPermission } from '../hooks/usePermission';
 import { useSidebarCounts } from '../hooks/useSidebarCounts';
 import { useTranslation } from '../i18n';
 import { OrderSource, OrderStatus } from '../types/order';
+import type { PermissionArea } from '../types/user';
 import '../styles/Sidebar.css';
 
 interface SidebarProps {
@@ -67,13 +69,16 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onToggle }) => {
     urgent?: boolean;
     hint?: string;
     dot?: 'warning' | 'error' | null;
+    /** Hidden when the account has no view access to this area; undefined means everyone sees it. */
+    area?: PermissionArea;
   }
-  const navItems: NavItem[] = [
+  const allNavItems: NavItem[] = [
     { path: '/dashboard', label: t('nav.dashboard'), icon: '📊' },
     {
       path: '/orders',
       label: t('nav.orders'),
       icon: '📦',
+      area: 'orders',
       badge: counts.toShip,
       urgent: (counts.late ?? 0) > 0,
       hint: t('nav.badge.orders', {
@@ -86,14 +91,16 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onToggle }) => {
       path: '/production',
       label: t('nav.production'),
       icon: '🛠️',
+      area: 'orders',
       badge: counts.toMake,
       hint: t('nav.badge.production', { count: counts.toMake ?? 0 }),
     },
-    { path: '/labels', label: t('nav.labels'), icon: '🏷️' },
+    { path: '/labels', label: t('nav.labels'), icon: '🏷️', area: 'labels' },
     {
       path: '/after-sales',
       label: t('nav.afterSales'),
       icon: '↩️',
+      area: 'after_sales',
       badge: counts.afterSales,
       urgent: (counts.afterSalesOverdue ?? 0) > 0,
       hint: t('nav.badge.afterSales', {
@@ -105,11 +112,12 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onToggle }) => {
       path: '/inbox',
       label: t('nav.inbox'),
       icon: '✉️',
+      area: 'messages',
       badge: counts.unreadMessages,
       hint: t('nav.badge.inbox', { count: counts.unreadMessages ?? 0 }),
     },
-    { path: '/finance', label: t('nav.finance'), icon: '💰' },
-    { path: '/sales-report', label: t('nav.salesReport'), icon: '🧮' },
+    { path: '/finance', label: t('nav.finance'), icon: '💰', area: 'finance' },
+    { path: '/sales-report', label: t('nav.salesReport'), icon: '🧮', area: 'finance' },
     {
       path: '/settings',
       label: t('nav.settings'),
@@ -118,6 +126,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onToggle }) => {
       hint: healthLevel ? t('nav.badge.settings') : undefined,
     },
   ];
+  const navItems = allNavItems.filter((item) => !item.area || hasPermission(user, item.area));
 
   return (
     <aside className={`sidebar ${isOpen ? 'open' : 'closed'}`}>

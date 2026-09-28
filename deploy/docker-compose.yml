@@ -20,10 +20,18 @@ services:
       DATABASE_URL: postgresql+psycopg://anvero:CHANGE_ME@CHANGE_ME_DB_CONTAINER_NAME:5432/anvero
       # at least 32 random characters; a new value logs everyone out
       SECRET_KEY: CHANGE_ME
+      # encrypts the integration secrets in the database, so a backup does not
+      # carry them readable (docs/GDPR.md, "Secrets"); the same value on every
+      # backend sharing this database, and a copy in the password manager.
+      # Generate with `python scripts/encrypt_secrets.py --new-key`
+      # SECRETS_KEY: CHANGE_ME
       # the backend imports from Allegro by itself; on for this backend only
       ALLEGRO_IMPORT_INTERVAL_MINUTES: "15"
       # only while the Allegro application is not yet entered in Settings:
       # ALLEGRO_CLIENT_ID / ALLEGRO_CLIENT_SECRET / ALLEGRO_USER_AGENT
+      # the updater's token, the same value as below: at least 32 random
+      # characters (DEPLOYMENT.md, "Updating from Settings")
+      UPDATER_TOKEN: CHANGE_ME
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/v1/health')"]
       interval: 30s
@@ -46,6 +54,24 @@ services:
       # deployment uses 8081 instead: http://NAS_ADDRESS:8081
       # (`DEPLOYMENT.md`, `DECISIONS.md`, 2026-09-27)
       - "8081:80"
+
+  # Pulls the newest images and recreates backend and web when an
+  # administrator clicks Update in Settings (DEPLOYMENT.md, "Updating from
+  # Settings"). It holds the Docker socket, so: no published port (only the
+  # backend reaches it, on this application's own network), and it answers
+  # only UPDATER_TOKEN. It never recreates itself; a new updater image is
+  # taken up by recreating the application by hand.
+  updater:
+    image: ghcr.io/dev-chintz/anvero-updater:latest
+    restart: unless-stopped
+    environment:
+      UPDATER_TOKEN: CHANGE_ME
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      # this very file, as saved on the NAS, so the updater recreates the
+      # containers exactly as Container Station would; the path is the
+      # application's folder on the NAS (DEPLOYMENT.md)
+      - ./docker-compose.yml:/project/docker-compose.yml:ro
 
 networks:
   anvero-db_default:

@@ -3,6 +3,11 @@ import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { Settings } from "./Settings";
 
+// an admin so the Users tab is there too; none of these tests open it
+vi.mock("../auth/AuthContext", () => ({
+  useAuth: () => ({ user: { id: 1, email: "operator@example.com", role: "admin", permissions: [] } }),
+}));
+
 // the safe-mode card has its own tests; here only the page's structure matters
 vi.mock("../components/SafeModeSettings", () => ({ SafeModeSettings: () => <p>safe-card</p> }));
 // the integrations are a tab of their own: none of their cards may turn up on the general one

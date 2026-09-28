@@ -35,6 +35,9 @@ jobs:
       # tests/conftest.py falls back to its own SQLite file when
       # TEST_DATABASE_URL is unset, as on a fresh clone
       - run: python -m pytest -q
+      # the updater container's own server (updater/), standard library only
+      - name: Updater tests
+        run: python -m pytest -q -p no:cacheprovider --rootdir ../updater ../updater
 
   backend-postgres:
     name: Backend tests and migrations (PostgreSQL 17)

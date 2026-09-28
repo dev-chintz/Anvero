@@ -258,6 +258,23 @@ def test_export_accepts_a_chosen_column_set_and_order():
     assert rows[1] == [external_id, "buyer1", "50,00", "PLN"]
 
 
+def test_an_export_with_personal_data_is_logged_with_who_made_it_and_no_values(caplog):
+    _order_with_person("Jan", "Kowalski")
+
+    with caplog.at_level("INFO", logger="app.api.v1.endpoints.sales_report"):
+        client.get("/api/v1/sales-report/orders/export", params={**JUNE, "format": "csv"})
+        client.get(
+            "/api/v1/sales-report/orders/export",
+            params={**JUNE, "format": "csv", "columns": "order_external_id,amount_total"},
+        )
+
+    (record,) = [r for r in caplog.records if "exported" in r.getMessage()]
+    message = record.getMessage()
+    assert "customer_name" in message
+    assert "by user" in message
+    assert "Kowalski" not in message
+
+
 def test_export_refuses_an_unknown_column():
     response = client.get("/api/v1/sales-report/orders/export", params={**JUNE, "format": "csv", "columns": "made_up"})
     assert response.status_code == 422

@@ -9,7 +9,7 @@ import type {
   ProductionList,
 } from "../types/order";
 import type { OrderQueue, OrderSort, OrderSource, OrderStatus } from "../types/order";
-import type { Token, User } from "../types/user";
+import type { Token, User, UserCreateInput, UserUpdateInput } from "../types/user";
 import { translate } from "../i18n";
 
 // Vite's dev server proxies "/api" to the FastAPI backend (see vite.config.ts),
@@ -156,6 +156,20 @@ export const authApi = {
 
   me(): Promise<User> {
     return request<User>("/users/me");
+  },
+};
+
+export const usersApi = {
+  list(): Promise<User[]> {
+    return request<User[]>("/users");
+  },
+
+  create(input: UserCreateInput): Promise<User> {
+    return request<User>("/users", { method: "POST", body: JSON.stringify(input) });
+  },
+
+  update(userId: number, input: UserUpdateInput): Promise<User> {
+    return request<User>(`/users/${userId}`, { method: "PATCH", body: JSON.stringify(input) });
   },
 };
 
@@ -1182,5 +1196,49 @@ export const salesReportApi = {
     return request(`/sales-report/orders/${source}/${encodeURIComponent(orderExternalId)}/override`, {
       method: "DELETE",
     });
+  },
+};
+
+export interface UpdateChange {
+  sha: string;
+  title: string;
+  date: string | null;
+}
+
+export interface UpdaterRun {
+  running: boolean;
+  started_at: string | null;
+  finished_at: string | null;
+  /** "ok" or "failed" for the last run that ended; null before any */
+  result: string | null;
+  log: string | null;
+}
+
+/** What the backend knows about newer versions (API.md, "Updates"). */
+export interface UpdateStatus {
+  current: string | null;
+  latest: string | null;
+  available: boolean;
+  behind: number | null;
+  changes: UpdateChange[];
+  checked_at: string | null;
+  error: string | null;
+  can_update: boolean;
+  updater: UpdaterRun | null;
+}
+
+export const updatesApi = {
+  get(refresh = false): Promise<UpdateStatus> {
+    return request<UpdateStatus>(`/admin/updates${refresh ? "?refresh=true" : ""}`);
+  },
+  start(): Promise<UpdateStatus> {
+    return request<UpdateStatus>("/admin/updates", { method: "POST" });
+  },
+};
+
+export const healthApi = {
+  /** Public, so it answers while a login is being renewed; `commit` is the running version. */
+  get(): Promise<{ status: string; commit: string | null }> {
+    return request("/health", { authenticated: false });
   },
 };

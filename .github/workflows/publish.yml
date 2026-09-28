@@ -25,6 +25,10 @@ jobs:
             context: backend
           - image: anvero-web
             context: frontend
+          # pulls the other two and recreates their containers when an
+          # administrator asks from Settings (docs/DEPLOYMENT.md)
+          - image: anvero-updater
+            context: updater
     steps:
       - uses: actions/checkout@v7
         with:
@@ -51,5 +55,8 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          # the backend reads it as APP_COMMIT to know its own version
+          build-args: |
+            GIT_SHA=${{ github.event.workflow_run.head_sha }}
           cache-from: type=gha,scope=${{ matrix.image }}
           cache-to: type=gha,mode=max,scope=${{ matrix.image }}

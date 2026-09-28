@@ -23,6 +23,7 @@ Read the following files in order:
 9. DECISIONS.md
 10. INTEGRATIONS.md
 11. STYLE_GUIDE.md (before writing any interface: the one look every page shares)
+12. GDPR.md (before storing, showing or exporting anything about a buyer)
 
 ---
 
@@ -59,11 +60,14 @@ read succeeded: 0 open issues, 10 closed issues, 10 customer returns).
 Docker network by container name rather than the NAS's LAN address. See
 `DEPLOYMENT.md` and `DECISIONS.md` for what differed from the written plan.
 
-**Open task:** automatic update detection and a Settings button to trigger a
-deployment update, since today's update path on the NAS - confirmed to be
-`docker compose pull && up -d` against the published GHCR images, nothing
-else - is still done by hand; see "PICK UP HERE" in `PROJECT_STATUS.md` and
-`DEPLOYMENT.md`, "Updating".
+**GDPR (2026-09-28):** personal data is erased by itself once past its period (orders five years after the year their tax was due, messages, closed cases and what was sent to a marketplace after two), a buyer's request is answered with `backend/scripts/export_person.py` and `anonymize_person.py`, the integration secrets are encrypted once `SECRETS_KEY` is set, and the list's search is kept out of the address. See `GDPR.md`. Not yet run on the NAS; `SECRETS_KEY` is not set there yet.
+
+**Updates from Settings (2026-09-28):** built, answering the "Open task" this
+section used to name. The backend notices a newer published version (a commit
+on `main` with its images on GHCR), a banner tells an administrator, and
+Settings, Updates installs it through the `updater` container. Not yet set up
+on the NAS: see "PICK UP HERE" in `PROJECT_STATUS.md` and `DEPLOYMENT.md`,
+"Updating from Settings".
 
 Backend and frontend both run. See PROJECT_STATUS.md for the sprint-by-sprint
 breakdown; the short version:
@@ -77,7 +81,7 @@ breakdown; the short version:
   history.
 - Allegro adapter, import script, an import endpoint and a button, one
   import at a time.
-- 956 backend and 585 frontend tests passing.
+- 1017 backend and 604 frontend tests passing.
 - The order opens as a page of its own with back and next/previous arrows, the
   list shows each order's items, the menu shows what waits, and a new interface
   language is a dictionary file and one line (`DECISIONS.md`, 2026-09-24).
@@ -88,10 +92,12 @@ breakdown; the short version:
   `DATABASE_URL` in `backend/.env` to see which one a machine uses. Away from
   home the NAS is reachable only through a VPN (`DEVELOPMENT.md`).
 
-The Allegro import **has** now run against the real API, in the Allegro
-Sandbox: one order imported and re-imported on 2026-09-17. Production
-Allegro is the next step and needs its own application, its own one-time
-authorization and the owner's seller account. See INTEGRATIONS.md.
+The Allegro import first ran against the real API in the Allegro Sandbox, on
+2026-09-17. Since 2026-09-25 both Allegro and Erli are connected on the
+owner's real, production accounts and import real orders (Allegro also its
+buyer messages) on the usual schedule - safe mode has stayed on throughout,
+so nothing has been written back to either marketplace. See
+PROJECT_STATUS.md, "Not yet verified", and INTEGRATIONS.md.
 
 Treat anything in the "Not yet verified" section of PROJECT_STATUS.md as
 unproven, however finished the code looks.

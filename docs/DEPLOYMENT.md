@@ -93,6 +93,54 @@ Container Station's recreate) is the whole update, which is also why
 "automatic update detection and a Settings button to trigger it" is the next
 planned piece of deployment work (`ROADMAP.md`, "Somewhere to run").
 
+## Updating from Settings
+
+Once set up, an administrator sees "An Anvero update is available" above every
+page when a newer version is published, and installs it from Settings,
+Updates, with one button (`API.md`, "Updates"). It works only with the
+published images (`image: ghcr.io/...` in the compose file on the NAS, not
+`build:`), which is also what makes the NAS run only what passed the checks.
+
+Setting it up, once:
+
+1. Make the `anvero-updater` package public on GitHub, like the other two
+   (Packages, Package settings, Change visibility), after the first push that
+   publishes it.
+2. Generate a token: `py -c "import secrets; print(secrets.token_urlsafe(48))"`.
+3. In the compose file on the NAS, add `UPDATER_TOKEN` to the backend and the
+   whole `updater` service, as in `deploy/docker-compose.yml`, with that token
+   in both places. The updater mounts the compose file itself
+   (`./docker-compose.yml`, relative to the application's folder,
+   `/share/CACHEDEV1_DATA/Kopie/container-station-data/application/anvero/`):
+   check the file there is really named so, and change the left side if not.
+4. Recreate the application. Settings, Updates should then say which version
+   runs; "Check now" asks GitHub at once.
+
+What happens on the button: the backend asks the updater (`http://updater:8080`,
+no published port, the token), which runs
+`docker compose -f /project/docker-compose.yml pull backend web` and
+`up -d --no-deps backend web`. The backend migrates as it starts, as always. If a
+run fails, Settings, Updates shows what it printed. The updater never recreates
+itself; a newer updater image is taken up by recreating the application by hand,
+which is also the way back: put a commit's short hash in place of `latest` and
+recreate.
+
+The updater holds the Docker socket, which is as good as root on the NAS. That
+is why it has no port, answers only the token, can run only those two commands,
+and why only an administrator sees the button.
+
+## Encrypting the integration secrets
+
+Allegro's refresh token and client secret and InPost's token are kept in the
+database, so the nightly dump holds them too. To store them encrypted (`GDPR.md`,
+"Secrets"): in the `backend` container's terminal run
+`python scripts/encrypt_secrets.py --new-key`, put the printed value in the
+compose file as `SECRETS_KEY` (the commented line beside `SECRET_KEY`), save a
+copy in the password manager, redeploy, then run
+`python scripts/encrypt_secrets.py` once. Every backend using this database, a
+laptop's included, needs the same value; a backend without it cannot read the
+secrets, and a lost key means authorizing Allegro and entering the secrets again.
+
 ## Creating a user or resetting a password
 
 The scripts are in the backend image. In Container Station open a terminal in
@@ -103,8 +151,13 @@ the `backend` container and run, for example,
 ## Limits
 
 - Plain HTTP. On the home network and through Tailscale that is acceptable
-  (Tailscale encrypts its own traffic); from a café's Wi-Fi without Tailscale
-  it would not be, which is why the port stays off the internet.
+  (Tailscale encrypts its own traffic, end to end, WireGuard); from a café's
+  Wi-Fi without Tailscale it would not be, which is why the port stays off the
+  internet: no router forward, and nothing reaches it from outside but the
+  tailnet. So the answer to "how is the connection encrypted" (`GDPR.md`) is
+  Tailscale, not HTTPS. Should the page ever need to be reached without
+  Tailscale, it needs HTTPS in front of it first (`tailscale serve`, or a
+  reverse proxy with a certificate).
 - The backend image carries the test and lint tools too, since
   `requirements.txt` is one file. Harmless, only larger.
 - One backend only: no leader election for the scheduled import.

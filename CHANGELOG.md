@@ -41,6 +41,56 @@ All significant changes to the Anvero project.
   `docs/DECISIONS.md`.
 - Same 958 backend tests passing (1 renamed to match Allegro's real requirement, none added).
 
+### ⟳ Updates from Settings
+
+- The backend notices a newer published version (a commit on `main` whose
+  images are on GHCR) every half hour; an administrator sees a banner above
+  every page, and Settings has a new Updates tab with the versions, what
+  changes and an Update button.
+- The button asks a new `updater` container to pull the images and recreate
+  backend and web; the page reloads itself once the new version answers.
+  `/api/v1/health` names the running commit.
+- Needs a one-time setup on the NAS: `DEPLOYMENT.md`, "Updating from Settings".
+- Fixed CI: `alembic check` had failed on PostgreSQL since the roles commit
+  (an index declared on `user_permissions.id` that no migration made), so no
+  image had been published since.
+- See `docs/DECISIONS.md`, "Updates from Settings".
+
+### 🔒 GDPR: retention, one buyer's request, encrypted secrets
+
+- Personal data past its period is erased by itself, once a day: orders five
+  years after the year their tax was due, message threads two years after the
+  last message, closed returns and claims two years after they were opened,
+  what was sent to a marketplace after two years. Rows are anonymized, not
+  deleted (`anonymized_at`, migration `a7d4e2c9f136`), figures stay, and no
+  import brings the data back. `scripts/apply_retention.py` shows or runs it.
+- `scripts/export_person.py` exports everything held about one buyer as JSON;
+  `scripts/anonymize_person.py` erases it, keeping a company invoice while
+  its tax period runs.
+- With `SECRETS_KEY` set, Allegro's refresh token and client secret and
+  InPost's token are stored encrypted; `scripts/encrypt_secrets.py` makes a
+  key and encrypts what is already stored. Without it nothing changes.
+- The order list's and the to-make list's search, and the Inbox's link to an
+  order, no longer put a name or login in the address.
+- A sales report export with a personal column is logged with who made it.
+- An anonymized order's page says so.
+- See `docs/GDPR.md` and `docs/DECISIONS.md`, "Retention periods and erasure".
+
+### 👥 Accounts get roles and per-area permissions
+
+- `users` has a `role` (`admin`/`user`); a `user` account is granted `view`
+  or `manage` on each of the six areas Settings already groups the
+  application into (orders, messages, returns and claims, labels, finance,
+  integrations), enforced on every gated endpoint (`docs/API.md`, "Users,
+  roles and permissions"). Existing accounts became `admin`, so nobody lost
+  access.
+- Settings has a new "Users" tab, for an administrator only: a list of
+  accounts and, beside it, the one chosen, where an admin sets its role,
+  active state, password and permission grid, or creates a new account.
+- Several people working from different accounts at once needed no new
+  work: logins are already independent, unrevoked JWTs.
+- See `docs/DECISIONS.md`, "Accounts Get a Role and Per-Area Permissions".
+
 ---
 
 ## 2026-09-27

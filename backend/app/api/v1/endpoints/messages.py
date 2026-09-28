@@ -3,10 +3,12 @@ import uuid
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
+from app.core.permissions import require_permission
 from app.core.security import get_current_user
 from app.db.session import get_db
 from app.models.order import OrderSource
 from app.models.user import User
+from app.models.user_permission import PermissionArea, PermissionLevel
 from app.repositories.message_repository import MessageRepository
 from app.schemas.message import (
     ThreadAsideUpdate,
@@ -17,8 +19,11 @@ from app.schemas.message import (
 )
 from app.services.message_writes import MessageWrites
 
-# Every endpoint here requires a logged-in user, same as the orders router.
-router = APIRouter(prefix="/messages", tags=["Messages"], dependencies=[Depends(get_current_user)])
+# Every endpoint here requires at least view access to the messages area.
+router = APIRouter(
+    prefix="/messages", tags=["Messages"], dependencies=[require_permission(PermissionArea.MESSAGES)]
+)
+_manage = require_permission(PermissionArea.MESSAGES, PermissionLevel.MANAGE)
 
 
 def _get_thread(db: Session, thread_id: uuid.UUID):
@@ -59,14 +64,14 @@ def get_thread(thread_id: uuid.UUID, db: Session = Depends(get_db)):
     return _get_thread(db, thread_id)
 
 
-@router.patch("/threads/{thread_id}/aside", response_model=ThreadRead)
+@router.patch("/threads/{thread_id}/aside", response_model=ThreadRead, dependencies=[_manage])
 def set_thread_aside(thread_id: uuid.UUID, body: ThreadAsideUpdate, db: Session = Depends(get_db)):
     """Put a thread aside to come back to later, or bring it back."""
     thread = _get_thread(db, thread_id)
     return MessageRepository(db).set_aside(thread, body.aside)
 
 
-@router.post("/threads/{thread_id}/reply", response_model=ThreadReplyResult)
+@router.post("/threads/{thread_id}/reply", response_model=ThreadReplyResult, dependencies=[_manage])
 def reply_to_thread(
     thread_id: uuid.UUID,
     body: ThreadReplyRequest,

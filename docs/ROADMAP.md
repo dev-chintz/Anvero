@@ -76,13 +76,11 @@ restore from that copy has been tried (`DECISIONS.md`, `DEVELOPMENT.md`).
 ~~What remains is the application itself, which still runs on a laptop~~ Done
 2026-09-27: containers for the NAS, published by GitHub Actions, reached over
 the home network and Tailscale at `http://NAS_ADDRESS:8081` (port 8080 was
-already taken on this NAS; `DEPLOYMENT.md`, `DECISIONS.md`). Left: updating
-the NAS today is manual, and which path it actually uses (rebuilding locally
-from a git clone, or recreating from the published GHCR images) is
-unreconciled - the next piece of work is automatic update detection (a
-webhook or polling check for new commits), a Settings button to trigger a
-deployment, and `/api/v1/admin/updates/*` behind it (`DECISIONS.md`,
-2026-09-27, "Automatic Update Deployment").
+already taken on this NAS; `DEPLOYMENT.md`, `DECISIONS.md`). ~~Updating
+the NAS by hand~~ Built 2026-09-28: the backend polls for a newer published
+version and Settings installs it through an updater container (`DEPLOYMENT.md`,
+"Updating from Settings"; `DECISIONS.md`, "Updates from Settings"). Left: its
+one-time setup on the NAS.
 
 ### 4. Shipments, so Anvero replaces the panel rather than mirroring it
 
@@ -381,7 +379,7 @@ item is scoped when it is taken up.
 | Safe mode | Done, with a log of what was held back and a banner |
 | Application status, integrations | The Status page. **Missing:** a card per channel, several Allegro accounts |
 | Settings | Sender, parcel, Allegro, Erli, safe mode, language. **Missing:** notifications (e-mail, webhook), shop details, SMTP, printer, sync intervals in the interface (today `.env`), a data package |
-| People, roles, change log | **Missing:** one login. The status history and the write log partly stand in |
+| People, roles, change log | Accounts, roles (admin/user) and per-area permissions, done 2026-09-28. **Missing:** a change log beyond the existing status history and write log |
 | Other channels (Empik, OLX, PrestaShop, WooCommerce) | Not built. Erli is built and waits for a key |
 
 ### Suggested order
@@ -429,7 +427,11 @@ specification. Each of these is listed under "Not yet verified" in
 ### Open questions that change the plan
 
 - More than one Allegro account? AlleIntegrator handles several; Anvero, one.
-- Will anyone besides the owner log in? Roles and a change log depend on it.
+- ~~Will anyone besides the owner log in? Roles and a change log depend on it.~~
+  Answered 2026-09-28: yes, and accounts now have a role (admin/user) and,
+  for a user, per-area permissions (`DECISIONS.md`, "Accounts Get a Role and
+  Per-Area Permissions"). A change log beyond the existing status history and
+  marketplace-writes log is still not built.
 - ~~Which label printer?~~ A thermal Xprinter on the home network, the same
   network as the NAS (answered 2026-09-25; model and label size still to be
   given, see the shipping analysis below).
@@ -545,40 +547,24 @@ Sources: Allegro's Wysyłam z Allegro tutorial on `developer.allegro.pl`;
 (InPost transaction id); Erli's `swagger.json` read on 2026-09-25; Xprinter's
 product pages (XP-420B).
 
-## GDPR (RODO): to do (reviewed 2026-09-27)
+## GDPR (RODO): done in code 2026-09-28 (reviewed 2026-09-27)
 
-Not legal advice: a review of what the code holds against the owner's duties, to settle with a lawyer or a
-data protection officer. Nothing here is built yet.
+Not legal advice. The review of 2026-09-27 listed six things; all six are built, and `GDPR.md` is now where
+what is held, the periods and how a request is answered are described.
 
-**Personal data held:** buyers' names, e-mail, phone, login, company, delivery and billing addresses, tax id, pickup
-point, the buyer's message on an order, and the Message Center threads (598 read so far); users' logins and
-password hashes.
+1. **Retention and anonymization** - done: a daily run erases orders five years after the year their tax was due,
+   message threads, closed cases and marketplace writes after two (`GDPR.md`; `DECISIONS.md`, "Retention periods
+   and erasure").
+2. **Access, portability, erasure of one person** - done: `scripts/export_person.py`, `scripts/anonymize_person.py`.
+3. **Secrets and backups** - done in code, waiting for the owner: the secrets are encrypted once `SECRETS_KEY` is
+   set on the NAS (`DEPLOYMENT.md`); HTTPS is answered by Tailscale.
+4. **Personal data in addresses** - done: the list's search is kept out of the address.
+5. **Who looked at what** - decided: reads are not logged; exports with personal columns are.
+6. **Write it down** - done: `GDPR.md`.
 
-**Already fine:** passwords are hashed, every page and endpoint needs a login, tokens expire, buyers' logins and
-addresses are not written to the application log, the database is on the owner's own NAS.
-
-**To do, in this order:**
-
-1. **Retention and anonymization.** Decide how long orders (accounting requires years) and messages (shorter) are
-   kept, then anonymize the personal fields of older orders and messages instead of only hiding them
-   (`orders.deleted_at`; "No purge is offered", `DECISIONS.md` 2026-09-25). Record the periods in `DECISIONS.md`.
-2. **Access, portability, erasure of one person.** A script in `backend/scripts/` (like `create_user.py`) that
-   exports everything held about one buyer (by login or e-mail: orders, addresses, messages, labels) and another that
-   anonymizes them, keeping what accounting still needs.
-3. **Secrets and backups.** The Allegro refresh token and the Erli key sit in plain text in the database
-   (`INTEGRATIONS.md`), so a backup holds both with the personal data: encrypt the backups and the tokens; state in
-   `DEPLOYMENT.md` how HTTPS is provided on the NAS.
-4. **Personal data in addresses.** The order search and the Inbox's "open order" link put a name or an order number
-   in the URL (`/orders?search=`), so in the browser history: keep it in page state instead, or accept it and say so.
-5. **Who looked at what.** Status changes record the user; reads do not. Decide whether a log of who opened a
-   buyer's data is needed once there is a second login.
-6. **Write it down in `docs/`.** A GDPR page: what is held and why, the retention periods, how a request is answered,
-   who the data is passed to.
-
-**For the owner, outside the code:** the register of processing activities and the legal bases (contract, tax duty);
-the information given to buyers; data processing agreements with whoever receives data (InPost labels carry the
-recipient's address and phone, carriers, the accountant); the procedure for a breach (report to UODO within 72 hours);
-who has access to the NAS and the VPN.
+**Still for the owner, outside the code:** the register of processing activities, the privacy notice on each
+marketplace, data processing agreements where needed, the breach procedure (UODO within 72 hours), who has access to
+the NAS and the VPN, setting `SECRETS_KEY` on the NAS (`GDPR.md`, "For the owner, outside the code").
 
 ## A competitor to learn from: Ritevo (mapped 2026-09-27)
 

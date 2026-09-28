@@ -75,6 +75,13 @@ class Settings(BaseSettings):
     database_url: str = Field(default="")
     secret_key: str = Field(default="")
 
+    # Encrypts the integration secrets kept in the database (Allegro's refresh
+    # token and client secret, InPost's token), so a database dump does not
+    # carry them readable (app/core/secrets.py). Empty leaves them plain text,
+    # as before. Generate with scripts/encrypt_secrets.py --new-key. Losing it
+    # means authorizing Allegro and entering the secrets again.
+    secrets_key: str = Field(default="")
+
     # a working day: one login per day, and a stolen token is dead by evening.
     # There is no revocation, so longer means a leaked token lives longer.
     access_token_expire_minutes: int = Field(default=480, gt=0)
@@ -111,6 +118,19 @@ class Settings(BaseSettings):
     allegro_import_interval_minutes: int = Field(default=15, ge=0, le=1440)
     # false keeps this process from running any schedule at all (the test suite)
     scheduler_enabled: bool = True
+
+    # Updates (app/services/updates.py, DEPLOYMENT.md "Updating from Settings").
+    # The commit this backend was built from; the image sets it, and empty (a
+    # developer's machine) means no update is offered.
+    app_commit: str = Field(default="")
+    # where new versions come from: the repository's main branch, and the images
+    # the publish workflow pushes for each of its commits
+    update_repository: str = Field(default="dev-chintz/Anvero")
+    update_check_minutes: int = Field(default=30, ge=0, le=1440)
+    # the updater container that pulls the new images and recreates the others;
+    # an empty token leaves the button off
+    updater_url: str = Field(default="http://updater:8080")
+    updater_token: str = Field(default="")
 
     # How far back returns, claims and disputes are read: a return or a closed
     # claim older than this is not fetched. Everything still open is, however old.

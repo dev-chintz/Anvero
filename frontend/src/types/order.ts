@@ -85,6 +85,12 @@ export interface Order {
   /** The email of whoever deleted it. */
   deleted_by?: string | null;
   /**
+   * Set once the buyer's personal data was erased, by the retention rule or at
+   * their request; the e-mail is then empty. Optional because a backend older
+   * than the field omits it.
+   */
+  anonymized_at?: string | null;
+  /**
    * What was bought, in short: the list shows it in its Items column. Only
    * these four fields are on the list; `OrderWithDetails` has the whole item.
    * Optional because a backend older than the field omits it.

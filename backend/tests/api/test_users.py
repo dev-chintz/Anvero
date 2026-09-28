@@ -15,7 +15,7 @@ from app.db.session import get_db
 from app.main import app
 from app.models.user import User
 from app.repositories.user_repository import UserRepository
-from app.schemas.user import UserCreate
+from app.schemas.user import PermissionGrant, UserCreate
 from app.services.user_service import UserService
 
 client = TestClient(app)
@@ -59,13 +59,20 @@ def teardown_module():
     Base.metadata.drop_all(bind=engine)
 
 
-def _create_user(active: bool = True) -> str:
+def _create_user(
+    active: bool = True,
+    role: str | None = None,
+    permissions: list[PermissionGrant] | None = None,
+) -> str:
     email = f"user-{uuid.uuid4()}@example.com"
     db = TestingSessionLocal()
     try:
-        user = UserService(UserRepository(db)).create_user(
-            UserCreate(email=email, password=PASSWORD)
-        )
+        data = {"email": email, "password": PASSWORD}
+        if role is not None:
+            data["role"] = role
+        if permissions is not None:
+            data["permissions"] = permissions
+        user = UserService(UserRepository(db)).create_user(UserCreate(**data))
         if not active:
             user.is_active = False
             db.commit()
@@ -76,6 +83,14 @@ def _create_user(active: bool = True) -> str:
 
 def _login(email: str, password: str = PASSWORD):
     return client.post("/api/v1/auth/login", json={"email": email, "password": password})
+
+
+def _token(email: str, password: str = PASSWORD) -> str:
+    return _login(email, password).json()["access_token"]
+
+
+def _auth(email: str, password: str = PASSWORD) -> dict[str, str]:
+    return {"Authorization": f"Bearer {_token(email, password)}"}
 
 
 def test_registration_endpoint_does_not_exist():
@@ -261,3 +276,212 @@ def test_create_user_script_rejects_a_short_password_without_echoing_it():
     assert result.returncode == 1
     assert "short-pw" not in result.stdout + result.stderr
     assert _login(email, "short-pw").status_code == 401
+
+
+# ---- roles and permissions ------------------------------------------------
+
+
+def test_a_user_with_no_grants_is_refused_a_gated_area():
+    email = _create_user(role="user")
+
+    response = client.get("/api/v1/orders", headers=_auth(email))
+
+    assert response.status_code == 403
+
+
+def test_a_view_grant_allows_reading_but_not_managing():
+    email = _create_user(
+        role="user",
+        permissions=[PermissionGrant(area="orders", level="view")],
+    )
+    headers = _auth(email)
+
+    assert client.get("/api/v1/orders", headers=headers).status_code == 200
+    assert (
+        client.put(
+            "/api/v1/orders/production/checks",
+            headers=headers,
+            json={"key": "sku:X", "quantity": 1, "done": True},
+        ).status_code
+        == 403
+    )
+
+
+def test_a_manage_grant_satisfies_a_view_requirement_too():
+    email = _create_user(
+        role="user",
+        permissions=[PermissionGrant(area="orders", level="manage")],
+    )
+
+    assert client.get("/api/v1/orders", headers=_auth(email)).status_code == 200
+
+
+def test_a_grant_on_one_area_does_not_reach_another():
+    email = _create_user(
+        role="user",
+        permissions=[PermissionGrant(area="orders", level="manage")],
+    )
+
+    assert client.get("/api/v1/messages/threads", headers=_auth(email)).status_code == 403
+
+
+def test_an_admin_needs_no_grants():
+    email = _create_user(role="admin")
+
+    assert client.get("/api/v1/orders", headers=_auth(email)).status_code == 200
+
+
+def test_only_an_admin_may_list_or_create_users():
+    admin_email = _create_user(role="admin")
+    plain_email = _create_user(role="user")
+
+    assert client.get("/api/v1/users", headers=_auth(admin_email)).status_code == 200
+    assert client.get("/api/v1/users", headers=_auth(plain_email)).status_code == 403
+
+    new_email = f"created-{uuid.uuid4()}@example.com"
+    response = client.post(
+        "/api/v1/users",
+        headers=_auth(admin_email),
+        json={"email": new_email, "password": "a-perfectly-good-password", "role": "user"},
+    )
+
+    assert response.status_code == 201
+    assert response.json()["role"] == "user"
+    assert response.json()["permissions"] == []
+
+
+def test_creating_a_user_with_an_existing_email_is_a_conflict():
+    admin_email = _create_user(role="admin")
+    existing_email = _create_user(role="user")
+
+    response = client.post(
+        "/api/v1/users",
+        headers=_auth(admin_email),
+        json={"email": existing_email, "password": "a-perfectly-good-password"},
+    )
+
+    assert response.status_code == 409
+
+
+def test_an_admin_can_grant_and_later_revoke_a_permission():
+    admin_email = _create_user(role="admin")
+    plain_email = _create_user(role="user")
+    db = TestingSessionLocal()
+    try:
+        user_id = db.query(User).filter(User.email == plain_email).one().id
+    finally:
+        db.close()
+
+    granted = client.patch(
+        f"/api/v1/users/{user_id}",
+        headers=_auth(admin_email),
+        json={"permissions": [{"area": "orders", "level": "view"}]},
+    )
+    assert granted.status_code == 200
+    assert client.get("/api/v1/orders", headers=_auth(plain_email)).status_code == 200
+
+    revoked = client.patch(
+        f"/api/v1/users/{user_id}",
+        headers=_auth(admin_email),
+        json={"permissions": []},
+    )
+    assert revoked.status_code == 200
+    assert client.get("/api/v1/orders", headers=_auth(plain_email)).status_code == 403
+
+
+def _make_the_only_active_admin(email: str) -> int:
+    """Every earlier test in this module may have left admin accounts behind
+    (the module shares one database), so the last-admin guard is only
+    meaningfully tested once every other admin is out of the count."""
+    db = TestingSessionLocal()
+    try:
+        user = db.query(User).filter(User.email == email).one()
+        db.query(User).filter(User.role == "admin", User.id != user.id).update(
+            {"is_active": False}
+        )
+        db.commit()
+        return user.id
+    finally:
+        db.close()
+
+
+def test_replacing_permissions_while_keeping_some_of_the_same_areas():
+    """Regression: clearing and re-adding a kept area in the same request collided
+    on (user_id, area) before the old row was gone."""
+    admin_email = _create_user(role="admin")
+    plain_email = _create_user(
+        role="user",
+        permissions=[
+            PermissionGrant(area="orders", level="manage"),
+            PermissionGrant(area="messages", level="view"),
+        ],
+    )
+    db = TestingSessionLocal()
+    try:
+        user_id = db.query(User).filter(User.email == plain_email).one().id
+    finally:
+        db.close()
+
+    response = client.patch(
+        f"/api/v1/users/{user_id}",
+        headers=_auth(admin_email),
+        json={
+            "permissions": [
+                {"area": "orders", "level": "manage"},
+                {"area": "messages", "level": "view"},
+                {"area": "finance", "level": "view"},
+            ]
+        },
+    )
+
+    assert response.status_code == 200
+    assert {(p["area"], p["level"]) for p in response.json()["permissions"]} == {
+        ("orders", "manage"),
+        ("messages", "view"),
+        ("finance", "view"),
+    }
+
+
+def test_the_last_active_admin_cannot_be_demoted():
+    email = _create_user(role="admin")
+    user_id = _make_the_only_active_admin(email)
+
+    response = client.patch(
+        f"/api/v1/users/{user_id}",
+        headers=_auth(email),
+        json={"role": "user"},
+    )
+
+    assert response.status_code == 409
+
+
+def test_the_last_active_admin_cannot_be_deactivated():
+    email = _create_user(role="admin")
+    user_id = _make_the_only_active_admin(email)
+
+    response = client.patch(
+        f"/api/v1/users/{user_id}",
+        headers=_auth(email),
+        json={"is_active": False},
+    )
+
+    assert response.status_code == 409
+
+
+def test_demoting_one_of_two_admins_is_allowed():
+    first_admin = _create_user(role="admin")
+    second_email = _create_user(role="admin")
+    db = TestingSessionLocal()
+    try:
+        second_id = db.query(User).filter(User.email == second_email).one().id
+    finally:
+        db.close()
+
+    response = client.patch(
+        f"/api/v1/users/{second_id}",
+        headers=_auth(first_admin),
+        json={"role": "user"},
+    )
+
+    assert response.status_code == 200
+    assert response.json()["role"] == "user"

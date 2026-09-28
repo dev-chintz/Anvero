@@ -223,6 +223,15 @@ class Order(Base):
     )
     deleted_by_user: Mapped["User | None"] = relationship(foreign_keys=[deleted_by_user_id])
 
+    # Set when the buyer's personal data on the order was erased: by the retention
+    # rule once accounting no longer needs it, or at the buyer's request
+    # (app/services/retention.py). The row, its number and its amounts stay; an
+    # import no longer touches it, so the marketplace cannot bring the data back.
+    anonymized_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True),
+        nullable=True,
+    )
+
     @property
     def deleted_by(self) -> str | None:
         """Who deleted it, by email; null while it is not deleted."""

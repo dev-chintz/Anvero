@@ -1,5 +1,5 @@
 import uuid
-from datetime import datetime
+from datetime import UTC, datetime
 
 from sqlalchemy import exists, or_, select
 from sqlalchemy.orm import Session
@@ -39,6 +39,16 @@ class MessageRepository:
         if thread is None:
             thread = MessageThread(source=source, external_id=data.external_id)
             self.db.add(thread)
+        elif thread.anonymized_at is not None:
+            if not self._newer(data.last_message_at, thread.last_message_at):
+                # erased (app/services/retention.py) and nothing new since: only
+                # the read flag moved, and the login must not come back with it
+                thread.read = data.read
+                self.db.commit()
+                self.db.refresh(thread)
+                return thread
+            # the buyer wrote again: a new contact, kept from here on
+            thread.anonymized_at = None
         thread.interlocutor_login = data.interlocutor_login
         if data.order_external_id:
             thread.order_external_id = data.order_external_id
@@ -163,6 +173,18 @@ class MessageRepository:
         self.db.commit()
         self.db.refresh(thread)
         return message
+
+    @staticmethod
+    def _newer(incoming: datetime | None, stored: datetime | None) -> bool:
+        """Whether the marketplace's last-message time is past the stored one."""
+        if incoming is None:
+            return False
+        if stored is None:
+            return True
+        # SQLite gives naive UTC back
+        if stored.tzinfo is None:
+            stored = stored.replace(tzinfo=UTC)
+        return incoming > stored
 
     def _to_db_datetime(self, value: datetime) -> datetime:
         """Match the bind parameter to how the backend stores timestamps.

@@ -5,7 +5,10 @@ import { Sidebar } from "./Sidebar";
 import { setLanguage } from "../i18n";
 
 vi.mock("../auth/AuthContext", () => ({
-  useAuth: () => ({ user: { email: "operator@example.com" }, logout: vi.fn() }),
+  useAuth: () => ({
+    user: { email: "operator@example.com", role: "admin", permissions: [] },
+    logout: vi.fn(),
+  }),
 }));
 
 vi.mock("../api/client", async () => {

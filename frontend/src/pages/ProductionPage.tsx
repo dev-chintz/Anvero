@@ -4,6 +4,7 @@ import { Link, useLocation, useSearchParams } from 'react-router-dom';
 import { ApiError, ordersApi } from '../api/client';
 import { OrderStatus, type ProductionLine, type ProductionList } from '../types/order';
 import { useTranslation } from '../i18n';
+import { useListSearch } from '../hooks/useListSearch';
 import { groupLines, progress, type LineGroup } from './production/groupLines';
 import '../styles/ProductionPage.css';
 
@@ -43,7 +44,7 @@ const GROUP_TONE: Record<LineGroup['kind'], string> = {
 export function ProductionPage() {
   const { t, formatShortDateTime, formatDayShort } = useTranslation();
   const location = useLocation();
-  const [searchParams, setSearchParams] = useSearchParams();
+  const [searchParams] = useSearchParams();
   const [list, setList] = useState<ProductionList | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [hideDone, setHideDone] = useState(storedHideDone);
@@ -51,7 +52,9 @@ export function ProductionPage() {
   // what is shown is kept in the address, so an order opened from here comes back to it
   const statusParam = searchParams.get('status');
   const status = MAKING_STATUSES.find((s) => s === statusParam);
-  const search = searchParams.get('search') ?? '';
+  // the search is kept out of the address: it is often a buyer's login or name
+  const listSearch = useListSearch();
+  const search = listSearch.search;
   const filtered = Boolean(status || search.trim());
 
   // what is typed in the search box, before it is searched for
@@ -66,11 +69,13 @@ export function ProductionPage() {
 
   const choose = (updates: { status?: string; search?: string }) => {
     const next = new URLSearchParams(searchParams);
+    let nextSearch: string | undefined = search;
     for (const [key, value] of Object.entries(updates)) {
-      if (value) next.set(key, value);
+      if (key === 'search') nextSearch = value;
+      else if (value) next.set(key, value);
       else next.delete(key);
     }
-    setSearchParams(next);
+    listSearch.update(next, nextSearch);
   };
 
   useEffect(() => {
@@ -321,7 +326,10 @@ export function ProductionPage() {
                                   <li key={order.id}>
                                     <Link
                                       to={`/orders/${order.id}`}
-                                      state={{ closeTo: `${location.pathname}${location.search}` }}
+                                      state={{
+                                        closeTo: `${location.pathname}${location.search}`,
+                                        closeState: listSearch.state,
+                                      }}
                                       title={t(`status.${order.status}`)}
                                     >
                                       {order.order_label}

@@ -329,7 +329,7 @@ function ThreadDetail({
         </span>
         <span className="inbox-detail-actions">
           {thread.order_external_id && (
-            <Link to={`/orders?search=${encodeURIComponent(thread.order_external_id)}`} className="inbox-order-link">
+            <Link to="/orders" state={{ search: thread.order_external_id }} className="inbox-order-link">
               {t('inbox.openOrder')}
             </Link>
           )}

@@ -34,6 +34,11 @@ Repository: <https://github.com/dev-chintz/Anvero>
 
 # Completed
 
+- Updates from Settings (2026-09-28): banner and Settings tab for a newer
+  published version, installed by the `updater` container (`DEPLOYMENT.md`)
+- GDPR (2026-09-28): daily retention and anonymization, one buyer's export
+  and erasure by script, integration secrets encrypted with `SECRETS_KEY`,
+  searches kept out of the address (`GDPR.md`)
 - Project name, branding direction, folder structure, development workflow
 - FastAPI backend: orders, status changes, status history with author,
   statistics
@@ -55,7 +60,7 @@ Repository: <https://github.com/dev-chintz/Anvero>
   Allegro note imported alongside the buyer's message, and item pictures
   fetched from Allegro's offer API (unverified against the sandbox for
   scope). Full detail in `DECISIONS.md` and `CHANGELOG.md`.
-- 956 backend tests and 585 frontend tests (Vitest + React Testing Library)
+- 1017 backend tests and 604 frontend tests (Vitest + React Testing Library)
   passing
 
 ---
@@ -95,8 +100,9 @@ refine it before anything is built; its open questions come first.
    `scripts/authorize_allegro.py` for the one-time authorization exists; the
    sandbox accounts and application are the owner's to create.
 2. The sandbox import is done: authorized and a real order imported twice on
-   2026-09-17, through the script, on the SQLite machine. Production Allegro
-   needs its own application, User-Agent and authorization (INTEGRATIONS.md).
+   2026-09-17, through the script, on the SQLite machine. Since 2026-09-25
+   production Allegro (and Erli) are connected on the owner's real accounts
+   and importing real orders; see PROJECT_STATUS.md, "Not yet verified".
    The interface button was checked against the sandbox too.
 
 ---

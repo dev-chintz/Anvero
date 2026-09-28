@@ -78,6 +78,10 @@ class MarketplaceWrite(Base):
     user_id: Mapped[int | None] = mapped_column(
         ForeignKey("users.id", ondelete="SET NULL"), nullable=True
     )
+    # set when the payload and the answer were emptied: a label's payload holds
+    # the recipient's address, a reply's holds its text
+    # (app/services/retention.py); what was done, when and by whom stays
+    anonymized_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
     user: Mapped["User | None"] = relationship()
 

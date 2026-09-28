@@ -2,6 +2,7 @@ import { act, fireEvent, render, screen, waitFor, within } from "@testing-librar
 import { MemoryRouter, useLocation } from "react-router-dom";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { OrderSource, OrderStatus, type ProductionList } from "../types/order";
+import { searchFromState } from "../hooks/useListSearch";
 
 vi.mock("../api/client", async () => {
   const actual = await vi.importActual<typeof import("../api/client")>("../api/client");
@@ -67,7 +68,12 @@ const LIST: ProductionList = {
 
 function Where() {
   const location = useLocation();
-  return <p data-testid="where">{`${location.pathname}${location.search}`}</p>;
+  return (
+    <>
+      <p data-testid="where">{`${location.pathname}${location.search}`}</p>
+      <p data-testid="where-search">{searchFromState(location.state)}</p>
+    </>
+  );
 }
 
 function renderPage(path = "/production") {
@@ -310,7 +316,9 @@ describe("narrowing the to-make list", () => {
       }),
     );
     expect(ordersApi.production).toHaveBeenCalledTimes(1);
-    expect(screen.getByTestId("where")).toHaveTextContent("search=");
+    // kept out of the address, where a buyer's login would stay in the browser's history
+    expect(screen.getByTestId("where")).not.toHaveTextContent("search=");
+    expect(screen.getByTestId("where-search")).toHaveTextContent("AN-000001, AN-000002");
   });
 
   it("puts a status and a search together", async () => {
@@ -352,6 +360,9 @@ describe("narrowing the to-make list", () => {
     vi.mocked(ordersApi.production).mockResolvedValue(LIST);
     renderPage("/production?status=CONFIRMED&search=ola");
     const rows = await productRows();
+    // an address from before still searches, and loses the search at once
+    expect(screen.getByTestId("where")).toHaveTextContent(/^\/production\?status=CONFIRMED$/);
+    expect(screen.getByTestId("where-search")).toHaveTextContent("ola");
 
     fireEvent.click(within(rows[0]).getByRole("link", { name: "AN-000002" }));
 

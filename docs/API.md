@@ -11,7 +11,9 @@ are days in the business timezone, `BUSINESS_TIMEZONE`, default
 
 | Method | Path | Meaning |
 | --- | --- | --- |
-| `GET` | `/api/v1/health` | service status |
+| `GET` | `/api/v1/health` | service status, and `commit`: the running version (short), null off a published image |
+| `GET` | `/api/v1/admin/updates` | the running and the newest published version, and what changes (administrator only); `?refresh=true` asks GitHub now |
+| `POST` | `/api/v1/admin/updates` | install the newest published version through the updater (administrator only) |
 | `GET` | `/api/v1/orders` | order list with filters |
 | `GET` | `/api/v1/orders/stats` | aggregate figures for the dashboard |
 | `GET` | `/api/v1/orders/production` | the to-make queue by product: what to make and how many, and which are made |
@@ -25,7 +27,10 @@ are days in the business timezone, `BUSINESS_TIMEZONE`, default
 | `GET` | `/api/v1/orders/{id}/buyer-orders` | the same buyer's other orders, newest first, at most 20 |
 | `POST` | `/api/v1/orders` | create an order — local testing until marketplace ingestion exists |
 | `POST` | `/api/v1/auth/login` | obtain a JWT; rate limited to 5 attempts per minute per IP |
-| `GET` | `/api/v1/users/me` | current user |
+| `GET` | `/api/v1/users/me` | current user, with its role and permissions |
+| `GET` | `/api/v1/users` | every account (administrator only) |
+| `POST` | `/api/v1/users` | create an account (administrator only) |
+| `PATCH` | `/api/v1/users/{id}` | change an account's role, active state, password or permissions (administrator only) |
 | `GET` | `/api/v1/settings/safe-mode` | whether safe mode is on, and who last switched it |
 | `PUT` | `/api/v1/settings/safe-mode` | switch safe mode on or off |
 | `GET` | `/api/v1/marketplace-writes` | what Anvero sent to a marketplace, or held back in safe mode |
@@ -98,6 +103,37 @@ default 480 (a working day), and cannot be revoked early.
 A wrong password, an unknown email and a deactivated account all return the
 same `401 {"detail": "Invalid credentials"}`, taking comparable time, so the
 response does not reveal which emails have accounts.
+
+## Users, roles and permissions
+
+A user is `admin` or `user` (`role`); an admin passes every check below
+outright and needs no rows in `permissions`. A user's `permissions` is a list
+of `{"area", "level"}`: `area` is one of `orders`, `messages`, `after_sales`,
+`labels`, `finance`, `integrations` (the parts Settings itself groups the
+application into); `level` is `view` or `manage`, and `manage` satisfies a
+`view` requirement too. `GET /users/me` returns both.
+
+Every endpoint below `/api/v1` except `/health`, `/`, `/auth/login` and
+`/users/me` needs a grant, at the level named, for the area named:
+
+| Area | `view` | `manage` |
+| --- | --- | --- |
+| `orders` | `GET /orders*`, `GET /orders/{id}*` | `PATCH/DELETE/POST` on an order, its status, shipments, marks, note, packing and the production checks |
+| `messages` | `GET /messages/threads*` | `PATCH .../aside`, `POST .../reply`, `POST /integrations/allegro/messages/sync` |
+| `after_sales` | `GET /after-sales*`, `GET /orders/{id}/after-sales` | `POST /integrations/allegro/after-sales/sync` |
+| `labels` | `GET` on shipping settings, labels, InPost status and shipments, printing a PDF | buying or cancelling a label, ordering a pickup, the InPost settings and shipments, `PUT /settings/shipping` |
+| `finance` | `GET /finance/*`, `GET /sales-report/*` | `PUT/DELETE` a sales-report override |
+| `integrations` | `GET` on the Allegro/Erli/InPost status, the schedule, safe mode and marketplace-writes log, `GET /status` | the Allegro/Erli settings, connect and import, the schedule, `PUT /settings/safe-mode` |
+
+Account management (`GET/POST /users`, `PATCH /users/{id}`) needs no area
+grant: only `role == "admin"` may call it, checked by a separate dependency
+(`app/core/permissions.py`, `require_admin`). `PATCH /users/{id}` refuses
+`409` a change that would leave no active admin account (demoting or
+deactivating the last one).
+
+A deactivated or downgraded account's already-issued token keeps working
+until it expires (`ACCESS_TOKEN_EXPIRE_MINUTES`, "no revocation" above):
+there is no session store to check on every request.
 
 ## `GET /api/v1/integrations/allegro`
 
@@ -523,6 +559,14 @@ changing nothing (the first `deleted_at` and `deleted_by` stay).
 unchanged. `OrderRead` carries `deleted_at` and `deleted_by`, null for an order
 in use.
 
+`OrderRead` also carries `anonymized_at`: null, or when the buyer's personal
+data on the order was erased (`docs/GDPR.md`), by the daily retention run or at
+the buyer's request. On such an order `customer_email` is `""` (so, in
+responses only, it is a plain string rather than a validated address), the
+buyer's names, phone, notes and address fields are null apart from the
+country, and the page says so. There is no endpoint for erasing: it is done
+with `backend/scripts/anonymize_person.py`.
+
 Each order carries Anvero's own number: `order_number`, an integer that is
 continuous across every source, given once when the order is created and never
 changed or reused, and `order_label`, the same number as it is shown and
@@ -913,7 +957,7 @@ is `MANUAL_REVIEW` rather than guessed:
 ```
 
 `buyer_login` is the only personal data the row carries, never a name, address or phone
-(`ROADMAP.md`, "GDPR (RODO): to do").
+(`docs/GDPR.md`); on an anonymized order it is null.
 
 `PUT .../override` (`{"included": true, "note": "..."}`) records an operator's manual decision,
 kept by marketplace and its own order id so it survives a re-import; `DELETE` removes it. An
@@ -942,6 +986,12 @@ running number the export gives each row) and is always first; every other key r
 order, including ones the on-screen table does not show and `SalesReportRow` does not carry
 (`customer_name`, `customer_email`, `customer_phone`, `invoice_company_name`, `invoice_tax_id`,
 `invoice_address`, `amount_total`) — resolved only when actually exporting, never in `GET .../orders`.
+
+An export holding any column that names or reaches a person (`customer_login`,
+`customer_name`, `customer_email`, `customer_phone`, `invoice_company_name`,
+`invoice_tax_id`, `invoice_address`) is written to the application log with the
+period, the column keys, the row count and the user's id, never a value from the
+file (`docs/GDPR.md`, "Who looked at what").
 
 ## `GET /api/v1/orders/{id}/buyer-orders`
 
@@ -1038,6 +1088,33 @@ that one entry. An unknown order id returns 404.
 `changed_by` is the email of the user who made the change. It is `null` for
 changes recorded before logins existed, and for a user whose account has been
 deleted.
+
+## Updates: `GET` and `POST /api/v1/admin/updates`
+
+Administrator only (403 for anyone else). A version is a commit on `main` whose
+`anvero-backend` and `anvero-web` images the publish workflow pushed to GHCR,
+which it does only for a commit whose Checks passed. The backend knows its own from
+`APP_COMMIT`, set in the image; it looks at the newest 20 commits on GitHub every
+`UPDATE_CHECK_MINUTES` (30) and keeps what it found.
+
+```json
+{"current": "716c908", "latest": "a1b2c3d", "available": true, "behind": 2,
+ "changes": [{"sha": "a1b2c3d", "title": "...", "date": "...Z"}],
+ "checked_at": "...Z", "error": null, "can_update": true,
+ "updater": {"running": false, "started_at": "...", "finished_at": "...", "result": "ok", "log": "..."}}
+```
+
+`current` is null off a published image (a developer's machine), and then nothing is
+`available`. `changes` is newest first, at most 30, each commit's first line. `error`
+is why the last check failed; what was known before is kept. `can_update` is false
+without `UPDATER_TOKEN`, and `updater` is null when the updater is not set up or does
+not answer.
+
+`POST` asks the updater to pull the images and recreate the backend and web
+containers, and answers `202` at once; `409` when nothing newer is published,
+`502` naming why when the updater is not set up, cannot be reached, refuses the token
+or is already running. The backend is then away for a minute or two; the page waits
+for `GET /health` to name the new `commit`, then reloads.
 
 ## Conventions
 

@@ -3,6 +3,7 @@ from datetime import datetime
 from sqlalchemy import DateTime, Integer, String, Text, func
 from sqlalchemy.orm import Mapped, mapped_column
 
+from app.core.secrets import EncryptedText
 from app.db.base import Base
 
 
@@ -19,7 +20,8 @@ class IntegrationCredential(Base):
 
     provider: Mapped[str] = mapped_column(String(50), primary_key=True)
 
-    refresh_token: Mapped[str] = mapped_column(Text, nullable=False)
+    # encrypted at rest when SECRETS_KEY is set (app/core/secrets.py)
+    refresh_token: Mapped[str] = mapped_column(EncryptedText, nullable=False)
 
     # when the marketplace issued the refresh token held above, so the status
     # page can say how long it has left (Allegro's live three months). Null
@@ -77,16 +79,16 @@ class IntegrationSettings(Base):
     marketplace's developer portal, as opposed to IntegrationCredential, which
     holds the token a seller granted it. When a row exists it is used instead
     of the environment variables of the same meaning; without one the
-    environment applies, as before. The secret is stored as plain text, the
-    same exposure as the refresh token beside it and as `.env`, and is never
-    returned by the API.
+    environment applies, as before. The secret is encrypted like the refresh
+    token beside it when SECRETS_KEY is set, and is never returned by the API.
     """
 
     __tablename__ = "integration_settings"
 
     provider: Mapped[str] = mapped_column(String(50), primary_key=True)
     client_id: Mapped[str] = mapped_column(String(255), nullable=False)
-    client_secret: Mapped[str] = mapped_column(Text, nullable=False)
+    # encrypted at rest when SECRETS_KEY is set (app/core/secrets.py)
+    client_secret: Mapped[str] = mapped_column(EncryptedText, nullable=False)
     # the User-Agent generated for the application on the developer portal
     user_agent: Mapped[str] = mapped_column(String(255), nullable=False)
     # "sandbox" or "production": which of the marketplace's two worlds the

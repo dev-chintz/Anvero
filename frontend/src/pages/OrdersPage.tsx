@@ -8,6 +8,7 @@ import { OrderNoteDialog, type OrderNoteKind } from '../components/OrderNoteDial
 import { PAGE_SIZES } from '../components/Pagination';
 import type { OrderLinkState } from '../components/orderLinkState';
 import { AdvancedFilters, type Filters } from '../components/AdvancedFilters';
+import { useListSearch } from '../hooks/useListSearch';
 import { useOrders } from '../hooks/useOrders';
 import { useOrderStats } from '../hooks/useOrderStats';
 import { OrderQueue, OrderSort, OrderStatus } from '../types/order';
@@ -41,11 +42,12 @@ interface OrdersPageProps {
 
 /**
  * Renders the orders list and keeps pagination/filter state in sync with
- * the URL query string (?skip=&limit=&source=&status=search) so pages are
- * shareable/bookmarkable.
+ * the URL query string (?skip=&limit=&source=&status=) so pages are
+ * shareable/bookmarkable. The search text is the exception: it is often a
+ * buyer's name, so it is kept out of the address (useListSearch).
  */
 export function OrdersPage({ addToast }: OrdersPageProps) {
-  const [searchParams, setSearchParams] = useSearchParams();
+  const [searchParams] = useSearchParams();
   const location = useLocation();
   const { t, tc } = useTranslation();
 
@@ -54,7 +56,8 @@ export function OrdersPage({ addToast }: OrdersPageProps) {
   const limit = Number(searchParams.get('limit') ?? storedPageSize());
   const source = (searchParams.get('source') as OrderSource) || undefined;
   const status = (searchParams.get('status') as OrderStatus) || undefined;
-  const search = searchParams.get('search') || undefined;
+  const listSearch = useListSearch();
+  const search = listSearch.search || undefined;
   const dateFrom = searchParams.get('dateFrom') || undefined;
   const dateTo = searchParams.get('dateTo') || undefined;
   const cancellationWarning = searchParams.get('cancellationWarning') === 'true';
@@ -113,9 +116,10 @@ export function OrdersPage({ addToast }: OrdersPageProps) {
   const linkState = useMemo<OrderLinkState>(
     () => ({
       closeTo: `${location.pathname}${location.search}`,
+      closeState: listSearch.state,
       orderIds: orders.map((order) => order.id),
     }),
-    [location.pathname, location.search, orders],
+    [location.pathname, location.search, listSearch.state, orders],
   );
 
   // the queue tabs' counts; fetched again whenever the list is, since what
@@ -304,14 +308,17 @@ export function OrdersPage({ addToast }: OrdersPageProps) {
 
   const updateParams = (updates: Record<string, string | undefined>) => {
     const next = new URLSearchParams(searchParams);
+    let nextSearch = search;
     for (const [key, value] of Object.entries(updates)) {
-      if (value) {
+      if (key === 'search') {
+        nextSearch = value;
+      } else if (value) {
         next.set(key, value);
       } else {
         next.delete(key);
       }
     }
-    setSearchParams(next);
+    listSearch.update(next, nextSearch);
   };
 
   // One of the quick buttons above the list: each shows one thing, so it clears
@@ -340,7 +347,7 @@ export function OrdersPage({ addToast }: OrdersPageProps) {
   };
 
   const handleClearFilters = () => {
-    setSearchParams({});
+    listSearch.update(new URLSearchParams(), undefined);
     addToast?.(t('orders.filtersCleared'), 'info');
   };
 

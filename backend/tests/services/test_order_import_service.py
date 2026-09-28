@@ -550,6 +550,22 @@ def test_an_order_deleted_in_anvero_is_not_brought_back_by_an_import(session):
     assert kept.total_amount == Decimal("100.00")
 
 
+def test_an_anonymized_order_is_not_given_its_personal_data_back_by_an_import(session):
+    from app.services.retention import anonymize_order
+
+    _service(session, [_order("ALG-OLD", amount="100.00")]).import_orders()
+    order = session.query(Order).one()
+    anonymize_order(session, order, datetime.now(UTC))
+    session.commit()
+
+    result = _service(session, [_order("ALG-OLD", amount="100.00")]).import_orders()
+
+    assert (result.created, result.updated) == (0, 0)
+    kept = session.query(Order).one()
+    assert kept.customer_email == ""
+    assert kept.anonymized_at is not None
+
+
 def test_a_restored_order_is_updated_by_the_next_import_again(session):
     _service(session, [_order("ALG-BACK", amount="100.00")]).import_orders()
     repository = OrderRepository(session)

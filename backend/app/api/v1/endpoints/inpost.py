@@ -6,6 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response,
 from sqlalchemy.orm import Session
 
 from app.core.order_number import format_order_number
+from app.core.permissions import require_permission
 from app.core.rate_limit import limiter
 from app.core.security import get_current_user
 from app.db.session import get_db
@@ -15,6 +16,7 @@ from app.integrations.base import (
     IntegrationNotConfigured,
 )
 from app.models.user import User
+from app.models.user_permission import PermissionArea, PermissionLevel
 from app.repositories.order_repository import OrderRepository
 from app.schemas.inpost import (
     InpostAwaitingOrder,
@@ -36,7 +38,8 @@ from app.services.inpost_shipments import InpostRefused, InpostShipments, buyer_
 from app.services.marketplace_writes import WriteResult
 from app.services.order_service import OrderService
 
-router = APIRouter(tags=["InPost"], dependencies=[Depends(get_current_user)])
+router = APIRouter(tags=["InPost"], dependencies=[require_permission(PermissionArea.LABELS)])
+_manage = require_permission(PermissionArea.LABELS, PermissionLevel.MANAGE)
 
 
 def _status(db: Session) -> InpostStatus:
@@ -81,7 +84,7 @@ def get_inpost_status(db: Session = Depends(get_db)):
     return _status(db)
 
 
-@router.put("/integrations/inpost/settings", response_model=InpostStatus)
+@router.put("/integrations/inpost/settings", response_model=InpostStatus, dependencies=[_manage])
 @limiter.limit("10/minute")
 def save_inpost_settings(
     request: Request,
@@ -116,7 +119,7 @@ def save_inpost_settings(
     return _status(db)
 
 
-@router.put("/integrations/inpost/template", response_model=InpostStatus)
+@router.put("/integrations/inpost/template", response_model=InpostStatus, dependencies=[_manage])
 def save_inpost_template(
     body: InpostTemplateRequest,
     db: Session = Depends(get_db),
@@ -127,7 +130,7 @@ def save_inpost_template(
     return _status(db)
 
 
-@router.delete("/integrations/inpost/settings", response_model=InpostStatus)
+@router.delete("/integrations/inpost/settings", response_model=InpostStatus, dependencies=[_manage])
 def forget_inpost_settings(db: Session = Depends(get_db)):
     """Forget the token and the organization."""
     inpost_settings.clear_settings(db)
@@ -142,7 +145,9 @@ def list_order_shipments(order_id: uuid.UUID, db: Session = Depends(get_db)):
     return InpostShipments(db).for_order(_order(db, order_id))
 
 
-@router.post("/orders/{order_id}/inpost-shipments", response_model=InpostChangeResult)
+@router.post(
+    "/orders/{order_id}/inpost-shipments", response_model=InpostChangeResult, dependencies=[_manage]
+)
 def create_order_shipment(
     order_id: uuid.UUID,
     body: InpostCreateRequest | None = None,
@@ -186,7 +191,9 @@ def refresh_order_shipment(
 
 
 @router.post(
-    "/orders/{order_id}/inpost-shipments/{shipment_id}/cancel", response_model=InpostChangeResult
+    "/orders/{order_id}/inpost-shipments/{shipment_id}/cancel",
+    response_model=InpostChangeResult,
+    dependencies=[_manage],
 )
 def cancel_order_shipment(
     order_id: uuid.UUID,
@@ -227,7 +234,7 @@ def orders_awaiting_a_parcel(db: Session = Depends(get_db)):
     ]
 
 
-@router.post("/inpost/shipments", response_model=InpostBulkResult)
+@router.post("/inpost/shipments", response_model=InpostBulkResult, dependencies=[_manage])
 def create_shipments(
     body: InpostBulkCreateRequest,
     db: Session = Depends(get_db),

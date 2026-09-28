@@ -82,6 +82,10 @@ class AfterSalesCase(Base):
     # the buyer's comment, or the solution a claim asks for
     detail: Mapped[str | None] = mapped_column(String(500))
 
+    # set when the buyer's login, e-mail and own words were erased
+    # (app/services/retention.py); a sync no longer touches the case
+    anonymized_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
