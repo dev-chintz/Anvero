@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy.orm import Session
 
+from app.core.permissions import require_permission
 from app.core.rate_limit import limiter
 from app.core.security import get_current_user
 from app.db.session import get_db
@@ -14,6 +15,7 @@ from app.integrations.base import (
     IntegrationNotConfigured,
 )
 from app.models.user import User
+from app.models.user_permission import PermissionArea, PermissionLevel
 from app.repositories.integration_credential_repository import (
     IntegrationCredentialRepository,
 )
@@ -40,12 +42,18 @@ from app.services.erli_import import build_erli_import_service
 from app.services.message_sync import run_message_sync
 from app.services.schedule import get_interval, set_interval
 
-# Every endpoint here requires a logged-in user, same as the orders router.
+# Every endpoint here requires at least a login (same as the orders router);
+# most also need the integrations area specifically, added per endpoint below
+# since two of them (the Allegro messages and after-sales syncs) belong to
+# their own area instead - a manage grant there, not on integrations, is what
+# lets someone trigger them.
 router = APIRouter(
     prefix="/integrations",
     tags=["Integrations"],
     dependencies=[Depends(get_current_user)],
 )
+_view = require_permission(PermissionArea.INTEGRATIONS)
+_manage = require_permission(PermissionArea.INTEGRATIONS, PermissionLevel.MANAGE)
 
 # one import at a time, shared with the scheduled ones (see allegro_sync)
 _import_lock = import_lock
@@ -71,12 +79,12 @@ def _status(db: Session) -> AllegroStatus:
     )
 
 
-@router.get("/allegro", response_model=AllegroStatus)
+@router.get("/allegro", response_model=AllegroStatus, dependencies=[_view])
 def get_allegro_status(db: Session = Depends(get_db)):
     return _status(db)
 
 
-@router.put("/allegro/settings", response_model=AllegroStatus)
+@router.put("/allegro/settings", response_model=AllegroStatus, dependencies=[_manage])
 def save_allegro_settings(body: AllegroSettingsRequest, db: Session = Depends(get_db)):
     """Store the application's credentials; the secret is never returned."""
     # changing them may disconnect the account, which touches the token an
@@ -101,7 +109,7 @@ def save_allegro_settings(body: AllegroSettingsRequest, db: Session = Depends(ge
     return _status(db)
 
 
-@router.post("/allegro/connect", response_model=AllegroConnectStart)
+@router.post("/allegro/connect", response_model=AllegroConnectStart, dependencies=[_manage])
 @limiter.limit("10/minute")
 def start_allegro_connection(request: Request, db: Session = Depends(get_db)):
     """Begin connecting a seller: returns the link they must open and confirm."""
@@ -120,7 +128,9 @@ def start_allegro_connection(request: Request, db: Session = Depends(get_db)):
     )
 
 
-@router.get("/allegro/connect/{flow_id}", response_model=AllegroConnectPoll)
+@router.get(
+    "/allegro/connect/{flow_id}", response_model=AllegroConnectPoll, dependencies=[_manage]
+)
 @limiter.limit("60/minute")
 def poll_allegro_connection(request: Request, flow_id: str, db: Session = Depends(get_db)):
     """Check whether the seller has confirmed yet."""
@@ -145,7 +155,7 @@ def poll_allegro_connection(request: Request, flow_id: str, db: Session = Depend
     return AllegroConnectPoll(status="connected", account_login=login or None)
 
 
-@router.delete("/allegro/connection", response_model=AllegroStatus)
+@router.delete("/allegro/connection", response_model=AllegroStatus, dependencies=[_manage])
 def disconnect_allegro(db: Session = Depends(get_db)):
     """Forget the connected account; the application's credentials stay."""
     if not _import_lock.acquire(blocking=False):
@@ -161,7 +171,7 @@ def disconnect_allegro(db: Session = Depends(get_db)):
     return _status(db)
 
 
-@router.post("/allegro/import", response_model=AllegroImportResult)
+@router.post("/allegro/import", response_model=AllegroImportResult, dependencies=[_manage])
 @limiter.limit("6/minute")
 def import_from_allegro(
     request: Request,
@@ -206,12 +216,12 @@ def _erli_status(db: Session) -> ErliStatus:
     )
 
 
-@router.get("/erli", response_model=ErliStatus)
+@router.get("/erli", response_model=ErliStatus, dependencies=[_view])
 def get_erli_status(db: Session = Depends(get_db)):
     return _erli_status(db)
 
 
-@router.put("/erli/settings", response_model=ErliStatus)
+@router.put("/erli/settings", response_model=ErliStatus, dependencies=[_manage])
 @limiter.limit("10/minute")
 def save_erli_settings(
     request: Request,
@@ -238,14 +248,14 @@ def save_erli_settings(
     return _erli_status(db)
 
 
-@router.delete("/erli/settings", response_model=ErliStatus)
+@router.delete("/erli/settings", response_model=ErliStatus, dependencies=[_manage])
 def forget_erli_key(db: Session = Depends(get_db)):
     """Forget the key entered in Settings; the environment's, if any, applies."""
     erli_settings.clear_key(db)
     return _erli_status(db)
 
 
-@router.post("/erli/import", response_model=AllegroImportResult)
+@router.post("/erli/import", response_model=AllegroImportResult, dependencies=[_manage])
 @limiter.limit("6/minute")
 def import_from_erli(request: Request, db: Session = Depends(get_db)):
     try:
@@ -272,7 +282,11 @@ def import_from_erli(request: Request, db: Session = Depends(get_db)):
     )
 
 
-@router.post("/allegro/messages/sync", response_model=MessageSyncResult)
+@router.post(
+    "/allegro/messages/sync",
+    response_model=MessageSyncResult,
+    dependencies=[require_permission(PermissionArea.MESSAGES, PermissionLevel.MANAGE)],
+)
 @limiter.limit("6/minute")
 def sync_allegro_messages(request: Request, db: Session = Depends(get_db)):
     """Read the Message Center: new and changed threads, and their messages.
@@ -301,7 +315,11 @@ def sync_allegro_messages(request: Request, db: Session = Depends(get_db)):
         threads_synced=result.threads_synced, messages_added=result.messages_added
     )
 
-@router.post("/allegro/after-sales/sync", response_model=AfterSalesSyncResult)
+@router.post(
+    "/allegro/after-sales/sync",
+    response_model=AfterSalesSyncResult,
+    dependencies=[require_permission(PermissionArea.AFTER_SALES, PermissionLevel.MANAGE)],
+)
 @limiter.limit("6/minute")
 def sync_allegro_after_sales(request: Request, db: Session = Depends(get_db)):
     """Read returns, claims and disputes into the after-sales queue.
@@ -326,12 +344,12 @@ def sync_allegro_after_sales(request: Request, db: Session = Depends(get_db)):
 
 
 
-@router.get("/schedule", response_model=ImportSchedule)
+@router.get("/schedule", response_model=ImportSchedule, dependencies=[_view])
 def get_import_schedule(db: Session = Depends(get_db)):
     return ImportSchedule(interval_minutes=get_interval(db))
 
 
-@router.put("/schedule", response_model=ImportSchedule)
+@router.put("/schedule", response_model=ImportSchedule, dependencies=[_manage])
 def put_import_schedule(
     body: ImportSchedule,
     db: Session = Depends(get_db),

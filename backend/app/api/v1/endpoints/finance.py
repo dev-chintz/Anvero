@@ -7,9 +7,10 @@ from enum import Enum
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
-from app.core.security import get_current_user
+from app.core.permissions import require_permission
 from app.db.session import get_db
 from app.models.order import OrderSource
+from app.models.user_permission import PermissionArea
 from app.repositories.integration_credential_repository import IntegrationCredentialRepository
 from app.schemas.finance import (
     FeeTypeMoney,
@@ -23,7 +24,9 @@ from app.schemas.finance import (
 )
 from app.services.finance import ZERO, FinanceService, fee_kind, previous_period
 
-router = APIRouter(prefix="/finance", tags=["Finance"], dependencies=[Depends(get_current_user)])
+router = APIRouter(
+    prefix="/finance", tags=["Finance"], dependencies=[require_permission(PermissionArea.FINANCE)]
+)
 
 # a period longer than this is refused: the tables are computed whole
 MAX_DAYS = 366

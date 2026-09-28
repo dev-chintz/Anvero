@@ -1690,3 +1690,56 @@ not to this document or any chat log. Every other machine's `backend/.env`
 pointing at the shared database (`DEVELOPMENT.md`, "Shared database on the
 NAS") still has the old password and needs updating by hand from that same
 read, or it will stop connecting.
+
+## 2026-09-28 — Accounts Get a Role and Per-Area Permissions
+
+**Decision:** `users` gets a `role` column (`admin` or `user`, plain strings
+like `payment_type` rather than a database enum, since the list of what a
+role means can grow) and a new `user_permissions` table (migration
+`c2a6f9e3b184`), one row per `(user_id, area)`: `area` is one of `orders`,
+`messages`, `after_sales`, `labels`, `finance`, `integrations` - the same six
+areas Settings groups the application into - and `level` is `view` or
+`manage` (`manage` satisfies a `view` check too). An admin needs no rows: it
+passes every check outright. A new `require_permission(area, level)`
+dependency (`app/core/permissions.py`) replaces the plain "logged in" gate on
+every router except `auth` and `health`; `API.md`'s "Users, roles and
+permissions" section lists which area and level each endpoint needs.
+Settings gets a "Users" tab, visible only to an admin: a list of accounts on
+the left and the one chosen open on the right (`docs/STYLE_GUIDE.md`), where
+an admin creates an account (typing its password directly, like
+`scripts/create_user.py` already did - there is still no self-service
+registration), and sets its role, active state and, for a "user", a grid of
+the six areas each with a three-way choice (none, view, manage). The
+migration set every account that already existed to `admin`, and
+`UserCreate.role` still defaults to `admin` (matching the script's own
+`--role` default), so every caller written before roles existed - the whole
+test suite included - keeps the full access it always had; only a "user"
+account created from the new Users tab, which always sends `role`
+explicitly, starts out limited. An admin cannot demote or deactivate the
+account that would leave zero active admins (`UserService.update_user`),
+checked against every other admin account, not just the ones created this
+session.
+
+**Rationale:** The owner asked for two account types (administrator, user),
+permissions on the user kind assignable per area of the application, and
+several people working from different accounts at the same time; the last
+part needed no new work, since logins are independent JWTs with no shared
+session lock already. Three permission granularities were on the table (per
+area, per exact action, or a flat view/full split); the owner chose per area,
+coarse enough that the settings screen stays a short grid rather than dozens
+of checkboxes, matching how the application's own pages are already grouped.
+Two of Integrations' own endpoints - the Allegro messages and after-sales
+syncs - are gated by the `messages` and `after_sales` areas instead of
+`integrations`, since triggering them is naturally part of managing those
+areas, not the marketplace connection itself; every other Integrations
+endpoint, including safe mode, needs `integrations`. A JWT lasts up to eight
+hours and cannot be revoked early (`API.md`); the owner accepted that a
+deactivated or downgraded account's already-issued token still works until
+it expires, rather than building session revocation now. A regression
+surfaced during manual verification: replacing a user's whole permission set
+in one request, keeping some areas and adding another, violated the
+`(user_id, area)` uniqueness before the old rows were gone, because clearing
+a SQLAlchemy collection and appending replacements in the same flush queues
+the inserts before the deletes; `UserRepository.replace_permissions` now
+flushes the clear before appending (test:
+`test_replacing_permissions_while_keeping_some_of_the_same_areas`).

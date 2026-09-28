@@ -25,7 +25,10 @@ are days in the business timezone, `BUSINESS_TIMEZONE`, default
 | `GET` | `/api/v1/orders/{id}/buyer-orders` | the same buyer's other orders, newest first, at most 20 |
 | `POST` | `/api/v1/orders` | create an order — local testing until marketplace ingestion exists |
 | `POST` | `/api/v1/auth/login` | obtain a JWT; rate limited to 5 attempts per minute per IP |
-| `GET` | `/api/v1/users/me` | current user |
+| `GET` | `/api/v1/users/me` | current user, with its role and permissions |
+| `GET` | `/api/v1/users` | every account (administrator only) |
+| `POST` | `/api/v1/users` | create an account (administrator only) |
+| `PATCH` | `/api/v1/users/{id}` | change an account's role, active state, password or permissions (administrator only) |
 | `GET` | `/api/v1/settings/safe-mode` | whether safe mode is on, and who last switched it |
 | `PUT` | `/api/v1/settings/safe-mode` | switch safe mode on or off |
 | `GET` | `/api/v1/marketplace-writes` | what Anvero sent to a marketplace, or held back in safe mode |
@@ -98,6 +101,37 @@ default 480 (a working day), and cannot be revoked early.
 A wrong password, an unknown email and a deactivated account all return the
 same `401 {"detail": "Invalid credentials"}`, taking comparable time, so the
 response does not reveal which emails have accounts.
+
+## Users, roles and permissions
+
+A user is `admin` or `user` (`role`); an admin passes every check below
+outright and needs no rows in `permissions`. A user's `permissions` is a list
+of `{"area", "level"}`: `area` is one of `orders`, `messages`, `after_sales`,
+`labels`, `finance`, `integrations` (the parts Settings itself groups the
+application into); `level` is `view` or `manage`, and `manage` satisfies a
+`view` requirement too. `GET /users/me` returns both.
+
+Every endpoint below `/api/v1` except `/health`, `/`, `/auth/login` and
+`/users/me` needs a grant, at the level named, for the area named:
+
+| Area | `view` | `manage` |
+| --- | --- | --- |
+| `orders` | `GET /orders*`, `GET /orders/{id}*` | `PATCH/DELETE/POST` on an order, its status, shipments, marks, note, packing and the production checks |
+| `messages` | `GET /messages/threads*` | `PATCH .../aside`, `POST .../reply`, `POST /integrations/allegro/messages/sync` |
+| `after_sales` | `GET /after-sales*`, `GET /orders/{id}/after-sales` | `POST /integrations/allegro/after-sales/sync` |
+| `labels` | `GET` on shipping settings, labels, InPost status and shipments, printing a PDF | buying or cancelling a label, ordering a pickup, the InPost settings and shipments, `PUT /settings/shipping` |
+| `finance` | `GET /finance/*`, `GET /sales-report/*` | `PUT/DELETE` a sales-report override |
+| `integrations` | `GET` on the Allegro/Erli/InPost status, the schedule, safe mode and marketplace-writes log, `GET /status` | the Allegro/Erli settings, connect and import, the schedule, `PUT /settings/safe-mode` |
+
+Account management (`GET/POST /users`, `PATCH /users/{id}`) needs no area
+grant: only `role == "admin"` may call it, checked by a separate dependency
+(`app/core/permissions.py`, `require_admin`). `PATCH /users/{id}` refuses
+`409` a change that would leave no active admin account (demoting or
+deactivating the last one).
+
+A deactivated or downgraded account's already-issued token keeps working
+until it expires (`ACCESS_TOKEN_EXPIRE_MINUTES`, "no revocation" above):
+there is no session store to check on every request.
 
 ## `GET /api/v1/integrations/allegro`
 

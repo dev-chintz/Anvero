@@ -6,10 +6,12 @@ from decimal import Decimal
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
+from app.core.permissions import require_permission
 from app.core.security import get_current_user
 from app.db.session import get_db
 from app.models.order import OrderSource, OrderStatus
 from app.models.user import User
+from app.models.user_permission import PermissionArea, PermissionLevel
 from app.repositories.order_repository import OrderQueue, OrderRepository, OrderSort
 from app.schemas.marketplace_write import MarketplaceWriteRead
 from app.schemas.order import (
@@ -35,14 +37,17 @@ from app.services.order_writes import ALLEGRO_CARRIERS, OrderWrites
 from app.services.production import build_production_list, mark_done, set_check
 from app.services.shipping_labels import ShippingLabels
 
-# Every order endpoint requires a logged-in user. Set on the router rather
-# than per endpoint, so an endpoint added later cannot be left open by
-# forgetting a parameter.
+# Every order endpoint requires at least view access to the orders area. Set
+# on the router rather than per endpoint, so an endpoint added later cannot be
+# left open by forgetting a parameter; a mutating endpoint below adds its own
+# "manage" requirement on top.
 router = APIRouter(
     prefix="/orders",
     tags=["Orders"],
-    dependencies=[Depends(get_current_user)],
+    dependencies=[require_permission(PermissionArea.ORDERS)],
 )
+
+_manage = require_permission(PermissionArea.ORDERS, PermissionLevel.MANAGE)
 
 
 @router.get("", response_model=OrderListResponse)
@@ -112,7 +117,7 @@ def get_production_list(
     )
 
 
-@router.put("/production/checks", response_model=ProductionCheckRead)
+@router.put("/production/checks", response_model=ProductionCheckRead, dependencies=[_manage])
 def put_production_check(
     body: ProductionCheckRequest,
     db: Session = Depends(get_db),
@@ -163,7 +168,7 @@ def get_order_billing(order_id: uuid.UUID, db: Session = Depends(get_db)):
 # because a change here is meant to record an entry in the status history
 # returns the details too: the order page replaces its copy of the order with
 # this response, and would otherwise lose them
-@router.patch("/{order_id}/status", response_model=OrderChangeResult)
+@router.patch("/{order_id}/status", response_model=OrderChangeResult, dependencies=[_manage])
 def update_order_status(
     order_id: uuid.UUID,
     payload: OrderUpdate,
@@ -182,7 +187,7 @@ def update_order_status(
     return _change_result(order, write)
 
 
-@router.patch("/{order_id}/marks", response_model=OrderDetailRead)
+@router.patch("/{order_id}/marks", response_model=OrderDetailRead, dependencies=[_manage])
 def update_order_marks(order_id: uuid.UUID, payload: OrderMarksUpdate, db: Session = Depends(get_db)):
     """Star or flag an order. The marks are the operator's own: nothing is sent to a
     marketplace, and an order that is deleted can still be marked."""
@@ -192,7 +197,7 @@ def update_order_marks(order_id: uuid.UUID, payload: OrderMarksUpdate, db: Sessi
     )
 
 
-@router.patch("/{order_id}/note", response_model=OrderDetailRead)
+@router.patch("/{order_id}/note", response_model=OrderDetailRead, dependencies=[_manage])
 def update_order_note(order_id: uuid.UUID, payload: OrderNoteUpdate, db: Session = Depends(get_db)):
     """Write the operator's own note on an order, or clear it (`{"note": null}` or an
     empty text). It stays in Anvero: nothing is sent to a marketplace, and an import
@@ -201,7 +206,9 @@ def update_order_note(order_id: uuid.UUID, payload: OrderNoteUpdate, db: Session
     return OrderDetailRead.from_order(service.set_internal_note(order_id, payload.note))
 
 
-@router.patch("/{order_id}/items/{position}/packing", response_model=OrderDetailRead)
+@router.patch(
+    "/{order_id}/items/{position}/packing", response_model=OrderDetailRead, dependencies=[_manage]
+)
 def update_item_packing(
     order_id: uuid.UUID,
     position: int,
@@ -218,7 +225,7 @@ def update_item_packing(
     )
 
 
-@router.delete("/{order_id}", response_model=OrderDetailRead)
+@router.delete("/{order_id}", response_model=OrderDetailRead, dependencies=[_manage])
 def delete_order(
     order_id: uuid.UUID,
     db: Session = Depends(get_db),
@@ -236,12 +243,12 @@ def delete_order(
     return OrderDetailRead.from_order(service.delete_order(order_id, current_user.id))
 
 
-@router.post("/{order_id}/restore", response_model=OrderDetailRead)
+@router.post("/{order_id}/restore", response_model=OrderDetailRead, dependencies=[_manage])
 def restore_order(order_id: uuid.UUID, db: Session = Depends(get_db)):
     return OrderDetailRead.from_order(OrderService(OrderRepository(db)).restore_order(order_id))
 
 
-@router.post("/{order_id}/shipments", response_model=OrderChangeResult)
+@router.post("/{order_id}/shipments", response_model=OrderChangeResult, dependencies=[_manage])
 def add_order_shipment(
     order_id: uuid.UUID,
     payload: ShipmentAdd,
@@ -269,7 +276,7 @@ def _change_result(order, write) -> OrderChangeResult:
     )
 
 
-@router.post("", response_model=OrderDetailRead)
+@router.post("", response_model=OrderDetailRead, dependencies=[_manage])
 def create_order(order: OrderCreate, db: Session = Depends(get_db)):
     # intended for local/manual testing until marketplace ingestion exists
     service = OrderService(OrderRepository(db))

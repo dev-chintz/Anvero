@@ -7,15 +7,18 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
 from app.core.order_number import format_order_number
-from app.core.security import get_current_user
+from app.core.permissions import require_permission
 from app.db.session import get_db
 from app.models.after_sales import AfterSalesCase, CaseAction, CaseKind
+from app.models.user_permission import PermissionArea
 from app.repositories.after_sales_repository import AfterSalesRepository, CaseView
 from app.repositories.order_repository import OrderRepository
 from app.schemas.after_sales import AfterSalesSummary, CaseList, CaseRead
 from app.schemas.types import _as_utc
 
-router = APIRouter(tags=["After sales"], dependencies=[Depends(get_current_user)])
+router = APIRouter(
+    tags=["After sales"], dependencies=[require_permission(PermissionArea.AFTER_SALES)]
+)
 
 
 def _read(

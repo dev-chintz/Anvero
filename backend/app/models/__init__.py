@@ -23,6 +23,7 @@ from app.models.production_check import ProductionCheck
 from app.models.sales_report import SalesReportOverride
 from app.models.shipping_label import LabelStatus, ShippingLabel
 from app.models.user import User
+from app.models.user_permission import PermissionArea, PermissionLevel, UserPermission
 
 __all__ = [
     "AddressType",
@@ -50,11 +51,14 @@ __all__ = [
     "OrderStatus",
     "OrderStatusHistory",
     "PaymentType",
+    "PermissionArea",
+    "PermissionLevel",
     "Payout",
     "PickupStatus",
     "ProductionCheck",
     "SalesReportOverride",
     "ShippingLabel",
     "User",
+    "UserPermission",
     "WriteOutcome",
 ]

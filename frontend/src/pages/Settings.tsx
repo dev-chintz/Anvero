@@ -1,49 +1,43 @@
 import { useSearchParams } from 'react-router-dom';
+import { useAuth } from '../auth/AuthContext';
 import { SafeModeSettings } from '../components/SafeModeSettings';
+import { SettingRow } from '../components/SettingRow';
 import { useAppHealth } from '../hooks/useAppHealth';
 import { useTranslation, LANGUAGES, languageName, type Language } from '../i18n';
 import { useSafeMode } from '../safeMode/SafeModeContext';
 import { Integrations } from './Integrations';
 import { StatusPage } from './StatusPage';
+import { UsersSettings } from './UsersSettings';
 import '../styles/SettingsPage.css';
 
 // Settings holds what belongs to the application itself and, in a tab of its own, everything that
 // connects it to a marketplace or a carrier. Its last tab is the application's status: looked at
-// when something is wrong, not every day, so it has no place in the menu.
+// when something is wrong, not every day, so it has no place in the menu; the users tab exists
+// only for an administrator, who is the only one who can act on it (API.md, "Users").
 
-type Tab = 'general' | 'integrations' | 'status';
-const TABS: Tab[] = ['general', 'integrations', 'status'];
+type Tab = 'general' | 'integrations' | 'users' | 'status';
+const TABS: Tab[] = ['general', 'integrations', 'users', 'status'];
 
 interface SettingsProps {
   isDarkMode: boolean;
   onThemeToggle: () => void;
 }
 
-/** One setting on a row: what it is and what it does on the left, the control on the right. */
-function SettingRow({ title, help, children }: { title: string; help: string; children: React.ReactNode }) {
-  return (
-    <div className="setting-row">
-      <div className="setting-row-text">
-        <b>{title}</b>
-        <p className="setting-row-help">{help}</p>
-      </div>
-      <div className="setting-row-control">{children}</div>
-    </div>
-  );
-}
-
 export const Settings: React.FC<SettingsProps> = ({ isDarkMode, onThemeToggle }) => {
   const { t, language, setLanguage } = useTranslation();
   const { safeMode } = useSafeMode();
+  const { user } = useAuth();
+  const isAdmin = user?.role === 'admin';
   // the tab is in the address, so a link (the menu's dot, the dashboard's chip) can open it
   const [params, setParams] = useSearchParams();
   const requested = params.get('tab');
-  const tab: Tab = TABS.find((id) => id === requested) ?? 'general';
+  const tab: Tab = TABS.find((id) => id === requested && (id !== 'users' || isAdmin)) ?? 'general';
   const { summary } = useAppHealth(tab);
   const showTab = (next: Tab) => setParams(next === 'general' ? {} : { tab: next }, { replace: true });
   const tabs: { id: Tab; label: string }[] = [
     { id: 'general', label: t('settings.tab.general') },
     { id: 'integrations', label: t('settings.tab.integrations') },
+    ...(isAdmin ? [{ id: 'users' as Tab, label: t('settings.tab.users') }] : []),
     { id: 'status', label: t('settings.tab.status') },
   ];
 
@@ -79,6 +73,10 @@ export const Settings: React.FC<SettingsProps> = ({ isDarkMode, onThemeToggle })
       {tab === 'integrations' ? (
         <div role="tabpanel" id="settings-panel-integrations" aria-labelledby="settings-tab-integrations">
           <Integrations />
+        </div>
+      ) : tab === 'users' ? (
+        <div role="tabpanel" id="settings-panel-users" aria-labelledby="settings-tab-users">
+          <UsersSettings />
         </div>
       ) : tab === 'status' ? (
         <div role="tabpanel" id="settings-panel-status" aria-labelledby="settings-tab-status">

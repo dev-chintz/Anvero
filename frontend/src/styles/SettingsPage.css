@@ -281,3 +281,108 @@
   align-items: center;
   gap: 0.45rem;
 }
+
+/* ---- Users: a list of accounts on the left, the one chosen open on the right (as
+   Integrations opens a tile below it, but here side by side: nothing else needs the room) ---- */
+.users-settings {
+  display: grid;
+  grid-template-columns: minmax(200px, 260px) 1fr;
+  gap: 0.75rem;
+  align-items: start;
+}
+
+@media (max-width: 768px) {
+  .users-settings {
+    grid-template-columns: 1fr;
+  }
+}
+
+.users-list.card {
+  padding: 0;
+  overflow: hidden;
+}
+
+.users-list-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.7rem 0.9rem;
+}
+
+.user-row {
+  display: flex;
+  width: 100%;
+  flex-direction: column;
+  gap: 0.3rem;
+  padding: 0.6rem 0.9rem;
+  text-align: left;
+  background: none;
+  border: none;
+  border-top: 1px solid var(--color-divider);
+  border-left: 3px solid transparent;
+  cursor: pointer;
+}
+
+.user-row:hover {
+  background: var(--color-surface-alt);
+}
+
+.user-row.is-selected {
+  background: var(--color-surface-alt);
+  border-left-color: var(--color-accent);
+}
+
+.user-row-email {
+  overflow: hidden;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.role-badge {
+  display: inline-flex;
+  width: fit-content;
+  padding: 0.05rem 0.55rem;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  color: var(--color-muted-strong);
+  font-size: 0.72rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.role-badge.is-admin {
+  background: var(--tone-teal-bg);
+  border-color: transparent;
+  color: var(--tone-teal-fg);
+}
+
+.user-row-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.user-row-meta .status-dot {
+  margin-left: auto;
+}
+
+.users-panel-head {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.users-panel-head .field-note {
+  margin: 0;
+}
+
+.permission-grid {
+  display: flex;
+  flex-direction: column;
+}
+
+.permission-row select {
+  min-width: 9rem;
+}

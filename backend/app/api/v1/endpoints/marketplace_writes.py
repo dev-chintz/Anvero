@@ -3,9 +3,11 @@ import uuid
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
+from app.core.permissions import require_permission
 from app.core.security import get_current_user
 from app.db.session import get_db
 from app.models.user import User
+from app.models.user_permission import PermissionArea, PermissionLevel
 from app.schemas.marketplace_write import (
     MarketplaceWriteRead,
     SafeModeRead,
@@ -18,7 +20,8 @@ from app.services.marketplace_writes import (
     set_safe_mode,
 )
 
-router = APIRouter(tags=["Safe mode"], dependencies=[Depends(get_current_user)])
+router = APIRouter(tags=["Safe mode"], dependencies=[require_permission(PermissionArea.INTEGRATIONS)])
+_manage = require_permission(PermissionArea.INTEGRATIONS, PermissionLevel.MANAGE)
 
 
 def _safe_mode(db: Session) -> SafeModeRead:
@@ -35,7 +38,7 @@ def get_safe_mode(db: Session = Depends(get_db)):
     return _safe_mode(db)
 
 
-@router.put("/settings/safe-mode", response_model=SafeModeRead)
+@router.put("/settings/safe-mode", response_model=SafeModeRead, dependencies=[_manage])
 def put_safe_mode(
     payload: SafeModeUpdate,
     db: Session = Depends(get_db),

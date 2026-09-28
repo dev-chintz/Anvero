@@ -4,6 +4,23 @@ All significant changes to the Anvero project.
 
 ---
 
+## 2026-09-28
+
+### 👥 Accounts get roles and per-area permissions
+
+- `users` has a `role` (`admin`/`user`); a `user` account is granted `view`
+  or `manage` on each of the six areas Settings already groups the
+  application into (orders, messages, returns and claims, labels, finance,
+  integrations), enforced on every gated endpoint (`docs/API.md`, "Users,
+  roles and permissions"). Existing accounts became `admin`, so nobody lost
+  access.
+- Settings has a new "Users" tab, for an administrator only: a list of
+  accounts and, beside it, the one chosen, where an admin sets its role,
+  active state, password and permission grid, or creates a new account.
+- Several people working from different accounts at once needed no new
+  work: logins are already independent, unrevoked JWTs.
+- See `docs/DECISIONS.md`, "Accounts Get a Role and Per-Area Permissions".
+
 ## 2026-09-27
 
 ### 🚀 First deployment to the NAS

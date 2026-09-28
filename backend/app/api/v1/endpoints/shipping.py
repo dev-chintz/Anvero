@@ -6,10 +6,12 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from sqlalchemy.orm import Session
 
 from app.core.order_number import format_order_number
+from app.core.permissions import require_permission
 from app.core.security import get_current_user
 from app.db.session import get_db
 from app.integrations.base import IntegrationError, IntegrationNotConfigured
 from app.models.user import User
+from app.models.user_permission import PermissionArea, PermissionLevel
 from app.repositories.order_repository import OrderRepository
 from app.schemas.marketplace_write import MarketplaceWriteRead
 from app.schemas.shipping import (
@@ -32,7 +34,8 @@ from app.services.sample_label import build_sample_label
 from app.services.shipping_labels import LabelRefused, ShippingLabels
 from app.services.shipping_settings import get_shipping_settings, save_shipping_settings
 
-router = APIRouter(tags=["Shipping"], dependencies=[Depends(get_current_user)])
+router = APIRouter(tags=["Shipping"], dependencies=[require_permission(PermissionArea.LABELS)])
+_manage = require_permission(PermissionArea.LABELS, PermissionLevel.MANAGE)
 
 
 @router.get("/settings/shipping", response_model=ShippingSettings)
@@ -40,7 +43,7 @@ def get_settings(db: Session = Depends(get_db)):
     return get_shipping_settings(db)
 
 
-@router.put("/settings/shipping", response_model=ShippingSettings)
+@router.put("/settings/shipping", response_model=ShippingSettings, dependencies=[_manage])
 def put_settings(
     payload: ShippingSettings,
     db: Session = Depends(get_db),
@@ -73,7 +76,7 @@ def list_labels(order_id: uuid.UUID, db: Session = Depends(get_db)):
     return ShippingLabels(db).for_order(_order(db, order_id))
 
 
-@router.post("/orders/{order_id}/labels", response_model=LabelChangeResult)
+@router.post("/orders/{order_id}/labels", response_model=LabelChangeResult, dependencies=[_manage])
 def buy_label(
     order_id: uuid.UUID,
     package: PackageSize,
@@ -104,7 +107,9 @@ def refresh_label(
     return labels.refresh(order, _label(labels, order, label_id), current_user.id)
 
 
-@router.post("/orders/{order_id}/labels/{label_id}/cancel", response_model=LabelChangeResult)
+@router.post(
+    "/orders/{order_id}/labels/{label_id}/cancel", response_model=LabelChangeResult, dependencies=[_manage]
+)
 def cancel_label(
     order_id: uuid.UUID,
     label_id: uuid.UUID,
@@ -201,7 +206,7 @@ def pickup_proposals(payload: PickupProposalRequest, db: Session = Depends(get_d
     return [PickupOption(id=o.id, label=o.label) for o in options]
 
 
-@router.post("/pickups", response_model=PickupChangeResult)
+@router.post("/pickups", response_model=PickupChangeResult, dependencies=[_manage])
 def order_pickup(
     payload: PickupOrderRequest,
     db: Session = Depends(get_db),

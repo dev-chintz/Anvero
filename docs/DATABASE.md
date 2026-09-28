@@ -18,7 +18,7 @@ The model will be deployed via migrations after framework selection, but a commo
 
 ## Implemented so far
 
-Migrations currently create `users`, `orders`, `order_items`,
+Migrations currently create `users`, `user_permissions`, `orders`, `order_items`,
 `order_addresses`, `order_shipments`, `billing_entries`,
 `order_status_history`, `integration_credentials`, `message_threads`,
 `messages`, `after_sales_cases`, `payouts`, `sales_report_overrides` and `order_item_packing`.
@@ -218,6 +218,32 @@ either form.
 `to_status`, `changed_at`, plus `changed_by_user_id`, a nullable reference to
 `users` that becomes null if the account is deleted, so the history outlives
 the user. Entries made before logins existed have no author.
+
+`users.role` (added by `c2a6f9e3b184`) is `admin` or `user`, a plain string
+column like `payment_type` rather than a database enum, for the same reason:
+what a role can do is decided by the application, not by a fixed set the
+database enforces. An admin needs no rows in `user_permissions` below: it
+passes every check outright. The migration set every account that already
+existed to `admin`, since none of them had ever needed to be anything less;
+`UserCreate.role` defaults to `admin` too (`API.md`, "Users, roles and
+permissions"), so every caller that predates roles - `scripts/create_user.py`
+and the whole test suite - keeps the access it always had unless it asks
+for `user` explicitly, which only the Users tab in Settings does.
+
+`user_permissions` (added by `c2a6f9e3b184`): one row per `(user_id, area)`
+a `user` account has been granted, unique together. `user_id` (`ON DELETE
+CASCADE`, indexed): a deleted account's grants go with it, unlike the
+nullable, `SET NULL` foreign keys elsewhere in this file, since a permission
+row means nothing without the account it grants access to. `area` and
+`level` are plain string columns, not database enums, for the same reason as
+`role`: the list of areas is expected to grow as the application does, and a
+native enum would need its own migration for every new value. `area` is one
+of `orders`, `messages`, `after_sales`, `labels`, `finance`, `integrations`;
+`level` is `view` or `manage`. Replacing a user's whole grant list
+(`UserRepository.replace_permissions`) clears the existing rows and flushes
+before appending the new ones - appending in the same flush as the clear
+queues the inserts before the deletes, and a kept area collides with itself
+on `(user_id, area)` before the old row is gone.
 
 `integration_credentials` is not in the target table above; it is the first
 piece of `integration`. Allegro rotates its refresh token on every use, so

@@ -9,7 +9,7 @@ import type {
   ProductionList,
 } from "../types/order";
 import type { OrderQueue, OrderSort, OrderSource, OrderStatus } from "../types/order";
-import type { Token, User } from "../types/user";
+import type { Token, User, UserCreateInput, UserUpdateInput } from "../types/user";
 import { translate } from "../i18n";
 
 // Vite's dev server proxies "/api" to the FastAPI backend (see vite.config.ts),
@@ -156,6 +156,20 @@ export const authApi = {
 
   me(): Promise<User> {
     return request<User>("/users/me");
+  },
+};
+
+export const usersApi = {
+  list(): Promise<User[]> {
+    return request<User[]>("/users");
+  },
+
+  create(input: UserCreateInput): Promise<User> {
+    return request<User>("/users", { method: "POST", body: JSON.stringify(input) });
+  },
+
+  update(userId: number, input: UserUpdateInput): Promise<User> {
+    return request<User>(`/users/${userId}`, { method: "PATCH", body: JSON.stringify(input) });
   },
 };
 

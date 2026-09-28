@@ -2,11 +2,13 @@
 """Create a user who can log in to Anvero.
 
 Usage:
-    python scripts/create_user.py EMAIL
+    python scripts/create_user.py EMAIL [--role admin|user]
 
 Asks for the password twice without echoing it. There is no registration
 endpoint: accounts exist only because someone with access to this machine ran
-this script.
+this script, or because an administrator created one from the Users tab in
+Settings. --role defaults to admin; a "user" account created here starts with
+no permissions until an administrator grants some.
 """
 
 import argparse
@@ -44,10 +46,15 @@ def _read_password() -> str:
 def main() -> int:
     parser = argparse.ArgumentParser(description="Create an Anvero user")
     parser.add_argument("email")
+    # whoever can run this script already has full access to the machine and
+    # its database, so "admin" is the default; a non-admin account is
+    # ordinarily created from the Users tab in Settings instead, which also
+    # lets an admin grant it specific permissions
+    parser.add_argument("--role", choices=["admin", "user"], default="admin")
     args = parser.parse_args()
 
     try:
-        data = UserCreate(email=args.email, password=_read_password())
+        data = UserCreate(email=args.email, password=_read_password(), role=args.role)
     except ValidationError as exc:
         # field names only: the password must never be echoed back
         fields = sorted({".".join(str(p) for p in err["loc"]) for err in exc.errors()})

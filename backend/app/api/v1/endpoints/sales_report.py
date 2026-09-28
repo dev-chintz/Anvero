@@ -5,10 +5,12 @@ from datetime import date
 from fastapi import APIRouter, Depends, HTTPException, Query, Response
 from sqlalchemy.orm import Session
 
+from app.core.permissions import require_permission
 from app.core.security import get_current_user
 from app.db.session import get_db
 from app.models.order import OrderSource
 from app.models.user import User
+from app.models.user_permission import PermissionArea, PermissionLevel
 from app.schemas.sales_report import (
     SalesReportColumnList,
     SalesReportList,
@@ -22,7 +24,12 @@ from app.services.sales_report_export import (
     to_csv,
 )
 
-router = APIRouter(prefix="/sales-report", tags=["Sales report"], dependencies=[Depends(get_current_user)])
+router = APIRouter(
+    prefix="/sales-report",
+    tags=["Sales report"],
+    dependencies=[require_permission(PermissionArea.FINANCE)],
+)
+_manage = require_permission(PermissionArea.FINANCE, PermissionLevel.MANAGE)
 
 MAX_DAYS = 366
 
@@ -79,7 +86,7 @@ def export(
     )
 
 
-@router.put("/orders/{source}/{order_external_id}/override")
+@router.put("/orders/{source}/{order_external_id}/override", dependencies=[_manage])
 def set_override(
     source: OrderSource,
     order_external_id: str,
@@ -91,7 +98,7 @@ def set_override(
     return {"ok": True}
 
 
-@router.delete("/orders/{source}/{order_external_id}/override")
+@router.delete("/orders/{source}/{order_external_id}/override", dependencies=[_manage])
 def clear_override(source: OrderSource, order_external_id: str, db: Session = Depends(get_db)):
     SalesReportService(db).clear_override(source, order_external_id)
     return {"ok": True}
