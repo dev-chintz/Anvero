@@ -208,7 +208,7 @@ export function OrderDetail() {
     <div className="order-page">
       <section className="order-detail" aria-label={t("order.regionLabel")}>
         <nav className="order-page-bar" aria-label={t("order.navigation")}>
-          <Link to={backTo} className="order-back">
+          <Link to={backTo} state={linkState.closeState} className="order-back">
             ← {t("order.back")}
           </Link>
           {position >= 0 && (
@@ -262,6 +262,12 @@ export function OrderDetail() {
                   user: order.deleted_by,
                 })
               : t("order.deletedBannerNoUser", { when: formatDateTime(order.deleted_at) })}
+          </div>
+        )}
+
+        {ready && order.anonymized_at && (
+          <div role="status" className="warning-banner">
+            {t("order.anonymizedBanner", { when: formatDateTime(order.anonymized_at) })}
           </div>
         )}
 

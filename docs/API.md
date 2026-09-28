@@ -557,6 +557,14 @@ changing nothing (the first `deleted_at` and `deleted_by` stay).
 unchanged. `OrderRead` carries `deleted_at` and `deleted_by`, null for an order
 in use.
 
+`OrderRead` also carries `anonymized_at`: null, or when the buyer's personal
+data on the order was erased (`docs/GDPR.md`), by the daily retention run or at
+the buyer's request. On such an order `customer_email` is `""` (so, in
+responses only, it is a plain string rather than a validated address), the
+buyer's names, phone, notes and address fields are null apart from the
+country, and the page says so. There is no endpoint for erasing: it is done
+with `backend/scripts/anonymize_person.py`.
+
 Each order carries Anvero's own number: `order_number`, an integer that is
 continuous across every source, given once when the order is created and never
 changed or reused, and `order_label`, the same number as it is shown and
@@ -947,7 +955,7 @@ is `MANUAL_REVIEW` rather than guessed:
 ```
 
 `buyer_login` is the only personal data the row carries, never a name, address or phone
-(`ROADMAP.md`, "GDPR (RODO): to do").
+(`docs/GDPR.md`); on an anonymized order it is null.
 
 `PUT .../override` (`{"included": true, "note": "..."}`) records an operator's manual decision,
 kept by marketplace and its own order id so it survives a re-import; `DELETE` removes it. An
@@ -976,6 +984,12 @@ running number the export gives each row) and is always first; every other key r
 order, including ones the on-screen table does not show and `SalesReportRow` does not carry
 (`customer_name`, `customer_email`, `customer_phone`, `invoice_company_name`, `invoice_tax_id`,
 `invoice_address`, `amount_total`) — resolved only when actually exporting, never in `GET .../orders`.
+
+An export holding any column that names or reaches a person (`customer_login`,
+`customer_name`, `customer_email`, `customer_phone`, `invoice_company_name`,
+`invoice_tax_id`, `invoice_address`) is written to the application log with the
+period, the column keys, the row count and the user's id, never a value from the
+file (`docs/GDPR.md`, "Who looked at what").
 
 ## `GET /api/v1/orders/{id}/buyer-orders`
 

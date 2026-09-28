@@ -1,5 +1,6 @@
 """The non-invoiced sales report: `docs/DECISIONS.md`, "Non-invoiced sales report, ported"."""
 
+import logging
 from datetime import date
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Response
@@ -30,6 +31,20 @@ router = APIRouter(
     dependencies=[require_permission(PermissionArea.FINANCE)],
 )
 _manage = require_permission(PermissionArea.FINANCE, PermissionLevel.MANAGE)
+
+logger = logging.getLogger(__name__)
+
+# columns that name or reach a person: an export holding any is logged with who
+# made it (docs/GDPR.md, "Who looked at what")
+PERSONAL_COLUMNS = {
+    "customer_login",
+    "customer_name",
+    "customer_email",
+    "customer_phone",
+    "invoice_company_name",
+    "invoice_tax_id",
+    "invoice_address",
+}
 
 MAX_DAYS = 366
 
@@ -68,6 +83,7 @@ def export(
     format: str = "csv",
     columns: str | None = Query(default=None, description="Comma-separated column keys, in order; the default set when omitted"),
     db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
     date_from, date_to = _period(date_from, date_to)
     if format != "csv":
@@ -79,6 +95,13 @@ def export(
     except KeyError as exc:
         raise HTTPException(status_code=422, detail=f"Unknown export column: {exc.args[0]}") from exc
     pairs = SalesReportService(db).classified_orders(date_from, date_to, source)
+    personal = [c.key for c in resolved if c.key in PERSONAL_COLUMNS]
+    if personal:
+        # the user and the column names only, never a value from the file
+        logger.info(
+            "Sales report %s..%s exported with personal data (%s, %d rows) by user %s",
+            date_from, date_to, ", ".join(personal), len(pairs), current_user.id,
+        )
     return Response(
         content=to_csv(pairs, resolved),
         media_type="text/csv",

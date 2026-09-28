@@ -34,6 +34,9 @@ Repository: <https://github.com/dev-chintz/Anvero>
 
 # Completed
 
+- GDPR (2026-09-28): daily retention and anonymization, one buyer's export
+  and erasure by script, integration secrets encrypted with `SECRETS_KEY`,
+  searches kept out of the address (`GDPR.md`)
 - Project name, branding direction, folder structure, development workflow
 - FastAPI backend: orders, status changes, status history with author,
   statistics
@@ -55,7 +58,7 @@ Repository: <https://github.com/dev-chintz/Anvero>
   Allegro note imported alongside the buyer's message, and item pictures
   fetched from Allegro's offer API (unverified against the sandbox for
   scope). Full detail in `DECISIONS.md` and `CHANGELOG.md`.
-- 968 backend tests and 590 frontend tests (Vitest + React Testing Library)
+- 999 backend tests and 594 frontend tests (Vitest + React Testing Library)
   passing
 
 ---

@@ -58,6 +58,10 @@ class AfterSalesRepository:
         the caller once the whole sync is read.
         """
         case = self.get_by_external_id(source, data.external_id)
+        if case is not None and case.anonymized_at is not None:
+            # the buyer's data was erased (app/services/retention.py); the
+            # marketplace still holding it must not bring it back
+            return False
         created = case is None
         if case is None:
             case = AfterSalesCase(source=source, external_id=data.external_id)

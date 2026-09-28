@@ -1356,6 +1356,27 @@ def test_deleting_an_order_needs_a_login():
     assert anonymous.post(f"/api/v1/orders/{some_id}/restore").status_code == 401
 
 
+def test_an_anonymized_order_says_so_and_serves_its_empty_email():
+    from app.models.order import Order
+    from app.services.retention import anonymize_order
+
+    order = _create(external_id="ANON-1")
+    assert order["anonymized_at"] is None
+    db = TestingSessionLocal()
+    try:
+        anonymize_order(db, db.get(Order, uuid.UUID(order["id"])), datetime.now(UTC))
+        db.commit()
+    finally:
+        db.close()
+
+    detail = client.get(f"/api/v1/orders/{order['id']}")
+    assert detail.status_code == 200, detail.text
+    assert detail.json()["anonymized_at"] is not None
+    assert detail.json()["customer_email"] == ""
+    listed = _listed(search="ANON-1")
+    assert [o["customer_email"] for o in listed["items"]] == [""]
+
+
 def test_a_deleted_order_leaves_the_list_but_is_kept():
     order = _create(external_id="DEL-KEEP")
 

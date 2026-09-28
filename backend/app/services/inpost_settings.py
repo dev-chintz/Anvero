@@ -1,8 +1,9 @@
 """Which InPost token, organization and environment Anvero uses.
 
 Entered in Settings and kept in `app_settings` (no table of its own, like safe mode
-and Erli's key). The token is plain text, as Allegro's client secret and Erli's
-key are, and is never sent back to the browser: Settings only learns its last four
+and Erli's key). The token is encrypted when SECRETS_KEY is set, like Allegro's
+client secret (app/core/secrets.py), so every backend sharing the database needs
+the same key; it is never sent back to the browser: Settings only learns its last four
 characters. InPost's tokens do not rotate, so entering it once serves every machine
 on the shared database.
 
@@ -14,6 +15,7 @@ from dataclasses import dataclass
 
 from sqlalchemy.orm import Session
 
+from app.core import secrets
 from app.integrations.inpost.client import ENVIRONMENTS, TEMPLATES, InpostClient
 from app.models.marketplace_write import AppSetting
 
@@ -63,7 +65,7 @@ def get_settings(db: Session) -> InpostSettings:
     environment = _get(db, ENVIRONMENT_KEY)
     template = _get(db, TEMPLATE_KEY)
     return InpostSettings(
-        token=_get(db, TOKEN_KEY),
+        token=secrets.decrypt(_get(db, TOKEN_KEY)),
         organization_id=_get(db, ORGANIZATION_KEY),
         environment=environment if environment in ENVIRONMENTS else DEFAULT_ENVIRONMENT,
         default_template=template if template in TEMPLATES else DEFAULT_TEMPLATE,
@@ -96,7 +98,7 @@ def save_settings(
     default_template: str,
     user_id: int | None,
 ) -> None:
-    _set(db, TOKEN_KEY, token, user_id)
+    _set(db, TOKEN_KEY, secrets.encrypt(token), user_id)
     _set(db, ORGANIZATION_KEY, organization_id, user_id)
     _set(db, ENVIRONMENT_KEY, environment, user_id)
     _set(db, TEMPLATE_KEY, default_template, user_id)

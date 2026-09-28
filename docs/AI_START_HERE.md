@@ -23,6 +23,7 @@ Read the following files in order:
 9. DECISIONS.md
 10. INTEGRATIONS.md
 11. STYLE_GUIDE.md (before writing any interface: the one look every page shares)
+12. GDPR.md (before storing, showing or exporting anything about a buyer)
 
 ---
 
@@ -56,6 +57,8 @@ Allegro's published specification and never run against a real account).
 Docker network by container name rather than the NAS's LAN address. See
 `DEPLOYMENT.md` and `DECISIONS.md` for what differed from the written plan.
 
+**GDPR (2026-09-28):** personal data is erased by itself once past its period (orders five years after the year their tax was due, messages, closed cases and what was sent to a marketplace after two), a buyer's request is answered with `backend/scripts/export_person.py` and `anonymize_person.py`, the integration secrets are encrypted once `SECRETS_KEY` is set, and the list's search is kept out of the address. See `GDPR.md`. Not yet run on the NAS; `SECRETS_KEY` is not set there yet.
+
 **Open task:** automatic update detection and a Settings button to trigger a
 deployment update, since today's update path on the NAS is manual and not
 fully reconciled with the documented one; see "PICK UP HERE" in
@@ -73,7 +76,7 @@ breakdown; the short version:
   history.
 - Allegro adapter, import script, an import endpoint and a button, one
   import at a time.
-- 968 backend and 590 frontend tests passing.
+- 999 backend and 594 frontend tests passing.
 - The order opens as a page of its own with back and next/previous arrows, the
   list shows each order's items, the menu shows what waits, and a new interface
   language is a dictionary file and one line (`DECISIONS.md`, 2026-09-24).

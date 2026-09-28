@@ -295,6 +295,10 @@ class OrderRead(OrderBase):
     # unless it was asked for, and is kept to be restored
     deleted_at: UtcDateTime | None = None
     deleted_by: str | None = None
+    # set once the buyer's personal data was erased (retention or a request);
+    # the e-mail is then empty, so it is not read back as an address
+    anonymized_at: UtcDateTime | None = None
+    customer_email: str
 
     model_config = ConfigDict(from_attributes=True)
 

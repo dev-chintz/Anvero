@@ -6,6 +6,26 @@ All significant changes to the Anvero project.
 
 ## 2026-09-28
 
+### 🔒 GDPR: retention, one buyer's request, encrypted secrets
+
+- Personal data past its period is erased by itself, once a day: orders five
+  years after the year their tax was due, message threads two years after the
+  last message, closed returns and claims two years after they were opened,
+  what was sent to a marketplace after two years. Rows are anonymized, not
+  deleted (`anonymized_at`, migration `a7d4e2c9f136`), figures stay, and no
+  import brings the data back. `scripts/apply_retention.py` shows or runs it.
+- `scripts/export_person.py` exports everything held about one buyer as JSON;
+  `scripts/anonymize_person.py` erases it, keeping a company invoice while
+  its tax period runs.
+- With `SECRETS_KEY` set, Allegro's refresh token and client secret and
+  InPost's token are stored encrypted; `scripts/encrypt_secrets.py` makes a
+  key and encrypts what is already stored. Without it nothing changes.
+- The order list's and the to-make list's search, and the Inbox's link to an
+  order, no longer put a name or login in the address.
+- A sales report export with a personal column is logged with who made it.
+- An anonymized order's page says so.
+- See `docs/GDPR.md` and `docs/DECISIONS.md`, "Retention periods and erasure".
+
 ### 👥 Accounts get roles and per-area permissions
 
 - `users` has a `role` (`admin`/`user`); a `user` account is granted `view`

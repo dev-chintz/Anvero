@@ -426,8 +426,8 @@ the first time `ALLEGRO_INITIAL_IMPORT_DAYS` back.
 
 - **An unused token chain lapses after three months.** Each rotation grants
   three more, so importing at least that often keeps it alive; otherwise
-  authorize again. The stored token sits in plain text in the local database
-  file, the same exposure as `.env`.
+  authorize again. The stored token sits in the database, in plain text unless
+  `SECRETS_KEY` is set, when it is encrypted (`GDPR.md`, "Secrets").
 - Shipments are read for every order that is neither new nor cancelled, tracking
   only for orders sent (see "Shipments and tracking"). Nothing is written back to
   Allegro through the import.

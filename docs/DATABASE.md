@@ -85,6 +85,7 @@ Columns on `orders`, one per order:
 | `paid_amount`, `paid_at` | null means unknown; `0.00` means known to be unpaid |
 | `invoice_required` | the buyer asked for an invoice |
 | `deleted_at`, `deleted_by_user_id` | set when an operator deletes the order from the list (`DELETE /orders/{id}`); the row is kept, every list, figure and queue leaves it out, and an import does not touch it. Null while the order is in use. `deleted_by_user_id` is `SET NULL` when the account goes. Added by `b8e3d5a7c246` |
+| `anonymized_at` | set when the buyer's personal data on the order was erased (`docs/GDPR.md`): by the daily retention run, or at the buyer's request. `customer_email` is then `''` (it is required), the other buyer fields, notes and address fields are null except `country_code`, and a company invoice address may keep its name, tax id and address while the tax period runs. An import does not touch such an order. Added by `a7d4e2c9f136` |
 | `starred`, `flagged` | the operator's own marks for finding an order again, both `false` for every order until set (`PATCH /orders/{id}/marks`); Anvero's alone, no marketplace has them and an import never touches them. Added by `a4d7c1e9b352` |
 | `internal_note` | the operator's own note on the order, written in Anvero (`PATCH /orders/{id}/note`) and never sent anywhere; unlike `seller_note` no marketplace has it and an import does not touch it. Null when there is none. Added by `b6e2f9a1c473` |
 | `status_changed_at` | when the status last changed, by an operator or an import (set wherever a row is added to `order_status_history`); null for an order that has kept its first status, which the list then counts from `ordered_at`. Filled from the history's latest change for existing orders. Added by `a4d7c1e9b352` |
@@ -174,7 +175,10 @@ decide whether a thread's messages need reading again. `read` mirrors the
 marketplace's own flag as of the last sync - Anvero never writes it back, so
 opening a thread here does not mark it read there. `aside` is local to
 Anvero only, never touched by a sync: an operator sets it to come back to a
-thread later, and the inbox excludes it by default.
+thread later, and the inbox excludes it by default. `anonymized_at` (nullable)
+is set when the retention run erased the login and every message's text
+(`''`, the column being required); new activity from the buyer clears it, the
+old messages staying erased.
 
 A message's `external_id` is null for a reply written in Anvero that safe
 mode held back or that the marketplace refused - the same idea as
@@ -203,10 +207,13 @@ API joins to `orders` on `(source, external_id)`. `reason` is the marketplace's
 reason code, `summary` what the case is about (the goods returned, or the
 buyer's own words) and `detail` the buyer's comment or, for a claim, what it asks
 for; both are cut to 500 characters. `reference_number` is the number Allegro
-prints on a claim.
+prints on a claim. `anonymized_at` (nullable) is set when the retention run
+erased `buyer_login`, `buyer_email`, `summary` and `detail`; a sync no longer
+touches the row.
 
 These columns hold buyers' personal data: names, addresses, phone numbers.
 It is never written to logs; mapping problems are logged by field name only.
+How long each is kept, and how it is erased, is in `docs/GDPR.md`.
 
 All timestamps are stored in UTC. SQLite keeps no zone and returns them naive;
 PostgreSQL returns them in the connection's time zone (on a Polish Windows
@@ -266,12 +273,15 @@ per key: `key` (primary key), `value` (text), `updated_at`,
 key so far is `safe_mode` (`on` or `off`); no row means on.
 
 `marketplace_writes` records every change Anvero made, or would have made, on
-a marketplace, and is never updated: `id`, `created_at` (indexed), `source`,
+a marketplace, and is never otherwise updated: `id`, `created_at` (indexed), `source`,
 `order_id` (nullable, indexed, `SET NULL` if the order is deleted: what was
 sent stays sent), `action` (e.g. `fulfillment_status`), `payload` (the JSON,
 as text), `outcome` (`DRY_RUN`, `SENT` or `FAILED`), `detail` (the
 marketplace's answer or the error, up to 2000 characters), `user_id`
-(nullable).
+(nullable), `anonymized_at` (nullable: set when the retention run replaced
+`payload` with `{}` and emptied `detail`, since a label's payload holds the
+recipient's address and a reply's its text; what was done, when and by whom
+stays).
 
 `shipping_labels`: shipments bought through Wysyłam z Allegro. Kept apart
 from `order_shipments`, which an import replaces, because Allegro's
@@ -296,8 +306,10 @@ the shipment), `target_point` (the locker), `template` (`small`, `medium`, `larg
 was last fetched; null puts it on the "to print" list). The number also goes onto the
 order as an `order_shipments` row added in Anvero.
 
-`app_settings` also holds `inpost_api_token`, `inpost_organization_id`,
-`inpost_environment` (`sandbox` by default) and `inpost_default_template`.
+`app_settings` also holds `inpost_api_token` (encrypted like the secrets below
+when `SECRETS_KEY` is set), `inpost_organization_id`, `inpost_environment`
+(`sandbox` by default), `inpost_default_template` and `retention_last_run` (the
+day, in the business's time zone, the retention run last ran).
 
 `courier_pickups`: couriers ordered through Wysyłam z Allegro. `id`,
 `created_at`, `created_by_user_id` (nullable, `SET NULL`), `command_id`
@@ -320,10 +332,14 @@ each a JSON object (`API.md`, "Labels through Wysyłam z Allegro").
 
 `integration_settings` holds the application's own credentials when they were
 entered in Integrations, and are then used instead of the `ALLEGRO_*` variables:
-`provider` (primary key), `client_id`, `client_secret` (plain text, never
-returned by the API), `user_agent`, `environment` (`sandbox` or `production`),
+`provider` (primary key), `client_id`, `client_secret` (never returned by the
+API), `user_agent`, `environment` (`sandbox` or `production`),
 `updated_at`.
 
 The rule above about credentials is read as "never committed to Git and never
-logged": the token lives only in the local, git-ignored database file, as it
-already did in the git-ignored `.env`.
+logged": the token lives only in the database, as it already did in the
+git-ignored `.env`. With `SECRETS_KEY` set, `integration_credentials.refresh_token`,
+`integration_settings.client_secret` and `inpost_api_token` are stored encrypted
+(Fernet, prefixed `enc:v1:`), so a backup of the database does not carry them
+readable; without it they are plain text as before, and a value of either kind
+reads the same (`app/core/secrets.py`, `docs/GDPR.md`, "Secrets").

@@ -74,6 +74,11 @@ class MessageThread(Base):
         Boolean, default=True, server_default=true(), nullable=False
     )
 
+    # set when the buyer's login and every message's text were erased
+    # (app/services/retention.py); new activity from the buyer clears it, and
+    # the retention rule then counts again from that activity
+    anonymized_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
     # set by an operator to come back to later; local to Anvero, never synced
     aside: Mapped[bool] = mapped_column(
         Boolean, default=False, server_default=false(), nullable=False

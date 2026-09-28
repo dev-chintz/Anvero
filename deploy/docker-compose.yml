@@ -20,6 +20,11 @@ services:
       DATABASE_URL: postgresql+psycopg://anvero:CHANGE_ME@CHANGE_ME_DB_CONTAINER_NAME:5432/anvero
       # at least 32 random characters; a new value logs everyone out
       SECRET_KEY: CHANGE_ME
+      # encrypts the integration secrets in the database, so a backup does not
+      # carry them readable (docs/GDPR.md, "Secrets"); the same value on every
+      # backend sharing this database, and a copy in the password manager.
+      # Generate with `python scripts/encrypt_secrets.py --new-key`
+      # SECRETS_KEY: CHANGE_ME
       # the backend imports from Allegro by itself; on for this backend only
       ALLEGRO_IMPORT_INTERVAL_MINUTES: "15"
       # only while the Allegro application is not yet entered in Settings:

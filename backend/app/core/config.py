@@ -75,6 +75,13 @@ class Settings(BaseSettings):
     database_url: str = Field(default="")
     secret_key: str = Field(default="")
 
+    # Encrypts the integration secrets kept in the database (Allegro's refresh
+    # token and client secret, InPost's token), so a database dump does not
+    # carry them readable (app/core/secrets.py). Empty leaves them plain text,
+    # as before. Generate with scripts/encrypt_secrets.py --new-key. Losing it
+    # means authorizing Allegro and entering the secrets again.
+    secrets_key: str = Field(default="")
+
     # a working day: one login per day, and a stolen token is dead by evening.
     # There is no revocation, so longer means a leaked token lives longer.
     access_token_expire_minutes: int = Field(default=480, gt=0)

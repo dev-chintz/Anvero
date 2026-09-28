@@ -92,6 +92,18 @@ Git, before relying on either update path. This gap is also why "automatic
 update detection and a Settings button to trigger it" is the next planned
 piece of deployment work (`ROADMAP.md`, "Somewhere to run").
 
+## Encrypting the integration secrets
+
+Allegro's refresh token and client secret and InPost's token are kept in the
+database, so the nightly dump holds them too. To store them encrypted (`GDPR.md`,
+"Secrets"): in the `backend` container's terminal run
+`python scripts/encrypt_secrets.py --new-key`, put the printed value in the
+compose file as `SECRETS_KEY` (the commented line beside `SECRET_KEY`), save a
+copy in the password manager, redeploy, then run
+`python scripts/encrypt_secrets.py` once. Every backend using this database, a
+laptop's included, needs the same value; a backend without it cannot read the
+secrets, and a lost key means authorizing Allegro and entering the secrets again.
+
 ## Creating a user or resetting a password
 
 The scripts are in the backend image. In Container Station open a terminal in
@@ -102,8 +114,13 @@ the `backend` container and run, for example,
 ## Limits
 
 - Plain HTTP. On the home network and through Tailscale that is acceptable
-  (Tailscale encrypts its own traffic); from a café's Wi-Fi without Tailscale
-  it would not be, which is why the port stays off the internet.
+  (Tailscale encrypts its own traffic, end to end, WireGuard); from a café's
+  Wi-Fi without Tailscale it would not be, which is why the port stays off the
+  internet: no router forward, and nothing reaches it from outside but the
+  tailnet. So the answer to "how is the connection encrypted" (`GDPR.md`) is
+  Tailscale, not HTTPS. Should the page ever need to be reached without
+  Tailscale, it needs HTTPS in front of it first (`tailscale serve`, or a
+  reverse proxy with a certificate).
 - The backend image carries the test and lint tools too, since
   `requirements.txt` is one file. Harmless, only larger.
 - One backend only: no leader election for the scheduled import.

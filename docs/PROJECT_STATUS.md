@@ -46,8 +46,8 @@ folder, and one was restored from that copy into a scratch database as a test.
   remains the no-setup default for a fresh clone)
 - Health endpoint and first order model — done
 - Minimal order list interface — done
-- Automated tests for core flows — done (968 backend, 590 frontend passing
-  across the suite as of 2026-09-25)
+- Automated tests for core flows — done (999 backend, 594 frontend passing
+  across the suite as of 2026-09-28)
 
 ---
 
@@ -99,6 +99,17 @@ re-imported. Production needs its own application and authorization; see
 ---
 
 ## Not yet verified
+
+GDPR (2026-09-28, `GDPR.md`): retention, the per-buyer scripts and secret
+encryption were tested against fakes and on SQLite and PostgreSQL test
+databases, the scripts run against a development database with nothing to
+erase, and `encrypt_secrets.py` run against a copy of one with seeded secrets.
+Not yet run on the NAS against the real orders and messages: the first daily
+run there will erase message threads quiet for over two years, if Allegro's
+history holds any, and closed cases opened that long ago. `SECRETS_KEY` is not
+set on the NAS, so its secrets stay plain text until the owner sets it
+(`DEPLOYMENT.md`). The anonymized-order banner and the search kept out of the
+address were checked by the frontend tests, not yet in a browser.
 
 Verified against the Allegro Sandbox on 2026-09-17, on the SQLite machine:
 the authorization script completed a real device flow authorization of the

@@ -11,6 +11,7 @@ from app.api.v1.router import router as api_router
 from app.core.config import ensure_secret_key, settings
 from app.core.logging import setup_logging
 from app.core.rate_limit import limiter
+from app.services.retention import run_retention_daily
 from app.services.schedule import default_jobs, run_jobs
 
 setup_logging()
@@ -24,7 +25,16 @@ ensure_secret_key(settings.secret_key)
 async def lifespan(_: FastAPI) -> AsyncIterator[None]:
     # the imports and message syncs the backend starts by itself; the interval
     # is read from the database on every round (services/schedule.py)
-    tasks = [asyncio.create_task(run_jobs(default_jobs()))] if settings.scheduler_enabled else []
+    # and, apart from them, the daily erasure of personal data past its
+    # retention period (services/retention.py)
+    tasks = (
+        [
+            asyncio.create_task(run_jobs(default_jobs())),
+            asyncio.create_task(run_retention_daily()),
+        ]
+        if settings.scheduler_enabled
+        else []
+    )
     try:
         yield
     finally:

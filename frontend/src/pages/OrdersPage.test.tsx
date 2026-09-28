@@ -387,6 +387,51 @@ async function chooseFromMenu(name: string) {
   fireEvent.click(screen.getByRole("menuitem", { name }));
 }
 
+describe("the search, kept out of the address", () => {
+  it("searches for what a link hands over, as the Inbox's does", async () => {
+    renderAt({ pathname: "/orders", state: { search: "ORDER-1" } });
+
+    await waitFor(() =>
+      expect(ordersApi.list).toHaveBeenLastCalledWith(expect.objectContaining({ search: "ORDER-1" })),
+    );
+    expect(screen.getByTestId("where")).toHaveTextContent(/^\/orders$/);
+  });
+
+  it("still searches from an address that has it, and drops it from the address", async () => {
+    renderAt("/orders?status=NEW&search=anna");
+
+    await waitFor(() =>
+      expect(ordersApi.list).toHaveBeenLastCalledWith(
+        expect.objectContaining({ status: "NEW", search: "anna" }),
+      ),
+    );
+    await waitFor(() => expect(screen.getByTestId("where")).toHaveTextContent(/^\/orders\?status=NEW$/));
+  });
+
+  it("comes back from an order to the list still searched", async () => {
+    renderAt({ pathname: "/orders", state: { search: "anna" } });
+    fireEvent.click(await screen.findByRole("link", { name: /AN-/ }));
+    await screen.findByText(/← Back|Back/);
+    vi.mocked(ordersApi.list).mockClear();
+
+    fireEvent.click(screen.getByRole("link", { name: /Back/ }));
+
+    await waitFor(() =>
+      expect(ordersApi.list).toHaveBeenLastCalledWith(expect.objectContaining({ search: "anna" })),
+    );
+  });
+});
+
+describe("an anonymized order's page", () => {
+  it("says the buyer's data was erased", async () => {
+    vi.mocked(ordersApi.get).mockResolvedValue(
+      makeOrderDetails({ anonymized_at: "2027-01-01T02:00:00Z", customer_email: "" }),
+    );
+    renderAt("/orders/order-1");
+    expect(await screen.findByText(/personal data was erased .* \(GDPR\)/)).toBeInTheDocument();
+  });
+});
+
 describe("deleting from the order's page", () => {
   afterEach(() => vi.restoreAllMocks());
 

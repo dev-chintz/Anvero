@@ -6,6 +6,8 @@
 export interface OrderLinkState {
   /** Where "back" goes: the list, with its filters and page in the query string. */
   closeTo?: string;
+  /** The router state to go back with: the list's search, which is kept out of the address. */
+  closeState?: unknown;
   /** The orders of the list the link was in, in its order: what the next and previous arrows walk. */
   orderIds?: string[];
 }

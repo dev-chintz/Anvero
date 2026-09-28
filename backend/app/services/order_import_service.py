@@ -322,6 +322,10 @@ class OrderImportService:
                 # deleted in Anvero: it stays out of the lists, and the
                 # marketplace still having it must not bring it back
                 continue
+            if existing.anonymized_at is not None:
+                # the buyer's data was erased (app/services/retention.py), and
+                # the marketplace still holding it must not bring it back
+                continue
 
             # compared before the import overwrites what it is compared with
             status_moved = data.status != existing.marketplace_status

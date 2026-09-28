@@ -185,7 +185,7 @@ describe("the open conversation", () => {
 
     const conversation = await screen.findByRole("region", { name: "Conversation" });
 
-    expect(within(conversation).getByRole("link", { name: "Order" })).toHaveAttribute("href", "/orders?search=ORDER-1");
+    expect(within(conversation).getByRole("link", { name: "Order" })).toHaveAttribute("href", "/orders");
   });
 
   it("has no order link when the conversation names no order", async () => {
