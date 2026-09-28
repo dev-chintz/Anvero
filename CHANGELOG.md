@@ -6,6 +6,21 @@ All significant changes to the Anvero project.
 
 ## 2026-09-28
 
+### ⟳ Updates from Settings
+
+- The backend notices a newer published version (a commit on `main` whose
+  images are on GHCR) every half hour; an administrator sees a banner above
+  every page, and Settings has a new Updates tab with the versions, what
+  changes and an Update button.
+- The button asks a new `updater` container to pull the images and recreate
+  backend and web; the page reloads itself once the new version answers.
+  `/api/v1/health` names the running commit.
+- Needs a one-time setup on the NAS: `DEPLOYMENT.md`, "Updating from Settings".
+- Fixed CI: `alembic check` had failed on PostgreSQL since the roles commit
+  (an index declared on `user_permissions.id` that no migration made), so no
+  image had been published since.
+- See `docs/DECISIONS.md`, "Updates from Settings".
+
 ### 🔒 GDPR: retention, one buyer's request, encrypted secrets
 
 - Personal data past its period is erased by itself, once a day: orders five

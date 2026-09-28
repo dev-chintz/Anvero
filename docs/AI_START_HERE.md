@@ -59,10 +59,11 @@ Docker network by container name rather than the NAS's LAN address. See
 
 **GDPR (2026-09-28):** personal data is erased by itself once past its period (orders five years after the year their tax was due, messages, closed cases and what was sent to a marketplace after two), a buyer's request is answered with `backend/scripts/export_person.py` and `anonymize_person.py`, the integration secrets are encrypted once `SECRETS_KEY` is set, and the list's search is kept out of the address. See `GDPR.md`. Not yet run on the NAS; `SECRETS_KEY` is not set there yet.
 
-**Open task:** automatic update detection and a Settings button to trigger a
-deployment update, since today's update path on the NAS is manual and not
-fully reconciled with the documented one; see "PICK UP HERE" in
-`PROJECT_STATUS.md` and `DEPLOYMENT.md`, "Updating".
+**Updates from Settings (2026-09-28):** built. The backend notices a newer
+published version (a commit on `main` with its images on GHCR), a banner tells an
+administrator, and Settings, Updates installs it through the `updater` container.
+Not yet set up on the NAS: see "PICK UP HERE" in `PROJECT_STATUS.md` and
+`DEPLOYMENT.md`, "Updating from Settings".
 
 Backend and frontend both run. See PROJECT_STATUS.md for the sprint-by-sprint
 breakdown; the short version:
@@ -76,7 +77,7 @@ breakdown; the short version:
   history.
 - Allegro adapter, import script, an import endpoint and a button, one
   import at a time.
-- 999 backend and 594 frontend tests passing.
+- 1017 backend and 604 frontend tests passing.
 - The order opens as a page of its own with back and next/previous arrows, the
   list shows each order's items, the menu shows what waits, and a new interface
   language is a dictionary file and one line (`DECISIONS.md`, 2026-09-24).

@@ -119,6 +119,19 @@ class Settings(BaseSettings):
     # false keeps this process from running any schedule at all (the test suite)
     scheduler_enabled: bool = True
 
+    # Updates (app/services/updates.py, DEPLOYMENT.md "Updating from Settings").
+    # The commit this backend was built from; the image sets it, and empty (a
+    # developer's machine) means no update is offered.
+    app_commit: str = Field(default="")
+    # where new versions come from: the repository's main branch, and the images
+    # the publish workflow pushes for each of its commits
+    update_repository: str = Field(default="dev-chintz/Anvero")
+    update_check_minutes: int = Field(default=30, ge=0, le=1440)
+    # the updater container that pulls the new images and recreates the others;
+    # an empty token leaves the button off
+    updater_url: str = Field(default="http://updater:8080")
+    updater_token: str = Field(default="")
+
     # How far back returns, claims and disputes are read: a return or a closed
     # claim older than this is not fetched. Everything still open is, however old.
     allegro_after_sales_days: int = Field(default=90, ge=1, le=365)

@@ -101,6 +101,51 @@
   color: #a7f3d0;
 }
 
+.update-banner {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.5rem 2rem;
+  background: #e6f4f4;
+  border-bottom: 1px solid #b9dcdc;
+  color: var(--color-accent);
+  font-size: 0.9rem;
+}
+
+.update-banner a {
+  color: inherit;
+  font-weight: 600;
+}
+
+.update-banner .update-banner-close {
+  margin-left: auto;
+  padding: 0 0.5rem;
+  border: none;
+  background: transparent;
+  color: inherit;
+  font-size: 1.1rem;
+  line-height: 1;
+}
+
+:root.dark .update-banner {
+  background: #0e2c2d;
+  border-color: #155e61;
+  color: #9fdcdc;
+}
+
+.update-changes {
+  margin: 0.5rem 0 1rem;
+  padding-left: 1.25rem;
+  line-height: 1.6;
+}
+
+.update-log pre {
+  max-height: 16rem;
+  overflow: auto;
+  white-space: pre-wrap;
+  font-size: 0.8rem;
+}
+
 .safe-mode-state.is-off {
   color: var(--color-error);
 }

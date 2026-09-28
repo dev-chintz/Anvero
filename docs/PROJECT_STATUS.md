@@ -46,7 +46,7 @@ folder, and one was restored from that copy into a scratch database as a test.
   remains the no-setup default for a fresh clone)
 - Health endpoint and first order model — done
 - Minimal order list interface — done
-- Automated tests for core flows — done (999 backend, 594 frontend passing
+- Automated tests for core flows — done (1017 backend, 604 frontend passing
   across the suite as of 2026-09-28)
 
 ---
@@ -99,6 +99,11 @@ re-imported. Production needs its own application and authorization; see
 ---
 
 ## Not yet verified
+
+CI's `alembic check` failed on PostgreSQL from `b0bf5ee` (2026-09-28) until
+`2f55e98`: `UserPermission.id` declared an index no migration made. So no image
+was published for `b0bf5ee`, `b196796` or `716c908`, and the NAS's `latest` is
+still `6c31ea1`. The next green push publishes all of it at once.
 
 GDPR (2026-09-28, `GDPR.md`): retention, the per-buyer scripts and secret
 encryption were tested against fakes and on SQLite and PostgreSQL test
@@ -237,11 +242,15 @@ through the published GHCR images (the documented path) or a local
 `docker compose build` from a git clone on the NAS (used this session) - see
 `DEPLOYMENT.md`, "Updating".
 
-**PICK UP HERE (2026-09-27): automatic update detection and deployment.**
-Right now updating the NAS is manual and its exact mechanism is unconfirmed
-(see above). Planned: a webhook or polling check for new commits, a button in
-Settings to trigger an update, and `/api/v1/admin/updates/*` endpoints behind
-it (`ROADMAP.md`, "Somewhere to run").
+**PICK UP HERE (2026-09-28): set up the updater on the NAS.** Update detection
+and the Settings button are built (`DEPLOYMENT.md`, "Updating from Settings"):
+the backend polls GitHub and GHCR, the updater container recreates backend and
+web. Built and tested against fakes, the detection also against the real GitHub
+and GHCR; never run on the NAS, which needs the one-time setup in
+`DEPLOYMENT.md` (make `anvero-updater` public, `UPDATER_TOKEN`, the `updater`
+service, check that the NAS's compose file uses `image:` and is named
+`docker-compose.yml`). Whether Container Station's Docker socket is at
+`/var/run/docker.sock` is not confirmed either.
 
 **Feature work after that (agreed 2026-09-24):** the feature plan at the end
 of `ROADMAP.md`, modelled on AlleIntegrator. Its first stage (work queues,

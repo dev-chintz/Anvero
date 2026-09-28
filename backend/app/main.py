@@ -12,6 +12,7 @@ from app.core.config import ensure_secret_key, settings
 from app.core.logging import setup_logging
 from app.core.rate_limit import limiter
 from app.services.retention import run_retention_daily
+from app.services.updates import run_update_checks
 from app.services.schedule import default_jobs, run_jobs
 
 setup_logging()
@@ -35,6 +36,9 @@ async def lifespan(_: FastAPI) -> AsyncIterator[None]:
         if settings.scheduler_enabled
         else []
     )
+    # and, where the backend runs from an image, whether a newer one is published
+    if settings.scheduler_enabled and settings.app_commit and settings.update_check_minutes:
+        tasks.append(asyncio.create_task(run_update_checks()))
     try:
         yield
     finally:

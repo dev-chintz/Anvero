@@ -11,7 +11,9 @@ are days in the business timezone, `BUSINESS_TIMEZONE`, default
 
 | Method | Path | Meaning |
 | --- | --- | --- |
-| `GET` | `/api/v1/health` | service status |
+| `GET` | `/api/v1/health` | service status, and `commit`: the running version (short), null off a published image |
+| `GET` | `/api/v1/admin/updates` | the running and the newest published version, and what changes (administrator only); `?refresh=true` asks GitHub now |
+| `POST` | `/api/v1/admin/updates` | install the newest published version through the updater (administrator only) |
 | `GET` | `/api/v1/orders` | order list with filters |
 | `GET` | `/api/v1/orders/stats` | aggregate figures for the dashboard |
 | `GET` | `/api/v1/orders/production` | the to-make queue by product: what to make and how many, and which are made |
@@ -1086,6 +1088,33 @@ that one entry. An unknown order id returns 404.
 `changed_by` is the email of the user who made the change. It is `null` for
 changes recorded before logins existed, and for a user whose account has been
 deleted.
+
+## Updates: `GET` and `POST /api/v1/admin/updates`
+
+Administrator only (403 for anyone else). A version is a commit on `main` whose
+`anvero-backend` and `anvero-web` images the publish workflow pushed to GHCR,
+which it does only for a commit whose Checks passed. The backend knows its own from
+`APP_COMMIT`, set in the image; it looks at the newest 20 commits on GitHub every
+`UPDATE_CHECK_MINUTES` (30) and keeps what it found.
+
+```json
+{"current": "716c908", "latest": "a1b2c3d", "available": true, "behind": 2,
+ "changes": [{"sha": "a1b2c3d", "title": "...", "date": "...Z"}],
+ "checked_at": "...Z", "error": null, "can_update": true,
+ "updater": {"running": false, "started_at": "...", "finished_at": "...", "result": "ok", "log": "..."}}
+```
+
+`current` is null off a published image (a developer's machine), and then nothing is
+`available`. `changes` is newest first, at most 30, each commit's first line. `error`
+is why the last check failed; what was known before is kept. `can_update` is false
+without `UPDATER_TOKEN`, and `updater` is null when the updater is not set up or does
+not answer.
+
+`POST` asks the updater to pull the images and recreate the backend and web
+containers, and answers `202` at once; `409` when nothing newer is published,
+`502` naming why when the updater is not set up, cannot be reached, refuses the token
+or is already running. The backend is then away for a minute or two; the page waits
+for `GET /health` to name the new `commit`, then reloads.
 
 ## Conventions
 

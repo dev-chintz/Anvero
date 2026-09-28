@@ -34,6 +34,8 @@ Repository: <https://github.com/dev-chintz/Anvero>
 
 # Completed
 
+- Updates from Settings (2026-09-28): banner and Settings tab for a newer
+  published version, installed by the `updater` container (`DEPLOYMENT.md`)
 - GDPR (2026-09-28): daily retention and anonymization, one buyer's export
   and erasure by script, integration secrets encrypted with `SECRETS_KEY`,
   searches kept out of the address (`GDPR.md`)
@@ -58,7 +60,7 @@ Repository: <https://github.com/dev-chintz/Anvero>
   Allegro note imported alongside the buyer's message, and item pictures
   fetched from Allegro's offer API (unverified against the sandbox for
   scope). Full detail in `DECISIONS.md` and `CHANGELOG.md`.
-- 999 backend tests and 594 frontend tests (Vitest + React Testing Library)
+- 1017 backend tests and 604 frontend tests (Vitest + React Testing Library)
   passing
 
 ---

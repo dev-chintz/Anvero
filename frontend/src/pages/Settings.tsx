@@ -7,6 +7,7 @@ import { useTranslation, LANGUAGES, languageName, type Language } from '../i18n'
 import { useSafeMode } from '../safeMode/SafeModeContext';
 import { Integrations } from './Integrations';
 import { StatusPage } from './StatusPage';
+import { UpdatesSettings } from './UpdatesSettings';
 import { UsersSettings } from './UsersSettings';
 import '../styles/SettingsPage.css';
 
@@ -15,8 +16,10 @@ import '../styles/SettingsPage.css';
 // when something is wrong, not every day, so it has no place in the menu; the users tab exists
 // only for an administrator, who is the only one who can act on it (API.md, "Users").
 
-type Tab = 'general' | 'integrations' | 'users' | 'status';
-const TABS: Tab[] = ['general', 'integrations', 'users', 'status'];
+type Tab = 'general' | 'integrations' | 'users' | 'updates' | 'status';
+const TABS: Tab[] = ['general', 'integrations', 'users', 'updates', 'status'];
+// what only an administrator can act on, and so only one sees
+const ADMIN_TABS: Tab[] = ['users', 'updates'];
 
 interface SettingsProps {
   isDarkMode: boolean;
@@ -31,13 +34,18 @@ export const Settings: React.FC<SettingsProps> = ({ isDarkMode, onThemeToggle })
   // the tab is in the address, so a link (the menu's dot, the dashboard's chip) can open it
   const [params, setParams] = useSearchParams();
   const requested = params.get('tab');
-  const tab: Tab = TABS.find((id) => id === requested && (id !== 'users' || isAdmin)) ?? 'general';
+  const tab: Tab = TABS.find((id) => id === requested && (!ADMIN_TABS.includes(id) || isAdmin)) ?? 'general';
   const { summary } = useAppHealth(tab);
   const showTab = (next: Tab) => setParams(next === 'general' ? {} : { tab: next }, { replace: true });
   const tabs: { id: Tab; label: string }[] = [
     { id: 'general', label: t('settings.tab.general') },
     { id: 'integrations', label: t('settings.tab.integrations') },
-    ...(isAdmin ? [{ id: 'users' as Tab, label: t('settings.tab.users') }] : []),
+    ...(isAdmin
+      ? [
+          { id: 'users' as Tab, label: t('settings.tab.users') },
+          { id: 'updates' as Tab, label: t('settings.tab.updates') },
+        ]
+      : []),
     { id: 'status', label: t('settings.tab.status') },
   ];
 
@@ -77,6 +85,10 @@ export const Settings: React.FC<SettingsProps> = ({ isDarkMode, onThemeToggle })
       ) : tab === 'users' ? (
         <div role="tabpanel" id="settings-panel-users" aria-labelledby="settings-tab-users">
           <UsersSettings />
+        </div>
+      ) : tab === 'updates' ? (
+        <div role="tabpanel" id="settings-panel-updates" aria-labelledby="settings-tab-updates">
+          <UpdatesSettings />
         </div>
       ) : tab === 'status' ? (
         <div role="tabpanel" id="settings-panel-status" aria-labelledby="settings-tab-status">

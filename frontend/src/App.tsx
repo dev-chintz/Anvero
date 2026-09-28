@@ -3,6 +3,7 @@ import { BrowserRouter, Navigate, Outlet, Route, Routes, useLocation } from 'rea
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { Sidebar } from './components/Sidebar';
 import { SafeModeBanner } from './components/SafeModeBanner';
+import { UpdateBanner } from './components/UpdateBanner';
 import { SafeModeProvider } from './safeMode/SafeModeContext';
 import { OrderDetail } from './components/OrderDetail';
 import { ToastContainer, ToastMessage } from './components/Toast';
@@ -56,6 +57,7 @@ function AppLayout({ toasts, onToastClose }: LayoutProps) {
         <Sidebar isOpen={sidebarOpen} onToggle={toggleSidebar} />
         <main className="app-content">
           <SafeModeBanner />
+          <UpdateBanner />
           <Outlet />
         </main>
         <ToastContainer toasts={toasts} onClose={onToastClose} />

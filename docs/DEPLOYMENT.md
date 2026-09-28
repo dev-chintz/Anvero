@@ -92,6 +92,42 @@ Git, before relying on either update path. This gap is also why "automatic
 update detection and a Settings button to trigger it" is the next planned
 piece of deployment work (`ROADMAP.md`, "Somewhere to run").
 
+## Updating from Settings
+
+Once set up, an administrator sees "An Anvero update is available" above every
+page when a newer version is published, and installs it from Settings,
+Updates, with one button (`API.md`, "Updates"). It works only with the
+published images (`image: ghcr.io/...` in the compose file on the NAS, not
+`build:`), which is also what makes the NAS run only what passed the checks.
+
+Setting it up, once:
+
+1. Make the `anvero-updater` package public on GitHub, like the other two
+   (Packages, Package settings, Change visibility), after the first push that
+   publishes it.
+2. Generate a token: `py -c "import secrets; print(secrets.token_urlsafe(48))"`.
+3. In the compose file on the NAS, add `UPDATER_TOKEN` to the backend and the
+   whole `updater` service, as in `deploy/docker-compose.yml`, with that token
+   in both places. The updater mounts the compose file itself
+   (`./docker-compose.yml`, relative to the application's folder,
+   `/share/CACHEDEV1_DATA/Kopie/container-station-data/application/anvero/`):
+   check the file there is really named so, and change the left side if not.
+4. Recreate the application. Settings, Updates should then say which version
+   runs; "Check now" asks GitHub at once.
+
+What happens on the button: the backend asks the updater (`http://updater:8080`,
+no published port, the token), which runs
+`docker compose -f /project/docker-compose.yml pull backend web` and
+`up -d --no-deps backend web`. The backend migrates as it starts, as always. If a
+run fails, Settings, Updates shows what it printed. The updater never recreates
+itself; a newer updater image is taken up by recreating the application by hand,
+which is also the way back: put a commit's short hash in place of `latest` and
+recreate.
+
+The updater holds the Docker socket, which is as good as root on the NAS. That
+is why it has no port, answers only the token, can run only those two commands,
+and why only an administrator sees the button.
+
 ## Encrypting the integration secrets
 
 Allegro's refresh token and client secret and InPost's token are kept in the

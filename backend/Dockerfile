@@ -16,6 +16,11 @@ COPY app app
 COPY migrations migrations
 COPY scripts scripts
 
+# the commit this image is built from (the publish workflow passes it), so
+# the backend can tell whether a newer one is published (app/services/updates.py)
+ARG GIT_SHA=""
+ENV APP_COMMIT=$GIT_SHA
+
 RUN useradd --system --uid 1000 anvero
 USER anvero
 
