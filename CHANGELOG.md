@@ -6,6 +6,11 @@ All significant changes to the Anvero project.
 
 ## 2026-09-29
 
+### 🏷️ An order's fees name the item they are for
+
+- Each commission on the order page's marketplace fees shows the SKU of the item it was charged
+  for, on Allegro and Erli alike. See `docs/DECISIONS.md`.
+
 ### 🐛 Fixed: an Erli order's fees counted Erli's "pobranie opłaty"
 
 - The order page's marketplace fees for an Erli order listed Erli taking fees out of the proceeds

@@ -1892,3 +1892,12 @@ flushes the clear before appending (test:
 
 **Verified:** a test with AN-000071's entries; the repository run against the real database gives -6.14 and 22.61 for AN-000071; backend restarted. Not yet looked at in the browser.
 
+
+## 2026-09-29 — An order's fees name the SKU of the item they are for
+
+**Decision (owner):** Each fee on the order page's "Opłaty marketplace'u" that is for one item - a commission is charged per offer - shows that item's SKU after its name ("naliczenie prowizji · SKU D1563"). `GET /orders/{id}/billing` gives each entry a `sku`, matched from the fee's stored `offer_id` to the order's items; nothing new is stored.
+
+**Rationale:** An order of several items gets several commissions of the same name, and the owner could not tell which was which. The two marketplaces name the item differently: an Allegro fee carries the offer id, the same as the item's `offer_id`; an Erli fee carries `productId`, which the Erli import keeps as the item's `external_id` (its `offer_id` is Erli's `externalId`, a different number). Matching on either covers both; the two id schemes do not overlap.
+
+**Verified:** backend tests, including an Erli-shaped case; against the real database every fee that names an offer found its SKU (0 unmatched across all Allegro and Erli orders), AN-000071's three commissions matching D1618, D1526 and D1563. Not yet looked at in the browser.
+

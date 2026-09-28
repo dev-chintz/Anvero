@@ -146,6 +146,9 @@ class BillingEntryRead(BaseModel):
     type_name: str | None
     amount: Decimal
     currency: str
+    # the SKU of the order's item whose offer the fee is for (a commission is per
+    # offer); null for an order-wide fee, or an item without a SKU
+    sku: str | None = None
 
     model_config = ConfigDict(from_attributes=True)
 

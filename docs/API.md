@@ -447,13 +447,17 @@ What the marketplace has charged, and credited back, for one order:
 ```json
 {
   "entries": [
-    {"id": "...", "occurred_at": "...Z", "type_id": "SUC", "type_name": "Prowizja od sprzedaży", "amount": "-8.50", "currency": "PLN"}
+    {"id": "...", "occurred_at": "...Z", "type_id": "SUC", "type_name": "Prowizja od sprzedaży", "amount": "-8.50", "currency": "PLN", "sku": "KUB-350"}
   ],
   "total": "-8.50",
   "currency": "PLN"
 }
 ```
 
+`sku` is the SKU of the order's item a fee is for (a commission is charged
+per offer: Allegro names the offer, Erli the product, which the Erli import
+keeps as the item's `external_id`); null for an order-wide fee, such as
+payment handling, or an item without a SKU.
 `amount` is signed: a charge is negative, a refund of a fee positive. A
 settlement (the marketplace taking fees out of the proceeds, e.g. Erli's
 "pobranie opłaty", which names the order it was taken from) is not listed: it

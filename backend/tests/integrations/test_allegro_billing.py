@@ -20,7 +20,7 @@ from app.integrations.allegro.mapper import map_billing_entry
 from app.integrations.base import IntegrationAuthError, IntegrationUnavailable
 from app.main import app
 from app.models.integration import IntegrationCredential
-from app.models.order import BillingEntry, Order, OrderSource, OrderStatus
+from app.models.order import BillingEntry, Order, OrderItem, OrderSource, OrderStatus
 from app.repositories.integration_credential_repository import (
     IntegrationCredentialRepository,
 )
@@ -370,6 +370,36 @@ def test_a_settlement_tied_to_the_order_is_not_one_of_its_fees(api):
 
     assert sorted(e["type_id"] for e in body["entries"]) == ["COKS", "COMM"]
     assert body["total"] == "-1.72"
+
+
+def test_a_fee_for_an_offer_names_the_sku_of_its_item(api):
+    order = _new_order(api)
+    api.add_all(
+        [
+            OrderItem(order_id=order.id, position=0, offer_id="OFFER-A", sku="D1563", name="Serce", quantity=2, unit_price=Decimal("2.05")),
+            OrderItem(order_id=order.id, position=1, offer_id="OFFER-B", sku=None, name="Bez SKU", quantity=1, unit_price=Decimal("3.00")),
+            # Erli: the fee names the product id, stored as the item's external id
+            OrderItem(order_id=order.id, position=2, external_id="345135556", offer_id="112093_656973376_0_AZ", sku="D1526", name="Tabliczka", quantity=4, unit_price=Decimal("2.79")),
+        ]
+    )
+    api.commit()
+    OrderRepository(api).add_billing_entries(
+        [
+            _entry("E1", "-1.29", offer_id="OFFER-A"),
+            _entry("E2", "-2.92", offer_id="OFFER-B"),
+            _entry("E3", "-0.43", type_id="COKS"),
+            _entry("E4", "-1.50", offer_id="345135556"),
+        ]
+    )
+
+    body = client.get(f"/api/v1/orders/{order.id}/billing").json()
+
+    assert {e["amount"]: e["sku"] for e in body["entries"]} == {
+        "-1.29": "D1563",
+        "-2.92": None,
+        "-0.43": None,
+        "-1.50": "D1526",
+    }
 
 
 def test_an_order_without_entries_has_a_zero_total(api):

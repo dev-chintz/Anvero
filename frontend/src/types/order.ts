@@ -353,6 +353,11 @@ export interface BillingEntry {
   /** Signed: a charge is negative. */
   amount: string;
   currency: string;
+  /**
+   * The SKU of the order's item the fee is for (a commission is per offer); null for
+   * an order-wide fee. Optional because a backend older than the field omits it.
+   */
+  sku?: string | null;
 }
 
 /** What the marketplace has charged, and credited back, for one order. */

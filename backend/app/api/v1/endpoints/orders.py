@@ -15,6 +15,7 @@ from app.models.user_permission import PermissionArea, PermissionLevel
 from app.repositories.order_repository import OrderQueue, OrderRepository, OrderSort
 from app.schemas.marketplace_write import MarketplaceWriteRead
 from app.schemas.order import (
+    BillingEntryRead,
     OrderBillingRead,
     OrderChangeResult,
     OrderCreate,
@@ -156,8 +157,20 @@ def get_order_billing(order_id: uuid.UUID, db: Session = Depends(get_db)):
     repository = OrderRepository(db)
     order = OrderService(repository).get_order(order_id)
     entries = repository.list_billing_entries(order)
+    # a fee names its item's offer: Allegro by the offer id, Erli by its product id,
+    # which the Erli mapper stores as the item's external id
+    sku_by_offer = {
+        key: item.sku
+        for item in order.items
+        if item.sku
+        for key in (item.offer_id, item.external_id)
+        if key
+    }
     return OrderBillingRead(
-        entries=entries,
+        entries=[
+            BillingEntryRead.model_validate(e).model_copy(update={"sku": sku_by_offer.get(e.offer_id)})
+            for e in entries
+        ],
         # an entry in another currency cannot be added to the order's
         total=sum((e.amount for e in entries if e.currency == order.currency), Decimal("0.00")),
         currency=order.currency,

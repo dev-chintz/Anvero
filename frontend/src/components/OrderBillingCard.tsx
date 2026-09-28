@@ -31,7 +31,10 @@ export function OrderBillingCard({
             <tbody>
               {billing.entries.map((entry) => (
                 <tr key={entry.id}>
-                  <td>{entry.type_name ?? t("billing.entryFallback", { type: entry.type_id })}</td>
+                  <td>
+                    {entry.type_name ?? t("billing.entryFallback", { type: entry.type_id })}
+                    {entry.sku && <span className="order-muted"> · SKU {entry.sku}</span>}
+                  </td>
                   <td className="order-muted">{formatDateTime(entry.occurred_at)}</td>
                   <td className="numeric">{formatMoney(entry.amount, entry.currency)}</td>
                 </tr>

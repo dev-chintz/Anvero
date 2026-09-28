@@ -40,6 +40,23 @@ describe("the fees card", () => {
     expect(card).toHaveTextContent("Order total after fees92.50 PLN");
   });
 
+  it("names the SKU of the item a fee is for, and nothing for an order-wide one", () => {
+    render(
+      <OrderBillingCard
+        billing={billing({
+          entries: [
+            { id: "e1", occurred_at: "2026-09-20T10:00:00Z", type_id: "COMM", type_name: "Commission", amount: "-1.29", currency: "PLN", sku: "D1563" },
+            { id: "e2", occurred_at: "2026-09-20T10:00:00Z", type_id: "COKS", type_name: "Payment handling", amount: "-0.43", currency: "PLN", sku: null },
+          ],
+        })}
+        orderTotal="100.00"
+      />,
+    );
+
+    expect(screen.getByText("Commission").closest("td")).toHaveTextContent("Commission · SKU D1563");
+    expect(screen.getByText("Payment handling").closest("td")).toHaveTextContent(/^Payment handling$/);
+  });
+
   it("names an operation the marketplace gave no name to by its code", () => {
     render(<OrderBillingCard billing={billing()} orderTotal="100.00" />);
 
