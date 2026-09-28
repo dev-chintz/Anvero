@@ -304,12 +304,12 @@ button.attention-chip {
    grid, of equal height (`align-items: stretch`) whatever each one's own content runs
    to; OrderAddressCards renders Faktura then Dostawa as two cards of its own, so it
    takes no grid cell itself (`display: contents`): its two children fall into the grid
-   directly, after Kupujący. Zamówienie, Płatność and Wysyłka follow together in one
-   summary bar (below) rather than as three cards of their own: on a real order every
-   one of them is a fact to skim, not a card to study, and three separate boxes read as
-   more important than that. `.order-detail` has no gap of its own between its direct
-   children (`index.css`), so each full-width block below carries its own margin. */
-.order-items {
+   directly, after Kupujący. Wysyłka follows as its own full-width card; the status is
+   in the header and the payment folded away (DECISIONS.md, 2026-09-29). `.order-detail`
+   has no gap of its own between its direct children (`index.css`), so each full-width
+   block carries its own margin. */
+.order-items,
+.order-shipping {
   margin-bottom: 1rem;
 }
 
@@ -512,9 +512,16 @@ button.attention-chip {
    The card and its band are in theme.css; a card's tone says what it is: blue for the order
    itself, teal for sending it, green or red for the money, amber for notes. */
 .order-items,
-.order-buyer {
+.order-buyer,
+.order-messages-card {
   --band-bg: var(--tone-blue-bg);
   --band-fg: var(--tone-blue-fg);
+}
+
+/* the link in the band takes the band's colour, visited or not */
+.order-messages-card > .order-card-head a {
+  color: var(--band-fg);
+  font-size: 0.85rem;
 }
 
 .order-shipping,
