@@ -381,12 +381,20 @@ class OrderRepository:
         return added
 
     def list_billing_entries(self, order: Order) -> list[BillingEntry]:
+        """The order's fees and fee refunds.
+
+        A settlement is left out even when the marketplace ties it to the order
+        (Erli's "pobranie opłaty" names the order whose proceeds it came out
+        of): it pays fees already booked, often other orders' too, so it is not
+        a fee of this one.
+        """
         return list(
             self.db.scalars(
                 select(BillingEntry)
                 .where(
                     BillingEntry.source == order.source,
                     BillingEntry.order_external_id == order.external_id,
+                    BillingEntry.is_settlement.is_(False),
                 )
                 .order_by(BillingEntry.occurred_at, BillingEntry.external_id)
             )

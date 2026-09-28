@@ -1883,3 +1883,12 @@ flushes the clear before appending (test:
 
 **Verified:** backend 1020 and frontend 608 tests, `tsc --noEmit`, the migration applied to the shared NAS development database, the restarted backend's `/openapi.json` carrying `delivery_smart`. **Not verified:** the page in a browser (needs the owner's login) - a Smart and a non-Smart order, with and without a parcel, light and dark; and whether the sandbox or production Allegro actually sends `delivery.smart: true` on a real Smart order.
 
+
+## 2026-09-29 — Fixed: an Erli order's fees counted Erli's "pobranie opłaty" as a fee
+
+**Found by the owner on AN-000071 (Erli, 28.75 PLN):** the order page's "Opłaty marketplace'u" listed "pobranie opłaty +27.12" beside the real fees (-6.14 in all), so the fees read +20.98 and the order after fees 49.73 PLN instead of 22.61. That entry (Erli's `PAYM`, `fiscalFunction: plusPayments`) is Erli taking fees already booked out of this order's proceeds - often other orders' fees too - and the import already marks it `is_settlement`, which the Finance page leaves out. `GET /orders/{id}/billing` did not: Allegro's own settlement (`PAD`) never names an order, so the gap only showed once Erli's billing was read, since Erli ties its settlement to the order it was taken from.
+
+**Decision:** `OrderRepository.list_billing_entries` leaves settlements out, so the order's fees and their total are fees only (`API.md` says so). Nothing stored changes.
+
+**Verified:** a test with AN-000071's entries; the repository run against the real database gives -6.14 and 22.61 for AN-000071; backend restarted. Not yet looked at in the browser.
+

@@ -355,6 +355,23 @@ def test_the_order_shows_its_own_entries_and_their_sum(api):
     assert body["currency"] == "PLN"
 
 
+def test_a_settlement_tied_to_the_order_is_not_one_of_its_fees(api):
+    """Erli ties "pobranie opłaty" to the order whose proceeds paid the fees (AN-000071)."""
+    order = _new_order(api)
+    OrderRepository(api).add_billing_entries(
+        [
+            _entry("E1", "-1.29", type_id="COMM"),
+            _entry("E2", "-0.43", type_id="COKS"),
+            _entry("PAY", "27.12", type_id="PAYM", is_settlement=True),
+        ]
+    )
+
+    body = client.get(f"/api/v1/orders/{order.id}/billing").json()
+
+    assert sorted(e["type_id"] for e in body["entries"]) == ["COKS", "COMM"]
+    assert body["total"] == "-1.72"
+
+
 def test_an_order_without_entries_has_a_zero_total(api):
     order = _new_order(api)
 

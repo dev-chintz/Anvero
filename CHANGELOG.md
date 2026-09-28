@@ -6,6 +6,13 @@ All significant changes to the Anvero project.
 
 ## 2026-09-29
 
+### 🐛 Fixed: an Erli order's fees counted Erli's "pobranie opłaty"
+
+- The order page's marketplace fees for an Erli order listed Erli taking fees out of the proceeds
+  ("pobranie opłaty", a settlement) as if it were a positive fee, so AN-000071 showed +20.98 PLN
+  of fees instead of -6.14. Settlements are now left out of an order's fees, as the Finance page
+  already did. See `docs/DECISIONS.md`.
+
 ### 🧾 Order page: status in the header, payment folded away, Allegro Smart badge
 
 - The status picker and its facts (time in the status, send-by deadline, Allegro's own status)

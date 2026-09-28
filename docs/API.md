@@ -454,7 +454,10 @@ What the marketplace has charged, and credited back, for one order:
 }
 ```
 
-`amount` is signed: a charge is negative, a refund of a fee positive. `total`
+`amount` is signed: a charge is negative, a refund of a fee positive. A
+settlement (the marketplace taking fees out of the proceeds, e.g. Erli's
+"pobranie opłaty", which names the order it was taken from) is not listed: it
+pays fees already booked, often other orders' too. `total`
 is the entries added up, in the order's currency (an entry in another one is
 listed but not added); `"0.00"` and an empty list when nothing is recorded,
 which is also what an order looks like before Allegro has posted its fees, or
