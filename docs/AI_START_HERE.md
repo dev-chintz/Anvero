@@ -60,14 +60,15 @@ read succeeded: 0 open issues, 10 closed issues, 10 customer returns).
 Docker network by container name rather than the NAS's LAN address. See
 `DEPLOYMENT.md` and `DECISIONS.md` for what differed from the written plan.
 
-**GDPR (2026-09-28):** personal data is erased by itself once past its period (orders five years after the year their tax was due, messages, closed cases and what was sent to a marketplace after two), a buyer's request is answered with `backend/scripts/export_person.py` and `anonymize_person.py`, the integration secrets are encrypted once `SECRETS_KEY` is set, and the list's search is kept out of the address. See `GDPR.md`. Not yet run on the NAS; `SECRETS_KEY` is not set there yet.
+**GDPR (2026-09-28):** personal data is erased by itself once past its period (orders five years after the year their tax was due, messages, closed cases and what was sent to a marketplace after two), a buyer's request is answered with `backend/scripts/export_person.py` and `anonymize_person.py`, the integration secrets are encrypted once `SECRETS_KEY` is set, and the list's search is kept out of the address. See `GDPR.md`. Deployed to the NAS 2026-09-28 with everything else below; `SECRETS_KEY` is still not set there (optional, `DEPLOYMENT.md`, "Encrypting the integration secrets") and the daily retention run has not been watched for its first real pass yet.
 
 **Updates from Settings (2026-09-28):** built, answering the "Open task" this
-section used to name. The backend notices a newer published version (a commit
-on `main` with its images on GHCR), a banner tells an administrator, and
-Settings, Updates installs it through the `updater` container. Not yet set up
-on the NAS: see "PICK UP HERE" in `PROJECT_STATUS.md` and `DEPLOYMENT.md`,
-"Updating from Settings".
+section used to name, and set up on the NAS the same day: `anvero-updater`
+public, `UPDATER_TOKEN` in the NAS's `docker-compose.yml`, confirmed live (the
+backend's log shows a successful GitHub API call, `/api/v1/health` answers
+`commit: 286ab9d`). The button itself has not been clicked yet from
+Settings - this first deploy was done by hand over SSH to get the updater
+running in the first place; the next push to `main` is the real test.
 
 Backend and frontend both run. See PROJECT_STATUS.md for the sprint-by-sprint
 breakdown; the short version:

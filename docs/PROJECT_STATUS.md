@@ -222,24 +222,25 @@ reliably move for a fulfillment-only change, so it almost always blocked the
 marketplace's move, and once blocked the order never got another chance
 (`DECISIONS.md`, "Fixed: orders stuck showing 'ready to ship' after Allegro
 marked them sent"). The 11 were moved to `SHIPPED` directly on the shared
-database; **not yet deployed to the NAS**, which still needs a push to `main`
-and `docker compose pull && up -d`.
+database. **Deployed to the NAS 2026-09-28**: `/api/v1/health` there answers
+`commit: 286ab9d`. The updater was also set up on this deploy (`UPDATER_TOKEN`
+added to the NAS's `docker-compose.yml`, `anvero-updater` made public), so the
+next one can go through Settings instead of SSH.
 
 ---
 
 The 2026-09-28 roles-and-permissions work (`DECISIONS.md`, "Accounts Get a Role and Per-Area
 Permissions") was checked in the browser only on a scratch SQLite database with made-up accounts
 (an admin and a limited "user" granted `orders:manage` and `messages:view`): the Users tab's list,
-its permission grid reading and saving correctly, and creating a new account. **Its migration
-`c2a6f9e3b184` has not been applied to the shared PostgreSQL**, so a backend with this code cannot
-serve that database until `alembic upgrade head` is run on it - blocked on this machine's
-`backend/.env` still holding the PostgreSQL password from before the 2026-09-27 rotation (see
-`DECISIONS.md`, "Database Password Rotated"), which the owner will update from home. Not seen: the
-tab on the owner's own real account or real data, a "user" role account actually logged in and
-clicking through the interface with the sidebar's sections hidden by its grants (checked only by
-the backend's own tests and by reading the code), and the production frontend build (`npm run
-build`) - only the Vite dev server was used. No end-to-end browser test exists for it yet, only
-`pytest` and Vitest component tests.
+its permission grid reading and saving correctly, and creating a new account. Its migration
+`c2a6f9e3b184` was applied to the shared PostgreSQL on 2026-09-28 (along with `a7d4e2c9f136`,
+GDPR's `anonymized_at`), and the code deployed to the NAS the same day (below) - the migration
+that filled `role`/`admin` for every existing account, so nobody lost access. Not seen: the tab on
+the owner's own real account or real data, a "user" role account actually logged in and clicking
+through the interface with the sidebar's sections hidden by its grants (checked only by the
+backend's own tests and by reading the code), and the production frontend build (`npm run build`)
+- only the Vite dev server was used. No end-to-end browser test exists for it yet, only `pytest`
+and Vitest component tests.
 
 ---
 
@@ -256,17 +257,23 @@ build context, only the compose file pulling `ghcr.io` images, so updating it
 is `docker compose pull && docker compose up -d` (or Container Station's
 recreate) - see `DEPLOYMENT.md`, "Updating".
 
-**PICK UP HERE (2026-09-28): set up the updater on the NAS.** Update detection
-and the Settings button are built (`DEPLOYMENT.md`, "Updating from Settings"):
-the backend polls GitHub and GHCR, the updater container recreates backend and
-web. Built and tested against fakes, the detection also against the real GitHub
-and GHCR; never run on the NAS, which needs the one-time setup in
-`DEPLOYMENT.md` (make `anvero-updater` public, `UPDATER_TOKEN`, the `updater`
-service, check that the NAS's compose file uses `image:` and is named
-`docker-compose.yml`). Whether Container Station's Docker socket is at
-`/var/run/docker.sock` is not confirmed either. This also answers the older
-"automatic update detection and deployment" open task (`ROADMAP.md`,
-"Somewhere to run"), still done by hand until that setup runs.
+**Updater set up on the NAS, 2026-09-28.** Update detection and the Settings
+button are built (`DEPLOYMENT.md`, "Updating from Settings"): the backend
+polls GitHub and GHCR, the updater container recreates backend and web. The
+one-time setup is done: `anvero-updater` made public, `UPDATER_TOKEN`
+generated and added to the NAS's `docker-compose.yml` (both the `backend` and
+the new `updater` service), the file confirmed named `docker-compose.yml` in
+the application's folder, `/var/run/docker.sock` confirmed present and
+mountable. Confirmed live: the backend's own log shows a successful call to
+`api.github.com` for the newest commits, and `/api/v1/health` answers
+`commit: 286ab9d`. **Not yet seen:** the Update button actually clicked from
+Settings (the recreate so far was done by hand over SSH, to get the updater
+itself onto the NAS in the first place) - the next push to `main` is the real
+test of the button end to end. This answers the older "automatic update
+detection and deployment" open task (`ROADMAP.md`, "Somewhere to run").
+
+**PICK UP HERE (2026-09-28):** next push to `main` - use the Settings, Updates
+button on the NAS instead of SSH, to confirm the button itself works.
 
 **Feature work after that (agreed 2026-09-24):** the feature plan at the end
 of `ROADMAP.md`, modelled on AlleIntegrator. Its first stage (work queues,

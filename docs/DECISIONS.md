@@ -1760,10 +1760,9 @@ order found stuck the same way later; it only ever moves an order *forward*
 along NEW → CONFIRMED → READY_FOR_SHIPMENT → SHIPPED → DELIVERED, never
 touches CANCELLED, and never moves one where Anvero's own status is already
 ahead of `marketplace_status` (the carrier-delivery auto-advance from
-2026-09-26 relies on being left alone). Not yet deployed to the NAS: this
-machine's local backend was restarted and the shared database corrected, but
-the NAS runs its own build from `ghcr.io` images and needs a push to `main`
-plus `docker compose pull && up -d` to pick up the fix. Covered by
+2026-09-26 relies on being left alone). Deployed to the NAS the same day,
+alongside the roles/GDPR/updates merge below (`/api/v1/health` there answers
+`commit: 286ab9d`). Covered by
 `tests/services/test_order_writes.py::test_a_fetch_already_stale_when_the_operator_acted_does_not_undo_it`
 and `::test_a_run_started_after_the_operators_change_follows_the_marketplace`
 (958 backend tests passing).
