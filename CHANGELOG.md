@@ -6,6 +6,11 @@ All significant changes to the Anvero project.
 
 ## 2026-09-29
 
+### 🅰️ A logo
+
+- Anvero has a mark: a sharp teal A on a navy square with an amber dot, in the sidebar, on the
+  login page and as the browser tab's icon. See `docs/DECISIONS.md`.
+
 ### 🔄 Update history and progress
 
 - Settings, Updates lists every update: when, which versions, who started it, and how it ended

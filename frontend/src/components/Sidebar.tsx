@@ -1,6 +1,7 @@
 import { Fragment } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
+import { AnveroLogo } from './AnveroLogo';
 import { isNarrowWindow } from '../hooks/useSidebarOpen';
 import { useAppHealth } from '../hooks/useAppHealth';
 import { hasPermission } from '../hooks/usePermission';
@@ -142,7 +143,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onToggle }) => {
         </button>
         {isOpen && (
           <div className="logo">
-            <span className="logo-icon">📦</span>
+            <AnveroLogo size={28} className="logo-icon" />
             <span className="logo-text">Anvero</span>
           </div>
         )}

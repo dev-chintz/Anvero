@@ -1912,3 +1912,14 @@ flushes the clear before appending (test:
 
 **Verified:** backend tests (the history's service and API), frontend tests (steps, the inert application, failure and closing, following another tab's update, the bar), `tsc`, `alembic check`, the migration applied to the development database. **Not verified:** a real update on the NAS through the dialog - the next push after this one is the first that can show it, and the page itself has not been seen in a browser.
 
+
+## 2026-09-29 — The logo
+
+**Decision (owner, chosen from about thirty sketches over four rounds, "15b6"):** Anvero's mark is a capital A with sharp, cut-off ends, drawn as a single stroke in light teal (`#2dd4bf`, the accent's dark-mode value) on a dark navy rounded square (`#0f2e3a`, radius 12 on a 48 grid), with an amber dot (`#f59e0b`) where the crossbar would be. It replaces the 📦 emoji beside the name in the sidebar and on the login page, and is the browser tab's icon (`frontend/public/favicon.svg`, plus `theme-color`). The drawing lives once in `components/AnveroLogo.tsx` and once in the favicon file; they must be changed together.
+
+**Rationale:** The owner's choice. What it has going for it: it stays legible at 16 px, which the lighter-stroke candidates did not; the navy square keeps it visible on both the dark sidebar and a light page; and the colours are the brand's own, fixed in both themes, like the carrier badges.
+
+**Consequences:** The wider visual rework (`ROADMAP.md` item 5) is still on hold; this changes the mark only, not any value in `index.css`. The 📦 emoji stays where it means a parcel (the "to ship" queue, a delivered status, the Orders menu item).
+
+**Verified:** the login page in the browser shows the mark and serves `/favicon.svg`; frontend tests and `tsc`. The sidebar needs a login and was not looked at.
+
