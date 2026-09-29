@@ -329,7 +329,7 @@ describe("the order cell", () => {
     expect(within(line(container)).getByText(/^\d{2}\/\d{2}, \d{2}:\d{2}$/).getAttribute("title")).toMatch(/\d{4}/);
   });
 
-  it("names the buyer, with the nick in the name's tooltip", () => {
+  it("names the buyer by their marketplace nick, with the name in its tooltip", () => {
     const { container } = renderRow(
       makeOrder({
         customer_login: "kupujaca_ola",
@@ -339,14 +339,14 @@ describe("the order cell", () => {
     );
 
     const name = container.querySelector(".buyer-name") as HTMLElement;
-    expect(name).toHaveTextContent("Aleksandra Nowak");
-    expect(name).toHaveAttribute("title", "Aleksandra Nowak (kupujaca_ola)");
-    expect(screen.queryByText("kupujaca_ola")).not.toBeInTheDocument();
+    expect(name).toHaveTextContent("kupujaca_ola");
+    expect(name).toHaveAttribute("title", "Aleksandra Nowak");
+    expect(screen.queryByText("Aleksandra Nowak")).not.toBeInTheDocument();
   });
 
-  it("falls back to the login, then the email, so the line is never bare", () => {
-    const { container, unmount } = renderRow(makeOrder({ customer_login: "kupujaca_ola" }));
-    expect(container.querySelector(".buyer-name")).toHaveTextContent("kupujaca_ola");
+  it("falls back to the name, then the email, so the line is never bare", () => {
+    const { container, unmount } = renderRow(makeOrder({ customer_first_name: "Jan", customer_last_name: "Kowalski" }));
+    expect(container.querySelector(".buyer-name")).toHaveTextContent("Jan Kowalski");
     expect(screen.queryByText("buyer@example.com")).not.toBeInTheDocument();
     unmount();
 

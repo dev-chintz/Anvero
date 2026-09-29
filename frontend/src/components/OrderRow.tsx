@@ -125,8 +125,10 @@ export function OrderRow({
     );
 
   const mark = SOURCE_MARK[order.source];
-  // the nick goes under the name; with no name it is the title already
-  const buyerSub = buyerName(order) ? order.customer_login : "";
+  // under the number the buyer is their marketplace nick, as the shop knows them there; the
+  // name is its tooltip. No nick: the name, else the email, so the line is never bare
+  const buyerLabel = order.customer_login || buyerTitle(order);
+  const buyerHover = order.customer_login && buyerName(order) ? buyerName(order) : buyerLabel;
   // every item, for the tooltip of the cell that shows only the first
   const allItems = items
     .map((item) => `${item.quantity}× ${item.name}${item.sku ? ` (${item.sku})` : ""}`)
@@ -201,13 +203,13 @@ export function OrderRow({
               </span>
             )}
           </div>
-          {/* who, then when: one quiet line; the nick is the name's tooltip */}
+          {/* who, then when: one quiet line */}
           <span className="cell-sub buyer-line">
             <span
               className="buyer-name"
-              title={buyerSub ? `${buyerTitle(order)} (${buyerSub})` : buyerTitle(order)}
+              title={buyerHover}
             >
-              {buyerTitle(order)}
+              {buyerLabel}
             </span>
             {" · "}
             <span title={formatDateTime(order.ordered_at)}>{formatShortDateTime(order.ordered_at)}</span>
