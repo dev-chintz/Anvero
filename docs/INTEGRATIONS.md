@@ -505,6 +505,13 @@ order ("Label" card), after the sender is entered in Integrations, "Shipping":
 5. `POST /shipment-management/label` with `pageSize: A6` returns the PDF.
    The Labels page sends several `shipmentIds` at once (at most 50, Anvero's
    own cap: the documentation names none) for one PDF of many labels.
+   The real PDF (made by OpenPDF; first one seen 2026-09-29) is an A6 page,
+   297 x 420 pt, with the carrier's label drawn as a form XObject scaled to
+   95% and set 8 pt in, so printed "fit to page" on 4 x 6 in paper it came
+   out at about 87% of the width. Anvero shrinks each page's MediaBox to what
+   it draws plus 1.5 pt (`app/services/label_pdf.py`, an incremental update:
+   the drawing itself is untouched); a PDF it cannot read, or a page with
+   text outside the label's frame, is passed on as it came.
 6. Cancelling: `POST /shipment-management/shipments/cancel-commands`, then
    its status the same way.
 

@@ -60,7 +60,11 @@ whichever side a commit touches.
   machine uses.
 - Allegro credentials are per machine too, and the refresh token rotates on
   every use, so imports run from the machine that was authorized
-  (`docs/INTEGRATIONS.md`). Today that is the SQLite one, against the sandbox.
+  (`docs/INTEGRATIONS.md`). Since 2026-09-25 that is production Allegro,
+  with real orders and (since 2026-09-29) real label purchases. Credentials
+  entered in Settings live in the database and win over `.env`, so a machine
+  whose `.env` still names the sandbox uses production when its
+  `DATABASE_URL` points at the production database.
 - The test suite uses its own database (`tests/conftest.py`). Never point it
   at the development database: the API tests drop all tables on teardown.
 - Windows PowerShell prefixes text piped into a program with a byte-order
