@@ -46,7 +46,7 @@ folder, and one was restored from that copy into a scratch database as a test.
   remains the no-setup default for a fresh clone)
 - Health endpoint and first order model — done
 - Minimal order list interface — done
-- Automated tests for core flows — done (1031 backend, 611 frontend passing
+- Automated tests for core flows — done (1031 backend, 610 frontend passing
   across the suite as of 2026-09-29)
 
 ---
@@ -99,6 +99,10 @@ re-imported. Production needs its own application and authorization; see
 ---
 
 ## Not yet verified
+
+The order list and the tinted status chips (2026-09-29): tested, not yet opened
+in a browser (the owner's login). Worth a look at about 1080px wide and in dark
+mode, where the chips use the tones' dark values.
 
 The order page in two columns (2026-09-29): tested, not yet opened in a browser
 (it needs the owner's login). Worth a look at about 1080px wide (a monitor

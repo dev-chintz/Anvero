@@ -31,10 +31,14 @@ function storedPageSize(): number {
   }
 }
 
-// the statuses with a quick button of their own beside the queues, in the order shown
-const QUICK_STATUSES = [OrderStatus.NEW, OrderStatus.CONFIRMED];
-// and the ones an order ends in, shown after the queues
-const FINISHED_STATUSES = [OrderStatus.SHIPPED, OrderStatus.DELIVERED];
+// the statuses, each a tab over the list with how many orders have it, in the order of the road
+const STATUS_TABS = [
+  OrderStatus.NEW,
+  OrderStatus.CONFIRMED,
+  OrderStatus.READY_FOR_SHIPMENT,
+  OrderStatus.SHIPPED,
+  OrderStatus.DELIVERED,
+];
 
 interface OrdersPageProps {
   addToast?: (message: string, type?: 'success' | 'error' | 'info' | 'warning') => void;
@@ -351,12 +355,12 @@ export function OrdersPage({ addToast }: OrdersPageProps) {
     addToast?.(t('orders.filtersCleared'), 'info');
   };
 
-  // a quick button for one status, with how many orders have it
+  // a tab for one status, with how many orders have it
   const statusTab = (quickStatus: OrderStatus) => (
     <button
       key={quickStatus}
       type="button"
-      className="queue-tab"
+      className="status-tab"
       aria-pressed={!deleted && !queue && status === quickStatus}
       onClick={() => showQuickly({ status: quickStatus })}
     >
@@ -380,145 +384,151 @@ export function OrdersPage({ addToast }: OrdersPageProps) {
         <ImportBar addToast={addToast} onImported={refetch} />
       </header>
 
-      <AdvancedFilters
-        initialFilters={{
-          search: search ?? '',
-          source,
-          status,
-          dateFrom,
-          dateTo,
-        }}
-        onFiltersChange={handleFiltersChange}
-        onClearFilters={handleClearFilters}
-      />
-
-      <div className="queue-bar">
-        <nav className="queue-tabs" aria-label={t('queue.label')}>
+      {/* the four questions a working day starts with, each a tile with its count
+          (DECISIONS.md, 2026-09-29, "The order list") */}
+      <nav className="queue-tiles" aria-label={t('queue.label')}>
+        {Object.values(OrderQueue).map((q) => (
           <button
+            key={q}
             type="button"
-            className="queue-tab"
-            aria-pressed={!deleted && !queue && !status && !starred && !flagged}
-            onClick={() => showQuickly({})}
+            className={`queue-tile${q === OrderQueue.LATE ? ' queue-tile-late' : ''}`}
+            aria-pressed={!deleted && queue === q}
+            onClick={() => showQuickly({ queue: q })}
           >
-            {t('queue.all')}
+            {t(`queue.${q}`)}
+            {stats?.queues && (
+              <>
+                {' '}
+                <span className="queue-count">{stats.queues[q]}</span>
+              </>
+            )}
           </button>
-          {/* what has just arrived and what is being made are asked for most, so each has a button of its own */}
-          {QUICK_STATUSES.map(statusTab)}
-          {Object.values(OrderQueue).map((q) => (
+        ))}
+      </nav>
+
+      <section className="orders-panel card" aria-label={t('orders.title')}>
+        <div className="orders-panel-bar">
+          <nav className="status-tabs" aria-label={t('queue.statusLabel')}>
             <button
-              key={q}
               type="button"
-              className={`queue-tab${q === OrderQueue.LATE ? ' queue-tab-late' : ''}`}
-              aria-pressed={!deleted && queue === q}
-              onClick={() => showQuickly({ queue: q })}
+              className="status-tab"
+              aria-pressed={!deleted && !queue && !status && !starred && !flagged}
+              onClick={() => showQuickly({})}
             >
-              {t(`queue.${q}`)}
-              {stats?.queues && (
-                <>
-                  {' '}
-                  <span className="queue-count">{stats.queues[q]}</span>
-                </>
-              )}
+              {t('queue.all')}
             </button>
-          ))}
-          {/* where an order ends up, the two Allegro statuses after "sent" */}
-          {FINISHED_STATUSES.map(statusTab)}
-          <button
-            type="button"
-            className="queue-tab"
-            aria-pressed={!deleted && starred}
-            onClick={() => showQuickly(starred ? {} : { starred: 'true' })}
-          >
-            ★ {t('queue.starred')}
-          </button>
-          <button
-            type="button"
-            className="queue-tab"
-            aria-pressed={!deleted && flagged}
-            onClick={() => showQuickly(flagged ? {} : { flagged: 'true' })}
-          >
-            🚩 {t('queue.flagged')}
-          </button>
-          <button
-            type="button"
-            className="queue-tab queue-tab-deleted"
-            aria-pressed={deleted}
-            onClick={() =>
-              showQuickly(deleted ? {} : { deleted: 'true' })
-            }
-          >
-            {t('orders.deletedView')}
-          </button>
-        </nav>
-        {queue === OrderQueue.TO_MAKE && (
-          <Link to="/production" className="queue-production-link">
-            {t('production.openList')}
-          </Link>
-        )}
-        <label className="queue-sort">
-          {t('sort.label')}
-          <select
-            value={sort}
-            onChange={(e) => updateParams({ sort: e.target.value, skip: '0' })}
-          >
-            {Object.values(OrderSort).map((s) => (
-              <option key={s} value={s}>
-                {t(`sort.${s}`)}
-              </option>
-            ))}
-          </select>
-        </label>
-      </div>
-
-      {cancellationWarning && (
-        // wrapped: .orders-page pads its direct children, which would fight
-        // the banner's own padding
-        <div>
-          <div role="status" className="warning-banner">
-            {t('orders.cancelledOnlyBanner')}{' '}
+            {STATUS_TABS.map(statusTab)}
+          </nav>
+          <div className="orders-marks">
             <button
               type="button"
-              className="link-button"
-              onClick={() =>
-                updateParams({ cancellationWarning: undefined, skip: '0' })
-              }
+              className="status-tab"
+              aria-pressed={!deleted && starred}
+              onClick={() => showQuickly(starred ? {} : { starred: 'true' })}
             >
-              {t('orders.showAll')}
+              ★ {t('queue.starred')}
+            </button>
+            <button
+              type="button"
+              className="status-tab"
+              aria-pressed={!deleted && flagged}
+              onClick={() => showQuickly(flagged ? {} : { flagged: 'true' })}
+            >
+              🚩 {t('queue.flagged')}
+            </button>
+            <button
+              type="button"
+              className="status-tab"
+              aria-pressed={deleted}
+              onClick={() => showQuickly(deleted ? {} : { deleted: 'true' })}
+            >
+              {t('orders.deletedView')}
             </button>
           </div>
         </div>
-      )}
 
-      {!deleted && (
-        <BulkActionsBar
-          count={selectedIds.size}
-          working={bulkWorking}
-          onSetStatus={handleBulkStatus}
-          onSetMarks={handleBulkMarks}
-          onClear={() => setSelectedIds(new Set())}
+        <div className="orders-panel-tools">
+          <AdvancedFilters
+            initialFilters={{
+              search: search ?? '',
+              source,
+              status,
+              dateFrom,
+              dateTo,
+            }}
+            onFiltersChange={handleFiltersChange}
+            onClearFilters={handleClearFilters}
+          />
+          {queue === OrderQueue.TO_MAKE && (
+            <Link to="/production" className="queue-production-link">
+              {t('production.openList')}
+            </Link>
+          )}
+          <label className="queue-sort">
+            {t('sort.label')}
+            <select
+              value={sort}
+              onChange={(e) => updateParams({ sort: e.target.value, skip: '0' })}
+            >
+              {Object.values(OrderSort).map((s) => (
+                <option key={s} value={s}>
+                  {t(`sort.${s}`)}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
+
+        {cancellationWarning && (
+          // wrapped: .orders-page pads its direct children, which would fight
+          // the banner's own padding
+          <div>
+            <div role="status" className="warning-banner">
+              {t('orders.cancelledOnlyBanner')}{' '}
+              <button
+                type="button"
+                className="link-button"
+                onClick={() =>
+                  updateParams({ cancellationWarning: undefined, skip: '0' })
+                }
+              >
+                {t('orders.showAll')}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {!deleted && (
+          <BulkActionsBar
+            count={selectedIds.size}
+            working={bulkWorking}
+            onSetStatus={handleBulkStatus}
+            onSetMarks={handleBulkMarks}
+            onClear={() => setSelectedIds(new Set())}
+          />
+        )}
+
+        <OrderList
+          orders={orders}
+          loading={loading}
+          error={error}
+          count={count}
+          skip={skip}
+          limit={limit}
+          onPageChange={(newSkip) => updateParams({ skip: String(newSkip) })}
+          onStatusChange={handleStatusChange}
+          updatingOrderId={updatingOrderId}
+          linkState={linkState}
+          onDelete={handleDelete}
+          onRestore={handleRestore}
+          onLimitChange={handleLimitChange}
+          // a deleted order takes no change, so its list has nothing to tick or mark
+          selectedIds={deleted ? undefined : selectedIds}
+          onSelectionChange={deleted ? undefined : setSelectedIds}
+          onMarksChange={deleted ? undefined : handleMarksChange}
+          onOpenNote={handleOpenNote}
         />
-      )}
-
-      <OrderList
-        orders={orders}
-        loading={loading}
-        error={error}
-        count={count}
-        skip={skip}
-        limit={limit}
-        onPageChange={(newSkip) => updateParams({ skip: String(newSkip) })}
-        onStatusChange={handleStatusChange}
-        updatingOrderId={updatingOrderId}
-        linkState={linkState}
-        onDelete={handleDelete}
-        onRestore={handleRestore}
-        onLimitChange={handleLimitChange}
-        // a deleted order takes no change, so its list has nothing to tick or mark
-        selectedIds={deleted ? undefined : selectedIds}
-        onSelectionChange={deleted ? undefined : setSelectedIds}
-        onMarksChange={deleted ? undefined : handleMarksChange}
-        onOpenNote={handleOpenNote}
-      />
+      </section>
 
       {note && (
         <OrderNoteDialog

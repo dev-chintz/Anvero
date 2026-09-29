@@ -32,7 +32,12 @@ twice for the two modes, it uses the token.
 items, its buyer), `--tone-teal-*` for sending it (shipping, delivery, integrations),
 `--tone-green-*` / `--tone-red-*` for money and health (paid or not, ok or a problem),
 `--tone-amber-*` for notes and things waiting on someone. Put the class `tone-blue` (and so on) on a
-card. Colour is for meaning: do not add a tone for decoration.
+card. Colour is for meaning: do not add a tone for decoration. `--tone-violet-*` exists only for the
+"in progress" status chip.
+
+**Status chips** (`.badge badge-<status>`, `.badge badge-allegro|erli`) are a tone's `-bg` with its `-fg`
+text, never white on a solid colour: New blue, In progress violet, Ready to ship teal, Shipped amber,
+Delivered green, Cancelled red.
 
 ## Type
 

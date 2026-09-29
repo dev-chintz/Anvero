@@ -192,6 +192,158 @@
   color: #b71c1c;
 }
 
+/* The list's own layout (DECISIONS.md, 2026-09-29, "The order list"): the four work queues
+   as tiles, then one card holding the status tabs, the search and sort, and the table. */
+.orders-page .queue-tiles {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.6rem;
+}
+
+.orders-page .queue-tile {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.5rem 0.8rem;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  color: var(--color-text);
+  font-weight: 600;
+  text-align: left;
+}
+
+.orders-page .queue-tile:hover {
+  border-color: var(--color-accent);
+  background: var(--color-bg);
+}
+
+.orders-page .queue-tile[aria-pressed="true"] {
+  border-color: var(--color-accent);
+  box-shadow: inset 0 0 0 1px var(--color-accent);
+}
+
+.orders-page .queue-tile .queue-count {
+  min-width: 1.6em;
+  padding: 0 0.45em;
+  border-radius: 999px;
+  background: var(--color-surface-alt);
+  color: var(--color-muted-strong);
+  font-size: 0.8rem;
+  text-align: center;
+}
+
+.orders-page .queue-tile[aria-pressed="true"] .queue-count {
+  background: var(--color-accent);
+  color: #fff;
+}
+
+:root.dark .orders-page .queue-tile[aria-pressed="true"] .queue-count {
+  color: #0b0b0b;
+}
+
+.orders-page .queue-tile-late {
+  color: var(--tone-red-fg);
+  border-color: color-mix(in srgb, var(--tone-red-fg) 30%, var(--color-border));
+}
+
+.orders-page .queue-tile-late .queue-count {
+  background: var(--tone-red-bg);
+  color: var(--tone-red-fg);
+}
+
+.orders-page .orders-panel {
+  padding: 0;
+}
+
+.orders-page .orders-panel-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0 1rem;
+  padding: 0 0.75rem;
+  border-bottom: 1px solid var(--color-divider);
+}
+
+.orders-page :is(.status-tabs, .orders-marks) {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 1rem;
+}
+
+.orders-page .status-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.55rem 0.1rem;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  border-radius: 0;
+  color: var(--color-muted);
+  font-weight: 500;
+}
+
+.orders-page .status-tab:hover:not(:disabled) {
+  background: none;
+  color: var(--color-text);
+}
+
+.orders-page .status-tab[aria-pressed="true"] {
+  border-bottom-color: var(--color-accent);
+  color: var(--color-accent);
+  font-weight: 700;
+}
+
+.orders-page .status-tab .queue-count {
+  color: var(--color-muted);
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+
+.orders-page .orders-marks .status-tab {
+  font-size: 0.85rem;
+}
+
+.orders-page .orders-panel-tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 0.5rem 1rem;
+  padding: 0.6rem 0.75rem;
+  border-bottom: 1px solid var(--color-divider);
+}
+
+/* the search is its own card elsewhere; here it sits in the list's card */
+.orders-page .orders-panel-tools .advanced-filters.card {
+  flex: 1 1 22rem;
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: none;
+}
+
+.orders-page .orders-panel .bulk-bar {
+  margin: 0.5rem 0.75rem;
+}
+
+.orders-page .orders-panel .warning-banner {
+  margin: 0.5rem 0.75rem;
+}
+
+.orders-page .orders-panel .pagination {
+  margin: 0;
+  padding: 0.5rem 0.75rem;
+}
+
+@media (max-width: 768px) {
+  .orders-page .queue-tiles {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
 /* Work queues: tabs over the list, and how it is sorted */
 .orders-page .queue-bar {
   display: flex;
@@ -428,14 +580,6 @@
   font-size: 0.85rem;
 }
 
-.orders-table .row-icon-paid {
-  color: #16a34a;
-}
-
-.orders-table .row-icon-unpaid {
-  color: #dc2626;
-}
-
 .orders-table .status-since {
   flex-basis: 100%;
   color: var(--color-muted);
@@ -477,38 +621,24 @@
   gap: 0.1rem;
 }
 
-/* the buyer: the name on top with where the order came from at its right, the nick under it */
-.orders-table .buyer-cell {
-  display: flex;
-  flex-direction: column;
-  gap: 0.1rem;
-  min-width: 9rem;
-  max-width: 15rem;
+/* the order: its number on one line that never wraps, then who bought it and when, cut
+   short with an ellipsis rather than wrapped (DECISIONS.md, 2026-09-29, "The order list") */
+.orders-table .order-cell-head {
+  white-space: nowrap;
 }
 
 .orders-table .buyer-line {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.5rem;
-  min-width: 0;
+  max-width: 14rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .orders-table .buyer-name {
-  overflow: hidden;
-  color: var(--color-heading);
-  font-weight: 600;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  color: var(--color-text);
 }
 
-.orders-table .buyer-nick {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-/* the marketplace as one coloured letter */
+/* the marketplace as one letter on its tinted colour, bordered in the channel's own */
 .orders-table .source-mark {
   display: inline-flex;
   flex-shrink: 0;
@@ -517,18 +647,35 @@
   width: 1.1rem;
   height: 1.1rem;
   border-radius: 4px;
-  color: #fff;
   font-size: 0.7rem;
   font-weight: 700;
   line-height: 1;
 }
 
 .orders-table .source-allegro {
-  background: var(--channel-allegro);
+  background: var(--channel-allegro-bg);
+  border: 1px solid var(--channel-allegro);
+  color: var(--channel-allegro-fg);
 }
 
 .orders-table .source-erli {
-  background: var(--channel-erli);
+  background: var(--channel-erli-bg);
+  border: 1px solid var(--channel-erli);
+  color: var(--channel-erli-fg);
+}
+
+.orders-table .amount-cell {
+  white-space: nowrap;
+}
+
+.orders-table .amount-paid {
+  color: var(--tone-green-fg);
+  font-weight: 600;
+}
+
+.orders-table .amount-unpaid {
+  color: var(--tone-red-fg);
+  font-weight: 600;
 }
 
 /* the first item on one line, and how many more under it */

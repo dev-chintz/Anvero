@@ -6,6 +6,14 @@ All significant changes to the Anvero project.
 
 ## 2026-09-29
 
+### 📋 The order list, and readable status chips
+
+- The work queues are tiles with their counts above the list; the statuses are tabs on the list's
+  own card, with the search and sort beside them. The buyer and the date moved under the order
+  number, which no longer wraps, and the amount says whether it is paid.
+- Status and channel badges everywhere are tinted chips with dark text (5.3:1 or better) instead of
+  white on solid colours. See `docs/DECISIONS.md`.
+
 ### 🧭 The order page in two columns
 
 - The items take the page's full width; under them the shipping card, messages, internal note and

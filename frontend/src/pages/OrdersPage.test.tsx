@@ -600,7 +600,7 @@ describe("the quick button for new orders", () => {
   it("sits between All and In progress, with how many orders are new", async () => {
     renderAt("/orders");
 
-    const nav = screen.getByRole("navigation", { name: "Work queues" });
+    const nav = screen.getByRole("navigation", { name: "Status" });
     await screen.findByRole("button", { name: "New 1" });
 
     const tabs = Array.from(nav.querySelectorAll("button")).map((b) => b.textContent?.trim());
@@ -663,11 +663,13 @@ describe("the quick button for orders in progress", () => {
     renderAt("/orders");
 
     await screen.findByRole("button", { name: "In progress 6" });
-    const nav = screen.getByRole("navigation", { name: "Work queues" });
+    const nav = screen.getByRole("navigation", { name: "Status" });
 
-    // right after "All", ahead of the queues
+    // right after "All" and "New"; the work queues are tiles of their own above
     const tabs = Array.from(nav.querySelectorAll("button")).map((b) => b.textContent?.trim());
-    expect(tabs.slice(0, 4)).toEqual(["All", "New 1", "In progress 6", "To make 4"]);
+    expect(tabs.slice(0, 3)).toEqual(["All", "New 1", "In progress 6"]);
+    const queues = screen.getByRole("navigation", { name: "Work queues" });
+    expect(within(queues).getAllByRole("button")[0]).toHaveTextContent("To make 4");
   });
 
   it("asks for the orders in that status only, and shows itself pressed", async () => {
@@ -722,15 +724,15 @@ describe("the quick button for orders in progress", () => {
 });
 
 describe("the quick buttons for shipped and delivered orders", () => {
-  it("come after the queues, with how many orders have each status", async () => {
+  it("end the status tabs, with how many orders have each status", async () => {
     renderAt("/orders");
     await screen.findByRole("button", { name: "Shipped 34" });
-    const nav = screen.getByRole("navigation", { name: "Work queues" });
+    const nav = screen.getByRole("navigation", { name: "Status" });
 
     const tabs = Array.from(nav.querySelectorAll("button")).map((b) => b.textContent?.trim());
-    // after the last queue, ahead of Starred, Flagged and Deleted
-    expect(tabs.slice(-5, -3)).toEqual(["Shipped 34", "Delivered 3"]);
-    expect(tabs[tabs.length - 6]).toMatch(/^Past deadline/);
+    expect(tabs.slice(-2)).toEqual(["Shipped 34", "Delivered 3"]);
+    const queues = screen.getByRole("navigation", { name: "Work queues" });
+    expect(within(queues).getAllByRole("button").slice(-1)[0]).toHaveTextContent(/^Past deadline/);
   });
 
   it("ask for the orders in that status only, and show themselves pressed", async () => {

@@ -100,7 +100,6 @@ export function OrderList({
                   </th>
                 )}
                 <th scope="col">{t("orders.col.order")}</th>
-                <th scope="col">{t("orders.col.buyer")}</th>
                 <th scope="col">{t("orders.col.items")}</th>
                 <th scope="col">{t("orders.col.amount")}</th>
                 <th scope="col">{t("orders.col.status")}</th>

@@ -52,6 +52,9 @@
   --tone-red-fg: #b91c1c;
   --tone-amber-bg: #fef3c7;
   --tone-amber-fg: #854d0e;
+  /* only the "in progress" status uses it (DECISIONS.md, 2026-09-29, "Status chips") */
+  --tone-violet-bg: #ede9fe;
+  --tone-violet-fg: #5b21b6;
   --color-success: #22c55e;
   --color-error: #ef4444;
   --color-warning: #f59e0b;
@@ -92,6 +95,8 @@
   --tone-red-fg: #fca5a5;
   --tone-amber-bg: #3f3405;
   --tone-amber-fg: #fde68a;
+  --tone-violet-bg: #2e1065;
+  --tone-violet-fg: #ddd6fe;
 }
 
 * {
@@ -296,7 +301,9 @@ td {
   border-radius: 999px;
   font-size: 0.75rem;
   font-weight: 600;
-  color: #fff;
+  color: var(--badge-fg, #fff);
+  background-color: var(--badge-bg, transparent);
+  border: 1px solid color-mix(in srgb, var(--badge-fg, transparent) 22%, var(--badge-bg, transparent));
 }
 
 /* An order's status, editable in place: combined with a .badge-* class for
@@ -306,28 +313,31 @@ td {
    the closed control. Most browsers style option background/color; where
    one does not, the option still shows as plain text and works the same. */
 .status-select {
-  border: none;
   font: inherit;
   font-weight: 600;
   font-size: 0.75rem;
-  padding: 0.15rem 0.55rem;
+  padding: 0.1rem 0.55rem;
   border-radius: 999px;
-  color: #fff;
   cursor: pointer;
 }
 
 .status-select option {
-  color: #fff;
+  color: var(--badge-fg);
+  background-color: var(--badge-bg);
 }
 
 select.status-select {
   appearance: none;
   -webkit-appearance: none;
   padding-right: 1.4rem;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.5l5 5 5-5' fill='none' stroke='%23ffffff' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.5l5 5 5-5' fill='none' stroke='%234b5563' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
   background-position: right 0.45rem center;
   background-size: 9px 6px;
+}
+
+:root.dark select.status-select {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.5l5 5 5-5' fill='none' stroke='%23d1d5db' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
 }
 
 .status-select:disabled {
@@ -340,36 +350,47 @@ select.status-select {
   outline-offset: 2px;
 }
 
+/* An order's status and its channel as tinted chips: dark text on a light shade of the
+   status's own hue, 5.3:1 or better in both modes (white on the solid fills that were here
+   read at 2.2 to 4.2:1). DECISIONS.md, 2026-09-29, "Status chips". */
 .badge-new {
-  background: var(--color-info);
+  --badge-bg: var(--tone-blue-bg);
+  --badge-fg: var(--tone-blue-fg);
 }
 
 .badge-confirmed {
-  background: #8b5cf6;
+  --badge-bg: var(--tone-violet-bg);
+  --badge-fg: var(--tone-violet-fg);
 }
 
 .badge-ready_for_shipment {
-  background: #0d9488;
+  --badge-bg: var(--tone-teal-bg);
+  --badge-fg: var(--tone-teal-fg);
 }
 
 .badge-shipped {
-  background: var(--color-warning);
+  --badge-bg: var(--tone-amber-bg);
+  --badge-fg: var(--tone-amber-fg);
 }
 
 .badge-delivered {
-  background: var(--color-success);
+  --badge-bg: var(--tone-green-bg);
+  --badge-fg: var(--tone-green-fg);
 }
 
 .badge-cancelled {
-  background: var(--color-error);
+  --badge-bg: var(--tone-red-bg);
+  --badge-fg: var(--tone-red-fg);
 }
 
 .badge-allegro {
-  background: #ff5a00;
+  --badge-bg: var(--channel-allegro-bg);
+  --badge-fg: var(--channel-allegro-fg);
 }
 
 .badge-erli {
-  background: #0ea5e9;
+  --badge-bg: var(--channel-erli-bg);
+  --badge-fg: var(--channel-erli-fg);
 }
 
 .pagination {

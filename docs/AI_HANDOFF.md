@@ -62,7 +62,7 @@ Repository: <https://github.com/dev-chintz/Anvero>
   scope). Full detail in `DECISIONS.md` and `CHANGELOG.md`.
 - Order page (2026-09-29): status picker in the header, payment folded,
   Allegro Smart badge (`DECISIONS.md`)
-- 1031 backend tests and 611 frontend tests (Vitest + React Testing Library)
+- 1031 backend tests and 610 frontend tests (Vitest + React Testing Library)
   passing
 
 ---
@@ -102,8 +102,10 @@ is on its own canvas, https://claude.ai/artifact/JmMk1VptHZkoaDXtgYpumF: a
 proposal for the upright monitor (four work queues as tiles with counts,
 status as tabs, the buyer folded into the order cell, tinted status chips
 readable at 5.3:1 or better instead of white on solid fills), today's list,
-and the old and new status badges side by side. Waiting for the owner's
-verdict before anything is built. The order page's round two (status in
+and the old and new status badges side by side. The owner chose it and it is
+built (`DECISIONS.md`, 2026-09-29, "Status chips" and "The order list"),
+tested but not yet seen in a browser. The design system still shows the old
+solid badges: re-sync it from the code when convenient. The order page's round two (status in
 the header, payment folded, Smart badge) was seen by the owner in the browser
 and adjusted (space under Wysyłka, a blue band for Wiadomości); what is still
 unseen is `delivery.smart` on a real import (`PROJECT_STATUS.md`).

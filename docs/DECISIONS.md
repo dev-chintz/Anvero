@@ -2020,3 +2020,23 @@ at all (the entry before this one).
 
 **Verified:** frontend tests (611) and `tsc`. Not seen in a browser: the page needs the owner's login.
 
+
+## 2026-09-29 — Status chips
+
+**Decision (owner, from the order list canvas https://claude.ai/artifact/JmMk1VptHZkoaDXtgYpumF):** An order's status and its channel are tinted chips, dark text on a light shade of the same hue, everywhere a `.badge-*` class is used (the list's status picker, the status history, the buyer's other orders, the order header's channel): New `tone-blue`, In progress a new `tone-violet` (`--tone-violet-bg/-fg` in `index.css`, light and dark), Ready to ship `tone-teal`, Shipped `tone-amber`, Delivered `tone-green`, Cancelled `tone-red`, Allegro and Erli their `channel-*-bg/-fg`. The list's channel letter is the same idea: the channel's tint, bordered in its own colour.
+
+**Rationale:** White on the solid fills read at 2.2 to 4.2:1 (Shipped and Delivered below even 3:1), flagged when the design system was built. The tinted pairs are 5.3:1 or better in both modes, and each status keeps its hue.
+
+**Consequences:** `.badge` now takes `--badge-bg` / `--badge-fg` from its modifier (with a border mixed from the two); a `.badge` with no modifier keeps white text on whatever it sits on. The status picker's arrow is dark grey (light grey in dark mode) instead of white. The design system in Claude Design still shows the old fills until it is re-synced from the code.
+
+
+## 2026-09-29 — The order list
+
+**Decision (owner, from the same canvas, made denser on the owner's word):** Above the list, the four work queues (To make, Unpaid, To ship, Past deadline) are tiles with their counts. Under them one card holds everything else: the statuses as tabs (All, New, In progress, Ready to ship, Shipped, Delivered) with Starred, Flagged and Deleted at the right of the same row, then the search and filters with the sort beside them, then the table. The Buyer column is gone: under the order number, which never wraps, one quiet line says who bought it and when ("Anna Kowalska · 28/09, 16:39"), the nick in its tooltip, and the channel letter sits beside the number. Under the amount, paid or not paid yet where that is known (in green or red, how it is paid in the tooltip), else the payment method as before; the paid/unpaid icon in the status cell is gone as a repeat.
+
+**Rationale:** The owner works on a monitor turned upright; twelve pills in one row wrapped into a block, and the separate buyer column took width the items needed. The queues are what a working day starts from, so they come first; statuses are a filter, so they sit on the list.
+
+**Consequences:** The nav "Work queues" now holds only the four queues, and a nav "Status" the status tabs (tests follow). Starred, Flagged and Deleted stay buttons, not a menu, so they remain one click away.
+
+**Verified:** frontend tests (610) and `tsc`. Not seen in a browser: the list needs the owner's login.
+

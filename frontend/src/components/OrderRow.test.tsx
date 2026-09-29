@@ -102,9 +102,9 @@ describe("OrderRow", () => {
   });
 
   it("shows the payment method already carried on the list row", () => {
-    renderRow(makeOrder({ payment_type: PaymentType.ONLINE, payment_provider: "P24" }));
+    renderRow(makeOrder({ payment_type: PaymentType.CASH_ON_DELIVERY, payment_provider: "P24" }));
 
-    expect(screen.getByText("Online payment · P24")).toBeInTheDocument();
+    expect(screen.getByText(/· P24$/)).toBeInTheDocument();
   });
 
   it("shows a dash for items, payment and shipping when there is nothing to show", () => {
@@ -317,12 +317,20 @@ describe("deleting from the row", () => {
   });
 });
 
-describe("the buyer cell", () => {
-  const buyerCell = () => screen.getByText(/.+/, { selector: ".buyer-name" }).closest(".buyer-cell") as HTMLElement;
-  const cellText = () => Array.from(buyerCell().querySelectorAll(".buyer-name, .buyer-nick, .source-mark")).map((n) => n.textContent);
+describe("the order cell", () => {
+  const line = (container: HTMLElement) => container.querySelector(".buyer-line") as HTMLElement;
 
-  it("puts the name first, the nick under it, and where the order came from at the right", () => {
-    renderRow(
+  it("has the number on one line, and under it who bought it and when, in short", () => {
+    const { container } = renderRow(makeOrder());
+
+    const cell = container.querySelector(".order-cell") as HTMLElement;
+    expect(within(cell).getByRole("link", { name: "AN-000042" })).toBeInTheDocument();
+    expect(line(container)).toHaveTextContent(/^buyer@example\.com · \d{2}\/\d{2}, \d{2}:\d{2}$/);
+    expect(within(line(container)).getByText(/^\d{2}\/\d{2}, \d{2}:\d{2}$/).getAttribute("title")).toMatch(/\d{4}/);
+  });
+
+  it("names the buyer, with the nick in the name's tooltip", () => {
+    const { container } = renderRow(
       makeOrder({
         customer_login: "kupujaca_ola",
         customer_first_name: "Aleksandra",
@@ -330,27 +338,27 @@ describe("the buyer cell", () => {
       }),
     );
 
-    expect(cellText()).toEqual(["Aleksandra Nowak", "A", "kupujaca_ola"]);
-    expect(screen.getByText("kupujaca_ola")).toHaveClass("buyer-nick");
+    const name = container.querySelector(".buyer-name") as HTMLElement;
+    expect(name).toHaveTextContent("Aleksandra Nowak");
+    expect(name).toHaveAttribute("title", "Aleksandra Nowak (kupujaca_ola)");
+    expect(screen.queryByText("kupujaca_ola")).not.toBeInTheDocument();
   });
 
-  it("shows only the login when there is no name, and does not repeat it", () => {
-    renderRow(makeOrder({ customer_login: "kupujaca_ola" }));
-
-    expect(cellText()).toEqual(["kupujaca_ola", "A"]);
+  it("falls back to the login, then the email, so the line is never bare", () => {
+    const { container, unmount } = renderRow(makeOrder({ customer_login: "kupujaca_ola" }));
+    expect(container.querySelector(".buyer-name")).toHaveTextContent("kupujaca_ola");
     expect(screen.queryByText("buyer@example.com")).not.toBeInTheDocument();
+    unmount();
+
+    const second = renderRow(makeOrder());
+    expect(second.container.querySelector(".buyer-name")).toHaveTextContent("buyer@example.com");
   });
 
-  it("shows the name without a nick line when the marketplace gives no login", () => {
-    renderRow(makeOrder({ customer_first_name: "Jan", customer_last_name: "Kowalski" }));
+  it("puts where the order came from beside its number", () => {
+    const { container } = renderRow(makeOrder());
 
-    expect(cellText()).toEqual(["Jan Kowalski", "A"]);
-  });
-
-  it("shows the email when there is neither a login nor a name, so the cell is never bare", () => {
-    renderRow(makeOrder());
-
-    expect(cellText()).toEqual(["buyer@example.com", "A"]);
+    const head = container.querySelector(".order-cell-head") as HTMLElement;
+    expect(within(head).getByLabelText("ALLEGRO")).toBeInTheDocument();
   });
 
   it("marks Allegro with an orange A and Erli with a blue E, and names them on hover", () => {
@@ -370,17 +378,6 @@ describe("the buyer cell", () => {
     );
     expect(screen.getByLabelText("ERLI")).toHaveTextContent("E");
     expect(screen.getByLabelText("ERLI")).toHaveClass("source-erli");
-  });
-});
-
-describe("the order cell", () => {
-  it("has the number and, under it, when the order was placed, in short", () => {
-    const { container } = renderRow(makeOrder());
-
-    const cell = container.querySelector(".order-cell") as HTMLElement;
-    expect(within(cell).getByRole("link", { name: "AN-000042" })).toBeInTheDocument();
-    expect(cell.querySelector(".cell-sub")).toHaveTextContent(/^\d{2}\/\d{2}, \d{2}:\d{2}$/);
-    expect(cell.querySelector(".cell-sub")?.getAttribute("title")).toMatch(/\d{4}/);
   });
 });
 
@@ -514,7 +511,7 @@ describe("what a row says at a glance", () => {
       }),
     );
 
-    expect(screen.getByRole("img", { name: "Paid" })).toBeInTheDocument();
+    expect(screen.getByText("Paid")).toHaveClass("amount-paid");
     expect(screen.getByRole("img", { name: "A parcel has been sent" })).toBeInTheDocument();
     expect(screen.getByRole("img", { name: "The buyer wants an invoice" })).toBeInTheDocument();
     expect(screen.getByRole("img", { name: "The buyer left a message" })).toBeInTheDocument();
@@ -530,7 +527,7 @@ describe("what a row says at a glance", () => {
   it("marks an order as not paid yet when it pays up front and nothing is recorded", () => {
     renderPlain(makeOrder({ payment_type: PaymentType.ONLINE, paid_amount: null }));
 
-    expect(screen.getByRole("img", { name: "Not paid yet" })).toBeInTheDocument();
+    expect(screen.getByText("Not paid yet")).toHaveClass("amount-unpaid");
   });
 });
 

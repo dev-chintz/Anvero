@@ -179,6 +179,9 @@ export function OrderRow({
                 </button>
               </>
             )}
+            <span className={mark.className} title={order.source} aria-label={order.source}>
+              {mark.letter}
+            </span>
             {/* the marketplace's own id is on the order's page; here it is what the link's tooltip says */}
             <Link
               to={`/orders/${order.id}`}
@@ -198,26 +201,17 @@ export function OrderRow({
               </span>
             )}
           </div>
-          <span className="cell-sub" title={formatDateTime(order.ordered_at)}>
-            {formatShortDateTime(order.ordered_at)}
-          </span>
-        </div>
-      </td>
-      <td>
-        <div className="buyer-cell">
-          <div className="buyer-line">
-            <span className="buyer-name" title={buyerTitle(order)}>
+          {/* who, then when: one quiet line; the nick is the name's tooltip */}
+          <span className="cell-sub buyer-line">
+            <span
+              className="buyer-name"
+              title={buyerSub ? `${buyerTitle(order)} (${buyerSub})` : buyerTitle(order)}
+            >
               {buyerTitle(order)}
             </span>
-            <span className={mark.className} title={order.source} aria-label={order.source}>
-              {mark.letter}
-            </span>
-          </div>
-          {buyerSub && (
-            <span className="cell-sub buyer-nick" title={buyerSub}>
-              {buyerSub}
-            </span>
-          )}
+            {" · "}
+            <span title={formatDateTime(order.ordered_at)}>{formatShortDateTime(order.ordered_at)}</span>
+          </span>
         </div>
       </td>
       {items.length === 0 ? (
@@ -255,7 +249,15 @@ export function OrderRow({
       <td>
         <div className="amount-cell">
           <b className="amount">{formatMoney(order.total_amount, order.currency)}</b>
-          <span className="cell-sub">{paymentSummary(order)}</span>
+          {/* paid or not where that is known; how it is paid is the tooltip */}
+          <span
+            className={`cell-sub${payment ? ` amount-${payment}` : ""}`}
+            title={payment ? paymentSummary(order) : undefined}
+          >
+            {payment
+              ? t(payment === "paid" ? "orders.icon.paid" : "orders.icon.unpaid")
+              : paymentSummary(order)}
+          </span>
         </div>
       </td>
       <td>
@@ -275,16 +277,6 @@ export function OrderRow({
             ))}
           </select>
           <div className="row-icons">
-            {payment && (
-              <span
-                className={`row-icon row-icon-${payment}`}
-                title={t(payment === "paid" ? "orders.icon.paid" : "orders.icon.unpaid")}
-                role="img"
-                aria-label={t(payment === "paid" ? "orders.icon.paid" : "orders.icon.unpaid")}
-              >
-                {payment === "paid" ? "✔" : "✖"}
-              </span>
-            )}
             {shipments.length > 0 && (
               <span
                 className="row-icon"

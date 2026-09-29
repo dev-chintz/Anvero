@@ -43,6 +43,8 @@
   border-radius: 50%;
   font-size: 0.7rem;
   line-height: 1;
+  background-color: var(--badge-bg);
+  border: 1px solid color-mix(in srgb, var(--badge-fg) 30%, var(--badge-bg));
 }
 
 .status-history-item time {
