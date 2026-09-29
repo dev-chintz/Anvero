@@ -6,6 +6,12 @@ All significant changes to the Anvero project.
 
 ## 2026-09-29
 
+### 🐛 Fixed: an update that brought a newer version was shown as failed
+
+- The updater installs the newest published version, which can be newer than the one the button
+  named; the progress dialog and the history waited for exactly that one and reported a failure
+  though the update had worked. Any new version now counts as the update done. See `docs/DECISIONS.md`.
+
 ### 📋 The order list, and readable status chips
 
 - The work queues are tiles with their counts above the list; the statuses are tabs on the list's

@@ -33,7 +33,7 @@ export function UpdatesSettings() {
 
   // an update already under way (started in another tab, or before a reload) is followed too
   useEffect(() => {
-    if (underWay && !run) start(underWay.to_commit, Date.parse(underWay.started_at));
+    if (underWay && !run) start(underWay.to_commit, underWay.from_commit, Date.parse(underWay.started_at));
     // only when a different update shows up, not on every answer
   }, [underWay?.id]);
 
@@ -55,7 +55,7 @@ export function UpdatesSettings() {
     setStarting(true);
     try {
       await updatesApi.start();
-      start(status.latest);
+      start(status.latest, status.current);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : t('updates.startFailed'));
       // the refused attempt is in the history now

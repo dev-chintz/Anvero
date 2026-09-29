@@ -14,8 +14,10 @@ export type UpdateStep = (typeof UPDATE_STEPS)[number];
 export type UpdateOutcome = { kind: "failed"; log: string | null } | { kind: "timeout" } | null;
 
 export interface UpdateRun {
-  /** The short commit being installed. */
+  /** The short commit asked for; what comes up may be newer (the updater pulls the newest). */
   target: string;
+  /** The short commit running when the update began: any other one coming up is the arrival. */
+  from: string | null;
   startedAt: number;
   step: UpdateStep;
   /** When the present step began, for the progress within it. */
@@ -29,9 +31,11 @@ const later = (a: UpdateStep, b: UpdateStep) =>
 /**
  * Follows an update from the button to the new version. No one answer says how far
  * it is, so it is read from what can be seen: the updater running (pulling), the
- * backend gone or the updater done (recreating), `/health` naming the new commit
- * (up, and the page reloads into it). Steps only go forward. The updater says when
- * its own run failed; a version that never comes up is given up on after `GIVE_UP_MS`.
+ * backend gone or the updater done (recreating), `/health` naming a commit other than
+ * the one the update started from (up, and the page reloads into it): the updater
+ * pulls the newest images, so that may be newer than the one asked for. Steps only
+ * go forward. The updater says when its own run failed; a version that never comes
+ * up is given up on after `GIVE_UP_MS`.
  */
 export function useUpdateRun() {
   const [run, setRun] = useState<UpdateRun | null>(null);
@@ -41,8 +45,8 @@ export function useUpdateRun() {
     runRef.current = run;
   }, [run]);
 
-  const start = useCallback((target: string, startedAt = Date.now()) => {
-    setRun({ target, startedAt, step: "starting", stepSince: Date.now(), outcome: null });
+  const start = useCallback((target: string, from: string | null, startedAt = Date.now()) => {
+    setRun({ target, from, startedAt, step: "starting", stepSince: Date.now(), outcome: null });
   }, []);
 
   const close = useCallback(() => setRun(null), []);
@@ -74,7 +78,10 @@ export function useUpdateRun() {
       }
       const health = await healthApi.get().catch(() => null);
       if (cancelled) return;
-      if (health?.commit === current.target) {
+      // the version asked for, or a newer one published meanwhile: the updater installs the newest
+      const arrived =
+        !!health?.commit && (health.commit === current.target || (!!current.from && health.commit !== current.from));
+      if (arrived) {
         advance("finishing");
         setTimeout(() => window.location.reload(), RELOAD_AFTER_MS);
         return;

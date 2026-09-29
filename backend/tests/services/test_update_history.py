@@ -91,3 +91,25 @@ def test_a_refused_start_is_kept_as_failed(session):
 
     (row,) = _rows(session)
     assert (row.result, row.detail) == ("failed", "The updater could not be reached")
+
+
+def test_an_update_that_brings_a_newer_version_than_asked_is_done_with_that_version(session):
+    """The updater pulls the newest images: a version published between the check
+    and the press is the one that comes up (2026-09-29, d643499 asked, 78bd456 came)."""
+    newer = "c" * 40
+    started = update_history.record_start(session, OLD, NEW, None)
+
+    update_history.note_running_version(session, newer)
+
+    rows = _rows(session)
+    assert len(rows) == 1
+    assert (started.result, started.to_commit, started.via) == ("ok", newer, "settings")
+
+
+def test_a_newer_version_seen_on_a_later_check_also_closes_the_update(session):
+    newer = "c" * 40
+    started = update_history.record_start(session, OLD, NEW, None)
+
+    update_history.resolve_pending(session, newer, None)
+
+    assert (started.result, started.to_commit) == ("ok", newer)

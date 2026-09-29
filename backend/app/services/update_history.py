@@ -41,6 +41,19 @@ def _same(a: str | None, b: str | None) -> bool:
     return bool(a and b) and (a.startswith(b) or b.startswith(a))
 
 
+def _arrived(row: AppUpdate, current: str | None) -> bool:
+    """The update has brought a new version up: the one asked for, or a newer one.
+
+    The updater pulls the newest published images, not the commit the button
+    named, so a version published between the last check and the press is the
+    one that arrives (2026-09-29: asked for d643499, 78bd456 came up). Any
+    version other than the one the update started from is its arrival.
+    """
+    if not current:
+        return False
+    return _same(row.to_commit, current) or not _same(row.from_commit, current)
+
+
 def _pending(db: Session) -> list[AppUpdate]:
     return list(db.scalars(select(AppUpdate).where(AppUpdate.finished_at.is_(None))))
 
@@ -94,7 +107,9 @@ def note_running_version(db: Session, current: str | None, now: datetime | None 
         return
     now = now or datetime.now(UTC)
     for row in _pending(db):
-        if _same(row.to_commit, current):
+        if _arrived(row, current):
+            # what actually runs, which may be newer than what was asked for
+            row.to_commit = current
             row.finished_at, row.result = now, OK
             db.commit()
             return
@@ -126,7 +141,8 @@ def resolve_pending(
     changed = False
     for row in _pending(db):
         started = _aware(row.started_at)
-        if _same(row.to_commit, current):
+        if _arrived(row, current):
+            row.to_commit = current
             row.finished_at, row.result = now, OK
             changed = True
             continue

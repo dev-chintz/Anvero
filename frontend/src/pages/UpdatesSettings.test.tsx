@@ -232,6 +232,18 @@ describe("an update under way", () => {
     root.remove();
   });
 
+  it("takes a newer version than the one asked for as the update done", async () => {
+    vi.mocked(updatesApi.get).mockResolvedValue(status());
+    await startUpdate();
+
+    // published between the last check and the press: the updater installs the newest
+    vi.mocked(healthApi.get).mockResolvedValue({ status: "ok", commit: "ccccccc" });
+    await step();
+
+    expect(current()).toHaveTextContent("New version running, reloading the page");
+    expect(screen.queryByText(/The update failed/)).not.toBeInTheDocument();
+  });
+
   it("says so when the updater fails, and lets go of the application on closing", async () => {
     const root = document.createElement("div");
     root.id = "root";
@@ -284,6 +296,7 @@ describe("an update under way", () => {
 describe("the progress bar", () => {
   const run = (step: UpdateStep, inStep: number) => ({
     target: "bbbbbbb",
+    from: "aaaaaaa",
     startedAt: 0,
     step,
     stepSince: 1_000_000 - inStep,

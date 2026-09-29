@@ -2040,3 +2040,14 @@ at all (the entry before this one).
 
 **Verified:** frontend tests (610) and `tsc`. Not seen in a browser: the list needs the owner's login.
 
+
+## 2026-09-29 — Fixed: updates that brought a newer version were shown as failed
+
+**Found by the owner:** the last two updates from Settings ended in an error, and the history showed them as failed ("The new version did not start within 20 minutes"). Both had in fact worked: asked for `d643499` and `6c97784`, the NAS came up on `78bd456` and `d6bde40`. The updater pulls the newest published images, not the commit the button named, and a newer one had been published between the last check and the press. The progress dialog waited for `/health` to name exactly the commit asked for, which never came, and the history's open row was closed as failed while the new backend wrote its version down as reached "outside Settings".
+
+**Decision:** An update has arrived when the backend runs any version other than the one it started from, in the dialog (`useUpdateRun`, which now keeps the starting commit) and in the history (`update_history._arrived`); the history row then records the version that actually came up. Pulling the newest images stays: installing something older than what is published would only mean a second update.
+
+**Consequences:** The two rows of 2026-09-29 18:06 and 20:29 in `app_updates` stay as they were written (failed, each followed by an "outside Settings" row for the version that came up); the fix applies from the next update on.
+
+**Verified:** backend tests for both ways the arrival is seen, a frontend test for the dialog, the NAS's `/health` answering `d6bde40` while the history said failed.
+
