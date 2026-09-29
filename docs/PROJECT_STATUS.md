@@ -100,6 +100,9 @@ re-imported. Production needs its own application and authorization; see
 
 ## Not yet verified
 
+The dashboard (2026-09-29): tested, not yet opened in a browser (the owner's
+login), with and without anything needing attention.
+
 The order list and the tinted status chips (2026-09-29): tested, not yet opened
 in a browser (the owner's login). Worth a look at about 1080px wide and in dark
 mode, where the chips use the tones' dark values.

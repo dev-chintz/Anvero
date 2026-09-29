@@ -639,7 +639,7 @@
 }
 
 /* the marketplace as one letter on its tinted colour, bordered in the channel's own */
-.orders-table .source-mark {
+.source-mark {
   display: inline-flex;
   flex-shrink: 0;
   align-items: center;
@@ -652,13 +652,13 @@
   line-height: 1;
 }
 
-.orders-table .source-allegro {
+.source-allegro {
   background: var(--channel-allegro-bg);
   border: 1px solid var(--channel-allegro);
   color: var(--channel-allegro-fg);
 }
 
-.orders-table .source-erli {
+.source-erli {
   background: var(--channel-erli-bg);
   border: 1px solid var(--channel-erli);
   color: var(--channel-erli-fg);

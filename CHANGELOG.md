@@ -6,6 +6,12 @@ All significant changes to the Anvero project.
 
 ## 2026-09-29
 
+### 🏠 The dashboard
+
+- What needs attention is a coloured bar at the top, and nothing when nothing waits; the tiles are the
+  order list's four queues; the nearest dispatch deadlines run across the page as a dense table; the
+  recent orders sit beside the week and the channels. Designed in Claude Design. See `docs/DECISIONS.md`.
+
 ### 🐛 Fixed: an update that brought a newer version was shown as failed
 
 - The updater installs the newest published version, which can be newer than the one the button

@@ -2051,3 +2051,14 @@ at all (the entry before this one).
 
 **Verified:** backend tests for both ways the arrival is seen, a frontend test for the dialog, the NAS's `/health` answering `d6bde40` while the history said failed.
 
+
+## 2026-09-29 — The dashboard
+
+**Decision (owner, from the Claude Design canvas https://claude.ai/artifact/RtHYhEL8emq1dtChTBwLaG):** What needs a reaction (an order cancelled on the marketplace, a problem in the app's status, returns waiting, unread messages) comes first, as one coloured bar each, the whole bar a link; with nothing waiting there is no bar and no card. Then the four work queues as tiles, the same four and in the same order as over the order list (To make, Unpaid, To ship, Past deadline), no longer "In progress", a status, in the first place. Then the nearest dispatch deadlines across the page as a dense table (when, in amber for today and tomorrow and red when late; the channel letter and number; the buyer's nick; the first item; Smart or the carrier; the status chip), six instead of five. Then the recent orders, in the same compact form, beside a 260px column with the week's figures and the channels.
+
+**Rationale:** The owner works on a monitor turned upright; in the old layout what needed attention sat low in a side column, and the dashboard's first tile counted something the order list did not, so the same day showed different numbers in two places.
+
+**Consequences:** The dashboard's styles are all under `.dashboard` now: its old unscoped `.queue-tile` rules reached the order list's tiles, which share the class name, once the dashboard had been opened. The channel letter (`.source-mark`) is shared by the list and the dashboard. `dashboard.attentionEmpty` is gone with the empty card.
+
+**Verified:** frontend tests (611) and `tsc`. Not seen in a browser: it needs the owner's login.
+

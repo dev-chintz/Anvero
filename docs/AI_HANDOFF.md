@@ -112,7 +112,8 @@ https://claude.ai/artifact/RtHYhEL8emq1dtChTBwLaG: a proposal (what needs
 attention as coloured bars at the top, the same four work queues as the order
 list, the nearest dispatch deadlines as a dense full-width list, recent orders
 beside a narrow column with the week's figures and the channels) next to
-today's. Waiting for the owner's verdict before anything is built. The order page's round two (status in
+today's. Chosen and built (`DECISIONS.md`, 2026-09-29, "The dashboard"), tested
+but not yet seen in a browser. The order page's round two (status in
 the header, payment folded, Smart badge) was seen by the owner in the browser
 and adjusted (space under Wysyłka, a blue band for Wiadomości); what is still
 unseen is `delivery.smart` on a real import (`PROJECT_STATUS.md`).

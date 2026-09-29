@@ -95,13 +95,17 @@ describe("Dashboard work queues", () => {
     expect(screen.getByRole("link", { name: /Past deadline: 3/ })).toHaveAttribute("href", "/orders?queue=late");
   });
 
-  it("opens with the orders in progress, a status rather than a queue", () => {
+  it("shows the order list's four queues, in its order, starting with what is to make", () => {
     renderDashboard();
 
-    const tiles = screen.getAllByRole("link", { name: /open the queue/ });
-    expect(tiles[0]).toHaveAccessibleName("In progress: 6, open the queue");
-    expect(tiles[0]).toHaveAttribute("href", "/orders?status=CONFIRMED");
-    expect(screen.queryByRole("link", { name: /To make: 5/ })).not.toBeInTheDocument();
+    const tiles = within(screen.getByRole("region", { name: "Waiting for you" })).getAllByRole("link");
+    expect(tiles.map((tile) => tile.getAttribute("href"))).toEqual([
+      "/orders?queue=to_make",
+      "/orders?queue=unpaid",
+      "/orders?queue=to_ship",
+      "/orders?queue=late",
+    ]);
+    expect(tiles[0]).toHaveAccessibleName("To make: 5, open the queue");
   });
 
   it("turns the late tile red only when something is late", () => {
@@ -122,8 +126,8 @@ describe("Dashboard recent orders", () => {
 
     const card = screen.getByRole("region", { name: "Recent orders" });
     expect(within(card).getByRole("link", { name: "AN-000001" })).toHaveAttribute("href", "/orders/order-1");
-    expect(within(card).getByText("Allegro")).toBeInTheDocument();
-    expect(within(card).getByText("New")).toBeInTheDocument();
+    expect(within(card).getByLabelText("Allegro")).toHaveTextContent("A");
+    expect(within(card).getByText("New")).toHaveClass("badge", "badge-new");
   });
 });
 
@@ -149,7 +153,7 @@ describe("Dashboard deadlines", () => {
 
     const card = screen.getByRole("region", { name: "Nearest dispatch deadlines" });
     const labels = within(card)
-      .getAllByRole("link")
+      .getAllByRole("link", { name: /^AN-/ })
       .map((link) => link.textContent);
     // the one without a deadline is left out
     expect(labels).toEqual(["AN-000020", "AN-000010"]);
@@ -162,11 +166,10 @@ describe("Dashboard deadlines", () => {
   });
 });
 
-describe("Dashboard attention card", () => {
-  it("says nothing waits when nothing does", () => {
+describe("Dashboard attention bars", () => {
+  it("are not there when nothing waits", () => {
     renderDashboard();
-    const card = screen.getByRole("region", { name: "Needs attention" });
-    expect(within(card).getByText("Nothing else is waiting for a reaction.")).toBeInTheDocument();
+    expect(screen.queryByRole("region", { name: "Needs attention" })).not.toBeInTheDocument();
   });
 
   it("gathers cancellations, returns, unread messages and status problems, each with its link", async () => {

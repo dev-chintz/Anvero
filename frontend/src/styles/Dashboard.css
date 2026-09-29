@@ -1,6 +1,8 @@
-/* The dashboard: the four work queues on top; under them the nearest dispatch deadlines and the
-   recent orders, with what needs attention, the week and the channels in a column beside them.
-   Cards, bands and tones are the shared ones (theme.css); this file lays them out. */
+/* The dashboard (DECISIONS.md, 2026-09-29, "The dashboard"): what needs attention as bars on
+   top, the four work queues as tiles, the nearest dispatch deadlines across the page, and the
+   recent orders beside a narrow column with the week and the channels. Cards, bands and tones are
+   the shared ones (theme.css); this file lays them out, every rule under .dashboard so none of it
+   reaches the order list, whose queue tiles share a class name. */
 
 .dashboard {
   color: var(--color-text);
@@ -67,106 +69,95 @@
   padding: 0 2rem 2rem;
 }
 
-/* ---- The four queues: a big number each, the whole tile a link into the list ---- */
+/* ---- What needs attention: one coloured bar each, the whole bar a link ---- */
+.dashboard-attention {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.dashboard .attention-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.25rem 1rem;
+  padding: 0.5rem 0.9rem;
+  border: 1px solid color-mix(in srgb, var(--band-fg) 30%, var(--band-bg));
+  border-radius: var(--radius);
+  background: var(--band-bg);
+  color: var(--band-fg);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.dashboard .attention-bar:hover .attention-link {
+  text-decoration: underline;
+}
+
+.dashboard .attention-link {
+  white-space: nowrap;
+}
+
+/* ---- The four queues: the count big, the whole tile a link into the list ---- */
 .dashboard-queues {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 0.75rem;
 }
 
-.queue-tile {
+.dashboard .queue-tile {
   display: flex;
   flex-direction: column;
-  gap: 0.2rem;
-  padding: 0.9rem 1rem;
-  background: var(--color-bg);
+  gap: 0.15rem;
+  padding: 0.75rem 0.9rem;
   border: 1px solid var(--color-border);
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
+  background: var(--color-bg);
   color: var(--color-text);
   text-decoration: none;
-  transition: border-color 0.15s ease, transform 0.15s ease;
 }
 
-.queue-tile:hover,
-.queue-tile:focus-visible {
+.dashboard .queue-tile:hover {
   border-color: var(--color-accent);
-  transform: translateY(-1px);
 }
 
-.queue-tile-top {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.5rem;
-}
-
-.queue-tile-icon {
-  display: grid;
-  place-items: center;
-  width: 2rem;
-  height: 2rem;
-  flex-shrink: 0;
-  border-radius: 8px;
-  background: var(--band-bg, var(--color-surface-alt));
-  font-size: 1rem;
-}
-
-.queue-tile-count {
-  font-size: 2rem;
+.dashboard .queue-tile-count {
+  font-size: 1.75rem;
   font-weight: 700;
   line-height: 1.1;
   color: var(--color-heading);
   font-variant-numeric: tabular-nums;
 }
 
-.queue-tile-hint {
-  font-size: 0.8rem;
+.dashboard .queue-tile-hint {
   color: var(--color-muted);
-}
-
-.queue-tile-go {
-  margin-top: 0.3rem;
   font-size: 0.8rem;
-  font-weight: 600;
-  color: var(--color-accent);
 }
 
-/* past the deadline and not empty: the one tile that is red right through */
-.queue-tile.is-alarm {
-  background: color-mix(in srgb, var(--tone-red-bg) 55%, var(--color-bg));
-  border-color: color-mix(in srgb, var(--color-error) 45%, var(--color-bg));
+.dashboard .queue-tile.is-alarm {
+  border-color: color-mix(in srgb, var(--tone-red-fg) 35%, var(--color-border));
+  background: color-mix(in srgb, var(--tone-red-bg) 40%, var(--color-bg));
 }
 
-.queue-tile.is-alarm :is(.queue-tile-count, .queue-tile-go) {
+.dashboard .queue-tile.is-alarm :is(.label-caps, .queue-tile-count, .queue-tile-hint) {
   color: var(--tone-red-fg);
 }
 
-/* ---- Two columns: the work on the left, the rest beside it ---- */
-.dashboard-columns {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 20rem;
-  gap: 1rem;
-  align-items: start;
+.dashboard .queue-tile.is-alarm .queue-tile-hint {
+  font-weight: 600;
 }
 
-.dashboard-main,
-.dashboard-side {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-  min-width: 0;
+/* ---- Cards holding a table that runs to their edges ---- */
+:is(.dashboard-deadlines, .dashboard-recent) {
+  padding: 0;
 }
 
-/* a list that runs to the card's edges, its rows split by rules */
-:is(.dashboard-deadlines, .dashboard-recent, .dashboard-attention) {
-  padding-bottom: 0;
+:is(.dashboard-deadlines, .dashboard-recent) > .card-head {
+  margin: 0;
 }
 
-:is(.dashboard-deadlines, .dashboard-recent, .dashboard-attention) > :is(h2, .card-head) {
-  margin-bottom: 0;
-}
-
-.card-head a {
+.dashboard .card-head a {
   color: inherit;
   font-size: 0.8rem;
   font-weight: 600;
@@ -174,266 +165,126 @@
 
 .dashboard-empty {
   margin: 0;
-  padding: 0.9rem 0 1rem;
+  padding: 0.9rem 1rem 1rem;
   color: var(--color-muted);
 }
 
-.dashboard-count {
-  min-width: 1.4rem;
-  padding: 0 0.45rem;
-  border-radius: 999px;
-  background: var(--color-bg);
-  color: var(--color-text);
-  font-size: 0.75rem;
-  text-align: center;
-}
-
-/* ---- The nearest deadlines: picture, order and item, buyer, and when it must go ---- */
-.deadline-list,
-.attention-list,
-.channel-list {
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.deadline-list {
-  margin: 0 -1rem;
-}
-
-.deadline-row {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
-  gap: 0.75rem;
-  align-items: center;
-  padding: 0.6rem 1rem;
-  border-top: 1px solid var(--color-divider);
-}
-
-.deadline-row:first-child {
-  border-top: none;
-}
-
-.deadline-thumb {
-  width: 2.5rem;
-  height: 2.5rem;
-  border-radius: 8px;
-  object-fit: cover;
-  background: var(--color-surface-alt);
-}
-
-.deadline-thumb.is-empty {
-  display: grid;
-  place-items: center;
-  color: var(--color-muted-strong);
-  font-size: 0.75rem;
-  font-weight: 700;
-}
-
-.deadline-what {
-  display: flex;
-  flex-direction: column;
-  gap: 0.15rem;
-  min-width: 0;
-}
-
-.deadline-title {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.deadline-item {
-  font-weight: 500;
-}
-
-.deadline-who {
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-  min-width: 0;
-  color: var(--color-muted);
-  font-size: 0.8rem;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.deadline-when {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  font-size: 0.8rem;
-  font-weight: 700;
-  font-variant-numeric: tabular-nums;
-  white-space: nowrap;
-}
-
-.deadline-when small {
-  font-weight: 500;
-  color: var(--color-muted);
-}
-
-.deadline-when.is-late {
-  color: var(--tone-red-fg);
-}
-
-.deadline-when.is-soon {
-  color: var(--tone-amber-fg);
-}
-
-/* ---- Recent orders: a small table that runs to the card's edges ---- */
 .dashboard-table-scroll {
-  margin: 0 -1rem;
   overflow-x: auto;
 }
 
 .dashboard-table {
   width: 100%;
   border-collapse: collapse;
-}
-
-.dashboard-table th {
-  padding: 0.45rem 1rem;
-  text-align: left;
-  white-space: nowrap;
+  background: none;
 }
 
 .dashboard-table td {
-  padding: 0.55rem 1rem;
-  border-top: 1px solid var(--color-divider);
+  padding: 0.4rem 0.75rem;
+  border-bottom: 1px solid var(--color-divider);
+  font-size: 0.85rem;
+  white-space: nowrap;
   vertical-align: middle;
 }
 
-.dashboard-table tr:first-child td {
-  border-top: none;
+.dashboard-table tr:last-child td {
+  border-bottom: none;
 }
 
 .dashboard-table .is-amount {
   text-align: right;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
-  white-space: nowrap;
+}
+
+.dashboard .dashboard-order {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.dashboard .order-id-link {
+  color: var(--color-accent);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.dashboard .order-id-link:hover {
+  text-decoration: underline;
 }
 
 .dashboard-buyer {
-  max-width: 14rem;
+  max-width: 10rem;
   overflow: hidden;
   text-overflow: ellipsis;
-  white-space: nowrap;
+  color: var(--color-muted);
 }
 
 .dashboard-when {
   color: var(--color-muted);
-  white-space: nowrap;
 }
 
-.order-id-link {
-  color: var(--color-accent);
-  font-weight: 600;
-  text-decoration: none;
-}
-
-.order-id-link:hover {
-  text-decoration: underline;
-}
-
-/* a marketplace in its own colour, as in the order list */
-.dashboard-channel {
+/* ---- The nearest deadlines: when, the order, who, what, how it goes, where it stands ---- */
+.deadline-when {
   display: inline-block;
-  padding: 0.05rem 0.5rem;
+  min-width: 6.5rem;
+  padding: 0.1rem 0.5rem;
   border-radius: 6px;
   background: var(--color-surface-alt);
   color: var(--color-muted-strong);
-  font-size: 0.72rem;
+  font-size: 0.8rem;
   font-weight: 700;
-  white-space: nowrap;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
 }
 
-.dashboard-channel.channel-allegro {
-  background: var(--channel-allegro-bg);
-  color: var(--channel-allegro-fg);
-}
-
-.dashboard-channel.channel-erli {
-  background: var(--channel-erli-bg);
-  color: var(--channel-erli-fg);
-}
-
-/* a status as a pill, in the tone of where the order is on its way */
-.dashboard-status {
-  display: inline-block;
-  padding: 0.05rem 0.6rem;
-  border-radius: 999px;
-  background: var(--color-surface-alt);
-  color: var(--color-muted-strong);
-  font-size: 0.75rem;
-  font-weight: 600;
-  white-space: nowrap;
-}
-
-.dashboard-status.status-new {
-  background: var(--tone-blue-bg);
-  color: var(--tone-blue-fg);
-}
-
-.dashboard-status.status-confirmed {
+.deadline-when.is-soon {
   background: var(--tone-amber-bg);
   color: var(--tone-amber-fg);
 }
 
-.dashboard-status.status-ready_for_shipment {
-  background: var(--tone-teal-bg);
-  color: var(--tone-teal-fg);
-}
-
-.dashboard-status.status-delivered {
-  background: var(--tone-green-bg);
-  color: var(--tone-green-fg);
-}
-
-.dashboard-status.status-cancelled {
+.deadline-when.is-late {
   background: var(--tone-red-bg);
   color: var(--tone-red-fg);
 }
 
-/* ---- Needs attention: a mark for what it is, the sentence, and where to deal with it ---- */
-.attention-list {
-  margin: 0 -1rem;
+.deadline-table .deadline-item {
+  max-width: 18rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.attention-list li {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
-  gap: 0.65rem;
-  align-items: start;
-  padding: 0.65rem 1rem;
-  border-top: 1px solid var(--color-divider);
+.deadline-table .muted {
+  color: var(--color-muted);
 }
 
-.attention-list li:first-child {
-  border-top: none;
+.deadline-ship {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
 }
 
-.attention-mark {
-  display: grid;
-  place-items: center;
-  width: 1.75rem;
-  height: 1.75rem;
-  border-radius: 8px;
-  background: var(--band-bg);
-  color: var(--band-fg);
+.deadline-carrier {
+  color: var(--color-muted-strong);
   font-size: 0.8rem;
-  font-weight: 800;
-}
-
-.attention-text a {
-  color: var(--color-accent);
   font-weight: 600;
-  white-space: nowrap;
 }
 
-/* ---- The week, in figures ---- */
+/* ---- Recent orders beside a narrow column ---- */
+.dashboard-columns {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 16.25rem;
+  gap: 1rem;
+  align-items: start;
+}
+
+.dashboard-side {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  min-width: 0;
+}
+
 .dashboard-figures {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -453,11 +304,18 @@
   font-variant-numeric: tabular-nums;
 }
 
+.dashboard-figures dd.is-money {
+  color: var(--tone-green-fg);
+}
+
 /* ---- The channels: each one's share of all orders ---- */
 .channel-list {
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
 }
 
 .channel-line {
@@ -468,6 +326,14 @@
   color: var(--color-muted);
   text-decoration: none;
   font-variant-numeric: tabular-nums;
+}
+
+.channel-name {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: var(--color-text);
+  font-weight: 600;
 }
 
 .channel-line b {
@@ -497,7 +363,7 @@
   background: var(--channel-erli);
 }
 
-@media (max-width: 1100px) {
+@media (max-width: 900px) {
   .dashboard-columns {
     grid-template-columns: minmax(0, 1fr);
   }
@@ -510,16 +376,5 @@
 @media (max-width: 768px) {
   .dashboard-body {
     padding: 0 1rem 1.5rem;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .queue-tile {
-    transition: none;
-  }
-
-  .queue-tile:hover,
-  .queue-tile:focus-visible {
-    transform: none;
   }
 }

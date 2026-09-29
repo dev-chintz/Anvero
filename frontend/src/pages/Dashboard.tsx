@@ -2,13 +2,13 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { messagesApi } from '../api/client';
 import { ImportBar } from '../components/ImportBar';
-import { ItemThumb } from '../components/ItemThumb';
+import { SmartBadge } from '../components/smartBadge';
 import { buyerTitle } from '../components/OrderRow';
 import { useAfterSalesSummary } from '../hooks/useAfterSalesSummary';
 import { useAppHealth } from '../hooks/useAppHealth';
 import { useOrderStats } from '../hooks/useOrderStats';
 import { useOrders } from '../hooks/useOrders';
-import { dispatchUrgency, OrderQueue, OrderSort, OrderStatus } from '../types/order';
+import { carrierLabel, dispatchUrgency, OrderQueue, OrderSort } from '../types/order';
 import type { Order } from '../types/order';
 import { useTranslation } from '../i18n';
 import { en, type MessageKey } from '../i18n/messages';
@@ -18,32 +18,22 @@ import '../styles/Dashboard.css';
 
 const RECENT_ORDERS_LIMIT = 5;
 // how many of the nearest dispatch deadlines the dashboard lists
-const DEADLINES_LIMIT = 5;
+const DEADLINES_LIMIT = 6;
 
 type Toast = (message: string, type?: 'success' | 'error' | 'info' | 'warning') => void;
 
-// the four tiles, in the order the day's work goes through them: the orders being made (a status,
-// not a queue, so unpaid ones count too), then three queues; `late` overlaps the others and is shown
-// last, in red when it holds anything
-type Tile = { key: string; icon: string; tone: string } & (
-  | { queue: OrderQueue; status?: never }
-  | { status: OrderStatus; queue?: never }
-);
-const TILES: Tile[] = [
-  { key: 'confirmed', status: OrderStatus.CONFIRMED, icon: '🛠️', tone: 'blue' },
-  { key: 'to_ship', queue: OrderQueue.TO_SHIP, icon: '📦', tone: 'teal' },
-  { key: 'unpaid', queue: OrderQueue.UNPAID, icon: '💳', tone: 'amber' },
-  { key: 'late', queue: OrderQueue.LATE, icon: '⏰', tone: 'red' },
-];
+// the four work queues, the same tiles in the same order as over the order list, so the counts
+// here and there agree; `late` overlaps the others and turns red when it holds anything
+// (DECISIONS.md, 2026-09-29, "The dashboard")
+const TILES: OrderQueue[] = [OrderQueue.TO_MAKE, OrderQueue.UNPAID, OrderQueue.TO_SHIP, OrderQueue.LATE];
 
 /**
  * Where a session starts: what is waiting today, at a glance.
  *
- * Four tiles on top (the orders being made and three work queues), each a way into the list
- * narrowed to it; under them the orders
- * whose dispatch deadline is nearest, and one card with everything else that wants a reaction
- * (an order cancelled on the marketplace, returns, unread messages, a problem with an import).
- * The figures for the week and the channels sit in a narrow column beside them.
+ * First whatever wants a reaction (an order cancelled on the marketplace, returns, unread
+ * messages, a problem with the app), each as a coloured bar, and nothing when nothing does; then
+ * the four work queues as tiles into the list; then the orders whose dispatch deadline is nearest,
+ * across the page; then the recent orders beside a narrow column with the week and the channels.
  */
 export const Dashboard: React.FC<{ addToast?: Toast }> = ({ addToast }) => {
   const { t, tc, formatMoney, formatDayLong } = useTranslation();
@@ -147,134 +137,100 @@ export const Dashboard: React.FC<{ addToast?: Toast }> = ({ addToast }) => {
       </header>
 
       <div className="dashboard-body">
+        {attention.length > 0 && (
+          <section className="dashboard-attention" aria-label={t('dashboard.attention')}>
+            {attention.map((item) => (
+              <Link key={item.key} to={item.to} className={`attention-bar tone-${item.tone}`}>
+                <span className="attention-text">{item.text}</span>
+                <span className="attention-link">{item.link} →</span>
+              </Link>
+            ))}
+          </section>
+        )}
+
         {stats.queues && (
           <section className="dashboard-queues" aria-label={t('dashboard.queues')}>
-            {TILES.map(({ key, queue, status, icon, tone }) => {
-              const count = queue ? stats.queues![queue] : (stats.by_status[status!] ?? 0);
-              const title = queue ? t(`queue.${queue}`) : t(`status.${status!}`);
+            {TILES.map((queue) => {
+              const count = stats.queues![queue];
+              const title = t(`queue.${queue}`);
               const alarm = queue === OrderQueue.LATE && count > 0;
               return (
                 <Link
-                  key={key}
-                  to={queue ? `/orders?queue=${queue}` : `/orders?status=${status}`}
+                  key={queue}
+                  to={`/orders?queue=${queue}`}
                   className={`queue-tile${alarm ? ' is-alarm' : ''}`}
                   aria-label={t('dashboard.queueLink', { title, count })}
                 >
-                  <span className="queue-tile-top">
-                    <span className="label-caps">{title}</span>
-                    <span className={`queue-tile-icon tone-${tone}`} aria-hidden="true">
-                      {icon}
-                    </span>
-                  </span>
+                  <span className="label-caps">{title}</span>
                   <span className="queue-tile-count">{count}</span>
-                  <span className="queue-tile-hint">{t(`dashboard.queueHint.${key}` as MessageKey)}</span>
-                  <span className="queue-tile-go">{alarm ? t('dashboard.queueGoLate') : t('dashboard.queueGo')} →</span>
+                  <span className="queue-tile-hint">
+                    {alarm ? `${t('dashboard.queueGoLate')} →` : t(`dashboard.queueHint.${queue}` as MessageKey)}
+                  </span>
                 </Link>
               );
             })}
           </section>
         )}
 
-        <div className="dashboard-columns">
-          <div className="dashboard-main">
-            <section className="card tone-red dashboard-deadlines" aria-labelledby="dashboard-deadlines">
-              <h2 id="dashboard-deadlines">{t('dashboard.deadlines')}</h2>
-              {deadlines.orders.length === 0 ? (
-                <p className="dashboard-empty">
-                  {deadlines.loading ? t('orders.loading') : t('dashboard.deadlinesEmpty')}
-                </p>
-              ) : (
-                <ul className="deadline-list">
+        <section className="card dashboard-deadlines" aria-labelledby="dashboard-deadlines">
+          <div className="card-head">
+            <h2 id="dashboard-deadlines">{t('dashboard.deadlines')}</h2>
+            <Link to={`/orders?queue=${OrderQueue.TO_SHIP}`}>{t('dashboard.allToShip')} →</Link>
+          </div>
+          {deadlines.orders.length === 0 ? (
+            <p className="dashboard-empty">
+              {deadlines.loading ? t('orders.loading') : t('dashboard.deadlinesEmpty')}
+            </p>
+          ) : (
+            <div className="dashboard-table-scroll">
+              <table className="dashboard-table deadline-table">
+                <tbody>
                   {deadlines.orders.map((order) => (
                     <DeadlineRow key={order.id} order={order} />
                   ))}
-                </ul>
-              )}
-            </section>
+                </tbody>
+              </table>
+            </div>
+          )}
+        </section>
 
-            <section className="card tone-blue dashboard-recent" aria-labelledby="dashboard-recent">
-              <div className="card-head">
-                <h2 id="dashboard-recent">{t('dashboard.recentOrders')}</h2>
-                <Link to="/orders">{t('dashboard.all')} →</Link>
-              </div>
-              {recent.error ? (
-                <p className="dashboard-empty" role="alert">{recent.error}</p>
-              ) : (
-                <div className="dashboard-table-scroll">
-                  <table className="dashboard-table">
-                    <thead>
-                      <tr>
-                        <th>{t('dashboard.col.number')}</th>
-                        <th>{t('dashboard.col.channel')}</th>
-                        <th>{t('dashboard.col.buyer')}</th>
-                        <th>{t('dashboard.col.status')}</th>
-                        <th>{t('dashboard.col.when')}</th>
-                        <th className="is-amount">{t('dashboard.col.amount')}</th>
+        <div className="dashboard-columns">
+          <section className="card dashboard-recent" aria-labelledby="dashboard-recent">
+            <div className="card-head">
+              <h2 id="dashboard-recent">{t('dashboard.recentOrders')}</h2>
+              <Link to="/orders">{t('dashboard.all')} →</Link>
+            </div>
+            {recent.error ? (
+              <p className="dashboard-empty" role="alert">{recent.error}</p>
+            ) : (
+              <div className="dashboard-table-scroll">
+                <table className="dashboard-table">
+                  <tbody>
+                    {recent.orders.map((order: Order) => (
+                      <tr key={order.id}>
+                        <td>
+                          <OrderNumber order={order} />
+                        </td>
+                        <td className="dashboard-buyer" title={buyerTitle(order)}>
+                          {buyerNick(order)}
+                        </td>
+                        <td>
+                          <span className={`badge badge-${order.status.toLowerCase()}`}>{statusText(order.status, t)}</span>
+                        </td>
+                        <td className="dashboard-when">
+                          <When value={order.ordered_at} />
+                        </td>
+                        <td className="is-amount">{formatMoney(order.total_amount, order.currency)}</td>
                       </tr>
-                    </thead>
-                    <tbody>
-                      {recent.orders.map((order: Order) => (
-                        <tr key={order.id}>
-                          <td>
-                            {/* the state makes "back" on the order's page lead to the orders
-                                list rather than to wherever it was opened from */}
-                            <Link to={`/orders/${order.id}`} state={{ closeTo: '/orders' }} className="order-id-link">
-                              {order.order_label}
-                            </Link>
-                          </td>
-                          <td>
-                            <ChannelChip source={order.source} />
-                          </td>
-                          <td className="dashboard-buyer" title={order.customer_email}>
-                            {buyerTitle(order)}
-                          </td>
-                          <td>
-                            <span className={`dashboard-status status-${order.status.toLowerCase()}`}>
-                              {statusText(order.status, t)}
-                            </span>
-                          </td>
-                          <td className="dashboard-when">
-                            <When value={order.ordered_at} />
-                          </td>
-                          <td className="is-amount">{formatMoney(order.total_amount, order.currency)}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </section>
-          </div>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </section>
 
           <aside className="dashboard-side">
-            <section
-              className={`card ${attention.length > 0 ? 'tone-amber' : 'tone-green'} dashboard-attention`}
-              aria-labelledby="dashboard-attention"
-            >
-              <div className="card-head">
-                <h2 id="dashboard-attention">{t('dashboard.attention')}</h2>
-                {attention.length > 0 && <span className="dashboard-count">{attention.length}</span>}
-              </div>
-              {attention.length === 0 ? (
-                <p className="dashboard-empty">{t('dashboard.attentionEmpty')}</p>
-              ) : (
-                <ul className="attention-list">
-                  {attention.map((item) => (
-                    <li key={item.key}>
-                      <span className={`attention-mark tone-${item.tone}`} aria-hidden="true">
-                        {item.mark}
-                      </span>
-                      <span className="attention-text">
-                        {item.text}{' '}
-                        <Link to={item.to}>{item.link} →</Link>
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </section>
-
-            <section className="card tone-green" aria-labelledby="dashboard-week">
+            <section className="card" aria-labelledby="dashboard-week">
               <h2 id="dashboard-week">{t('dashboard.week')}</h2>
               <dl className="dashboard-figures">
                 <div>
@@ -287,12 +243,12 @@ export const Dashboard: React.FC<{ addToast?: Toast }> = ({ addToast }) => {
                 </div>
                 <div className="is-wide">
                   <dt className="label-caps">{t('dashboard.revenue')}</dt>
-                  <dd>{formatMoney(Number(stats.total_revenue), 'PLN')}</dd>
+                  <dd className="is-money">{formatMoney(Number(stats.total_revenue), 'PLN')}</dd>
                 </div>
               </dl>
             </section>
 
-            <section className="card tone-teal" aria-labelledby="dashboard-channels">
+            <section className="card" aria-labelledby="dashboard-channels">
               <h2 id="dashboard-channels">{t('dashboard.ordersBySource')}</h2>
               {sources.length === 0 ? (
                 <p className="dashboard-empty">{t('dashboard.noOrders')}</p>
@@ -303,7 +259,9 @@ export const Dashboard: React.FC<{ addToast?: Toast }> = ({ addToast }) => {
                     return (
                       <li key={source}>
                         <Link to={`/orders?source=${source}`} className="channel-line">
-                          <ChannelChip source={source} />
+                          <span className="channel-name">
+                            <SourceMark source={source} /> {channelName(source)}
+                          </span>
                           <span className="channel-count">
                             <b>{count}</b> · {share}%
                           </span>
@@ -324,53 +282,77 @@ export const Dashboard: React.FC<{ addToast?: Toast }> = ({ addToast }) => {
   );
 };
 
-/** One order with its deadline: its picture, number and what was bought, who bought it, and when it must go. */
+/** One order with its deadline: when it must go, the order, who bought it, what, how it goes, and where it stands. */
 function DeadlineRow({ order }: { order: Order }) {
   const { t, formatRelative, formatShortDateTime } = useTranslation();
   const urgency = dispatchUrgency(order);
   const first = order.items?.[0];
   const more = (order.items?.length ?? 0) - 1;
+  const shipment = order.shipments?.[0];
   return (
-    <li className="deadline-row">
-      {first?.image_url ? (
-        <ItemThumb src={first.image_url} className="deadline-thumb" />
-      ) : (
-        <span className="deadline-thumb is-empty" aria-hidden="true">
-          {order.order_label.slice(-2)}
-        </span>
-      )}
-      <span className="deadline-what">
-        <span className="deadline-title">
-          <Link to={`/orders/${order.id}`} state={{ closeTo: '/orders' }} className="order-id-link">
-            {order.order_label}
-          </Link>
-          {first && (
-            <span className="deadline-item">
-              {' · '}
-              {first.name}
-              {more > 0 && ` ${t('dashboard.moreItems', { count: more })}`}
-            </span>
-          )}
-        </span>
-        <span className="deadline-who">
-          <ChannelChip source={order.source} /> {buyerTitle(order)}
-        </span>
-      </span>
-      {order.dispatch_by && (
-        <span
-          className={`deadline-when is-${urgency ?? 'later'}`}
-          title={t('dashboard.dispatchBy', { when: formatShortDateTime(order.dispatch_by) })}
-        >
-          {urgency === 'late' ? t('dashboard.late') : formatShortDateTime(order.dispatch_by)}
-          <small>{formatRelative(order.dispatch_by)}</small>
-        </span>
-      )}
-    </li>
+    <tr className="deadline-row">
+      <td className="deadline-when-cell">
+        {order.dispatch_by && (
+          <span
+            className={`deadline-when is-${urgency ?? 'later'}`}
+            title={`${t('dashboard.dispatchBy', { when: formatShortDateTime(order.dispatch_by) })} · ${formatRelative(order.dispatch_by)}`}
+          >
+            {urgency === 'late' ? t('dashboard.late') : formatShortDateTime(order.dispatch_by)}
+          </span>
+        )}
+      </td>
+      <td>
+        <OrderNumber order={order} />
+      </td>
+      <td className="dashboard-buyer" title={buyerTitle(order)}>
+        {buyerNick(order)}
+      </td>
+      <td className="deadline-item">
+        {first ? (
+          <>
+            {first.name}
+            {more > 0 && <span className="muted"> {t('dashboard.moreItems', { count: more })}</span>}
+          </>
+        ) : (
+          '—'
+        )}
+      </td>
+      <td className="deadline-ship">
+        <SmartBadge smart={order.delivery_smart} />
+        {shipment && <span className="deadline-carrier">{carrierLabel(shipment)}</span>}
+      </td>
+      <td>
+        <span className={`badge badge-${order.status.toLowerCase()}`}>{statusText(order.status, t)}</span>
+      </td>
+    </tr>
   );
 }
 
-function ChannelChip({ source }: { source: string }) {
-  return <span className={`dashboard-channel channel-${source.toLowerCase()}`}>{channelName(source)}</span>;
+/** The channel's letter and the order's number, linked to its page. */
+function OrderNumber({ order }: { order: Order }) {
+  return (
+    <span className="dashboard-order">
+      <SourceMark source={order.source} />
+      {/* the state makes "back" on the order's page lead to the orders list */}
+      <Link to={`/orders/${order.id}`} state={{ closeTo: '/orders' }} className="order-id-link">
+        {order.order_label}
+      </Link>
+    </span>
+  );
+}
+
+/** The channel as one letter on its tint, as in the order list; its name on hover. */
+function SourceMark({ source }: { source: string }) {
+  return (
+    <span className={`source-mark source-${source.toLowerCase()}`} title={channelName(source)} aria-label={channelName(source)}>
+      {source.charAt(0)}
+    </span>
+  );
+}
+
+// the marketplace nick, as on the order list; the name when there is none
+function buyerNick(order: Order): string {
+  return order.customer_login || buyerTitle(order);
 }
 
 /** Today's time for something that happened today, the day and time for anything older. */
