@@ -22,7 +22,7 @@ interface OrderShippingCardProps {
 /**
  * Everything about sending one order in a single card: the parcels already sent, and
  * the ways to make another, one way at a time (a label bought through Allegro, an
- * InPost locker parcel, a tracking number typed in). Each way shows only when it can
+ * InPost locker parcel for an order not from Allegro, a tracking number typed in). Each way shows only when it can
  * apply to the order; when there is just the one, it is shown without the tabs.
  *
  * An order with a parcel already on it has nothing left to do here most of the time,
@@ -37,7 +37,9 @@ export function OrderShippingCard({ order, onChanged, onAdded, isDeleted }: Orde
 
   const ways: Way[] = [
     ...(order.source === OrderSource.ALLEGRO ? (["allegro"] as const) : []),
-    ...(isInpostLockerOrder(order) ? (["inpost"] as const) : []),
+    // an Allegro order's InPost parcel is bought through Allegro, at Allegro's price;
+    // made at InPost it would cost InPost's own price, Smart or not
+    ...(order.source !== OrderSource.ALLEGRO && isInpostLockerOrder(order) ? (["inpost"] as const) : []),
     "own",
   ];
   const way = chosen && ways.includes(chosen) ? chosen : ways[0];

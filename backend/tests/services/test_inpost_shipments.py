@@ -92,14 +92,14 @@ def _quick_and_quiet(monkeypatch):
 def _order(session, **overrides):
     fields = {
         "external_id": f"ALG-{overrides.pop('tag', 'A')}",
-        "source": OrderSource.ALLEGRO,
+        "source": OrderSource.ERLI,
         "status": OrderStatus.CONFIRMED,
         "customer_email": "buyer@user.allegromail.pl",
         "customer_first_name": "Anna",
         "customer_last_name": "Nowak",
         "total_amount": Decimal("45.00"),
         "currency": "PLN",
-        "delivery_method": "Allegro Paczkomaty InPost",
+        "delivery_method": "Paczkomaty InPost 24/7",
         "pickup_point_id": "KRA010",
         "pickup_point_name": "Paczkomat KRA010",
         "payment_type": PaymentType.ONLINE,
@@ -195,6 +195,11 @@ def test_an_ordinary_locker_order_can_have_a_parcel(session):
         ({"delivery_method": "Allegro Automat ORLEN Paczka"}, "not a delivery to an InPost parcel locker"),
         ({"delivery_method": "ERLI InPost Kurier", "pickup_point_id": None}, "courier delivery"),
         ({"deleted_at": datetime(2026, 9, 1, tzinfo=UTC)}, "deleted"),
+        # bought here it is InPost's price on the seller's contract, Smart or not
+        (
+            {"source": OrderSource.ALLEGRO, "delivery_method": "Allegro Paczkomaty InPost"},
+            "bought through Allegro",
+        ),
     ],
 )
 def test_an_order_that_should_not_get_a_parcel_is_refused_with_a_reason(session, overrides, fragment):
@@ -601,6 +606,7 @@ def test_a_batch_reports_inposts_refusal_as_a_failure_with_its_words(session):
 def test_the_orders_awaiting_a_parcel_are_the_open_inpost_locker_ones_with_no_number(session):
     wanted = _order(session, tag="wanted")
     _order(session, tag="orlen", delivery_method="Allegro Automat ORLEN Paczka")
+    _order(session, tag="allegro", source=OrderSource.ALLEGRO, delivery_method="Allegro Paczkomaty InPost")
     _order(session, tag="shipped", status=OrderStatus.SHIPPED)
     _order(session, tag="cancelled", marketplace_cancelled_at=datetime(2026, 9, 1, tzinfo=UTC))
     _order(session, tag="cod", payment_type=PaymentType.CASH_ON_DELIVERY)

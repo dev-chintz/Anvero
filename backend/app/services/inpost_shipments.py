@@ -29,7 +29,7 @@ from app.integrations.base import IntegrationError
 from app.integrations.inpost.client import InpostClient
 from app.models.inpost_shipment import InpostShipment
 from app.models.marketplace_write import WriteOutcome
-from app.models.order import AddressType, Order, OrderStatus, PaymentType
+from app.models.order import AddressType, Order, OrderSource, OrderStatus, PaymentType
 from app.services.inpost_settings import build_inpost_client, get_settings
 from app.services.marketplace_writes import MarketplaceWriter, WriteResult
 from app.services.order_writes import OrderWrites
@@ -121,6 +121,10 @@ def refusal(order: Order, existing: list[InpostShipment]) -> str | None:
         return "The order is cancelled"
     if order.payment_type == PaymentType.CASH_ON_DELIVERY:
         return "Cash on delivery is not supported: the business does not ship it"
+    if order.source is OrderSource.ALLEGRO:
+        # made here, the parcel is bought on the seller's own InPost contract at
+        # InPost's price, Smart or not; bought through Allegro it is Allegro's price
+        return "An Allegro order's InPost parcel is bought through Allegro (Etykieta Allegro), at Allegro's price"
     if not is_inpost_locker(order):
         return "This is not a delivery to an InPost parcel locker (a courier delivery cannot be made here yet)"
     if any(s.status not in _CANCELLED for s in existing):
@@ -194,6 +198,7 @@ class InpostShipments:
                 Order.deleted_at.is_(None),
                 Order.marketplace_cancelled_at.is_(None),
                 Order.status.in_(_OPEN_STATUSES),
+                Order.source != OrderSource.ALLEGRO,
                 Order.pickup_point_id.is_not(None),
                 Order.delivery_method.ilike("%inpost%"),
                 Order.id.notin_(made),

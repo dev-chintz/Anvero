@@ -6,6 +6,14 @@ All significant changes to the Anvero project.
 
 ## 2026-09-29
 
+### 📦 Allegro orders no longer offer an InPost parcel of their own
+
+- Four InPost parcels for Allegro orders, three of them Smart, were made from Anvero's InPost card and
+  charged at InPost's own price to the seller's InPost account. An Allegro order's InPost parcel is
+  now only bought through Allegro ("Etykieta Allegro"), at Allegro's price: the InPost tab is gone
+  from Allegro orders, and the backend refuses them one by one and in a batch. Erli orders keep it.
+  See `docs/DECISIONS.md`.
+
 ### 🖨️ Allegro labels fill the paper
 
 - Allegro sends its label on an A6 page with a blank border, so on a 4 x 6 in label printer it

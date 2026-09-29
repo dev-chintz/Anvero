@@ -1961,3 +1961,22 @@ machine needs no new package, and the file is only read through its classic
 cross-reference table, which is what OpenPDF writes. Tested on synthetic PDFs
 laid out the same way and checked by eye on the real label's file (not
 committed: it carries the buyer's data).
+
+## 2026-09-29 — An Allegro order's InPost parcel is bought through Allegro only
+
+**Decision:** Anvero's own InPost shipments (ShipX, `inpost_shipments.py`) are
+for orders not from Allegro. `refusal()` refuses an Allegro order, so neither
+the order page nor a batch from the Labels page can make one, and
+`awaiting_parcel()` no longer lists them; the order page shows an Allegro
+order no InPost tab, only "Etykieta Allegro" and a number typed in. Erli
+locker orders keep the InPost tab, having no other way.
+
+**Rationale:** On 2026-09-29 four InPost parcels for Allegro orders, three of
+them Smart, were made from the InPost tab and cost 65.96 zł from the seller's
+InPost balance: a shipment made through ShipX is bought on the seller's own
+InPost contract at InPost's price, and InPost knows nothing of Smart. Bought
+through Wysyłam z Allegro the same parcel is Allegro's, at Allegro's price
+(Smart's for a Smart order), which the owner confirmed is what every Allegro
+order should use. Hiding the tab alone would have left the batch on the Labels
+page able to do the same, hence the refusal in the backend.
+

@@ -517,6 +517,13 @@ order ("Label" card), after the sender is entered in Integrations, "Shipping":
 6. Cancelling: `POST /shipment-management/shipments/cancel-commands`, then
    its status the same way.
 
+InPost through Wysyłam z Allegro needs the seller's ShipX API token entered
+in Allegro's own shipping settings ("Integracja z InPost"); Allegro's guide
+says so (developer.allegro.pl, "Jak zarządzać przesyłkami przez Wysyłam z
+Allegro"). Without it Allegro refuses the shipment with "Brak poświadczeń
+InPost", as it did on 2026-09-29. Nothing in Anvero sets it: the owner does,
+in Allegro.
+
 **Courier pickup**, from the Labels page, for parcels of one carrier:
 `POST /shipment-management/pickup-proposals` with `shipmentIds` and
 `readyDate` returns the slots (read without safe mode: it only asks), then

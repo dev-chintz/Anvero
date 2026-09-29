@@ -1125,27 +1125,28 @@ describe("the order page's layout", () => {
     expect(screen.getByRole("link", { name: /Internal note/ })).toBeInTheDocument();
   });
 
-  it("has one way to ship for an Erli order, without tabs, and three for an Allegro locker order", async () => {
+  it("has one way to ship for an Erli order, without tabs, and two for an Allegro locker order", async () => {
     vi.mocked(ordersApi.get).mockResolvedValue(makeOrderDetails({ source: OrderSource.ERLI }));
-    const { unmount } = renderAt("/orders/order-1");
+    const first = renderAt("/orders/order-1");
     expect(await screen.findByLabelText("Tracking number")).toBeInTheDocument();
     expect(screen.queryByRole("tablist")).toBeNull();
-    unmount();
+    first.unmount();
 
+    const locker = {
+      method: "Allegro Paczkomaty InPost",
+      cost: null,
+      address: null,
+      pickup_point: { id: "WAW01A", name: "Paczkomat WAW01A", address: null },
+    };
+    // an Allegro order's InPost parcel is bought through Allegro, at Allegro's price
     vi.mocked(ordersApi.get).mockResolvedValue({
       ...makeOrderDetails({ source: OrderSource.ALLEGRO }),
-      delivery: {
-        method: "Allegro Paczkomaty InPost",
-        cost: null,
-        address: null,
-        pickup_point: { id: "WAW01A", name: "Paczkomat WAW01A", address: null },
-      },
+      delivery: locker,
     });
-    renderAt("/orders/order-1");
+    const second = renderAt("/orders/order-1");
     const tabs = await screen.findByRole("tablist", { name: "Ways to ship" });
     expect(within(tabs).getAllByRole("tab").map((tab) => tab.textContent)).toEqual([
       "Allegro label",
-      "InPost",
       "Own number",
     ]);
     expect(within(tabs).getByRole("tab", { name: "Allegro label" })).toHaveAttribute("aria-selected", "true");
@@ -1153,6 +1154,19 @@ describe("the order page's layout", () => {
     fireEvent.click(within(tabs).getByRole("tab", { name: "Own number" }));
     expect(await screen.findByLabelText("Tracking number")).toBeInTheDocument();
     expect(within(tabs).getByRole("tab", { name: "Own number" })).toHaveAttribute("aria-selected", "true");
+    second.unmount();
+
+    // an Erli locker order has no Allegro label, so InPost is its way
+    vi.mocked(ordersApi.get).mockResolvedValue({
+      ...makeOrderDetails({ source: OrderSource.ERLI }),
+      delivery: { ...locker, method: "Paczkomaty InPost 24/7" },
+    });
+    renderAt("/orders/order-1");
+    const erliTabs = await screen.findByRole("tablist", { name: "Ways to ship" });
+    expect(within(erliTabs).getAllByRole("tab").map((tab) => tab.textContent)).toEqual([
+      "InPost",
+      "Own number",
+    ]);
   });
 
   it("shows the parcels already sent, or says there are none", async () => {

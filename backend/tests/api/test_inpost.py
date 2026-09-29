@@ -124,14 +124,14 @@ def _order(**overrides) -> str:
     try:
         fields = {
             "external_id": f"inpost-{uuid.uuid4()}",
-            "source": OrderSource.ALLEGRO,
+            "source": OrderSource.ERLI,
             "status": OrderStatus.CONFIRMED,
             "customer_email": "buyer@user.allegromail.pl",
             "customer_first_name": "Anna",
             "customer_last_name": "Nowak",
             "total_amount": Decimal("45.00"),
             "currency": "PLN",
-            "delivery_method": "Allegro Paczkomaty InPost",
+            "delivery_method": "Paczkomaty InPost 24/7",
             "pickup_point_id": "KRA010",
             "pickup_point_name": "Paczkomat KRA010",
             "payment_type": PaymentType.ONLINE,
