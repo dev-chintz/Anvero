@@ -2000,3 +2000,12 @@ The letter also names `inpost_locker_allegro` as the ShipX service for these
 parcels; it is not used, as Allegro orders no longer make parcels at InPost
 at all (the entry before this one).
 
+
+## 2026-09-29 — UI work moves to Claude Design
+
+**Decision (owner):** Improving the interface is designed in Claude Design before it is built. First the existing look was turned into a design system there (https://claude.ai/artifact/UUeEBotbDsA8UdJ7sWHMwY), from `frontend/src/index.css`, `styles/theme.css`, `docs/STYLE_GUIDE.md`, the logo and the carrier marks at `3cfbdc0`; then a first screen, the order page, as a canvas with a proposal beside today's layout (https://claude.ai/artifact/QJHBPmAH386DKwASmqmG43). Both are private artifacts in the owner's account.
+
+**Rationale:** Screens can be compared and commented on before any code changes, and every design starts from Anvero's real tokens instead of a generic look. This is the start of the visual pass `ROADMAP.md` item 5 held back until the system ran unattended with backups, which it now does on the NAS.
+
+**Consequences:** The code stays the source of truth for values: a token changes in `index.css` first and the design system follows (a re-sync), never the other way round. The system flagged weak contrast on the solid status badges (white on the New, Ready, Shipped, Delivered, Cancelled, Allegro and Erli fills is below 4.5:1, Shipped and Delivered below 3:1), a first candidate for the pass. Nothing in the application changed with this entry.
+

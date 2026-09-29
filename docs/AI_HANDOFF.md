@@ -83,20 +83,23 @@ scripts/    PowerShell helpers for the local environment
 
 # Current Priorities
 
-**PICK UP HERE (2026-09-29): the order page's summary redesign is built -
-it needs the owner's look in a browser.** What was built, and why, is in
-`DECISIONS.md` (2026-09-29): the status picker and its facts moved into
-`OrderHeader` (`OrderFactsCard.tsx` deleted, its tests moved to "the status
-row under the road" in `orderPageParts.test.tsx`), payment folded as
-"Płatność" after the status history (`OrderPaymentCard` with `embedded`),
-shipping its own card again, and a "Smart!" badge (`smartBadge.tsx`) in the
-header, the Dostawa card and the order list, fed by the new
-`orders.delivery_smart` (migration `b3e8d1f4a627`, applied to the NAS
-development database). What is left: the owner opening a Smart and a
-non-Smart order, with and without a parcel, in light and dark mode, and
-saying whether round two reads as intended; then the next Allegro import, to
-see `delivery.smart` arrive on real orders (`PROJECT_STATUS.md`, "Not yet
-verified").
+**PICK UP HERE (2026-09-29, evening): UI improvement in Claude Design.** The
+owner asked to improve the interface with Claude Design (`DECISIONS.md`,
+2026-09-29, "UI work moves to Claude Design"). Two private artifacts in the
+owner's claude.ai account hold it, readable only when signed in as the owner:
+
+- the **Anvero design system**, https://claude.ai/artifact/UUeEBotbDsA8UdJ7sWHMwY: tokens, brand book and nine
+  components built from `index.css`, `theme.css` and `STYLE_GUIDE.md` at
+  `3cfbdc0`. It follows the code: a token changes in `index.css` first.
+- the **order page canvas**, https://claude.ai/artifact/QJHBPmAH386DKwASmqmG43: a proposal (two columns: the work on
+  the left, the facts in a 340px rail on the right, payment back as a green
+  card, the status facts beside the steps) next to today's layout.
+
+Next: the owner's verdict on the proposal, then building the chosen layout in
+`OrderDetail.tsx` / `OrderPage.css`. The order page's round two (status in
+the header, payment folded, Smart badge) was seen by the owner in the browser
+and adjusted (space under Wysyłka, a blue band for Wiadomości); what is still
+unseen is `delivery.smart` on a real import (`PROJECT_STATUS.md`).
 
 After that, the feature plan at the end of `ROADMAP.md` (`PROJECT_STATUS.md`).
 
