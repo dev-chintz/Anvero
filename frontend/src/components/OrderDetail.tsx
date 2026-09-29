@@ -7,7 +7,12 @@ import type { Order, OrderBilling, OrderStatusChange, OrderWithDetails } from ".
 import { translate, useTranslation } from "../i18n";
 import { AfterSalesCard } from "./AfterSalesCard";
 import { describeWrite } from "./marketplaceWrite";
-import { OrderAddressCards, OrderBuyerCard, OrderItemsCard } from "./OrderDetailsPanel";
+import {
+  OrderAddressCards,
+  OrderBuyerCard,
+  OrderItemsCard,
+  OrderPaymentCard,
+} from "./OrderDetailsPanel";
 import { OrderAttentionBar } from "./OrderAttentionBar";
 import { OrderHeader } from "./OrderHeader";
 import { OrderInternalNote } from "./OrderInternalNote";
@@ -310,41 +315,46 @@ export function OrderDetail() {
 
             <OrderItemsCard order={order} onPackingChange={handlePacking} />
 
-            <div className="order-details-top">
-              <OrderBuyerCard order={order} />
-              <OrderAddressCards order={order} />
+            <div className="order-columns">
+              <div className="order-main">
+                <OrderShippingCard
+                  key={`shipping-${order.id}`}
+                  order={order}
+                  isDeleted={isDeleted}
+                  onChanged={() => {
+                    ordersApi.get(order.id).then(setOrder).catch(() => undefined);
+                    loadWrites(order.id);
+                  }}
+                  onAdded={(result: OrderChangeResult) => {
+                    setOrder(result);
+                    loadWrites(result.id);
+                  }}
+                />
+
+                <OrderMessagesCard threads={messageThreads} onThreadsChange={setMessageThreads} />
+
+                <OrderInternalNote
+                  key={`note-${order.id}`}
+                  orderId={order.id}
+                  note={order.internal_note ?? null}
+                  onSaved={(saved) => setOrder({ ...order, internal_note: saved.internal_note })}
+                />
+
+                <OrderMoreSections
+                  order={order}
+                  history={history}
+                  billing={billing}
+                  buyerOrders={buyerOrders}
+                  writes={writes}
+                />
+              </div>
+
+              <aside className="order-rail" aria-label={t("order.rail")}>
+                <OrderBuyerCard order={order} />
+                <OrderAddressCards order={order} />
+                <OrderPaymentCard order={order} />
+              </aside>
             </div>
-
-            <OrderShippingCard
-              key={`shipping-${order.id}`}
-              order={order}
-              isDeleted={isDeleted}
-              onChanged={() => {
-                ordersApi.get(order.id).then(setOrder).catch(() => undefined);
-                loadWrites(order.id);
-              }}
-              onAdded={(result: OrderChangeResult) => {
-                setOrder(result);
-                loadWrites(result.id);
-              }}
-            />
-
-            <OrderMessagesCard threads={messageThreads} onThreadsChange={setMessageThreads} />
-
-            <OrderMoreSections
-              order={order}
-              history={history}
-              billing={billing}
-              buyerOrders={buyerOrders}
-              writes={writes}
-            />
-
-            <OrderInternalNote
-              key={`note-${order.id}`}
-              orderId={order.id}
-              note={order.internal_note ?? null}
-              onSaved={(saved) => setOrder({ ...order, internal_note: saved.internal_note })}
-            />
           </>
         )}
       </section>

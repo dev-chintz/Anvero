@@ -4,7 +4,6 @@ import type { MarketplaceWrite } from "../api/client";
 import { useTranslation } from "../i18n";
 import { BuyerOrdersCard } from "./BuyerOrdersCard";
 import { OrderBillingCard } from "./OrderBillingCard";
-import { OrderPaymentCard } from "./OrderDetailsPanel";
 import { OrderWritesCard } from "./OrderWritesCard";
 import "../styles/OrderHistory.css";
 
@@ -101,7 +100,7 @@ interface OrderMoreSectionsProps {
 
 /**
  * What is rarely needed, folded away with a count or a figure beside each name: the
- * status history, the payment, the marketplace's fees, the buyer's other orders, what was sent to
+ * status history, the marketplace's fees, the buyer's other orders, what was sent to
  * the marketplace, and the order's technical data.
  */
 export function OrderMoreSections({
@@ -117,17 +116,6 @@ export function OrderMoreSections({
     <section className="order-card order-more" aria-label={t("order.more")}>
       <Folded title={t("history.title")} summary={history.length}>
         <StatusHistoryList order={order} history={history} />
-      </Folded>
-
-      <Folded
-        title={t("details.payment")}
-        summary={
-          order.payment.paid_amount !== null
-            ? formatMoney(order.payment.paid_amount, order.currency)
-            : undefined
-        }
-      >
-        <OrderPaymentCard order={order} embedded />
       </Folded>
 
       {billing && (

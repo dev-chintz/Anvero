@@ -2009,3 +2009,14 @@ at all (the entry before this one).
 
 **Consequences:** The code stays the source of truth for values: a token changes in `index.css` first and the design system follows (a re-sync), never the other way round. The system flagged weak contrast on the solid status badges (white on the New, Ready, Shipped, Delivered, Cancelled, Allegro and Erli fills is below 4.5:1, Shipped and Delivered below 3:1), a first candidate for the pass. Nothing in the application changed with this entry.
 
+
+## 2026-09-29 — The order page in two columns
+
+**Decision (owner, from the Claude Design canvas https://claude.ai/artifact/QJHBPmAH386DKwASmqmG43, refined over three rounds):** Under the header, the attention bar and the after-sales card, Pozycje takes the page's full width. Below it two columns: on the left the work on the order (Wysyłka, Wiadomości, the internal note, then the folded sections); on the right a 260px rail of facts (Kupujący, Dostawa, Faktura, Płatność at the bottom). Payment is a card again, in the rail, and leaves the folded sections (`OrderPaymentCard`'s `embedded` form is gone). `OrderAddressCards` renders Dostawa before Faktura. Below 900px the two columns stack, the rail first.
+
+**Rationale:** The owner works on a monitor turned upright (about 1080px wide). A rail beside everything, as first proposed, left the items too narrow for the shop's long product names, so the items get the full width and only what is read, not worked on, goes to the side. The three cards in a row of the earlier layout were cramped at that width.
+
+**Consequences:** The header is unchanged: the canvas's proposal also moved the status facts beside the steps and the any-status picker into the menu, which the owner did not ask for, so it was not built. `.order-details-top` is gone for `.order-columns` / `.order-main` / `.order-rail` (`OrderPage.css`).
+
+**Verified:** frontend tests (611) and `tsc`. Not seen in a browser: the page needs the owner's login.
+

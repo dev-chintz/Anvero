@@ -62,7 +62,7 @@ Repository: <https://github.com/dev-chintz/Anvero>
   scope). Full detail in `DECISIONS.md` and `CHANGELOG.md`.
 - Order page (2026-09-29): status picker in the header, payment folded,
   Allegro Smart badge (`DECISIONS.md`)
-- 1031 backend tests and 613 frontend tests (Vitest + React Testing Library)
+- 1031 backend tests and 611 frontend tests (Vitest + React Testing Library)
   passing
 
 ---
@@ -95,8 +95,10 @@ owner's claude.ai account hold it, readable only when signed in as the owner:
   the left, the facts in a 340px rail on the right, payment back as a green
   card, the status facts beside the steps) next to today's layout.
 
-Next: the owner's verdict on the proposal, then building the chosen layout in
-`OrderDetail.tsx` / `OrderPage.css`. The order page's round two (status in
+The owner chose the canvas's layout, refined for a monitor turned upright, and
+it is built (`DECISIONS.md`, 2026-09-29, "The order page in two columns"),
+tested but not yet seen in a browser. Next: the owner's look at it, then the
+next screen to take through Claude Design. The order page's round two (status in
 the header, payment folded, Smart badge) was seen by the owner in the browser
 and adjusted (space under Wysyłka, a blue band for Wiadomości); what is still
 unseen is `delivery.smart` on a real import (`PROJECT_STATUS.md`).

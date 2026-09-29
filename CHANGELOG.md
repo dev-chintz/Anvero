@@ -6,6 +6,13 @@ All significant changes to the Anvero project.
 
 ## 2026-09-29
 
+### 🧭 The order page in two columns
+
+- The items take the page's full width; under them the shipping card, messages, internal note and
+  folded sections on the left, and a narrow column on the right with the buyer, delivery, invoice
+  and payment. Payment is a card again. Designed in Claude Design for a monitor turned upright. See
+  `docs/DECISIONS.md`.
+
 ### 🐛 Fixed: Allegro refused InPost labels ("Brak poświadczeń InPost")
 
 - A label for Allegro Paczkomaty InPost is bought on the InPost agreement the seller added to

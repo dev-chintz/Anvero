@@ -429,11 +429,13 @@ describe("the addresses", () => {
     expect(screen.queryByRole("button", { name: "Copy the address" })).toBeNull();
   });
 
-  it("show the delivery and the invoice side by side, the invoice only as wanted or not", () => {
+  it("show the delivery, then the invoice only as wanted or not", () => {
     render(<OrderAddressCards order={details({ invoice: { required: true, address: null } })} />);
 
-    expect(screen.getByRole("region", { name: "Delivery" })).toBeInTheDocument();
-    expect(screen.getByRole("region", { name: "Invoice" })).toHaveTextContent("Buyer requested an invoice");
+    const [delivery, invoice] = screen.getAllByRole("region");
+    expect(delivery).toHaveAccessibleName("Delivery");
+    expect(invoice).toHaveAccessibleName("Invoice");
+    expect(invoice).toHaveTextContent("Buyer requested an invoice");
   });
 });
 
@@ -460,35 +462,11 @@ describe("the folded sections", () => {
     expect(folded().every((section) => !(section as HTMLDetailsElement).open)).toBe(true);
   });
 
-  it("always hold the history, the payment and the technical data", () => {
+  it("always hold the history and the technical data; the payment is a card of its own", () => {
     renderMore();
 
-    const names = folded().map((section) => section.querySelector("summary")?.textContent ?? "");
-    expect(names).toHaveLength(3);
-    expect(names[0]).toBe("Status history0");
-    expect(names[1]).toMatch(/^Payment45[.,]49/);
-    expect(names[2]).toBe("Technical data");
-  });
-
-  it("fold the payment right after the history, with its state inside", () => {
-    renderMore({
-      order: details({
-        payment_type: PaymentType.ONLINE,
-        paid_amount: "0.00",
-        payment: { type: PaymentType.ONLINE, provider: "P24", paid_amount: "0.00", paid_at: null },
-      }),
-    });
-
-    const payment = folded()[1];
-    expect(payment.querySelector("summary")).toHaveTextContent(/^Payment0[.,]00/);
-    expect(within(payment as HTMLElement).getByRole("group", { name: "Payment" })).toHaveClass("payment-unpaid");
-    expect(payment).toHaveTextContent("P24");
-  });
-
-  it("leave the payment's summary empty while what was paid is unknown", () => {
-    renderMore({ order: details({ payment: { type: null, provider: null, paid_amount: null, paid_at: null } }) });
-
-    expect(folded()[1].querySelector("summary")?.textContent).toBe("Payment");
+    const names = folded().map((section) => section.querySelector("summary")?.textContent);
+    expect(names).toEqual(["Status history0", "Technical data"]);
   });
 
   it("count what is inside without opening it", () => {
@@ -501,7 +479,7 @@ describe("the folded sections", () => {
     });
 
     const names = folded().map((section) => section.querySelector("summary")?.textContent);
-    expect(names.filter((name) => !name?.startsWith("Payment"))).toEqual([
+    expect(names).toEqual([
       "Status history1",
       "The buyer's other orders0",
       "Sent to the marketplace1",

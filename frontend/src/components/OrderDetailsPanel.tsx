@@ -333,26 +333,13 @@ export function OrderShipmentsList({ shipments }: { shipments: Shipment[] }) {
   );
 }
 
-/** Where the order goes, and the invoice address, side by side; each address can be copied. */
+/** Where the order goes, then the invoice, one card each; each address can be copied. */
 export function OrderAddressCards({ order }: { order: OrderWithDetails }) {
   const { delivery, invoice } = order;
   const { t } = useTranslation();
 
   return (
     <div className="order-address-cards">
-      <section className="order-card order-invoice" aria-label={t("details.invoice")}>
-        <div className="order-card-head">
-          <h2>{t("details.invoice")}</h2>
-          {invoice.address && (
-            <CopyAddressButton address={invoice.address} label={t("order.copyAddress")} />
-          )}
-        </div>
-        <p className={invoice.required ? "order-invoice-required" : undefined}>
-          {invoice.required ? t("details.invoiceRequested") : t("details.noInvoice")}
-        </p>
-        {invoice.address && <AddressLines address={invoice.address} />}
-      </section>
-
       <section className="order-card order-delivery" aria-label={t("details.delivery")}>
         <div className="order-card-head">
           <h2>{t("details.delivery")}</h2>
@@ -382,31 +369,29 @@ export function OrderAddressCards({ order }: { order: OrderWithDetails }) {
           <p className="order-muted">{t("details.noDelivery")}</p>
         )}
       </section>
+
+      <section className="order-card order-invoice" aria-label={t("details.invoice")}>
+        <div className="order-card-head">
+          <h2>{t("details.invoice")}</h2>
+          {invoice.address && (
+            <CopyAddressButton address={invoice.address} label={t("order.copyAddress")} />
+          )}
+        </div>
+        <p className={invoice.required ? "order-invoice-required" : undefined}>
+          {invoice.required ? t("details.invoiceRequested") : t("details.noInvoice")}
+        </p>
+        {invoice.address && <AddressLines address={invoice.address} />}
+      </section>
     </div>
   );
 }
 
-/**
- * How the buyer pays and whether it has been paid. `embedded` drops the card's own
- * chrome and title, for the folded "Payment" section that already names it.
- */
-export function OrderPaymentCard({ order, embedded = false }: { order: OrderWithDetails; embedded?: boolean }) {
+/** How the buyer pays and whether it has been paid. */
+export function OrderPaymentCard({ order }: { order: OrderWithDetails }) {
   const { t } = useTranslation();
   // the card's colour says how the payment stands: green paid, red not, plain when unknown
   const state = paymentState(order);
   const stateClass = state ? ` payment-${state}` : "";
-
-  if (embedded) {
-    return (
-      <div role="group" className={`embedded-card order-payment${stateClass}`} aria-label={t("details.payment")}>
-        <PaymentState order={order} />
-        {order.payment.type && <p className="order-muted">{t(`payment.type.${order.payment.type}`)}</p>}
-        {order.payment.provider && (
-          <p className="order-muted">{t("details.via", { provider: order.payment.provider })}</p>
-        )}
-      </div>
-    );
-  }
 
   return (
     <section className={`order-card order-payment${stateClass}`} aria-label={t("details.payment")}>
