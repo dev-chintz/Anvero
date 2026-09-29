@@ -28,7 +28,7 @@ from app.models.order import AddressType, Order, OrderSource, PaymentType
 from app.models.shipping_label import LabelStatus, ShippingLabel
 from app.schemas.shipping import PackageSize, ShippingSender
 from app.services.allegro_import import build_allegro_client
-from app.services.label_pdf import trim_label_pdf
+from app.services.label_pdf import fit_label_pdf
 from app.services.marketplace_writes import MarketplaceWriter, WriteResult
 from app.services.order_writes import ALLEGRO_CARRIERS, OrderWrites, _with_import_lock
 from app.services.shipping_settings import get_shipping_settings
@@ -382,4 +382,4 @@ class ShippingLabels:
         for label in labels:
             label.printed_at = now
         self.db.commit()
-        return trim_label_pdf(content)
+        return fit_label_pdf(content)

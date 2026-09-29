@@ -1,17 +1,21 @@
-"""Trimming the blank border Allegro leaves around a label, so it fills the paper.
+"""Making Allegro's label PDF fill the label printer's 4 x 6 in paper.
 
 Allegro's A6 label (a PDF made by OpenPDF) is one page of 297 x 420 pt with the
 carrier's label placed on it as a form XObject, scaled to 95% and set 8 pt in
 from the corner; the carrier's own drawing sits a few points further in. On
 4 x 6 in paper, printed "fit to page width", the label came out at about 87% of
-the paper's width. Here each page's MediaBox is shrunk to what the page really
-draws, so a printer scaling the page to its paper scales the label up to fill it.
+the paper's width. Cropping the page to the label was not enough: Chrome's
+"fit to page" shrinks a page larger than the paper but never enlarges a smaller
+one, so the cropped label printed at its own size in the paper's corner. So
+each page is made exactly 4 x 6 in, and the label - what the page really draws
+- is scaled up to fill it, centred.
 
-Only the page boxes change, through an incremental update appended to the file:
-the drawing, the barcode and the QR code stay exactly as Allegro made them.
+The label's drawing is not rewritten: the page's content is wrapped between two
+new content streams (a scale, and its undoing), added as an incremental update
+to the file, so the barcode and the QR code are Allegro's own, only larger.
 Anything this does not understand (a cross-reference stream, an encrypted file,
-inline images, text outside the label's frame) leaves that page, or the whole
-PDF, as it came: a label printed smaller is better than one printed cut.
+inline images) leaves the PDF as it came: a label printed smaller is better than
+one printed wrong.
 """
 
 import logging
@@ -26,8 +30,8 @@ logger = logging.getLogger(__name__)
 # label printer needs a hair of paper at the edge
 MARGIN_PT = 1.5
 
-# a crop that would win back less than this, per side, is not worth an update
-MIN_GAIN_PT = 2.0
+# the label printer's paper, 4 x 6 in, in points
+LABEL_PAGE_PT = (288, 432)
 
 _WHITESPACE = b" \t\r\n\f\x00"
 _DELIMITERS = b"()<>[]{}/%"
@@ -245,6 +249,11 @@ class _Extents:
         self.pdf = pdf
         self.shapes: list[tuple[float, float]] = []
         self.text: list[tuple[float, float]] = []
+        # where the forms drawn directly by this content sit: nothing they
+        # draw falls outside
+        self.forms: list[tuple[float, float, float, float]] = []
+        # whether this content shows text itself, rather than through a form
+        self.own_text = False
 
     def run(self, content: bytes, resources: dict[str, Any], ctm: Matrix, depth: int = 0) -> None:
         if depth > 8:
@@ -287,6 +296,7 @@ class _Extents:
                 tm = lm = _mul((1, 0, 0, 1, 0, -leading), lm)
             if op in ("Tj", "TJ", "'", '"'):
                 self.text.append(_apply(_mul(tm, ctm), 0, 0))
+                self.own_text = True
             elif op == "Do":
                 self._do(xobjects, args[-1], ctm, depth)
             elif op in ("BI", "sh", "d0", "d1"):
@@ -319,6 +329,7 @@ class _Extents:
 
         self.shapes += [clamp(p) for p in inner.shapes]
         self.text += [clamp(p) for p in inner.text]
+        self.forms.append((lo_x, lo_y, hi_x, hi_y))
 
 
 def _pages(pdf: _Pdf) -> list[tuple[int, dict[str, Any], dict[str, Any]]]:
@@ -342,8 +353,8 @@ def _pages(pdf: _Pdf) -> list[tuple[int, dict[str, Any], dict[str, Any]]]:
     return found
 
 
-def _crop_box(pdf: _Pdf, page: dict[str, Any], resources: dict[str, Any]) -> list[float] | None:
-    """The page's new MediaBox, or None to leave the page as it is."""
+def _label_box(pdf: _Pdf, page: dict[str, Any], resources: dict[str, Any]) -> list[float] | None:
+    """Where on the page the label is, or None to leave the page as it is."""
     media = page.get("MediaBox")
     if not isinstance(media, list) or len(media) != 4:
         return None
@@ -355,59 +366,101 @@ def _crop_box(pdf: _Pdf, page: dict[str, Any], resources: dict[str, Any]) -> lis
     extents.run(content, resources, _IDENTITY)
     if not extents.shapes:
         return None
-    x0 = max(min(p[0] for p in extents.shapes) - MARGIN_PT, mx0)
-    y0 = max(min(p[1] for p in extents.shapes) - MARGIN_PT, my0)
-    x1 = min(max(p[0] for p in extents.shapes) + MARGIN_PT, mx1)
-    y1 = min(max(p[1] for p in extents.shapes) + MARGIN_PT, my1)
+    x0 = min(p[0] for p in extents.shapes) - MARGIN_PT
+    y0 = min(p[1] for p in extents.shapes) - MARGIN_PT
+    x1 = max(p[0] for p in extents.shapes) + MARGIN_PT
+    y1 = max(p[1] for p in extents.shapes) + MARGIN_PT
     # text is known only by where it starts; any that starts outside the frame
-    # the paths make, or too near its right or top edge to fit, could be cut
+    # the paths make, or too near its right or top edge to fit, could be cut.
+    # Then the forms the page places are taken whole, as they clip what they
+    # draw, or failing those the whole page
     if any(not (x0 <= x <= x1 - 4 and y0 <= y <= y1 - 4) for x, y in extents.text):
-        logger.info("Label page has text outside its frame; left uncropped")
-        return None
-    if max(x0 - mx0, y0 - my0, mx1 - x1, my1 - y1) < MIN_GAIN_PT:
-        return None
-    return [round(v, 2) for v in (x0, y0, x1, y1)]
+        if extents.forms and not extents.own_text:
+            x0 = min(f[0] for f in extents.forms)
+            y0 = min(f[1] for f in extents.forms)
+            x1 = max(f[2] for f in extents.forms)
+            y1 = max(f[3] for f in extents.forms)
+        else:
+            x0, y0, x1, y1 = mx0, my0, mx1, my1
+    box = [max(x0, mx0), max(y0, my0), min(x1, mx1), min(y1, my1)]
+    return box if box[2] - box[0] > 36 and box[3] - box[1] > 36 else None
 
 
-def _box(values: list[float]) -> bytes:
-    return ("[" + " ".join(f"{v:g}" for v in values) + "]").encode()
+def _num(value: float) -> str:
+    return f"{value:.4f}".rstrip("0").rstrip(".")
 
 
-def trim_label_pdf(data: bytes) -> bytes:
-    """The label PDF with each page cropped to what it draws; unchanged when unsure."""
+def _fit(box: list[float]) -> bytes:
+    """The content that scales `box` to fill the label page, centred and clipped to it."""
+    x0, y0, x1, y1 = box
+    width, height = x1 - x0, y1 - y0
+    scale = min(LABEL_PAGE_PT[0] / width, LABEL_PAGE_PT[1] / height)
+    tx = (LABEL_PAGE_PT[0] - width * scale) / 2 - x0 * scale
+    ty = (LABEL_PAGE_PT[1] - height * scale) / 2 - y0 * scale
+    matrix = " ".join(_num(v) for v in (scale, 0, 0, scale, tx, ty))
+    clip = " ".join(_num(v) for v in (x0, y0, width, height))
+    return f"q {matrix} cm {clip} re W n\n".encode()
+
+
+def _stream_object(content: bytes) -> bytes:
+    return b"<</Length %d>>stream\n" % len(content) + content + b"\nendstream"
+
+
+def fit_label_pdf(data: bytes) -> bytes:
+    """The label PDF with each page made 4 x 6 in and filled by the label; unchanged when unsure."""
     try:
-        return _trim(data)
+        return _fit_pages(data)
     except Exception as exc:  # noqa: BLE001 - any doubt means the label as it came
-        logger.info("Label PDF left uncropped: %s", exc)
+        logger.info("Label PDF left as it came: %s", exc)
         return data
 
 
-def _trim(data: bytes) -> bytes:
+def _fit_pages(data: bytes) -> bytes:
     if not data.startswith(b"%PDF"):
         return data
     pdf = _Pdf(data)
-    updates: list[tuple[int, int, bytes]] = []
+    size = pdf.trailer.get("Size")
+    if not isinstance(size, int):
+        raise _Unsupported("trailer without a size")
+    # one stream that undoes the scale, shared by every page, then one per page
+    # that sets it
+    closing = size
+    size += 1
+    new_objects: list[tuple[int, int, bytes]] = [(closing, 0, _stream_object(b"\nQ"))]
     for num, page, resources in _pages(pdf):
-        box = _crop_box(pdf, page, resources)
+        box = _label_box(pdf, page, resources)
         if box is None:
             continue
         _, gen, start, end = pdf.object(num)
         body = data[start:end]
-        body = re.sub(rb"/(MediaBox|CropBox)\s*\[[^\]]*\]", lambda m: b"/" + m.group(1) + _box(box), body)
-        updates.append((num, gen, body))
-    if not updates:
+        contents = re.search(rb"/Contents\s*(\d+\s+\d+\s+R|\[[^\]]*\])", body)
+        if not contents:
+            continue
+        opening = size
+        size += 1
+        new_objects.append((opening, 0, _stream_object(_fit(box))))
+        inner = contents.group(1).strip(b"[]").strip()
+        body = (
+            body[: contents.start()]
+            + b"/Contents[%d 0 R %s %d 0 R]" % (opening, inner, closing)
+            + body[contents.end() :]
+        )
+        body = re.sub(rb"/(CropBox|TrimBox|BleedBox|ArtBox)\s*\[[^\]]*\]", b"", body)
+        body = re.sub(rb"/MediaBox\s*\[[^\]]*\]", b"/MediaBox[0 0 %d %d]" % LABEL_PAGE_PT, body)
+        new_objects.append((num, gen, body))
+    if len(new_objects) == 1:
         return data
 
     out = bytearray(data if data.endswith(b"\n") else data + b"\n")
     entries = []
-    for num, gen, body in updates:
+    for num, gen, body in new_objects:
         entries.append((num, gen, len(out)))
-        out += f"{num} {gen} obj\n".encode() + body.strip() + b"\nendobj\n"
+        out += b"%d %d obj\n" % (num, gen) + body.strip() + b"\nendobj\n"
     xref_at = len(out)
     out += b"xref\n"
     for num, gen, offset in sorted(entries):
-        out += f"{num} 1\n{offset:010d} {gen:05d} n\r\n".encode()
-    trailer = re.sub(rb"/Prev\s+\d+", b"", pdf.trailer_raw.strip())
-    trailer = b"<</Prev " + str(pdf.startxref).encode() + trailer[2:]
-    out += b"trailer\n" + trailer + b"\nstartxref\n" + str(xref_at).encode() + b"\n%%EOF\n"
+        out += b"%d 1\n%010d %05d n\r\n" % (num, offset, gen)
+    trailer = re.sub(rb"/(Prev|Size)\s+\d+", b"", pdf.trailer_raw.strip())
+    trailer = b"<</Size %d/Prev %d" % (size, pdf.startxref) + trailer[2:]
+    out += b"trailer\n" + trailer + b"\nstartxref\n%d\n%%%%EOF\n" % xref_at
     return bytes(out)

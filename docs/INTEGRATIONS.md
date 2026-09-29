@@ -508,10 +508,12 @@ order ("Label" card), after the sender is entered in Integrations, "Shipping":
    The real PDF (made by OpenPDF; first one seen 2026-09-29) is an A6 page,
    297 x 420 pt, with the carrier's label drawn as a form XObject scaled to
    95% and set 8 pt in, so printed "fit to page" on 4 x 6 in paper it came
-   out at about 87% of the width. Anvero shrinks each page's MediaBox to what
-   it draws plus 1.5 pt (`app/services/label_pdf.py`, an incremental update:
-   the drawing itself is untouched); a PDF it cannot read, or a page with
-   text outside the label's frame, is passed on as it came.
+   out at about 87% of the width. Anvero makes each page 4 x 6 in and scales
+   what it draws (plus 1.5 pt) up to fill it, centred
+   (`app/services/label_pdf.py`, an incremental update wrapping the page's
+   content: the drawing itself is untouched); a PDF it cannot read is passed
+   on as it came. Only cropping the page was not enough: Chrome's "fit to
+   page" shrinks a page bigger than the paper but never enlarges a smaller one.
 6. Cancelling: `POST /shipment-management/shipments/cancel-commands`, then
    its status the same way.
 

@@ -9,8 +9,9 @@ All significant changes to the Anvero project.
 ### 🖨️ Allegro labels fill the paper
 
 - Allegro sends its label on an A6 page with a blank border, so on a 4 x 6 in label printer it
-  printed at about 87% of the width. Anvero now crops each page to the label itself before handing
-  the PDF over; the label's drawing, barcode and QR code are untouched. See `docs/DECISIONS.md`.
+  printed at about 87% of the width. Anvero now makes each page 4 x 6 in and scales the label up to
+  fill it; the label's drawing, barcode and QR code are Allegro's own, only larger. See
+  `docs/DECISIONS.md`.
 
 ### 🐛 Fixed: a new Allegro order's parcel was never read
 

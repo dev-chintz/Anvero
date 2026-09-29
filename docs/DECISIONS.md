@@ -1932,25 +1932,32 @@ flushes the clear before appending (test:
 
 **Verified:** the adapter's tests, including a new order with a parcel. Not yet seen on the real order: AN-000217 shows its parcel after the next import from the machine that runs imports (the NAS), once it runs this code.
 
-## 2026-09-29 — Allegro labels are cropped to fill the paper
+## 2026-09-29 — Allegro labels are scaled to fill 4 x 6 in paper
 
 **Decision:** Before a label PDF from `POST /shipment-management/label` is
-handed over, `app/services/label_pdf.py` shrinks each page's MediaBox to what
-the page draws (the paths and images of the carrier's label, followed into
-its form XObject) plus 1.5 pt, written as an incremental update appended to
-Allegro's file. Anything it does not read - a cross-reference stream,
-encryption, inline images, a stream filter other than Flate, text that starts
-outside the label's frame - leaves the page, or the file, as Allegro sent it.
+handed over, `app/services/label_pdf.py` makes each page 4 x 6 in (288 x 432
+pt) and scales what the page draws - the paths and images of the carrier's
+label, followed into its form XObject, plus 1.5 pt - up to fill it, centred
+and clipped to the label. The page's own content is not rewritten: two new
+content streams wrap it (a scale, and its undoing), appended with the new page
+object as an incremental update. If text starts outside the label's frame,
+the forms the page places are taken whole instead, as they clip what they
+draw. Anything it does not read - a cross-reference stream, encryption,
+inline images, a stream filter other than Flate - leaves the file as Allegro
+sent it.
 
-**Rationale:** The first real label (ORLEN Paczka) came on an A6 page with
-the label scaled to 95% and set in by 8 pt plus the carrier's own border;
-printed "fit to page width" on the owner's 4 x 6 in label printer it filled
-about 87% of the width. Allegro offers only `A4` and `A6` pages, so the fix
-had to be Anvero's. Cropping the page, rather than redrawing or scaling the
-content, leaves the barcode and QR code exactly as Allegro made them; the
-printer's own fit-to-page does the scaling. No PDF library is added, so the
-production machine needs no new package, and the file is only read through
-its classic cross-reference table, which is what OpenPDF writes. Tested on
-synthetic PDFs laid out the same way and checked on the real label's file
-(not committed: it carries the buyer's data).
-
+**Rationale:** The first real label (ORLEN Paczka) came on an A6 page with the
+label scaled to 95% and set in by 8 pt plus the carrier's own border; printed
+"fit to page width" on the owner's 4 x 6 in label printer it filled about 87%
+of the width. Allegro's label endpoint offers only `A4` and `A6` pages, so the
+fix had to be Anvero's. A first version only cropped the page to the label,
+which did not help: Chrome's "fit to page" shrinks a page larger than the
+paper but never enlarges a smaller one, so the cropped label printed at its
+own size in a corner. The paper size is fixed at 4 x 6 in because that is the
+printer the business uses; an A6 printer would get the page shrunk by 4%.
+Scaling rather than redrawing leaves the barcode and QR code exactly as
+Allegro made them, only larger. No PDF library is added, so the production
+machine needs no new package, and the file is only read through its classic
+cross-reference table, which is what OpenPDF writes. Tested on synthetic PDFs
+laid out the same way and checked by eye on the real label's file (not
+committed: it carries the buyer's data).

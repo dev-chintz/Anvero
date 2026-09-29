@@ -1,8 +1,8 @@
-"""Cropping Allegro's label PDF to the label, on PDFs built like Allegro's."""
+"""Fitting Allegro's label PDF to 4 x 6 in paper, on PDFs built like Allegro's."""
 
 import zlib
 
-from app.services.label_pdf import _pages, _Pdf, trim_label_pdf
+from app.services.label_pdf import _pages, _Pdf, fit_label_pdf
 
 # the carrier's label, drawn inside a form of 283.5 x 396.9 pt: a frame of
 # lines from (6, 10) to (277, 391), a table cell, and text inside it
@@ -59,36 +59,49 @@ def _pdf(label: bytes = LABEL, pages: int = 1) -> bytes:
     return bytes(out)
 
 
-def _boxes(data: bytes) -> list[list[float]]:
+def _pages_of(data: bytes) -> list[tuple[list[float], bytes]]:
+    """Each page's MediaBox and the content stream that sets its scale."""
     pdf = _Pdf(data)
-    return [[float(v) for v in page["MediaBox"]] for _, page, _ in _pages(pdf)]
+    found = []
+    for _, page, _ in _pages(pdf):
+        contents = page["Contents"]
+        prefix = pdf.stream(contents[0].num)[1] if isinstance(contents, list) else b""
+        found.append(([float(v) for v in page["MediaBox"]], prefix))
+    return found
 
 
-def test_the_page_is_cropped_to_the_label_frame():
+def test_the_label_is_scaled_up_to_fill_a_4_by_6_page():
     original = _pdf()
-    trimmed = trim_label_pdf(original)
+    fitted = fit_label_pdf(original)
 
-    # the frame, 6..277 x 10..391 in the form, lands at 8 + 0.95 x on the page,
-    # with 1.5 pt kept around it
-    [box] = _boxes(trimmed)
-    assert box == [12.2, 16, 272.65, 380.95]
-    # the original is kept whole, the crop appended as an incremental update
-    assert trimmed.startswith(original)
-    assert b"/Prev " in trimmed[len(original) :]
+    [(box, prefix)] = _pages_of(fitted)
+    assert box == [0, 0, 288, 432]
+    # the frame, 6..277 x 10..391 in the form, lands at 8 + 0.95 x on the page:
+    # 12.2..272.65 x 16..380.95 with 1.5 pt kept around it. 288 / 260.45 wide
+    # is the smaller scale, so the label fills the width and is centred in the
+    # height, clipped to itself
+    assert prefix == b"q 1.1058 0 0 1.1058 -13.4905 -3.4694 cm 12.2 16 260.45 364.95 re W n\n"
+    # the original is kept whole, the change appended as an incremental update
+    assert fitted.startswith(original)
+    assert b"/Prev " in fitted[len(original) :]
 
 
-def test_every_page_of_several_labels_is_cropped():
-    assert _boxes(trim_label_pdf(_pdf(pages=3))) == [[12.2, 16, 272.65, 380.95]] * 3
+def test_every_page_of_several_labels_is_fitted():
+    pages = _pages_of(fit_label_pdf(_pdf(pages=3)))
+    assert [box for box, _ in pages] == [[0, 0, 288, 432]] * 3
+    assert len({prefix for _, prefix in pages}) == 1
 
 
-def test_text_outside_the_frame_leaves_the_page_as_it_is():
+def test_text_outside_the_frame_fits_the_whole_form_instead():
     label = LABEL + b"BT /F0 6 Tf 1 0 0 1 20 3 Tm (Operator pocztowy)Tj ET\n"
-    original = _pdf(label)
-    assert trim_label_pdf(original) == original
+    [(box, prefix)] = _pages_of(fit_label_pdf(_pdf(label)))
+    # the form, 283.5 x 396.9 at 95% from (8, 8), clips all it draws
+    assert box == [0, 0, 288, 432]
+    assert prefix.endswith(b" 8 8 269.325 377.055 re W n\n")
 
 
 def test_what_cannot_be_read_comes_back_unchanged():
-    assert trim_label_pdf(b"%PDF-1.4 ship-1A6") == b"%PDF-1.4 ship-1A6"
-    assert trim_label_pdf(b"not a pdf") == b"not a pdf"
+    assert fit_label_pdf(b"%PDF-1.4 ship-1A6") == b"%PDF-1.4 ship-1A6"
+    assert fit_label_pdf(b"not a pdf") == b"not a pdf"
     inline_image = _pdf(LABEL + b"BI /W 1 /H 1 ID \x00 EI\n")
-    assert trim_label_pdf(inline_image) == inline_image
+    assert fit_label_pdf(inline_image) == inline_image
