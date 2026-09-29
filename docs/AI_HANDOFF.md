@@ -97,8 +97,13 @@ owner's claude.ai account hold it, readable only when signed in as the owner:
 
 The owner chose the canvas's layout, refined for a monitor turned upright, and
 it is built (`DECISIONS.md`, 2026-09-29, "The order page in two columns"),
-tested but not yet seen in a browser. Next: the owner's look at it, then the
-next screen to take through Claude Design. The order page's round two (status in
+tested but not yet seen in a browser. The next screen, the **order list**,
+is on its own canvas, https://claude.ai/artifact/JmMk1VptHZkoaDXtgYpumF: a
+proposal for the upright monitor (four work queues as tiles with counts,
+status as tabs, the buyer folded into the order cell, tinted status chips
+readable at 5.3:1 or better instead of white on solid fills), today's list,
+and the old and new status badges side by side. Waiting for the owner's
+verdict before anything is built. The order page's round two (status in
 the header, payment folded, Smart badge) was seen by the owner in the browser
 and adjusted (space under Wysyłka, a blue band for Wiadomości); what is still
 unseen is `delivery.smart` on a real import (`PROJECT_STATUS.md`).
