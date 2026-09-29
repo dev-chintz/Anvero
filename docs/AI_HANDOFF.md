@@ -105,7 +105,14 @@ readable at 5.3:1 or better instead of white on solid fills), today's list,
 and the old and new status badges side by side. The owner chose it and it is
 built (`DECISIONS.md`, 2026-09-29, "Status chips" and "The order list"),
 tested but not yet seen in a browser. The design system still shows the old
-solid badges: re-sync it from the code when convenient. The order page's round two (status in
+solid badges: re-sync it from the code when convenient.
+
+The third screen, the **dashboard** (Pulpit), is on
+https://claude.ai/artifact/RtHYhEL8emq1dtChTBwLaG: a proposal (what needs
+attention as coloured bars at the top, the same four work queues as the order
+list, the nearest dispatch deadlines as a dense full-width list, recent orders
+beside a narrow column with the week's figures and the channels) next to
+today's. Waiting for the owner's verdict before anything is built. The order page's round two (status in
 the header, payment folded, Smart badge) was seen by the owner in the browser
 and adjusted (space under Wysyłka, a blue band for Wiadomości); what is still
 unseen is `delivery.smart` on a real import (`PROJECT_STATUS.md`).
