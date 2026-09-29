@@ -2062,3 +2062,14 @@ at all (the entry before this one).
 
 **Verified:** frontend tests (611) and `tsc`. Not seen in a browser: it needs the owner's login.
 
+
+## 2026-09-30 — The inbox
+
+**Decision (owner, from the Claude Design canvas https://claude.ai/artifact/EwL3qz5B69H3PQK7hZ76rR):** With a conversation open, the list narrows to 18rem (from 24) and the conversation gets the rest. "To handle" and "Put aside" are underlined tabs instead of pills; a row is two short lines, the nick with the channel's letter (as on the order list) and how long the buyer has waited, then the last message cut to one line. Above an open conversation, "The buyer's orders": the open ones (new, in progress, ready to ship), each one line (number, status chip, first item, date, amount) linking to the order, the rest folded behind "+ N earlier". Nicks stay as Allegro gives them: a buyer Allegro shows only as "Client:12345678" keeps that name (the owner's choice).
+
+**How the orders are found:** Allegro keeps one conversation per buyer, not per order, and its thread carries no order (none of the 602 threads in the database has `order_external_id`). So the buyer is matched by nick: the order list's own search (which covers `customer_login`) is asked for the nick, and only the orders whose login is exactly that nick are kept. A "Client:…" buyer has no nick to match, so the strip is not shown for them (about a third of the threads, mostly buyers asking before they buy), nor when nothing is found or the list cannot be read. No backend change.
+
+**Not done:** marking which order a single message is about. Allegro may attach an order to a message, but the import does not read such a field; worth checking in its API before building.
+
+**Verified:** frontend tests (615, four new for the strip) and `tsc`. Not seen in a browser: it needs the owner's login.
+

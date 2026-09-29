@@ -17,7 +17,7 @@
 
 /* with a conversation open the list narrows to a column beside it */
 .inbox-body.has-thread {
-  grid-template-columns: 24rem minmax(0, 1fr);
+  grid-template-columns: 18rem minmax(0, 1fr);
 }
 
 .inbox-list.card {
@@ -344,4 +344,115 @@
     grid-template-columns: minmax(0, 1fr);
     margin: 0 1rem 1.5rem;
   }
+}
+
+/* ---- The inbox for a monitor turned upright (DECISIONS.md, 2026-09-30, "The inbox") ---- */
+/* the two lists as tabs over the conversations, the chosen one underlined */
+.inbox-page .inbox-filters {
+  gap: 1rem;
+}
+
+.inbox-page .inbox-filters button {
+  padding: 0.25rem 0;
+  border: none;
+  border-bottom: 2px solid transparent;
+  border-radius: 0;
+  background: none;
+  color: var(--color-muted);
+  font-weight: 500;
+}
+
+.inbox-page .inbox-filters button:hover {
+  background: none;
+  color: var(--color-text);
+}
+
+.inbox-page .inbox-filters button.active {
+  border-bottom-color: var(--color-accent);
+  background: none;
+  color: var(--color-accent);
+  font-weight: 700;
+}
+
+/* a conversation is two short lines: who and when, then the last message cut to one line */
+.inbox-page .inbox-row {
+  padding: 0.45rem 0.75rem;
+}
+
+.inbox-page .inbox-row.selected {
+  box-shadow: inset 3px 0 0 var(--color-accent);
+}
+
+.inbox-page .inbox-row-main {
+  flex-direction: column;
+  flex-wrap: nowrap;
+  align-items: stretch;
+}
+
+.inbox-page .inbox-thread-excerpt {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* the buyer's orders, above the conversation */
+.buyer-orders-strip {
+  margin: 0 0 0.75rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface-alt);
+  overflow: hidden;
+}
+
+.buyer-orders-strip-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.4rem 0.75rem;
+}
+
+.buyer-orders-strip ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.buyer-orders-strip-row {
+  display: grid;
+  grid-template-columns: auto auto minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.4rem 0.75rem;
+  border-top: 1px solid var(--color-divider);
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-size: 0.85rem;
+  text-decoration: none;
+}
+
+.buyer-orders-strip-row:hover {
+  background: var(--color-surface-alt);
+}
+
+.buyer-orders-strip-number {
+  color: var(--color-accent);
+}
+
+.buyer-orders-strip-item {
+  overflow: hidden;
+  color: var(--color-muted);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.buyer-orders-strip-when {
+  color: var(--color-muted);
+  font-size: 0.8rem;
+  white-space: nowrap;
+}
+
+.buyer-orders-strip-amount {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }

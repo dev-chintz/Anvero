@@ -7,6 +7,7 @@ import {
   type MessageThreadDetail,
 } from '../api/client';
 import { ThreadConversation } from '../components/ThreadConversation';
+import { BuyerOrdersStrip } from '../components/BuyerOrdersStrip';
 import { useTranslation } from '../i18n';
 import { groupThreads, waitingHours, waitingTone } from './inbox/groupThreads';
 import '../styles/InboxPage.css';
@@ -257,7 +258,7 @@ export function InboxPage() {
                         <span className="inbox-row-who">
                           <span className={item.read ? 'inbox-dot-space' : 'inbox-unread-dot'} aria-hidden="true" />
                           <span className="inbox-thread-buyer">{item.interlocutor_login ?? '—'}</span>
-                          <span className="inbox-source">{item.source}</span>
+                          <SourceMark source={item.source} />
                           {item.order_external_id && (
                             <span
                               className="inbox-chip inbox-chip-blue"
@@ -324,7 +325,7 @@ function ThreadDetail({
       <div className="card-head">
         <span className="inbox-detail-title">
           <strong>{thread.interlocutor_login ?? '—'}</strong>
-          <span className="inbox-source">{thread.source}</span>
+          <SourceMark source={thread.source} />
           {waiting}
         </span>
         <span className="inbox-detail-actions">
@@ -342,7 +343,18 @@ function ThreadDetail({
         </span>
       </div>
 
+      <BuyerOrdersStrip login={thread.interlocutor_login} />
+
       <ThreadConversation thread={thread} onThreadChange={onThreadChange} />
     </section>
+  );
+}
+
+/** The channel as one letter on its tint, as on the order list; its name on hover. */
+function SourceMark({ source }: { source: string }) {
+  return (
+    <span className={`source-mark source-${source.toLowerCase()}`} title={source} aria-label={source}>
+      {source.charAt(0)}
+    </span>
   );
 }

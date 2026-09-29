@@ -119,9 +119,10 @@ The fourth screen, the **inbox** (Wiadomości), is on
 https://claude.ai/artifact/EwL3qz5B69H3PQK7hZ76rR: a proposal (a narrower
 290px list of conversations with one-line rows, the conversation wider, and
 above it a card of the linked order: number, status, deadline, items, amount,
-a link to it) next to today's. Waiting for the owner's verdict. The order card
-needs the order found from the thread's `order_external_id`: check whether
-the list's search already finds an order by it before adding anything to the API. The order page's round two (status in
+a link to it) next to today's. Chosen and built (`DECISIONS.md`, 2026-09-30, "The inbox"):
+the order card became the buyer's orders, found by nick, since Allegro keeps
+one conversation per buyer and no thread carries an order. Tested, not yet
+seen in a browser. The order page's round two (status in
 the header, payment folded, Smart badge) was seen by the owner in the browser
 and adjusted (space under Wysyłka, a blue band for Wiadomości); what is still
 unseen is `delivery.smart` on a real import (`PROJECT_STATUS.md`).

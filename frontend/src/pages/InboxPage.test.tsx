@@ -63,7 +63,7 @@ describe("the inbox", () => {
 
     expect(await screen.findByText("buyer1")).toBeInTheDocument();
     expect(screen.getByText("Kiedy wyślecie paczkę?")).toBeInTheDocument();
-    expect(screen.getByText("ALLEGRO")).toBeInTheDocument();
+    expect(screen.getByLabelText("ALLEGRO")).toHaveTextContent("A");
   });
 
   it("says so when there is nothing to show", async () => {

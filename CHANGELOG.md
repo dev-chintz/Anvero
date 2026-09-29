@@ -4,6 +4,14 @@ All significant changes to the Anvero project.
 
 ---
 
+## 2026-09-30
+
+### ✉️ The inbox
+
+- A narrower list of conversations (nick, channel letter, waiting time, the last message on one
+  line), tabs for "To handle" and "Put aside", and above an open conversation the buyer's orders,
+  open ones first, found by the buyer's nick. Designed in Claude Design. See `docs/DECISIONS.md`.
+
 ## 2026-09-29
 
 ### 🏠 The dashboard
