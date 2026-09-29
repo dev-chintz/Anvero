@@ -345,7 +345,7 @@ one malformed order does not cost the rest of the page.
 ### Shipments and tracking
 
 The checkout form carries no tracking numbers, so an import asks for them
-separately, for every order that is neither new nor cancelled (one call each).
+separately, for every order that is not cancelled (one call each).
 A parcel exists from the moment a label is bought in "Wysyłam z Allegro" or a
 number is entered, while the order is still `PROCESSING`: Allegro keeps its
 seller status there (with `fulfillment.shipmentSummary.lineItemsSent` at `ALL`)
@@ -428,7 +428,7 @@ the first time `ALLEGRO_INITIAL_IMPORT_DAYS` back.
   three more, so importing at least that often keeps it alive; otherwise
   authorize again. The stored token sits in the database, in plain text unless
   `SECRETS_KEY` is set, when it is encrypted (`GDPR.md`, "Secrets").
-- Shipments are read for every order that is neither new nor cancelled, tracking
+- Shipments are read for every order that is not cancelled, new ones included, tracking
   only for orders sent (see "Shipments and tracking"). Nothing is written back to
   Allegro through the import.
 - An import runs when someone starts it (the button or the script), or by itself

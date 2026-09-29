@@ -182,7 +182,7 @@ def _tracking(waybill, code):
     }
 
 
-def test_orders_being_processed_are_asked_about_their_parcels_too():
+def test_new_and_processed_orders_are_asked_about_their_parcels_too():
     """A label is bought while the order is still being processed, and Allegro
     leaves it in that status until it is marked sent."""
     client = FakeClient(
@@ -196,6 +196,8 @@ def test_orders_being_processed_are_asked_about_their_parcels_too():
             {**_form("GONE-1", "PROCESSING"), "status": "CANCELLED"},
         ],
         shipments={
+            # a label bought on Allegro while the order was never marked as being processed
+            "NEW-1": [{"id": "SN", "waybill": "WN", "carrierId": "INPOST"}],
             "PROC-1": [{"id": "S0", "waybill": "W0", "carrierId": "ALLEGRO"}],
             "SENT-1": [{"id": "S", "waybill": "W1", "carrierId": "DHL"}],
         },
@@ -203,9 +205,9 @@ def test_orders_being_processed_are_asked_about_their_parcels_too():
 
     orders = {o.external_id: o for o in AllegroAdapter(client=client).fetch_orders()}
 
-    # a new order has no parcel yet, and a cancelled one will not get one
-    assert client.shipment_calls == ["PROC-1", "READY-1", "SENT-1", "DONE-1"]
-    assert orders["NEW-1"].shipments is None
+    # a cancelled one will not get a parcel; a new one can already have one
+    assert client.shipment_calls == ["NEW-1", "PROC-1", "READY-1", "SENT-1", "DONE-1"]
+    assert [s.waybill for s in orders["NEW-1"].shipments] == ["WN"]
     assert orders["GONE-1"].shipments is None
     assert [s.waybill for s in orders["PROC-1"].shipments] == ["W0"]
     assert orders["READY-1"].shipments == []

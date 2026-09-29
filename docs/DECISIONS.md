@@ -1923,3 +1923,12 @@ flushes the clear before appending (test:
 
 **Verified:** the login page in the browser shows the mark and serves `/favicon.svg`; frontend tests and `tsc`. The sidebar needs a login and was not looked at.
 
+
+## 2026-09-29 — Fixed: a new Allegro order's parcel was never read
+
+**Found by the owner on AN-000217:** Allegro showed a parcel for the order, Anvero none. The order is an Allegro Smart InPost locker delivery still in Allegro's `NEW` handling status: the label was bought on Allegro without the order being marked as being processed first. The import asked Allegro about parcels only for orders "neither new nor cancelled" (2026-09-24, "Parcels are read for every order that is neither new nor cancelled"), assuming a new order cannot have one yet, so it never asked about this one.
+
+**Decision:** Parcels are read for every order that is not cancelled, new ones included. It costs one more request per new order per import, since open orders are read again on every run; a shop has a handful of new orders at a time.
+
+**Verified:** the adapter's tests, including a new order with a parcel. Not yet seen on the real order: AN-000217 shows its parcel after the next import from the machine that runs imports (the NAS), once it runs this code.
+

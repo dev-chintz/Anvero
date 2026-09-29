@@ -6,6 +6,12 @@ All significant changes to the Anvero project.
 
 ## 2026-09-29
 
+### 🐛 Fixed: a new Allegro order's parcel was never read
+
+- An order still "new" on Allegro, whose label was bought there without marking it as being
+  processed (AN-000217), showed no parcel in Anvero: the import did not ask Allegro about parcels of
+  new orders. It now asks for every order that is not cancelled. See `docs/DECISIONS.md`.
+
 ### 🅰️ A logo
 
 - Anvero has a mark: a sharp teal A on a navy square with an amber dot, in the sidebar, on the

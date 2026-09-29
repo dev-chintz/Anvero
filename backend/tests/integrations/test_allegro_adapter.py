@@ -28,6 +28,10 @@ class FakeClient:
         self.image_calls.append(offer_id)
         return self._images.get(offer_id)
 
+    def fetch_shipments(self, order_id):
+        # every order but a cancelled one is asked about its parcels
+        return []
+
 
 def _form(external_id, **overrides):
     form = {

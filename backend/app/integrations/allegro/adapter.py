@@ -230,17 +230,19 @@ class AllegroAdapter:
     def _attach_shipments(self, orders: list[OrderCreate]) -> None:
         """Read the parcels of orders, and where each is now.
 
-        Every order that is neither new nor cancelled is asked about, one call
-        each: a parcel is created (a label bought in "Wysyłam z Allegro", a
-        tracking number entered) while the order is still being processed, and
-        Allegro keeps the order in that status until it is marked sent, so waiting
-        for "sent" would show the parcel days late. Best effort like the pictures: an order whose shipments could not be read
+        Every order that is not cancelled is asked about, one call each: a
+        parcel is created (a label bought in "Wysyłam z Allegro", a tracking
+        number entered) while the order is still being processed, and Allegro
+        keeps the order in that status until it is marked sent, so waiting for
+        "sent" would show the parcel days late. That includes a new order: a
+        label can be bought on Allegro without the order ever being marked as
+        being processed (AN-000217, 2026-09-29). Best effort like the pictures: an order whose shipments could not be read
         keeps `shipments = None`, which leaves the stored ones alone, and a
         refused request (the application lacking the scope) ends the attempt
         for the rest of the run instead of failing every order the same way.
         """
         for order in orders:
-            if order.status in (OrderStatus.NEW, OrderStatus.CANCELLED):
+            if order.status is OrderStatus.CANCELLED:
                 continue
             try:
                 raw = self._client.fetch_shipments(order.external_id)
