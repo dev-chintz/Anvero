@@ -381,6 +381,17 @@ class AllegroClient:
     # the shipment-management API. Built from Allegro's documentation; see
     # docs/INTEGRATIONS.md, "Labels through Wysyłam z Allegro".
 
+    def fetch_delivery_services(self) -> list[dict[str, Any]]:
+        """`GET /shipment-management/delivery-services`: what the seller can ship with.
+
+        Each service's `id` holds a `deliveryMethodId` and, for one bought on an
+        agreement the seller added to Allegro (`owner` CLIENT), its `credentialsId`.
+        """
+        services = self._get_object("/shipment-management/delivery-services", "the delivery services").get(
+            "services", []
+        )
+        return [s for s in services if isinstance(s, dict)] if isinstance(services, list) else []
+
     def create_shipment(self, command_id: str, shipment: dict[str, Any]) -> dict[str, Any] | None:
         """`POST /shipment-management/shipments/create-commands`: buy a shipment.
 

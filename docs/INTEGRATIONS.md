@@ -517,12 +517,18 @@ order ("Label" card), after the sender is entered in Integrations, "Shipping":
 6. Cancelling: `POST /shipment-management/shipments/cancel-commands`, then
    its status the same way.
 
-InPost through Wysyłam z Allegro needs the seller's ShipX API token entered
-in Allegro's own shipping settings ("Integracja z InPost"); Allegro's guide
-says so (developer.allegro.pl, "Jak zarządzać przesyłkami przez Wysyłam z
-Allegro"). Without it Allegro refuses the shipment with "Brak poświadczeń
-InPost", as it did on 2026-09-29. Nothing in Anvero sets it: the owner does,
-in Allegro.
+Allegro Paczkomaty InPost (`deliveryMethodId`
+`2488f7b7-5d1c-4d65-b85c-4cbcf253fd93`) is bought on the InPost agreement the
+seller added to Allegro (its ShipX token, in Allegro's "Integracja z
+InPost"), named by a `credentialsId` beside the `deliveryMethodId`. Without
+it Allegro refused the shipment with "Brak poświadczeń InPost" (2026-09-29),
+and Allegro's own letter to the owner the same day named both fields. So
+before buying, `GET /shipment-management/delivery-services` is read and the
+one `credentialsId` listed for the order's method is sent; a method on
+Allegro's own contract (ORLEN Paczka, DPD) lists none and is sent without,
+and two agreements for one method are refused rather than guessed between.
+The shape read is `services[].id.{deliveryMethodId, credentialsId}`, from the
+documentation; not yet seen on a real answer.
 
 **Courier pickup**, from the Labels page, for parcels of one carrier:
 `POST /shipment-management/pickup-proposals` with `shipmentIds` and

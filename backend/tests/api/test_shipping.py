@@ -89,6 +89,9 @@ class _Allegro:
     def fetch_checkout_form(self, checkout_form_id):
         return {"delivery": {"method": {"id": "method-1"}}}
 
+    def fetch_delivery_services(self):
+        return []
+
 
 def test_labels_and_their_settings_need_a_login():
     assert anonymous.get("/api/v1/settings/shipping").status_code == 401

@@ -6,6 +6,13 @@ All significant changes to the Anvero project.
 
 ## 2026-09-29
 
+### 🐛 Fixed: Allegro refused InPost labels ("Brak poświadczeń InPost")
+
+- A label for Allegro Paczkomaty InPost is bought on the InPost agreement the seller added to
+  Allegro, which the request must name (`credentialsId`). Anvero sent only the delivery method; it
+  now reads Allegro's delivery services and sends the agreement listed for the order's method.
+  See `docs/DECISIONS.md`.
+
 ### 📦 Allegro orders no longer offer an InPost parcel of their own
 
 - Four InPost parcels for Allegro orders, three of them Smart, were made from Anvero's InPost card and

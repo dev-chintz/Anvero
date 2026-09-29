@@ -41,8 +41,9 @@ PACKAGE = PackageSize(
 class FakeAllegro:
     """Answers like Allegro's shipment-management API is documented to."""
 
-    def __init__(self, outcomes=("SUCCESS",), create_error=None, method_id="method-1"):
+    def __init__(self, outcomes=("SUCCESS",), create_error=None, method_id="method-1", services=()):
         self.outcomes = list(outcomes)
+        self.services = list(services)
         self.create_error = create_error
         self.method_id = method_id
         self.created = []
@@ -52,6 +53,9 @@ class FakeAllegro:
 
     def fetch_checkout_form(self, checkout_form_id):
         return {"delivery": {"method": {"id": self.method_id}}} if self.method_id else {}
+
+    def fetch_delivery_services(self):
+        return self.services
 
     def create_shipment(self, command_id, shipment):
         if self.create_error:
@@ -190,6 +194,52 @@ def test_a_bought_label_has_its_waybill_and_the_order_gets_the_tracking(session,
     assert allegro.tracking == [("form-1", "INPOST", "WB123")]
     session.refresh(order)
     assert [s.waybill for s in order.shipments] == ["WB123"]
+
+
+# Allegro Paczkomaty InPost, as the delivery-services list shows it: once on Allegro's
+# contract, once on the InPost agreement the seller added
+INPOST_METHOD = "2488f7b7-5d1c-4d65-b85c-4cbcf253fd93"
+
+
+def _service(method, credentials=None, name="Allegro Paczkomaty InPost"):
+    return {"id": {"deliveryMethodId": method, "credentialsId": credentials}, "name": name}
+
+
+def test_an_inpost_label_is_bought_on_the_sellers_inpost_agreement(session, ready):
+    allegro = FakeAllegro(
+        method_id=INPOST_METHOD,
+        services=[
+            _service("other-method", "other-agreement", "Kurier DPD"),
+            _service(INPOST_METHOD),
+            _service(INPOST_METHOD, "agreement-7"),
+        ],
+    )
+
+    _labels(session, allegro).buy(_order(session), PACKAGE, None)
+
+    [(_, shipment)] = allegro.created
+    assert shipment["deliveryMethodId"] == INPOST_METHOD
+    assert shipment["credentialsId"] == "agreement-7"
+
+
+def test_a_method_on_allegros_own_contract_is_bought_without_credentials(session, ready):
+    allegro = FakeAllegro(services=[_service("method-1", name="Allegro Automat ORLEN Paczka")])
+
+    _labels(session, allegro).buy(_order(session), PACKAGE, None)
+
+    [(_, shipment)] = allegro.created
+    assert "credentialsId" not in shipment
+
+
+def test_two_agreements_for_one_method_are_not_guessed_between(session, ready):
+    allegro = FakeAllegro(
+        method_id=INPOST_METHOD,
+        services=[_service(INPOST_METHOD, "a-1", "InPost A"), _service(INPOST_METHOD, "a-2", "InPost B")],
+    )
+
+    with pytest.raises(LabelRefused, match="several agreements"):
+        _labels(session, allegro).buy(_order(session), PACKAGE, None)
+    assert allegro.created == []
 
 
 def test_allegros_refusal_is_kept_on_the_label(session, ready):
@@ -333,6 +383,14 @@ def test_the_client_sends_the_create_command():
     method, path, body = seen[0]
     assert (method, path) == ("POST", "/shipment-management/shipments/create-commands")
     assert b'"commandId":"c-1"' in body.replace(b" ", b"")
+
+
+def test_the_client_reads_the_delivery_services():
+    def handler(request):
+        assert request.url.path == "/shipment-management/delivery-services"
+        return httpx2.Response(200, json={"services": [_service(INPOST_METHOD, "agreement-7"), "junk"]})
+
+    assert _client(_token_or(handler)).fetch_delivery_services() == [_service(INPOST_METHOD, "agreement-7")]
 
 
 def test_the_client_fetches_the_label_as_pdf():

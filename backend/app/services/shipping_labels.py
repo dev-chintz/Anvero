@@ -66,8 +66,35 @@ def _measure(value, unit: str) -> dict[str, Any]:
     return {"value": float(value), "unit": unit}
 
 
+def credentials_for(services: list[dict[str, Any]], delivery_method_id: str) -> str | None:
+    """The agreement a shipment of this delivery method is bought on, or None for Allegro's own.
+
+    Allegro Paczkomaty InPost is bought on the InPost agreement the seller added
+    to Allegro, and a shipment sent without its `credentialsId` is refused
+    ("Brak poświadczeń InPost"); Allegro's own contracts (ORLEN Paczka, DPD, ...)
+    list none. Two agreements for one method would be a guess, so they are refused.
+    """
+    found: dict[str, str] = {}
+    for service in services:
+        ids = _obj(service.get("id"))
+        credentials = _text(ids.get("credentialsId"))
+        if _text(ids.get("deliveryMethodId")) == delivery_method_id and credentials:
+            found[credentials] = _text(service.get("name")) or credentials
+    if len(found) > 1:
+        raise LabelRefused(
+            "Allegro lists several agreements for this delivery method ("
+            + ", ".join(sorted(found.values()))
+            + "); Anvero cannot tell which to use"
+        )
+    return next(iter(found), None)
+
+
 def shipment_input(
-    order: Order, delivery_method_id: str, sender: ShippingSender, package: PackageSize
+    order: Order,
+    delivery_method_id: str,
+    sender: ShippingSender,
+    package: PackageSize,
+    credentials_id: str | None = None,
 ) -> dict[str, Any]:
     """The `input` of Allegro's create command for this order's parcel."""
     address = order.address(AddressType.DELIVERY)
@@ -86,8 +113,10 @@ def shipment_input(
     }
     if order.pickup_point_id:
         receiver["point"] = order.pickup_point_id
-    return {
-        "deliveryMethodId": delivery_method_id,
+    payload: dict[str, Any] = {"deliveryMethodId": delivery_method_id}
+    if credentials_id:
+        payload["credentialsId"] = credentials_id
+    return payload | {
         "sender": {
             "name": sender.name,
             "company": sender.company,
@@ -191,15 +220,15 @@ class ShippingLabels:
         # the delivery method is read from Allegro as it stands now: it is
         # what decides the carrier and the price, and orders imported earlier
         # do not carry its id
-        def delivery_method_id() -> str:
+        def delivery_method() -> tuple[str, str | None]:
             form = client.fetch_checkout_form(order.external_id)
             method = _text(_obj(_obj(form.get("delivery")).get("method")).get("id"))
             if method is None:
                 raise LabelRefused("Allegro gives no delivery method for this order")
-            return method
+            return method, credentials_for(client.fetch_delivery_services(), method)
 
-        method_id = _with_import_lock(delivery_method_id)
-        payload = shipment_input(order, method_id, sender, package)
+        method_id, credentials_id = _with_import_lock(delivery_method)
+        payload = shipment_input(order, method_id, sender, package, credentials_id)
 
         result = self.writer.write(
             OrderSource.ALLEGRO,

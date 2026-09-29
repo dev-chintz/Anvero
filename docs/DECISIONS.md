@@ -1980,3 +1980,23 @@ through Wysyłam z Allegro the same parcel is Allegro's, at Allegro's price
 order should use. Hiding the tab alone would have left the batch on the Labels
 page able to do the same, hence the refusal in the backend.
 
+## 2026-09-29 — Fixed: InPost labels through Allegro were sent without the seller's agreement
+
+**Decision:** Buying a label reads `GET /shipment-management/delivery-services`
+along with the order's delivery method, and sends the `credentialsId` Allegro
+lists for that method (`credentials_for()` in `shipping_labels.py`). None
+listed: sent without, as before. More than one: refused, naming them.
+
+**Rationale:** Allegro refused the first InPost label with "Brak poświadczeń
+InPost", and wrote to the owner the same day that Allegro Paczkomaty InPost
+parcels were being sent wrongly (the three made at InPost through ShipX,
+billed by InPost rather than at Smart's rates), naming what the API needs:
+`deliveryMethodId` `2488f7b7-5d1c-4d65-b85c-4cbcf253fd93` with the
+`credentialsId` of the seller's InPost agreement. Reading it from Allegro
+rather than storing it in Settings keeps nothing to set up or go stale, at the
+cost of one more read per label. Guessing between two agreements could buy on
+the wrong one, which costs money, so that is left to the operator.
+The letter also names `inpost_locker_allegro` as the ShipX service for these
+parcels; it is not used, as Allegro orders no longer make parcels at InPost
+at all (the entry before this one).
+
