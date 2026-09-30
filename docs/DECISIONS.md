@@ -2284,3 +2284,12 @@ row's override note is erased with the buyer, as it may name them. Not yet run o
 
 **Consequences:** Built from Erli's API description; the first import on the NAS after the update must show the payments read (`payment_operations` rows of source `ERLI`) and the eleven Erli sales of August and September moving from `TO_REVIEW` to their categories. Erli's refunds are not read yet, so a returned Erli sale has no correction until they are.
 
+
+## 2026-10-01 — Reports and exports of the non-invoiced record
+
+**Decision (owner: "do the missing stages"):** A report of the record is built from the ledger for any date range and handed over to the accountant from Anvero; see `NON_INVOICED_SALES.md`, stage 4, for what it carries, when handing over is refused and what is locked. Exports are CSV (as the old report's), Excel and PDF, with the accountant's four columns by default and any other the ledger holds by choice. The PDF embeds DejaVu Sans (Bitstream Vera licence, kept beside it in `app/assets/fonts`), taken from the matplotlib wheel's copy, so Polish letters print wherever the file is opened.
+
+**Rationale:** The accountant asked for all three formats and one monthly total; a report handed over has to stay the same file, which a view over the orders could not promise.
+
+**Consequences:** Three new dependencies with their own (`fpdf2`, `openpyxl`, and through them `pillow`, `fonttools`, `defusedxml`, `et_xmlfile`), in `requirements.txt`; the image grows accordingly. Rows dated in a month already handed over but written after it are carried by the next report, marked as such, rather than changing the one handed over.
+

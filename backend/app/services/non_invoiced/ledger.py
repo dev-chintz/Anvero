@@ -443,6 +443,15 @@ def _overridable(db: Session, entry_id) -> LedgerEntry:
     return entry
 
 
+def _follow(db: Session, sale: LedgerEntry) -> None:
+    """Put the sale's category on its corrections that follow it (not locked, not a move in or out
+    of a report), so a report reads the override at once rather than after the next import."""
+    category = decide(Category(sale.category), sale.override_category).value
+    for correction in NonInvoicedRepository(db).corrections_of([sale.id]).get(sale.id, []):
+        if correction.locked_at is None and not is_reclassification(correction):
+            correction.category = category
+
+
 def set_override(
     db: Session,
     entry_id,
@@ -460,6 +469,7 @@ def set_override(
     entry.override_note = note.strip()
     entry.overridden_by_user_id = user_id
     entry.overridden_at = _as_utc(now or datetime.now(UTC))
+    _follow(db, entry)
     db.commit()
     return entry
 
@@ -471,5 +481,6 @@ def clear_override(db: Session, entry_id, user_id: int | None, now: datetime | N
     entry.override_note = None
     entry.overridden_by_user_id = user_id
     entry.overridden_at = _as_utc(now or datetime.now(UTC))
+    _follow(db, entry)
     db.commit()
     return entry

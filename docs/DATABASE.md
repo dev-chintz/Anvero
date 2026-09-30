@@ -199,6 +199,14 @@ copied when the row is written and never changed after.
 | `locked_at` | set when a report holding the row is handed over (indexed); the row never changes after |
 | `created_at`, `updated_at` | |
 
+`non_invoiced_reports` and `non_invoiced_report_rows` (added by `b4d2f8a61c37`): the reports
+of the record handed over to the accountant (`NON_INVOICED_SALES.md`, 4c). A report: `id` (uuid),
+`date_from` (indexed), `date_to`, `handed_over_at`, `handed_over_by_user_id` (nullable, `SET
+NULL`), `ruleset` (the classifier's then), `total` and `currency` (what it listed), `row_count`,
+`created_at`. Its rows: `(report_id, position)` the primary key (`position` its Lp., `CASCADE` with
+the report), `entry_id` the ledger row (indexed, `SET NULL`). The ledger rows a report lists are
+locked (`locked_at`) when it is handed over, so downloading it again gives the same file.
+
 `order_item_packing` (added by `b4e6f9c2a831`): how many of one order line an operator has
 physically gathered into the parcel for that order - their own use, kept by `(order_id,
 position)` (unique together), not `order_items.id`: an import replaces every item row of an

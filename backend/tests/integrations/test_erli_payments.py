@@ -60,7 +60,7 @@ def _client(orders=(), payments=(), payouts=(PAYOUT,), order_by_id=None, seen=No
             return httpx2.Response(200, json=list(orders))
         if request.method == "GET" and "/orders/" in path:
             return order_by_id(path.rsplit("/", 1)[-1]) if order_by_id else httpx2.Response(404)
-        if path.endswith("/dictionaries/billingEntryTypes") or path.endswith("/billing/company/entries"):
+        if path.endswith(("/dictionaries/billingEntryTypes", "/billing/company/entries")):
             return httpx2.Response(200, json=[])
         return httpx2.Response(404)
 

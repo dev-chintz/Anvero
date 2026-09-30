@@ -10,6 +10,7 @@ from app.api.v1.endpoints import (
     integrations,
     marketplace_writes,
     messages,
+    non_invoiced,
     orders,
     root,
     sales_report,
@@ -35,4 +36,5 @@ router.include_router(messages.router)
 router.include_router(after_sales.router)
 router.include_router(finance.router)
 router.include_router(sales_report.router)
+router.include_router(non_invoiced.router)
 router.include_router(updates.router)

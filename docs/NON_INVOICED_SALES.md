@@ -277,7 +277,24 @@ Each stage is committed and pushed on its own, with its tests, and the contracts
    Not yet run on real data.
 4. **Reports and exports (4c, 4e, 4f).** The API for a range with its checks, CSV, Excel
    (`openpyxl`) and PDF (a library that embeds a font with Polish letters), the column choice,
-   handing over, the limit counter.
+   handing over, the limit counter. *Built 2026-10-01*: `app/services/non_invoiced/report.py`
+   and `export.py`, `/api/v1/non-invoiced/...` (`API.md`), `non_invoiced_reports`
+   (`DATABASE.md`); PDFs with `fpdf2` in DejaVu Sans (`app/assets/fonts`, with its licence).
+   Choices made while building it:
+   - **What a report carries.** The rows dated in its range, and the rows dated in a range already
+     handed over that were written after it (a refund read late, a sale moved into the report
+     after its month went), so the report handed over never changes and nothing falls between
+     two. It lists those counting as `EXEMPT_MAIL_ORDER` and not locked: the sales, then the
+     corrections, each by date.
+   - **Handing over** is refused for a range that has not ended, one overlapping a range handed
+     over, or one with a sale `TO_REVIEW`; `NEEDS_REGISTER` sales, payments no row accounts for
+     and listed sales without their payment operation are warnings that the one handing it over
+     acknowledges. Only the rows it lists are locked; a sale outside the report stays open to a
+     decision, and if it later comes into the report it is carried by the next one.
+   - **The limit (4f)** counts the ledger's rows of the year and, before the ledger's first row,
+     the paid orders Anvero holds (their `paid_amount`, refunds before the ledger not
+     subtracted), and says from which day it counts.
+   - **An override** carries to the sale's corrections at once, not at the next import.
 5. **The screen (4g).** Mockups first, then the page, replacing "Raport bezrachunkowy" in the menu.
 6. **The first real month.** September 2026 produced and compared with Allegro's payout report and
    with what the accountant received before; any difference explained before the report is used.

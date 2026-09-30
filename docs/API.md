@@ -943,6 +943,73 @@ charge is not a product's):
   "quantity": 11, "orders": 9, "sales": "323.07", "fees": "55.88"}]}
 ```
 
+## Non-invoiced sales record: `/api/v1/non-invoiced/...`
+
+The record of mail-order sales exempt from the cash register (`NON_INVOICED_SALES.md`, stage 4):
+it reads the ledger (`DATABASE.md`, `non_invoiced_ledger`), never the orders. Reading needs the
+Finance area; an override and handing over need Finance at `manage`.
+
+`GET /report?date_from=&date_to=` (at most 366 days) is what the range holds:
+
+```json
+{"date_from": "2026-09-01", "date_to": "2026-09-30",
+ "rows": [{"id": "...", "kind": "SALE", "entry_date": "2026-09-14", "entry_at": "...Z", "source": "ALLEGRO",
+   "order_id": "...", "order_label": "AN-000231", "order_external_id": "...", "corrects_entry_id": null,
+   "buyer_name": "Jan Kowalski", "buyer_address": "Lipowa 3, 80-001 Gdańsk", "amount": "167.00", "currency": "PLN",
+   "category": "EXEMPT_MAIL_ORDER", "automatic_category": "EXEMPT_MAIL_ORDER", "reason": "E41", "reason_text": "...",
+   "ruleset": "poz41-2024/2", "override": null, "locked": false, "in_report": true, "late": false,
+   "payment_operator": "P24", "payout_date": "2026-09-16"}],
+ "listed": ["<row ids the report lists, in its order>"], "total": "8168.48", "currency": "PLN",
+ "totals": [{"category": "EXEMPT_MAIL_ORDER", "label": "...", "sales": 174, "sales_amount": "8362.57",
+   "corrections": 5, "corrections_amount": "-194.09", "total": "8168.48"}, "..."],
+ "checks": {"to_review": 0, "needs_register": 0, "unmatched_payments": 0, "unmatched_amount": "0.00",
+   "untraced_sales": 0, "blocking": false, "warnings": false},
+ "limit": {"year": 2026, "total": "...", "limit": "240000.00", "share": "0.0412", "counted_from": "2026-08-01",
+   "warning": false, "exceeded": false},
+ "handed_over": null, "overlapping": [], "ended": true, "can_hand_over": true}
+```
+
+- `rows`: the ledger rows dated in the range, and those dated in a range already handed over but
+  written after it (`late`: a refund read late, a sale moved into the report after its month
+  went), which this report carries. `category` is the one a row counts in (a sale's override,
+  else the classifier's; a correction's, its sale's); `automatic_category` the classifier's.
+- `listed`: what the report lists and exports: the rows counting as `EXEMPT_MAIL_ORDER` and not
+  locked, the sales then the corrections, each by date. For a range handed over (`handed_over`
+  set), exactly the rows it listed then, in the same order.
+- `checks`: `to_review` blocks handing over; `needs_register` (sales that should have gone through
+  the register), `unmatched_payments` (the operators' `CONTRIBUTION`s in the range no row accounts
+  for) and `untraced_sales` (listed sales without a payment operation) are warnings.
+- `limit`: the year's sales on every channel against the VAT exemption limit (art. 113), a
+  warning from 80%; from the ledger's rows, and before the ledger's first row from the paid orders
+  (`counted_from` is the first day counted).
+
+`GET /columns` is what an export can hold (`{"items": [{"key", "label", "personal"}], "default":
+["lp", "entry_date", "buyer_name", "amount"]}`): `lp`, `entry_date`, `buyer_name`, `amount`,
+`kind`, `order_number`, `order_external_id`, `source`, `buyer_address`, `payment_operator`,
+`payment_id`, `payout_date`, `payout_id`, `category`, `reason`. Labels are Polish only.
+
+`GET /export?date_from=&date_to=&format=csv|xlsx|pdf&columns=` is the listed rows as a file,
+`lp` always first, then the chosen columns in order (default: the accountant's), then a total row
+("Razem"). CSV: UTF-8 with a BOM, comma decimals, formula-guarded, as the old report's. XLSX: real
+numbers and dates. PDF: A4 (landscape when the columns need it), the seller from the sender set in
+Integrations, the range and the date made, in DejaVu Sans. An unknown format or column is `422`.
+An export holding `buyer_name` or `buyer_address` is logged with the user's id and the column keys,
+never a value.
+
+`POST /reports` (`{"date_from", "date_to", "acknowledged": false}`) hands the range's report
+over: `201` with the report; `409` (`{"detail": {"code": "ALREADY_HANDED_OVER"}}`) when the range
+overlaps one handed over; `422` with `code` `NOT_ENDED` (the range has not ended), `TO_REVIEW`
+(sales still to decide) or `NOT_ACKNOWLEDGED` (warnings, and `acknowledged` false). The rows it
+lists are locked and recorded against it. `GET /reports` lists those handed over, the latest range
+first (`{"id", "date_from", "date_to", "handed_over_at", "handed_over_by", "total", "currency",
+"row_count", "ruleset"}`); `GET /reports/{id}/export?format=&columns=` downloads one again, the
+same rows in the same order.
+
+`PUT /entries/{id}/override` (`{"category", "note"}`, a written reason required) sets a person's
+category on a sale; `DELETE` takes it back (`204`). Refused (`422`) on a correction, a locked row,
+a company's sale, or with `TO_REVIEW`; an unknown row is `404`. The sale's corrections follow it at
+once.
+
 ## Non-invoiced sales report: `GET /api/v1/sales-report/orders`, `/export`, `PUT`/`DELETE .../override`
 
 Ported from a standalone tool (`DECISIONS.md`, "Non-invoiced sales report, ported"): classifies

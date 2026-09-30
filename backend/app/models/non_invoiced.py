@@ -161,3 +161,48 @@ class LedgerEntry(Base):
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False
     )
+
+
+class HandedOverReport(Base):
+    """A report of the record handed over to the accountant (docs/NON_INVOICED_SALES.md, 4c): its
+    range, who handed it over and when, and the rows it listed (HandedOverReportRow), whose ledger
+    rows are locked from then on. Downloading it again reads those rows, so it is the same file."""
+
+    __tablename__ = "non_invoiced_reports"
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    date_from: Mapped[date] = mapped_column(Date, nullable=False, index=True)
+    date_to: Mapped[date] = mapped_column(Date, nullable=False)
+    handed_over_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    handed_over_by_user_id: Mapped[int | None] = mapped_column(
+        ForeignKey("users.id", ondelete="SET NULL"), nullable=True
+    )
+    handed_over_by: Mapped["User | None"] = relationship(foreign_keys=[handed_over_by_user_id])
+    # the classifier's rule set when it was handed over
+    ruleset: Mapped[str] = mapped_column(String(32), nullable=False)
+    # the report's total gross, and how many rows it listed
+    total: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False)
+    currency: Mapped[str] = mapped_column(String(3), nullable=False)
+    row_count: Mapped[int] = mapped_column(Integer, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+
+    rows: Mapped[list["HandedOverReportRow"]] = relationship(
+        back_populates="report", cascade="all, delete-orphan", order_by="HandedOverReportRow.position"
+    )
+
+
+class HandedOverReportRow(Base):
+    """One row of a handed-over report, in the place (Lp.) it had."""
+
+    __tablename__ = "non_invoiced_report_rows"
+
+    report_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("non_invoiced_reports.id", ondelete="CASCADE"), primary_key=True
+    )
+    position: Mapped[int] = mapped_column(Integer, primary_key=True)
+    entry_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("non_invoiced_ledger.id", ondelete="SET NULL"), index=True, nullable=True
+    )
+
+    report: Mapped[HandedOverReport] = relationship(back_populates="rows")
+    entry: Mapped[LedgerEntry | None] = relationship()
