@@ -141,6 +141,18 @@ classifier's counts, and above all that the payout each payment was linked to
 agrees with the payout report Allegro's Sales Center exports. The three
 migrations of 2026-09-30 (`a9c4e7d2b815`, `c7e2a9f4d318`, `e3b7a1c9d524`) ran
 on the NAS's PostgreSQL without error.
+Checked again on 2026-10-01 (counts only, read-only, from the shared
+database): the backfill has ended, 205 of 215 orders since 1 September have a
+payment id and no `MISSING_BUYER_DATA` row is left. September holds 174
+`EXEMPT_MAIL_ORDER` sales (8 168,48 zł gross) and 5 of their refunds
+(−194,09 zł), 19 `BUSINESS`, 13 `PRIVATE_INVOICED`, and `TO_REVIEW` only 2
+Allegro sales cancelled after payment (each with its refund) and 6 Erli sales
+(`SOURCE_NOT_SUPPORTED`; 5 more in August). Every E41 sale now has a payout
+(`FIRST_AFTER`), still unchecked against Allegro's payout report; no row is
+locked. `order_items.tax_rate` is still empty on all 1 155 items. What remains
+of the plan is stage 4 onward (`NON_INVOICED_SALES.md`, section 5): no report,
+export or handing over reads the ledger yet, so the only export is still the
+old report's CSV.
 
 The new logo (2026-09-30): seen on the login page in light and dark; the menu,
 behind the login, not yet.
