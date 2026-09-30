@@ -201,6 +201,14 @@ card's views as underlined tabs) next to today's. Chosen and built
 (`DECISIONS.md`, 2026-09-30, "The InPost lockers tab"), tested, not yet seen in
 a browser.
 
+The **Stan aplikacji** tab of Settings is on
+https://claude.ai/artifact/3XwrUu632HmHBdS7AN1aEP: a proposal (the summary as a
+tinted card holding "check again" and one line per problem with its link; the
+three tiles in one row, each head with the channel letter and its state as a
+chip, the schedule rows shown rather than folded; the events as dense rows,
+time first, the channel letter, a failed one on a red ground) next to today's.
+Waiting for the owner's verdict.
+
 A **second look** is on https://claude.ai/artifact/1tJfJmnRK6JXpe4dJzNSRy:
 three directions for the order list, the owner's pick ("Papier": cream,
 brick accent, serif titles) drawn for every menu, and Settings with a style
