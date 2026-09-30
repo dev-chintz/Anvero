@@ -103,8 +103,11 @@ re-imported. Production needs its own application and authorization; see
 The non-invoiced record's reports, exports and screen (2026-10-01, stages 4 and
 5 of `NON_INVOICED_SALES.md`): tested, and seen in a browser on a scratch
 database with made-up rows; not yet on the real ledger, and no report handed
-over for real. The first real one (September) should be compared with
-Allegro's payout report before it goes to the accountant (stage 6).
+over for real. September was compared with the old report on 2026-10-01 and
+every difference explained (stage 6 in `NON_INVOICED_SALES.md`); still to do
+before it goes to the accountant: confirm that the 13 private buyers who asked
+for an invoice got one, let the NAS's first import after the update classify
+the 6 Erli sales, and compare the total with Allegro's payout report.
 
 Erli's payments for the non-invoiced record (2026-10-01): built from Erli's API
 description, tested against fakes, never read from the real service. The first

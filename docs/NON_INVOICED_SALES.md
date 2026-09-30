@@ -310,6 +310,25 @@ Each stage is committed and pushed on its own, with its tests, and the contracts
    not yet on the real ledger.
 6. **The first real month.** September 2026 produced and compared with Allegro's payout report and
    with what the accountant received before; any difference explained before the report is used.
+   *Compared with the old report 2026-10-01*, read-only on the shared database before the NAS had
+   the Erli update. The record for September (by payment date): 174 sales, 8 168,48 zł, and 5
+   refunds, −194,09 zł, so 179 rows and 7 974,39 zł; apart from it 19 business sales (1 264,96 zł),
+   13 private buyers who asked for an invoice (799,29 zł), none needing the register, and 10 rows
+   to decide (6 Erli sales, and 2 Allegro sales cancelled after payment with their full refunds).
+   The old report for September (by order date): 186 retail orders, 8 678,18 zł. 167 orders are in
+   both, with the same amounts (7 731,27 zł). The rest is explained:
+   - 13 orders (799,29 zł) only in the old report: a private buyer who asked for an invoice. The
+     old rule counted a personal invoice as retail; the record places it apart, the invoice being
+     what documents the sale. **The owner to confirm those invoices were issued**; a sale whose
+     invoice was not is put in the record by a decision on its row.
+   - 6 Erli orders (147,62 zł) only in the old report: the ledger classified them before Erli was
+     handled (`SOURCE_NOT_SUPPORTED`). The NAS's first import after the update classifies them
+     again (it goes back to the previous month's start), once their payments are read.
+   - 7 orders (437,21 zł) only in the record: paid on 29 and 30 September, not shipped by then,
+     which the old rule required. The record dates a sale by its payment (section 3).
+   - The 5 refunds: the old report had none.
+   Not done from here: the comparison with Allegro's payout report (exported from Sales Center by
+   the owner) and with what the accountant received before for September, if anything.
 7. **Erli.** Its buyer, payment and payout fields checked against its API, then the same classifier.
    *Built 2026-10-01*, from Erli's published API description (read that day; never run against the
    real service yet). Erli collects the buyer's money itself, through PayU, and pays it out to the
