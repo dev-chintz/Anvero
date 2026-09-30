@@ -2154,4 +2154,4 @@ at all (the entry before this one).
 
 **Consequences:** On the NAS, confirm that `SECRETS_KEY` is set (it is commented out in `deploy/docker-compose.yml`); without it the Allegro and InPost tokens are plain text in the database and its backups. Keep two-factor authentication on the GitHub account and consider protecting `main`: whoever can push to it can, through the image pipeline and the updater, run code on the NAS.
 
-**Verified:** backend tests (six new, on tokens and the refresh permission) and the frontend checks. Not run: the nginx configuration in its container (no Docker on this machine) and the new condition in `publish.yml`, which the next push to `main` exercises.
+**Verified:** backend tests (six new, on tokens and the refresh permission) and the frontend checks. Not run: the nginx configuration in its container (no Docker on this machine) and the new condition in `publish.yml`, which the next push to `main` exercises. Later the same day both were: the pushes to `main` built and published all three images, and the owner updated the NAS to them and found the application working.

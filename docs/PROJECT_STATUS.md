@@ -100,10 +100,9 @@ re-imported. Production needs its own application and authorization; see
 
 ## Not yet verified
 
-Security fixes (2026-09-30): tested; the nginx headers and forwarded address
-not yet run in the web container, and the publish workflow's new condition
-not yet exercised (the next push to `main` does). `SECRETS_KEY` on the NAS
-not confirmed set (`DECISIONS.md`, "Security audit").
+`SECRETS_KEY` on the NAS (2026-09-30): not confirmed set; without it the
+Allegro and InPost tokens are plain text in the database and its backups
+(`DECISIONS.md`, "Security audit").
 
 The Papier look (2026-09-30): tested, seen on the login page in light and dark;
 the pages behind the login not yet looked at in Papier.
