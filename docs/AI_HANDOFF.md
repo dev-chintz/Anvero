@@ -152,6 +152,14 @@ Chosen and built (`DECISIONS.md`, 2026-09-30, "Returns and claims") without
 the fourth tile and the last-read time, which have no data yet; tested, not
 yet seen in a browser.
 
+The eighth screen, **Finanse**, is on
+https://claude.ai/artifact/1kMgPfN17SZ6iFp11VcMax: a proposal (the two tabs
+and the period as one segmented control on one line, the four figures in one
+row with fees tinted amber and what is left green, the fee bars full width,
+then by channel, delivery and the check against Allegro as three narrow cards
+side by side) next to today's, where below 1100px everything stacks into one
+column. Waiting for the owner's verdict.
+
 The order page's round two (status in
 the header, payment folded, Smart badge) was seen by the owner in the browser
 and adjusted (space under Wysyłka, a blue band for Wiadomości); what is still
