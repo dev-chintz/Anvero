@@ -140,7 +140,17 @@ with "tick the group", and one dense row per label: number, carrier, nick and
 locker or waybill, print state and courier as chips) next to today's. Chosen and
 built (`DECISIONS.md`, 2026-09-30, "The labels page"), tested, not yet seen in
 a browser. Counts on the view tabs would need the labels of every
-view, not only the one shown. The order page's round two (status in
+view, not only the one shown.
+
+The seventh screen, **Zwroty i reklamacje** (after-sales), is on
+https://claude.ai/artifact/PaHeT5BkF7g4EVxjjB1tLS: a proposal (the summary as
+four tiles like the order list's queues, the views as underlined tabs and the
+kind as pills in one card, one dense row per case: the deadline as a chip with
+the date under it, the kind as a chip with its reference, what to do in bold
+over the order, nick and reason, the status as a chip) next to today's.
+Waiting for the owner's verdict.
+
+The order page's round two (status in
 the header, payment folded, Smart badge) was seen by the owner in the browser
 and adjusted (space under Wysyłka, a blue band for Wiadomości); what is still
 unseen is `delivery.smart` on a real import (`PROJECT_STATUS.md`).
