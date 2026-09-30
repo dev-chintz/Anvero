@@ -554,8 +554,8 @@ product pages (XP-420B).
 ## Non-invoiced sales: redesign (2026-09-30)
 
 The report ported on 2026-09-27 is to be replaced by a ledger designed from the law and
-Allegro's API: `NON_INVOICED_SALES.md`, with its order of work and the questions for the
-accountant that come first.
+Allegro's API: `NON_INVOICED_SALES.md`; the accountant's answers are its section 3 and the plan
+of work its section 5.
 
 ## GDPR (RODO): done in code 2026-09-28 (reviewed 2026-09-27)
 

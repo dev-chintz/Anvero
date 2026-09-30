@@ -2183,8 +2183,10 @@ operator, a cash part, personal collection, the goods excluded by § 4, a delive
 nothing by VAT rate, is recomputed on every request so a month already handed over can change, and
 leaves out the buyer's name and address, which poz. 41 requires the record to show.
 
-**Consequences:** Nothing is built yet. First the open questions of the design are answered with
-the accountant (how the business is taxed, which date puts a sale in a month, the VAT rates, what
-her software imports). The import then has to keep more of each order (`payment.id`, surcharges,
+**Consequences:** Nothing is built yet. The accountant answered the design's questions the same day
+(`NON_INVOICED_SALES.md`, section 3): the business is not a VAT payer, so gross amounts only and no
+split by rate; the payment date decides the period; refunds are corrections when the money goes
+back; a report for any date range, by default the previous month, in CSV, Excel and PDF, with Lp.,
+date, buyer's name and amount by default. The plan of work is section 5. The import has to keep more of each order (`payment.id`, surcharges,
 item tax rates, the buyer company's VAT status) and the `CONTRIBUTION` payment operations. The old
 page, API and `sales_report_overrides` stay until the new ledger replaces them.

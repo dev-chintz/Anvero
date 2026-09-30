@@ -173,8 +173,8 @@ variable"), then the Style choice in Settings with Papier's values
 behind the login.
 
 The **non-invoiced sales report** is to be rebuilt from `NON_INVOICED_SALES.md`
-(2026-09-30): a design only, waiting on the accountant's answers to its open
-questions before any code.
+(2026-09-30): a design with the accountant's answers (section 3) and a plan of
+work in eight stages (section 5); no code yet.
 
 The order page's round two (status in
 the header, payment folded, Smart badge) was seen by the owner in the browser
