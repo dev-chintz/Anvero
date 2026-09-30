@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
 import { ApiError, updatesApi, type UpdateHistoryEntry } from '../api/client';
-import { SettingRow } from '../components/SettingRow';
 import { UpdateProgress } from '../components/UpdateProgress';
 import { useUpdateRun } from '../hooks/useUpdateRun';
 import { useUpdateStatus } from '../hooks/useUpdateStatus';
@@ -18,7 +17,9 @@ const secondsTaken = (entry: UpdateHistoryEntry) =>
  * "Updating from Settings"). While the updater works the backend is away; the
  * progress stays over the whole application until `/health` names the new version,
  * then the page reloads itself, so the new interface is loaded too. Only an
- * administrator sees this tab (Settings.tsx).
+ * administrator sees this tab (Settings.tsx). One card says in its head whether an
+ * update is waiting, with the install button in its footer (DECISIONS.md, 2026-10-01,
+ * "Users, updates and the login page").
  */
 export function UpdatesSettings() {
   const { t, formatDateTime } = useTranslation();
@@ -76,79 +77,94 @@ export function UpdatesSettings() {
     <div className="updates-settings">
       {run && <UpdateProgress run={run} onClose={closeRun} />}
 
-      <section className="settings-section card tone-blue" aria-label={t('updates.title')}>
-        <h2>{t('updates.title')}</h2>
-
+      <section
+        className={`card update-card${status?.available ? ' is-available' : status?.current ? ' is-current' : ''}`}
+        aria-label={t('updates.title')}
+      >
+        <div className="update-card-head">
+          <h2>
+            <span>
+              {!status
+                ? t('updates.title')
+                : status.available
+                  ? t('updates.available')
+                  : status.current
+                    ? t('updates.upToDate')
+                    : t('updates.title')}
+            </span>
+            {status?.available && status.behind ? <> {t('updates.bannerChanges', { count: String(status.behind) })}</> : null}
+          </h2>
+          {status && (
+            <span className="update-checked">
+              {status.checked_at
+                ? t('updates.checkedAt', { when: formatDateTime(status.checked_at) })
+                : t('updates.notChecked')}
+            </span>
+          )}
+        </div>
         {!status ? (
-          <p role="status">{t('updates.loading')}</p>
+          <p role="status" className="update-note">
+            {t('updates.loading')}
+          </p>
         ) : (
           <>
-            <SettingRow title={t('updates.current')} help={t('updates.currentHelp')}>
-              <code>{status.current ?? t('updates.unknown')}</code>
-            </SettingRow>
-            <SettingRow
-              title={t('updates.latest')}
-              help={
-                status.checked_at
-                  ? t('updates.checkedAt', { when: formatDateTime(status.checked_at) })
-                  : t('updates.notChecked')
-              }
-            >
-              <code>{status.latest ?? t('updates.unknown')}</code>{' '}
-              <button type="button" onClick={checkNow} disabled={checking || busy}>
-                {checking ? t('updates.checking') : t('updates.checkNow')}
-              </button>
-            </SettingRow>
-
+            <div className="update-versions">
+              <div>
+                <span className="update-label" title={t('updates.currentHelp')}>
+                  {t('updates.current')}
+                </span>
+                <code>{status.current ?? t('updates.unknown')}</code>
+              </div>
+              <div>
+                <span className="update-label">{t('updates.latest')}</span>
+                <span className="update-latest">
+                  <code>{status.latest ?? t('updates.unknown')}</code>
+                  <button type="button" onClick={checkNow} disabled={checking || busy}>
+                    {checking ? t('updates.checking') : t('updates.checkNow')}
+                  </button>
+                </span>
+              </div>
+            </div>
             {status.error && (
-              <p role="alert" className="error-message">
+              <p role="alert" className="error-message update-note">
                 {t('updates.checkError', { error: status.error })}
               </p>
             )}
-
-            {status.available ? (
-              <div className="update-available">
-                <p>
-                  <span className="status-dot is-ok" aria-hidden="true" />{' '}
-                  <strong>{t('updates.available')}</strong>{' '}
-                  {status.behind ? t('updates.bannerChanges', { count: String(status.behind) }) : null}
-                </p>
-                {status.changes.length > 0 && (
-                  <ul className="update-changes" aria-label={t('updates.changes')}>
-                    {status.changes.map((change) => (
-                      <li key={change.sha}>
-                        <code>{change.sha}</code> {change.title}
-                      </li>
-                    ))}
-                  </ul>
-                )}
-                {status.can_update ? (
-                  <button type="button" onClick={update} disabled={busy}>
-                    {starting ? t('updates.starting') : t('updates.install', { version: status.latest ?? '' })}
-                  </button>
-                ) : (
-                  <p className="setting-row-help">{t('updates.cannotUpdate')}</p>
-                )}
-              </div>
-            ) : status.current ? (
-              <p>
-                <span className="status-dot is-ok" aria-hidden="true" /> {t('updates.upToDate')}
-              </p>
-            ) : (
-              <p className="setting-row-help">{t('updates.noVersion')}</p>
+            {status.available && status.changes.length > 0 && (
+              <ul className="update-changes" aria-label={t('updates.changes')}>
+                {status.changes.map((change) => (
+                  <li key={change.sha}>
+                    <code>{change.sha}</code> {change.title}
+                  </li>
+                ))}
+              </ul>
             )}
-
+            {!status.available && !status.current && <p className="update-note">{t('updates.noVersion')}</p>}
             {error && (
-              <p role="alert" className="error-message">
+              <p role="alert" className="error-message update-note">
                 {error}
               </p>
+            )}
+            {status.available && (
+              <div className="update-footer">
+                {status.can_update ? (
+                  <>
+                    <span className="update-downtime">{t('updates.downtime')}</span>
+                    <button type="button" className="is-primary" onClick={update} disabled={busy}>
+                      {starting ? t('updates.starting') : t('updates.install', { version: status.latest ?? '' })}
+                    </button>
+                  </>
+                ) : (
+                  <span className="update-downtime">{t('updates.cannotUpdate')}</span>
+                )}
+              </div>
             )}
           </>
         )}
       </section>
 
       {status && (
-        <section className="settings-section card" aria-label={t('updates.historyTitle')}>
+        <section className="card update-history-card" aria-label={t('updates.historyTitle')}>
           <h2>{t('updates.historyTitle')}</h2>
           {history.length === 0 ? (
             <p className="setting-row-help">{t('updates.historyEmpty')}</p>
@@ -166,7 +182,7 @@ export function UpdatesSettings() {
                 {history.map((entry) => {
                   const took = secondsTaken(entry);
                   return (
-                    <tr key={entry.id}>
+                    <tr key={entry.id} className={entry.result === 'failed' ? 'is-failed' : undefined}>
                       <td>{formatDateTime(entry.started_at)}</td>
                       <td>
                         {entry.from_commit ? (

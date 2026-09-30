@@ -577,3 +577,242 @@
   font-size: 0.85rem;
   font-weight: 600;
 }
+
+/* ---- Users: role and state as chips, choices as segmented controls, the save in a footer ---- */
+.users-settings {
+  grid-template-columns: 250px minmax(0, 1fr);
+}
+
+.users-chip {
+  display: inline-block;
+  padding: 0.05rem 0.5rem;
+  border: 1px solid var(--color-divider);
+  border-radius: 999px;
+  background: var(--color-bg);
+  color: var(--color-muted-strong);
+  font-size: 0.72rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.users-chip.is-active {
+  background: var(--tone-green-bg);
+  border-color: color-mix(in srgb, var(--tone-green-fg) 25%, var(--tone-green-bg));
+  color: var(--tone-green-fg);
+}
+
+.role-badge {
+  background: var(--color-surface-alt);
+  border-color: var(--color-divider);
+}
+
+.user-row.is-selected {
+  border-left-color: transparent;
+  box-shadow: inset 3px 0 0 var(--color-accent);
+}
+
+.users-panel-head {
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.permission-grid-title {
+  margin: 0.75rem 0 0.25rem;
+  padding-top: 0.6rem;
+  border-top: 1px solid var(--color-divider);
+  color: var(--color-muted-strong);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.permission-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.4rem 1rem;
+  padding: 0.3rem 0;
+  border-top: 1px solid var(--color-divider);
+  font-size: 0.9rem;
+}
+
+.permission-grid-title + .permission-row {
+  border-top: none;
+}
+
+.users-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin: 1rem -1rem -1rem;
+  padding: 0.7rem 1rem;
+  border-top: 1px solid var(--color-divider);
+  background: var(--color-surface-alt);
+}
+
+:is(.users-actions, .update-footer) .is-primary {
+  background: var(--color-accent);
+  border-color: var(--color-accent);
+  color: var(--color-on-accent);
+  font-weight: 600;
+}
+
+/* ---- Updates: one card that says in its head whether an update waits ---- */
+.update-card.card,
+.update-history-card.card {
+  padding: 0;
+  overflow: hidden;
+}
+
+.update-card-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.3rem 1rem;
+  padding: 0.6rem 0.9rem;
+  border-bottom: 1px solid var(--color-divider);
+}
+
+.update-card-head h2 {
+  margin: 0;
+  font-size: 0.95rem;
+}
+
+.update-card.is-available {
+  border-color: color-mix(in srgb, var(--tone-amber-fg) 30%, var(--color-border));
+}
+
+.update-card.is-available .update-card-head {
+  background: var(--tone-amber-bg);
+  color: var(--tone-amber-fg);
+}
+
+.update-card.is-current .update-card-head {
+  background: var(--tone-green-bg);
+  color: var(--tone-green-fg);
+}
+
+.update-card-head h2 {
+  color: inherit;
+}
+
+.update-checked {
+  font-size: 0.8rem;
+  opacity: 0.9;
+}
+
+.update-versions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  border-bottom: 1px solid var(--color-divider);
+}
+
+.update-versions > div {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  padding: 0.6rem 0.9rem;
+}
+
+.update-versions > div + div {
+  border-left: 1px solid var(--color-divider);
+}
+
+.update-label {
+  color: var(--color-muted);
+  font-size: 0.8rem;
+}
+
+.update-latest {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.update-latest button {
+  padding: 0.2rem 0.7rem;
+  font-size: 0.85rem;
+}
+
+.update-card .update-changes {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  margin: 0;
+  padding: 0.6rem 0.9rem;
+  list-style: none;
+  font-size: 0.85rem;
+}
+
+.update-note {
+  margin: 0;
+  padding: 0.6rem 0.9rem;
+}
+
+.update-footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem 1rem;
+  padding: 0.6rem 0.9rem;
+  border-top: 1px solid var(--color-divider);
+  background: var(--color-surface-alt);
+}
+
+.update-downtime {
+  color: var(--color-muted);
+  font-size: 0.85rem;
+}
+
+.update-history-card.card > h2:first-child {
+  margin: 0;
+  padding: 0.6rem 0.9rem;
+  border-bottom: 1px solid var(--color-divider);
+  background: none;
+  color: var(--color-heading);
+  font-size: 0.95rem;
+}
+
+.update-history-card .setting-row-help {
+  margin: 0;
+  padding: 0.6rem 0.9rem;
+}
+
+.update-history-card .update-history th,
+.update-history-card .update-history td {
+  padding: 0.4rem 0.9rem;
+  font-size: 0.85rem;
+}
+
+.update-history tr.is-failed td {
+  background: color-mix(in srgb, var(--tone-red-bg) 55%, var(--color-bg));
+}
+
+:is(.update-result-ok, .update-result-failed, .update-result-running) {
+  display: inline-block;
+  padding: 0.05rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.update-result-ok {
+  background: var(--tone-green-bg);
+  color: var(--tone-green-fg);
+}
+
+.update-result-failed {
+  background: var(--tone-red-bg);
+  color: var(--tone-red-fg);
+}
+
+.update-result-running {
+  background: var(--tone-blue-bg);
+  color: var(--tone-blue-fg);
+}

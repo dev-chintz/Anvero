@@ -2261,3 +2261,17 @@ row's override note is erased with the buyer, as it may name them. Not yet run o
 
 **Verified:** frontend tests (622) and `tsc`. Not seen in a browser: it needs the owner's login.
 
+
+## 2026-10-01 — Users, updates and the login page
+
+**Decision (owner, from the Claude Design canvas https://claude.ai/artifact/RSBvFYG9B2ymzFxy1YEtDm):** The last three screens follow the rest.
+- **Users:** a 250px list; an account's role is a grey chip, an inactive account says so in a chip instead of a dot, the chosen one carries the accent's inset edge. In the chosen account the role and the state (active or not) are segmented choices, its state a chip in the head, and the six permissions are one segmented None / View / Manage each, all in view, under a small "Permissions" label; save or create sits in the card's footer. The new-account form is laid out the same.
+- **Updates:** one card whose head says whether an update is available (amber, with the number of changes) or Anvero is up to date (green), and when it was checked; the running and the latest version side by side, "check now" beside the latest; the changes as a list; the install button in the footer beside a note that the app will be away for a minute or two. The history keeps its table, denser, with the result as a chip and a failed run's row on a red ground.
+- **Login:** the new mark and the ANVERO wordmark with its tagline, the language as a segmented PL / EN in the card's corner, the title "Zaloguj się", a "show / hide" button inside the password field, the submit in the accent, and a hint that points to Settings instead of `scripts/create_user.py` (accounts are created in the Users tab now).
+
+**Rationale:** The same patterns as every other screen: segmented choices for two or three values, chips for state, the one action in a footer; drop-downs hid the whole permission set behind six clicks.
+
+**Consequences:** Nothing these screens do changed. The Users tests address the permissions as radio groups now.
+
+**Verified:** frontend tests (622) and `tsc`; the login page seen in a browser (the show/hide button switches the field, no console errors). Users and Updates not seen: they need the owner's login.
+

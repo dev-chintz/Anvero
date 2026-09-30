@@ -15,6 +15,7 @@ export function LoginPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   const from = (location.state as { from?: Location } | null)?.from;
   const destination = from ? `${from.pathname}${from.search}` : "/dashboard";
@@ -44,12 +45,14 @@ export function LoginPage() {
           <AnveroLogo size={44} />
           <AnveroWordmark tagline />
         </div>
-        <div className="login-language">
+        <div className="login-language segmented" role="radiogroup" aria-label={t("settings.language")}>
           {LANGUAGES.map((code) => (
             <button
               key={code}
               type="button"
-              aria-pressed={language === code}
+              role="radio"
+              aria-checked={language === code}
+              aria-label={languageName(code)}
               title={languageName(code)}
               onClick={() => setLanguage(code)}
             >
@@ -77,24 +80,31 @@ export function LoginPage() {
         />
 
         <label htmlFor="login-password">{t("login.password")}</label>
-        <input
-          id="login-password"
-          type="password"
-          autoComplete="current-password"
-          required
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          disabled={submitting}
-        />
+        <span className="login-password">
+          <input
+            id="login-password"
+            type={showPassword ? "text" : "password"}
+            autoComplete="current-password"
+            required
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            disabled={submitting}
+          />
+          <button
+            type="button"
+            className="login-show"
+            aria-pressed={showPassword}
+            onClick={() => setShowPassword((shown) => !shown)}
+          >
+            {showPassword ? t("login.hidePassword") : t("login.showPassword")}
+          </button>
+        </span>
 
         <button type="submit" className="login-submit" disabled={submitting}>
           {submitting ? t("login.submitting") : t("login.submit")}
         </button>
 
-        <p className="login-hint">
-          {t("login.hint")}
-          <code> scripts/create_user.py</code>.
-        </p>
+        <p className="login-hint">{t("login.hint")}</p>
       </form>
     </main>
   );

@@ -6,6 +6,13 @@ All significant changes to the Anvero project.
 
 ## 2026-10-01
 
+### 🔐 Users, updates and the login page
+
+- Users: role, state and permissions as segmented choices, all in view. Updates: one card that says
+  in its head whether an update waits, the install button in its footer. Login: the new logo, PL/EN
+  as a segmented choice, show password. The last screens of the Claude Design pass. See
+  `docs/DECISIONS.md`.
+
 ### 🩺 The status tab
 
 - The summary as one card with "check again", the three tiles in one row with their schedules in

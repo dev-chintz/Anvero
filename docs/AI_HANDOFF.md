@@ -218,8 +218,10 @@ each, the save in a footer; Updates: one card whose head says available or up
 to date, running and latest side by side, the changes, and the install button in
 its footer; the history as dense rows with the result as a chip; Login: the new
 logo and wordmark, the language as a segmented PL/EN, "show password", the hint
-pointing to Settings instead of a script) next to today's. Waiting for the
-owner's verdict.
+pointing to Settings instead of a script) next to today's. Chosen and built
+(`DECISIONS.md`, 2026-10-01, "Users, updates and the login page"); the login
+page seen in a browser, Users and Updates tested but not yet seen. With these,
+every screen of the app has been through Claude Design.
 
 A **second look** is on https://claude.ai/artifact/1tJfJmnRK6JXpe4dJzNSRy:
 three directions for the order list, the owner's pick ("Papier": cream,

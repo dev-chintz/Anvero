@@ -100,6 +100,9 @@ re-imported. Production needs its own application and authorization; see
 
 ## Not yet verified
 
+The Users and Updates tabs (2026-10-01): tested, not yet opened in a browser
+(the owner's login), nor an account saved or an update installed since.
+
 The status tab (2026-10-01): tested, not yet opened in a browser (the owner's
 login).
 

@@ -60,8 +60,10 @@ describe("UsersSettings", () => {
     expect(screen.getByText("An administrator needs no grants: it can already do everything.")).toBeInTheDocument();
 
     fireEvent.click(screen.getByText("packer@example.com"));
-    expect(await screen.findByRole("combobox", { name: "Orders and production" })).toHaveValue("manage");
-    expect(screen.getByRole("combobox", { name: "Finance and reports" })).toHaveValue("none");
+    const orders = await screen.findByRole("radiogroup", { name: "Orders and production" });
+    expect(within(orders).getByRole("radio", { name: "Manage" })).toHaveAttribute("aria-checked", "true");
+    const finance = screen.getByRole("radiogroup", { name: "Finance and reports" });
+    expect(within(finance).getByRole("radio", { name: "None" })).toHaveAttribute("aria-checked", "true");
   });
 
   it("saves a changed grant for an existing account", async () => {
@@ -69,9 +71,8 @@ describe("UsersSettings", () => {
     render(<UsersSettings />);
     fireEvent.click(await screen.findByText("packer@example.com"));
 
-    fireEvent.change(screen.getByRole("combobox", { name: "Finance and reports" }), {
-      target: { value: "view" },
-    });
+    const finance = screen.getByRole("radiogroup", { name: "Finance and reports" });
+    fireEvent.click(within(finance).getByRole("radio", { name: "View" }));
     fireEvent.click(screen.getByRole("button", { name: "Save" }));
 
     await waitFor(() =>
@@ -96,7 +97,7 @@ describe("UsersSettings", () => {
     fireEvent.change(screen.getByLabelText("Password"), {
       target: { value: "a-perfectly-good-password" },
     });
-    fireEvent.change(screen.getByRole("combobox", { name: "Messages" }), { target: { value: "view" } });
+    fireEvent.click(within(screen.getByRole("radiogroup", { name: "Messages" })).getByRole("radio", { name: "View" }));
     fireEvent.click(screen.getByRole("button", { name: "Create account" }));
 
     await waitFor(() =>
