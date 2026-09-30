@@ -296,6 +296,18 @@ Each stage is committed and pushed on its own, with its tests, and the contracts
      subtracted), and says from which day it counts.
    - **An override** carries to the sale's corrections at once, not at the next import.
 5. **The screen (4g).** Mockups first, then the page, replacing "Raport bezrachunkowy" in the menu.
+   *Built 2026-10-01* (`frontend/src/pages/NonInvoicedPage.tsx`, at `/sales-report`, still named
+   "Raport bezrachunkowy" in the menu): no separate mockup, since it takes the report page's layout
+   the owner chose on 2026-09-30 (DECISIONS.md, "The sales report page"): the previous month by
+   default with shortcuts; the banners (handed over, overlapping, not ended, what blocks, the
+   warnings); five tiles that filter (all, in the record with its total, to decide, needs the
+   register, outside the record); the VAT limit as a bar; then what waits for a decision, what
+   needs the register, the record itself with its Lp. and total, and the rest; a row opening in
+   place with its reason, address, payment and payout, and for a sale the decision with a written
+   reason; exports in three formats through the column picker; "Przekaż księgowej" with the
+   warnings in the question; and the reports handed over, each downloadable again. Seen in a
+   browser on a scratch database with made-up rows (a decision, a hand-over, the handed-over PDF);
+   not yet on the real ledger.
 6. **The first real month.** September 2026 produced and compared with Allegro's payout report and
    with what the accountant received before; any difference explained before the report is used.
 7. **Erli.** Its buyer, payment and payout fields checked against its API, then the same classifier.

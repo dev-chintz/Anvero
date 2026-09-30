@@ -102,6 +102,9 @@ async function extractErrorMessage(response: Response): Promise<string> {
       if (named.length > 0) return named.join("; ");
     }
     if (typeof body.detail === "string") return body.detail;
+    // a refusal that names its rule: {"detail": {"code": "...", "message": "..."}}
+    const detail = body.detail as unknown as { message?: unknown } | undefined;
+    if (detail && typeof detail === "object" && typeof detail.message === "string") return detail.message;
     return body.error ?? translate("error.requestFailed", { status: response.status });
   } catch {
     return translate("error.requestFailed", { status: response.status });
@@ -1196,6 +1199,164 @@ export const salesReportApi = {
     return request(`/sales-report/orders/${source}/${encodeURIComponent(orderExternalId)}/override`, {
       method: "DELETE",
     });
+  },
+};
+
+/** The non-invoiced sales record (docs/API.md, "Non-invoiced sales record"). */
+export type NonInvoicedCategory =
+  | "EXEMPT_MAIL_ORDER"
+  | "PRIVATE_INVOICED"
+  | "BUSINESS"
+  | "NEEDS_REGISTER"
+  | "TO_REVIEW"
+  | "NOT_A_SALE";
+
+export interface NonInvoicedOverride {
+  category: NonInvoicedCategory;
+  note: string | null;
+  by: string | null;
+  at: string | null;
+}
+
+export interface NonInvoicedRow {
+  id: string;
+  kind: "SALE" | "CORRECTION";
+  entry_date: string;
+  entry_at: string;
+  source: OrderSource;
+  order_id: string | null;
+  order_label: string;
+  order_external_id: string;
+  corrects_entry_id: string | null;
+  buyer_name: string | null;
+  buyer_address: string | null;
+  amount: string;
+  currency: string;
+  category: NonInvoicedCategory;
+  automatic_category: NonInvoicedCategory;
+  reason: string;
+  reason_text: string;
+  ruleset: string;
+  override: NonInvoicedOverride | null;
+  locked: boolean;
+  in_report: boolean;
+  late: boolean;
+  payment_operator: string | null;
+  payout_date: string | null;
+}
+
+export interface NonInvoicedTotal {
+  category: NonInvoicedCategory;
+  label: string;
+  sales: number;
+  sales_amount: string;
+  corrections: number;
+  corrections_amount: string;
+  total: string;
+}
+
+export interface NonInvoicedHandedOver {
+  id: string;
+  date_from: string;
+  date_to: string;
+  handed_over_at: string;
+  handed_over_by: string | null;
+  total: string;
+  currency: string;
+  row_count: number;
+  ruleset: string;
+}
+
+export interface NonInvoicedReport {
+  date_from: string;
+  date_to: string;
+  rows: NonInvoicedRow[];
+  listed: string[];
+  total: string;
+  currency: string;
+  totals: NonInvoicedTotal[];
+  checks: {
+    to_review: number;
+    needs_register: number;
+    unmatched_payments: number;
+    unmatched_amount: string;
+    untraced_sales: number;
+    blocking: boolean;
+    warnings: boolean;
+  };
+  limit: {
+    year: number;
+    total: string;
+    limit: string;
+    share: string;
+    counted_from: string | null;
+    warning: boolean;
+    exceeded: boolean;
+  };
+  handed_over: NonInvoicedHandedOver | null;
+  overlapping: NonInvoicedHandedOver[];
+  ended: boolean;
+  can_hand_over: boolean;
+}
+
+export interface ExportColumn {
+  key: string;
+  label: string;
+  personal?: boolean;
+}
+
+export interface ExportColumnList {
+  items: ExportColumn[];
+  default: string[];
+}
+
+export type NonInvoicedFormat = "csv" | "xlsx" | "pdf";
+
+function exportQuery(format: NonInvoicedFormat, columns?: string[], extra: Record<string, string> = {}): string {
+  const query = new URLSearchParams({ ...extra, format });
+  if (columns && columns.length) query.set("columns", columns.join(","));
+  return query.toString();
+}
+
+export const nonInvoicedApi = {
+  report(dateFrom: string, dateTo: string): Promise<NonInvoicedReport> {
+    const query = new URLSearchParams({ date_from: dateFrom, date_to: dateTo });
+    return request<NonInvoicedReport>(`/non-invoiced/report?${query.toString()}`);
+  },
+
+  columns(): Promise<ExportColumnList> {
+    return request<ExportColumnList>("/non-invoiced/columns");
+  },
+
+  exportRange(dateFrom: string, dateTo: string, format: NonInvoicedFormat, columns?: string[]): Promise<Blob> {
+    const query = exportQuery(format, columns, { date_from: dateFrom, date_to: dateTo });
+    return request<Blob>(`/non-invoiced/export?${query}`, { blob: true });
+  },
+
+  exportHandedOver(reportId: string, format: NonInvoicedFormat, columns?: string[]): Promise<Blob> {
+    return request<Blob>(`/non-invoiced/reports/${reportId}/export?${exportQuery(format, columns)}`, { blob: true });
+  },
+
+  reports(): Promise<NonInvoicedHandedOver[]> {
+    return request<NonInvoicedHandedOver[]>("/non-invoiced/reports");
+  },
+
+  handOver(dateFrom: string, dateTo: string, acknowledged: boolean): Promise<NonInvoicedHandedOver> {
+    return request<NonInvoicedHandedOver>("/non-invoiced/reports", {
+      method: "POST",
+      body: JSON.stringify({ date_from: dateFrom, date_to: dateTo, acknowledged }),
+    });
+  },
+
+  setOverride(entryId: string, category: NonInvoicedCategory, note: string): Promise<NonInvoicedOverride> {
+    return request<NonInvoicedOverride>(`/non-invoiced/entries/${entryId}/override`, {
+      method: "PUT",
+      body: JSON.stringify({ category, note }),
+    });
+  },
+
+  clearOverride(entryId: string): Promise<{ ok: boolean }> {
+    return request(`/non-invoiced/entries/${entryId}/override`, { method: "DELETE" });
   },
 };
 

@@ -198,7 +198,7 @@ def test_an_override_is_set_with_a_reason_and_taken_back():
     row = next(r for r in client.get("/api/v1/non-invoiced/report", params=SEPTEMBER).json()["rows"] if r["id"] == str(entry))
     assert (row["category"], row["automatic_category"], row["override"]["note"]) == ("NOT_A_SALE", "TO_REVIEW", "Zwrócone w całości")
 
-    assert client.delete(url).status_code == 204
+    assert client.delete(url).status_code == 200
     row = next(r for r in client.get("/api/v1/non-invoiced/report", params=SEPTEMBER).json()["rows"] if r["id"] == str(entry))
     assert (row["category"], row["override"]) == ("TO_REVIEW", None)
 

@@ -1006,7 +1006,7 @@ first (`{"id", "date_from", "date_to", "handed_over_at", "handed_over_by", "tota
 same rows in the same order.
 
 `PUT /entries/{id}/override` (`{"category", "note"}`, a written reason required) sets a person's
-category on a sale; `DELETE` takes it back (`204`). Refused (`422`) on a correction, a locked row,
+category on a sale; `DELETE` takes it back (`{"ok": true}`). Refused (`422`) on a correction, a locked row,
 a company's sale, or with `TO_REVIEW`; an unknown row is `404`. The sale's corrections follow it at
 once.
 

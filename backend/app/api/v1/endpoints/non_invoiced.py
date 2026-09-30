@@ -324,7 +324,7 @@ def put_override(
     )
 
 
-@router.delete("/entries/{entry_id}/override", status_code=204, dependencies=[_manage])
+@router.delete("/entries/{entry_id}/override", dependencies=[_manage])
 def delete_override(
     entry_id: uuid.UUID,
     db: Session = Depends(get_db),
@@ -337,4 +337,4 @@ def delete_override(
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     except OverrideRefused as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
-    return Response(status_code=204)
+    return {"ok": True}

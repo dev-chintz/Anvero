@@ -2293,3 +2293,12 @@ row's override note is erased with the buyer, as it may name them. Not yet run o
 
 **Consequences:** Three new dependencies with their own (`fpdf2`, `openpyxl`, and through them `pillow`, `fonttools`, `defusedxml`, `et_xmlfile`), in `requirements.txt`; the image grows accordingly. Rows dated in a month already handed over but written after it are carried by the next report, marked as such, rather than changing the one handed over.
 
+
+## 2026-10-01 — The non-invoiced record's screen
+
+**Decision (owner: "do the missing stages"):** The menu's "Raport bezrachunkowy" opens the record's page, built on the ledger (`NON_INVOICED_SALES.md`, stage 5). It takes the report page's layout the owner chose the day before (tiles that filter, what waits for a decision first, a row opening in place) instead of a new mockup, and adds what the record has: the tile and card of sales needing the register, the record's own card with its running number and total, the VAT limit bar, the banners that say where the range stands, handing over with its warnings in the question, and the list of reports handed over. The export column picker (`ExportColumnsDialog`) takes the record's columns and offers all three formats.
+
+**Rationale:** The layout was chosen for the same work a day earlier; drawing it again would have asked the same question.
+
+**Consequences:** The page opens on the previous month. Anyone with Finance may read and export; deciding a sale and handing over need Finance at `manage`. The old report's page is no longer reachable from the menu and goes in stage 8.
+

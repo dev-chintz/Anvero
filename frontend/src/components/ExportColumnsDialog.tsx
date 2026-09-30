@@ -1,12 +1,10 @@
 import { Fragment, useEffect, useRef, useState } from 'react';
-import { ApiError, salesReportApi, type SalesReportColumn } from '../api/client';
+import { ApiError, salesReportApi, type ExportColumn, type ExportColumnList } from '../api/client';
 import { useTranslation } from '../i18n';
 import type { MessageKey } from '../i18n/messages';
 import '../styles/OrderNoteDialog.css';
 import '../styles/ExportColumnsDialog.css';
 
-const REMEMBERED_COLUMNS_KEY = 'salesReport.exportColumns';
-const REMEMBER_KEY = 'salesReport.exportRemember';
 
 // keys the mockup shows tagged "dane osobowe": more identifying than a login, a NIP or an amount
 const PERSONAL_DATA_KEYS = new Set(['customer_name', 'customer_email', 'customer_phone', 'invoice_address']);
@@ -22,10 +20,29 @@ const GROUPS: { titleKey: MessageKey; keys: string[] }[] = [
   { titleKey: 'salesReport.export.group.classification', keys: ['category', 'included', 'reason', 'rule_id'] },
 ];
 
-function readRemembered(fallback: string[]): string[] {
+export type ExportFormat = 'csv' | 'excel' | 'pdf';
+
+/** Where the columns come from, how the picker groups them and which formats it offers. */
+export interface ExportColumnsConfig {
+  loadColumns: () => Promise<ExportColumnList>;
+  groups: { titleKey: MessageKey; keys: string[] }[];
+  /** the prefix the remembered choice is kept under in this browser */
+  storageKey: string;
+  formats: ExportFormat[];
+}
+
+// the non-invoiced sales report's, kept while its page is
+const SALES_REPORT_CONFIG: ExportColumnsConfig = {
+  loadColumns: () => salesReportApi.columns(),
+  groups: GROUPS,
+  storageKey: 'salesReport',
+  formats: ['csv'],
+};
+
+function readRemembered(storageKey: string, fallback: string[]): string[] {
   try {
-    if (localStorage.getItem(REMEMBER_KEY) === 'false') return fallback;
-    const stored = localStorage.getItem(REMEMBERED_COLUMNS_KEY);
+    if (localStorage.getItem(`${storageKey}.exportRemember`) === 'false') return fallback;
+    const stored = localStorage.getItem(`${storageKey}.exportColumns`);
     return stored ? (JSON.parse(stored) as string[]) : fallback;
   } catch {
     return fallback;
@@ -34,9 +51,10 @@ function readRemembered(fallback: string[]): string[] {
 
 interface ExportColumnsDialogProps {
   /** The format the export button that opened this dialog was for; highlighted as the main action. */
-  initialFormat: 'csv' | 'excel' | 'pdf';
-  onExport: (format: 'csv' | 'excel' | 'pdf', columns: string[]) => void;
+  initialFormat: ExportFormat;
+  onExport: (format: ExportFormat, columns: string[]) => void;
   onClose: () => void;
+  config?: ExportColumnsConfig;
 }
 
 /**
@@ -44,12 +62,16 @@ interface ExportColumnsDialogProps {
  * number, the date, the buyer's name, the amount paid) plus every other field the order carries,
  * grouped, with a note on the ones that are more identifying than a login or an amount.
  */
-export function ExportColumnsDialog({ initialFormat, onExport, onClose }: ExportColumnsDialogProps) {
+export function ExportColumnsDialog({ initialFormat, onExport, onClose, config = SALES_REPORT_CONFIG }: ExportColumnsDialogProps) {
   const { t } = useTranslation();
+  const { loadColumns, groups, storageKey, formats } = config;
+  const rememberedKey = `${storageKey}.exportColumns`;
+  const rememberKey = `${storageKey}.exportRemember`;
   const closeButton = useRef<HTMLButtonElement>(null);
-  const [catalog, setCatalog] = useState<SalesReportColumn[] | null>(null);
+  const [catalog, setCatalog] = useState<ExportColumn[] | null>(null);
+  const [defaults, setDefaults] = useState<string[]>([]);
   const [selected, setSelected] = useState<string[]>([]);
-  const [remember, setRemember] = useState(() => localStorage.getItem(REMEMBER_KEY) !== 'false');
+  const [remember, setRemember] = useState(() => localStorage.getItem(rememberKey) !== 'false');
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -62,24 +84,28 @@ export function ExportColumnsDialog({ initialFormat, onExport, onClose }: Export
   }, [onClose]);
 
   useEffect(() => {
-    salesReportApi
-      .columns()
+    loadColumns()
       .then((list) => {
         setCatalog(list.items);
         // only the "real" columns: "lp" is always first and not part of the stored choice
-        const withoutLp = (keys: string[]) => keys.filter((key) => key !== 'lp');
-        setSelected(readRemembered(withoutLp(list.default)));
+        const withoutLp = list.default.filter((key) => key !== 'lp');
+        setDefaults(withoutLp);
+        setSelected(readRemembered(storageKey, withoutLp));
       })
       .catch((err) => setError(err instanceof ApiError ? err.message : t('error.network')));
-  }, [t]);
+  }, [t, loadColumns, storageKey]);
 
   const label = (key: string) => catalog?.find((c) => c.key === key)?.label ?? key;
+  const personal = (key: string) => {
+    const column = catalog?.find((c) => c.key === key);
+    return column?.personal ?? PERSONAL_DATA_KEYS.has(key);
+  };
 
   const persist = (next: string[]) => {
     setSelected(next);
     if (remember) {
       try {
-        localStorage.setItem(REMEMBERED_COLUMNS_KEY, JSON.stringify(next));
+        localStorage.setItem(rememberedKey, JSON.stringify(next));
       } catch {
         // a private window or full storage: the choice just does not survive this session
       }
@@ -102,14 +128,14 @@ export function ExportColumnsDialog({ initialFormat, onExport, onClose }: Export
   const onRememberChange = (checked: boolean) => {
     setRemember(checked);
     try {
-      localStorage.setItem(REMEMBER_KEY, String(checked));
-      if (!checked) localStorage.removeItem(REMEMBERED_COLUMNS_KEY);
+      localStorage.setItem(rememberKey, String(checked));
+      if (!checked) localStorage.removeItem(rememberedKey);
     } catch {
       // ignore: nothing to persist to
     }
   };
 
-  const runExport = (format: 'csv' | 'excel' | 'pdf') => onExport(format, ['lp', ...selected]);
+  const runExport = (format: ExportFormat) => onExport(format, ['lp', ...selected]);
 
   return (
     <div className="note-backdrop" onClick={onClose}>
@@ -165,15 +191,15 @@ export function ExportColumnsDialog({ initialFormat, onExport, onClose }: Export
                   {t('salesReport.export.lp')} <span className="export-field-hint">— {t('salesReport.export.lpHint')}</span>
                 </span>
               </div>
-              {['ordered_at', 'customer_name', 'amount_paid'].map((key) => (
-                <ColumnRow key={key} fieldKey={key} label={label(key)} selected={selected} onToggle={toggle} onMove={move} />
+              {defaults.map((key) => (
+                <ColumnRow key={key} fieldKey={key} label={label(key)} personal={personal(key)} selected={selected} onToggle={toggle} onMove={move} />
               ))}
 
-              {GROUPS.map((group) => (
+              {groups.map((group) => (
                 <div key={group.titleKey}>
                   <div className="export-columns-group-label">{t(group.titleKey)}</div>
                   {group.keys.map((key) => (
-                    <ColumnRow key={key} fieldKey={key} label={label(key)} selected={selected} onToggle={toggle} onMove={move} />
+                    <ColumnRow key={key} fieldKey={key} label={label(key)} personal={personal(key)} selected={selected} onToggle={toggle} onMove={move} />
                   ))}
                 </div>
               ))}
@@ -193,20 +219,23 @@ export function ExportColumnsDialog({ initialFormat, onExport, onClose }: Export
             {t('salesReport.export.cancel')}
           </button>
           <div className="export-columns-formats">
-            <button
-              type="button"
-              className={initialFormat === 'csv' ? 'is-primary' : ''}
-              onClick={() => runExport('csv')}
-              disabled={!catalog}
-            >
-              {t('salesReport.export.csv')}
-            </button>
-            <button type="button" disabled title={t('salesReport.export.notBuiltYet')}>
-              {t('salesReport.export.excel')}
-            </button>
-            <button type="button" disabled title={t('salesReport.export.notBuiltYet')}>
-              {t('salesReport.export.pdf')}
-            </button>
+            {(['csv', 'excel', 'pdf'] as ExportFormat[]).map((format) =>
+              formats.includes(format) ? (
+                <button
+                  key={format}
+                  type="button"
+                  className={initialFormat === format ? 'is-primary' : ''}
+                  onClick={() => runExport(format)}
+                  disabled={!catalog}
+                >
+                  {t(`salesReport.export.${format}`)}
+                </button>
+              ) : (
+                <button key={format} type="button" disabled title={t('salesReport.export.notBuiltYet')}>
+                  {t(`salesReport.export.${format}`)}
+                </button>
+              ),
+            )}
           </div>
         </footer>
       </div>
@@ -217,12 +246,14 @@ export function ExportColumnsDialog({ initialFormat, onExport, onClose }: Export
 function ColumnRow({
   fieldKey,
   label,
+  personal,
   selected,
   onToggle,
   onMove,
 }: {
   fieldKey: string;
   label: string;
+  personal: boolean;
   selected: string[];
   onToggle: (key: string) => void;
   onMove: (key: string, delta: -1 | 1) => void;
@@ -236,7 +267,7 @@ function ColumnRow({
       {isChecked && <span className="export-order-badge">{position + 2}</span>}
       <span className="export-field-label">
         {label}
-        {PERSONAL_DATA_KEYS.has(fieldKey) && <span className="export-pii-tag">{t('salesReport.export.personalData')}</span>}
+        {personal && <span className="export-pii-tag">{t('salesReport.export.personalData')}</span>}
       </span>
       {isChecked && (
         <span className="export-reorder">

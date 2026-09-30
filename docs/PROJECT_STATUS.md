@@ -100,6 +100,12 @@ re-imported. Production needs its own application and authorization; see
 
 ## Not yet verified
 
+The non-invoiced record's reports, exports and screen (2026-10-01, stages 4 and
+5 of `NON_INVOICED_SALES.md`): tested, and seen in a browser on a scratch
+database with made-up rows; not yet on the real ledger, and no report handed
+over for real. The first real one (September) should be compared with
+Allegro's payout report before it goes to the accountant (stage 6).
+
 Erli's payments for the non-invoiced record (2026-10-01): built from Erli's API
 description, tested against fakes, never read from the real service. The first
 import after the update should store `CONTRIBUTION` and `PAYOUT` operations of

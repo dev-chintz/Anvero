@@ -18,7 +18,7 @@ import { Settings, type Look } from './pages/Settings';
 import { LabelsPage } from './pages/LabelsPage';
 import { AfterSalesPage } from './pages/AfterSalesPage';
 import { FinancePage } from './pages/FinancePage';
-import { SalesReportPage } from './pages/SalesReportPage';
+import { NonInvoicedPage } from './pages/NonInvoicedPage';
 import { useSidebarOpen } from './hooks/useSidebarOpen';
 import { useTranslation } from './i18n';
 import './App.css';
@@ -154,7 +154,7 @@ export default function App() {
 
                 <Route path="/inbox" element={<InboxPage />} />
                 <Route path="/finance" element={<FinancePage />} />
-                <Route path="/sales-report" element={<SalesReportPage />} />
+                <Route path="/sales-report" element={<NonInvoicedPage />} />
                 <Route path="/integrations" element={<IntegrationsRedirect />} />
                 <Route
                   path="/settings"

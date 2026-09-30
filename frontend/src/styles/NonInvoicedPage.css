@@ -1,0 +1,189 @@
+/* The non-invoiced sales record (docs/NON_INVOICED_SALES.md, stage 5): the report page's own layout
+   (SalesReportPage.css), and what the record adds to it: the banners, the fifth tile, the VAT
+   limit, the total row, the decision in an opened row and the reports handed over. */
+
+.non-invoiced-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.non-invoiced-handover {
+  padding: 0.4rem 0.9rem;
+  border: 1px solid var(--color-accent);
+  border-radius: var(--radius-md);
+  background: var(--color-accent);
+  color: var(--color-on-accent);
+  font-weight: 600;
+}
+
+.non-invoiced-page .sales-report-kpis {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+
+.non-invoiced-tile-amount {
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+/* a line that says where the range stands */
+.non-invoiced-banner {
+  margin: 0;
+  padding: 0.55rem 0.9rem;
+  border: 1px solid var(--color-divider);
+  border-radius: 10px;
+  background: var(--color-surface-alt);
+  color: var(--color-muted-strong);
+  font-size: 0.9rem;
+}
+
+.non-invoiced-banner.is-done {
+  background: var(--tone-green-bg);
+  border-color: color-mix(in srgb, var(--tone-green-fg) 25%, var(--tone-green-bg));
+  color: var(--tone-green-fg);
+}
+
+.non-invoiced-banner.is-warning {
+  background: var(--tone-amber-bg);
+  border-color: color-mix(in srgb, var(--tone-amber-fg) 25%, var(--tone-amber-bg));
+  color: var(--tone-amber-fg);
+}
+
+ul.non-invoiced-warnings {
+  padding-left: 2rem;
+}
+
+/* the year's sales against the VAT exemption limit */
+.non-invoiced-limit {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.3rem 1rem;
+  font-size: 0.85rem;
+}
+
+.non-invoiced-limit-label .cell-sub {
+  display: inline;
+  margin-left: 0.4rem;
+}
+
+.non-invoiced-limit-bar {
+  flex: 1 1 10rem;
+  height: 0.5rem;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--color-surface-alt);
+}
+
+.non-invoiced-limit-bar i {
+  display: block;
+  height: 100%;
+  background: var(--color-accent);
+}
+
+.non-invoiced-limit-bar.is-warning i {
+  background: var(--tone-amber-fg);
+}
+
+.non-invoiced-limit-warning {
+  color: var(--tone-amber-fg);
+  font-weight: 600;
+}
+
+/* the cards: to decide in amber, needing the register in red */
+.non-invoiced-card.is-register .sales-report-card-head {
+  background: var(--tone-red-bg);
+  border-bottom-color: color-mix(in srgb, var(--tone-red-fg) 25%, var(--tone-red-bg));
+}
+
+.non-invoiced-card.is-register .sales-report-card-head h2 {
+  color: var(--tone-red-fg);
+}
+
+.non-invoiced-card.is-review .sales-report-card-head {
+  background: var(--tone-amber-bg);
+  border-bottom-color: color-mix(in srgb, var(--tone-amber-fg) 25%, var(--tone-amber-bg));
+}
+
+.non-invoiced-card.is-review .sales-report-card-head h2 {
+  color: var(--tone-amber-fg);
+}
+
+.non-invoiced-note {
+  padding: 0.5rem 0.9rem;
+  font-size: 0.85rem;
+}
+
+.non-invoiced-table .non-invoiced-lp {
+  width: 1%;
+  color: var(--color-muted);
+  text-align: right;
+  white-space: nowrap;
+}
+
+.non-invoiced-table tr.non-invoiced-total td {
+  border-top: 2px solid var(--color-border);
+  font-weight: 700;
+  cursor: default;
+}
+
+.non-invoiced-table tbody tr.non-invoiced-total:hover {
+  background: none;
+}
+
+/* a sale's decision in its opened row */
+.non-invoiced-decision {
+  flex-wrap: wrap;
+}
+
+.non-invoiced-decision label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.85rem;
+}
+
+.non-invoiced-decision input[type="text"] {
+  min-width: 14rem;
+}
+
+/* the reports handed over, each downloadable again */
+.non-invoiced-handed {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.non-invoiced-handed li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.5rem 0.9rem;
+  border-top: 1px solid var(--color-divider);
+}
+
+.non-invoiced-handed li:first-child {
+  border-top: none;
+}
+
+.non-invoiced-handed-files {
+  display: inline-flex;
+  gap: 0.3rem;
+}
+
+.non-invoiced-handed-files button {
+  padding: 0.15rem 0.6rem;
+  font-size: 0.8rem;
+}
+
+@media (max-width: 768px) {
+  .non-invoiced-page .sales-report-kpis {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .non-invoiced-handed li {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
