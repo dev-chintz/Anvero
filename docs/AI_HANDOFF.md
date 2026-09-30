@@ -158,7 +158,8 @@ and the period as one segmented control on one line, the four figures in one
 row with fees tinted amber and what is left green, the fee bars full width,
 then by channel, delivery and the check against Allegro as three narrow cards
 side by side) next to today's, where below 1100px everything stacks into one
-column. Waiting for the owner's verdict.
+column. Chosen and built (`DECISIONS.md`, 2026-09-30, "The finance page"),
+tested, not yet seen in a browser.
 
 The order page's round two (status in
 the header, payment folded, Smart badge) was seen by the owner in the browser

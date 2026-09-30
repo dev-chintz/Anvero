@@ -66,6 +66,10 @@ function feeName(name: string): string {
  * as Allegro's own finance screen does, so the fees can be checked against it; the fees tile opens
  * the period's orders, each with every fee booked for it. The Products tab shares each order's
  * fees among its products.
+ *
+ * Laid out for a monitor turned upright: the tabs and the period on one line, the four figures in
+ * one row, the fees by kind full width and the channels, delivery and the check as narrow cards
+ * side by side (DECISIONS.md, 2026-09-30, "The finance page").
  */
 export function FinancePage() {
   const { t } = useTranslation();
@@ -88,35 +92,37 @@ export function FinancePage() {
           <h1>{t('finance.title')}</h1>
           <p className="subtitle">{t('finance.subtitle')}</p>
         </div>
-        <div className="finance-periods" role="group" aria-label={t('finance.period')}>
-          {PERIODS.map((p) => (
-            <button
-              key={p}
-              type="button"
-              className={p === period ? 'active' : ''}
-              aria-pressed={p === period}
-              onClick={() => set('period', p === 'month' ? null : p)}
-            >
-              {t(`finance.period.${p}` as MessageKey)}
-            </button>
-          ))}
-        </div>
       </header>
 
       <div className="finance-body">
-        <div className="finance-tabs" role="tablist" aria-label={t('finance.tabs')}>
-          {(['summary', 'products'] as Tab[]).map((id) => (
-            <button
-              key={id}
-              type="button"
-              role="tab"
-              aria-selected={tab === id}
-              className={tab === id ? 'active' : ''}
-              onClick={() => set('tab', id === 'summary' ? null : id)}
-            >
-              {t(`finance.tab.${id}` as MessageKey)}
-            </button>
-          ))}
+        <div className="finance-nav">
+          <div className="finance-tabs" role="tablist" aria-label={t('finance.tabs')}>
+            {(['summary', 'products'] as Tab[]).map((id) => (
+              <button
+                key={id}
+                type="button"
+                role="tab"
+                aria-selected={tab === id}
+                className={tab === id ? 'active' : ''}
+                onClick={() => set('tab', id === 'summary' ? null : id)}
+              >
+                {t(`finance.tab.${id}` as MessageKey)}
+              </button>
+            ))}
+          </div>
+          <div className="finance-periods" role="group" aria-label={t('finance.period')}>
+            {PERIODS.map((p) => (
+              <button
+                key={p}
+                type="button"
+                className={p === period ? 'active' : ''}
+                aria-pressed={p === period}
+                onClick={() => set('period', p === 'month' ? null : p)}
+              >
+                {t(`finance.period.${p}` as MessageKey)}
+              </button>
+            ))}
+          </div>
         </div>
 
         {tab === 'summary' ? <Summary from={from} to={to} period={period} /> : <Products from={from} to={to} />}
@@ -341,7 +347,12 @@ function Summary({ from, to, period }: { from: string; to: string; period: Perio
 
           {data.settlements.length > 0 && (
             <section className="card tone-green" aria-labelledby="finance-check">
-              <h2 id="finance-check">{t('finance.check')}</h2>
+              <div className="card-head">
+                <h2 id="finance-check">{t('finance.check')}</h2>
+                {data.settlements.every((row) => row.unsettled != null && Math.abs(num(row.unsettled)) < 0.005) && (
+                  <span className="finance-settled">{t('finance.checkAllSettled')}</span>
+                )}
+              </div>
               {data.settlements.map((row) => {
                 // an older backend sends no `unsettled`: then there is no verdict to give
                 const known = row.unsettled != null;

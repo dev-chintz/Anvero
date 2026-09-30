@@ -2106,3 +2106,14 @@ at all (the entry before this one).
 
 **Verified:** frontend tests (616) and `tsc`. Not seen in a browser: it needs the owner's login.
 
+
+## 2026-09-30 — The finance page
+
+**Decision (owner, from the Claude Design canvas https://claude.ai/artifact/1kMgPfN17SZ6iFp11VcMax):** The Summary and Products tabs are underlined tabs, and the period is a segmented control at the end of the same line instead of pills in the header. The four figures stay in one row down to phone width (two by two only below 768px), lower than before; the fees figure, the one that opens the orders table, is tinted amber, and what is left stays green. What the fees went on is full width; by channel, delivery and the check against the marketplace follow as narrow cards side by side, the check with a "settled" chip in its head when every marketplace's fees are all taken.
+
+**Rationale:** Below 1100px the page used to fall into one column: the figures two by two and three wide cards of short label and value lines, one under another. On the upright monitor the narrow cards fit side by side.
+
+**Consequences:** Nothing the page computes changed; the Products tab is as it was. The side cards wrap onto more lines when the window is too narrow for three (at least 15rem each).
+
+**Verified:** frontend tests (616) and `tsc`. Not seen in a browser: it needs the owner's login.
+

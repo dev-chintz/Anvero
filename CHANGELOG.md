@@ -6,6 +6,12 @@ All significant changes to the Anvero project.
 
 ## 2026-09-30
 
+### 💰 The finance page
+
+- Tabs and period on one line, the four figures in one row, the fees by kind full width and the
+  channels, delivery and the check as narrow cards side by side. Designed in Claude Design. See
+  `docs/DECISIONS.md`.
+
 ### ↩️ Returns and claims
 
 - The summary as tiles, the views and kinds in one card, one dense row per case led by what to do,

@@ -443,15 +443,15 @@ button.finance-kpi.is-open {
   .finance-columns {
     grid-template-columns: minmax(0, 1fr);
   }
-
-  .finance-kpis {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
 }
 
 @media (max-width: 768px) {
   .finance-body {
     padding: 0 1rem 1.5rem;
+  }
+
+  .finance-page .finance-kpis {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .finance-bars li {
@@ -468,4 +468,149 @@ button.finance-kpi.is-open {
   button.finance-kpi {
     transition: none;
   }
+}
+
+/* ---- The finance page for a monitor turned upright (DECISIONS.md, 2026-09-30, "The finance page") ---- */
+/* the tabs underlined along a rule, the period a segmented control at its end */
+.finance-nav {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.4rem 1rem;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.finance-nav .finance-tabs {
+  gap: 1.25rem;
+}
+
+.finance-nav .finance-tabs button {
+  padding: 0.5rem 0.1rem;
+  border: none;
+  border-bottom: 2px solid transparent;
+  border-radius: 0;
+  background: none;
+  color: var(--color-muted);
+  font-weight: 500;
+}
+
+.finance-nav .finance-tabs button:hover {
+  background: none;
+  color: var(--color-text);
+}
+
+.finance-nav .finance-tabs button.active {
+  border-bottom-color: var(--color-accent);
+  background: none;
+  color: var(--color-accent);
+  font-weight: 700;
+}
+
+.finance-nav .finance-periods {
+  gap: 2px;
+  margin-bottom: 0.3rem;
+  padding: 3px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg);
+}
+
+.finance-nav .finance-periods button {
+  padding: 0.2rem 0.65rem;
+  border: none;
+  border-radius: 6px;
+  background: none;
+  color: var(--color-muted-strong);
+  font-size: 0.8rem;
+}
+
+.finance-nav .finance-periods button:hover {
+  background: var(--color-surface-alt);
+}
+
+.finance-nav .finance-periods button.active {
+  background: var(--color-accent);
+  color: #fff;
+  font-weight: 600;
+}
+
+:root.dark .finance-nav .finance-periods button.active {
+  color: #0b0b0b;
+}
+
+/* the four figures in one row, lower */
+.finance-page .finance-kpis {
+  gap: 0.6rem;
+}
+
+.finance-page .finance-kpi {
+  padding: 0.6rem 0.9rem;
+  border-radius: 10px;
+}
+
+.finance-page .finance-kpi-value {
+  font-size: 1.4rem;
+}
+
+.finance-page .finance-kpi.is-fees {
+  background: color-mix(in srgb, var(--tone-amber-bg) 55%, var(--color-bg));
+  border-color: color-mix(in srgb, var(--tone-amber-fg) 30%, var(--color-bg));
+}
+
+.finance-page .finance-kpi.is-fees .label-caps,
+.finance-page .finance-kpi.is-fees .finance-kpi-go {
+  color: var(--tone-amber-fg);
+}
+
+.finance-page .finance-kpi.is-fees:hover,
+.finance-page .finance-kpi.is-fees.is-open {
+  border-color: var(--tone-amber-fg);
+}
+
+/* the fees by kind full width, then three narrow cards side by side */
+.finance-page .finance-columns {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.finance-page .finance-side {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+  gap: 0.6rem;
+  align-items: start;
+}
+
+.finance-page .finance-bars {
+  gap: 0.35rem;
+}
+
+.finance-page .finance-list {
+  gap: 0.3rem;
+  font-size: 0.85rem;
+}
+
+.finance-page .finance-side h2 {
+  font-size: 0.95rem;
+}
+
+.finance-page .finance-side .card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.finance-settled {
+  padding: 0.05rem 0.5rem;
+  border: 1px solid color-mix(in srgb, var(--tone-green-fg) 25%, var(--tone-green-bg));
+  border-radius: 999px;
+  background: var(--tone-green-bg);
+  color: var(--tone-green-fg);
+  font-size: 0.72rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.finance-page .finance-basis {
+  font-size: 0.75rem;
 }
