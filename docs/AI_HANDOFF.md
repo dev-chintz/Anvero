@@ -62,7 +62,7 @@ Repository: <https://github.com/dev-chintz/Anvero>
   scope). Full detail in `DECISIONS.md` and `CHANGELOG.md`.
 - Order page (2026-09-29): status picker in the header, payment folded,
   Allegro Smart badge (`DECISIONS.md`)
-- 1161 backend tests and 621 frontend tests (Vitest + React Testing Library)
+- 1161 backend tests and 622 frontend tests (Vitest + React Testing Library)
   passing
 
 ---
@@ -170,7 +170,8 @@ the title, Excel and PDF hidden until built; the period with "this month" and
 filter the list; what needs review in its own amber card first, a row opening
 in place with its rule and the include/exclude buttons instead of a 340px side
 panel; the rest below; categories in Polish words instead of RETAIL/COMPANY)
-next to today's. Waiting for the owner's verdict.
+next to today's. Chosen and built (`DECISIONS.md`, 2026-09-30, "The sales
+report page"), tested, not yet seen in a browser.
 
 A **second look** is on https://claude.ai/artifact/1tJfJmnRK6JXpe4dJzNSRy:
 three directions for the order list, the owner's pick ("Papier": cream,

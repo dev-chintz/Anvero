@@ -2216,3 +2216,15 @@ tax period (the accountant, 2026-09-30), and an order placed on 31 December may 
 includes them; `apply_retention.py` counts them. The buyer's erasure is therefore partial for up to
 six years, which the privacy notice buyers are given should say (`GDPR.md`, "For the owner"). A
 row's override note is erased with the buyer, as it may name them. Not yet run on real data.
+
+
+## 2026-09-30 — The sales report page
+
+**Decision (owner, from the Claude Design canvas https://claude.ai/artifact/ATH51aiZ3dF99ZizrSNT97):** The report page (Raport bezrachunkowy) puts "Export CSV" by the title and no longer shows the disabled Excel and PDF buttons; the period gets "this month" and "previous" shortcuts, the source is a row of pills. The four counts are tiles that filter the list (all, for review, in the report, excluded). With no filter, what waits for a decision comes first in its own amber card and the rest follows in a "decided" card. A row is the order number with the nick and date under it, the reason on one line, the amount and a chip in words (for review, in the report, company invoice, out of scope, excluded; "by hand" beside it when overridden); clicking it opens it in place, under the row, with the rule, a link to the order and the include/exclude or revert buttons, instead of a 340px side panel.
+
+**Rationale:** On the upright monitor the side panel squeezed the table to about 500px, the review rows were lost among a hundred others, and RETAIL/COMPANY meant nothing to the accountant.
+
+**Consequences:** The tiles are counted from the rows, not from the API's summary: an operator's decision flips only `included` and leaves the category MANUAL_REVIEW (`services/sales_report.py`), so "for review" is a MANUAL_REVIEW row nobody has decided, and deciding it moves it to "in the report" or "excluded" at once. The summary's own counts are unchanged and still what the export and the API give.
+
+**Verified:** frontend tests (622) and `tsc`. Not seen in a browser: it needs the owner's login.
+

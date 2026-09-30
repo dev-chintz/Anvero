@@ -6,6 +6,12 @@ All significant changes to the Anvero project.
 
 ## 2026-09-30
 
+### 🧮 The sales report page
+
+- The counts as tiles that filter, what needs review first in its own card, a row that opens in
+  place with the decision buttons, categories in words. Designed in Claude Design. See
+  `docs/DECISIONS.md`.
+
 ### 🧾 Non-invoiced sales, stage 3: the ledger
 
 - Every import now writes the non-invoiced sales record: a row for each payment received since the

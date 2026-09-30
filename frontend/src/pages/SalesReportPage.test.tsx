@@ -100,7 +100,31 @@ describe("SalesReportPage", () => {
 
     expect(await screen.findByText("AN-000231")).toBeInTheDocument();
     expect(screen.getByText("kasia91")).toBeInTheDocument();
-    expect(screen.getByText("FOR REVIEW")).toBeInTheDocument();
+    // what waits for a decision gets its own card, the chip in words
+    const card = screen.getByRole("region", { name: "For review · 1" });
+    expect(within(card).getAllByText("For review").length).toBeGreaterThan(0);
+  });
+
+  it("counts a decided review row as decided and filters by a tile", async () => {
+    vi.mocked(salesReportApi.orders).mockResolvedValue(
+      list([
+        row(),
+        row({ order_external_id: "ext-2", order_label: "AN-000232", overridden: true, included: true }),
+        row({ order_external_id: "ext-3", order_label: "AN-000233", category: "COMPANY", rule_id: "INV-001" }),
+      ]),
+    );
+    renderPage();
+    await screen.findByText("AN-000231");
+
+    expect(screen.getByRole("region", { name: "For review · 1" })).toBeInTheDocument();
+    const decided = screen.getByRole("region", { name: "Decided · 2" });
+    expect(within(decided).getByText("Company invoice")).toBeInTheDocument();
+    expect(within(decided).getByText("by hand")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: /In the report/ }));
+    const only = screen.getByRole("region", { name: "In the report · 1" });
+    expect(within(only).getByText("AN-000232")).toBeInTheDocument();
+    expect(screen.queryByText("AN-000231")).not.toBeInTheDocument();
   });
 
   it("opens a row's detail and lets an operator include it", async () => {
@@ -150,7 +174,7 @@ describe("SalesReportPage", () => {
     renderPage();
 
     await screen.findByText("AN-000231");
-    fireEvent.click(screen.getByRole("button", { name: "CSV" }));
+    fireEvent.click(screen.getByRole("button", { name: "Export CSV" }));
 
     const dialog = await screen.findByRole("dialog");
     expect(within(dialog).getAllByText("Data zamówienia").length).toBeGreaterThan(0);
@@ -170,7 +194,7 @@ describe("SalesReportPage", () => {
     renderPage();
 
     await screen.findByText("AN-000231");
-    fireEvent.click(screen.getByRole("button", { name: "CSV" }));
+    fireEvent.click(screen.getByRole("button", { name: "Export CSV" }));
     const dialog = await screen.findByRole("dialog");
 
     fireEvent.click(within(dialog).getByLabelText("NIP"));
@@ -188,7 +212,7 @@ describe("SalesReportPage", () => {
     renderPage();
 
     await screen.findByText("AN-000231");
-    fireEvent.click(screen.getByRole("button", { name: "CSV" }));
+    fireEvent.click(screen.getByRole("button", { name: "Export CSV" }));
     const dialog = await screen.findByRole("dialog");
 
     expect(within(dialog).getByLabelText("No.")).toBeDisabled();
@@ -197,12 +221,13 @@ describe("SalesReportPage", () => {
     expect(stored).toEqual(["ordered_at", "amount_paid"]);
   });
 
-  it("disables Excel and PDF, not built yet", async () => {
+  it("offers only the CSV export on the page, Excel and PDF not being built yet", async () => {
     vi.mocked(salesReportApi.orders).mockResolvedValue(list([]));
     renderPage();
 
     await screen.findByText(/no orders in this period/i);
-    expect(screen.getByRole("button", { name: "Excel" })).toBeDisabled();
-    expect(screen.getByRole("button", { name: "PDF" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Export CSV" })).toBeDisabled();
+    expect(screen.queryByRole("button", { name: "Excel" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "PDF" })).not.toBeInTheDocument();
   });
 });

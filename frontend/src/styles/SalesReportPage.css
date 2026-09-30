@@ -1,129 +1,350 @@
-/* The non-invoiced sales report: KPI tiles, a table, and a side panel for one order's detail.
-   Cards, bands, tones and the table are the shared ones (theme.css, index.css); this file lays
-   out what is specific to this page. */
+/* The non-invoiced sales report for a monitor turned upright (DECISIONS.md, 2026-09-30, "The sales
+   report page"): the counts as tiles that filter, what waits for a decision in its own card first,
+   and a row that opens in place with its rule and buttons. Cards and tones are the shared ones
+   (theme.css, index.css); this file lays out what is specific to this page. */
 
 .sales-report-page {
-  padding: 2rem;
-}
-
-.sales-report-filters {
   display: flex;
-  gap: 1.5rem;
-  flex-wrap: wrap;
+  flex-direction: column;
+  gap: 0.9rem;
+  padding: 1.5rem 2rem 2rem;
 }
 
-.sales-report-filters label {
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-  font-size: 0.7rem;
-  font-weight: 700;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-  color: var(--color-muted-strong);
+.sales-report-page > .page-header {
+  align-items: flex-end;
+  margin: 0;
+  padding: 0;
 }
 
-.sales-report-filters input,
-.sales-report-filters select {
-  font-size: 0.85rem;
-  font-weight: 500;
-  text-transform: none;
-  letter-spacing: normal;
-}
-
-.sales-report-kpis {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 1rem;
-  margin: 1.25rem 0;
-}
-
-.sales-report-figure {
-  font-size: 1.5rem;
-  font-weight: 700;
-  color: var(--color-heading);
-  margin-top: 0.25rem;
-}
-
-.sales-report-body {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 1.25rem;
-  align-items: start;
-}
-
-.sales-report-body.has-detail {
-  grid-template-columns: minmax(0, 1fr) 340px;
+.sales-report-page > p {
+  margin: 0;
 }
 
 .sales-report-export {
+  padding: 0.4rem 0.9rem;
+  border: 1px solid var(--color-accent);
+  border-radius: var(--radius-md);
+  background: var(--color-bg);
+  color: var(--color-accent);
+  font-weight: 600;
+}
+
+/* the period with its shortcuts, and the source as pills */
+.sales-report-filters {
   display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem 1rem;
+}
+
+.sales-report-period,
+.sales-report-sources {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.sales-report-period label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: var(--color-muted-strong);
+  font-size: 0.85rem;
+}
+
+.sales-report-period input {
+  font-size: 0.85rem;
+}
+
+.sales-report-period button,
+.sales-report-sources button {
+  padding: 0.15rem 0.65rem;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  background: var(--color-surface);
+  color: var(--color-muted-strong);
+  font-size: 0.8rem;
+}
+
+.sales-report-period button[aria-pressed="true"],
+.sales-report-sources button[aria-pressed="true"] {
+  background: var(--color-accent);
+  border-color: var(--color-accent);
+  color: #fff;
+  font-weight: 600;
+}
+
+:root.dark .sales-report-period button[aria-pressed="true"],
+:root.dark .sales-report-sources button[aria-pressed="true"] {
+  color: #0b0b0b;
+}
+
+/* the counts as tiles; pressing one shows only those orders */
+.sales-report-kpis {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.6rem;
+}
+
+.sales-report-tile {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.05rem;
+  padding: 0.55rem 0.9rem;
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  background: var(--color-bg);
+  color: var(--color-muted);
+  font-size: 0.8rem;
+  font-weight: 500;
+  text-align: left;
+}
+
+.sales-report-tile strong {
+  color: var(--color-text);
+  font-size: 1.45rem;
+  line-height: 1.1;
+}
+
+.sales-report-tile[aria-pressed="true"] {
+  border-color: var(--color-accent);
+  box-shadow: inset 0 0 0 1px var(--color-accent);
+}
+
+.sales-report-tile.is-review {
+  background: var(--tone-amber-bg);
+  border-color: color-mix(in srgb, var(--tone-amber-fg) 30%, var(--tone-amber-bg));
+}
+
+.sales-report-tile.is-review,
+.sales-report-tile.is-review strong {
+  color: var(--tone-amber-fg);
+}
+
+.sales-report-tile.is-included {
+  background: color-mix(in srgb, var(--tone-green-bg) 55%, var(--color-bg));
+  border-color: color-mix(in srgb, var(--tone-green-fg) 25%, var(--color-bg));
+}
+
+.sales-report-tile.is-included,
+.sales-report-tile.is-included strong {
+  color: var(--tone-green-fg);
+}
+
+.sales-report-tile.is-excluded {
+  background: color-mix(in srgb, var(--tone-red-bg) 55%, var(--color-bg));
+  border-color: color-mix(in srgb, var(--tone-red-fg) 25%, var(--color-bg));
+}
+
+.sales-report-tile.is-excluded,
+.sales-report-tile.is-excluded strong {
+  color: var(--tone-red-fg);
+}
+
+.sales-report-tile.is-review[aria-pressed="true"] {
+  border-color: var(--tone-amber-fg);
+  box-shadow: inset 0 0 0 1px var(--tone-amber-fg);
+}
+
+.sales-report-tile.is-included[aria-pressed="true"] {
+  border-color: var(--tone-green-fg);
+  box-shadow: inset 0 0 0 1px var(--tone-green-fg);
+}
+
+.sales-report-tile.is-excluded[aria-pressed="true"] {
+  border-color: var(--tone-red-fg);
+  box-shadow: inset 0 0 0 1px var(--tone-red-fg);
+}
+
+/* the cards of orders */
+.sales-report-card.card {
+  padding: 0;
+  overflow: hidden;
+}
+
+.sales-report-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   gap: 0.5rem;
+  padding: 0.5rem 0.9rem;
+  border-bottom: 1px solid var(--color-divider);
+}
+
+.sales-report-card-head h2 {
+  margin: 0;
+  font-size: 0.95rem;
+}
+
+.sales-report-card.is-review .sales-report-card-head {
+  background: var(--tone-amber-bg);
+  border-bottom-color: color-mix(in srgb, var(--tone-amber-fg) 25%, var(--tone-amber-bg));
+}
+
+.sales-report-card.is-review .sales-report-card-head h2 {
+  color: var(--tone-amber-fg);
+}
+
+.sales-report-note {
+  margin: 0;
+  padding: 0.9rem;
+  color: var(--color-muted);
+}
+
+.sales-report-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+
+.sales-report-table th,
+.sales-report-table td {
+  padding: 0.4rem 0.7rem;
+  border-bottom: 1px solid var(--color-divider);
+  text-align: left;
+  vertical-align: middle;
+}
+
+.sales-report-table :is(th, td):first-child {
+  padding-left: 0.9rem;
+}
+
+.sales-report-table :is(th, td):last-child {
+  padding-right: 0.9rem;
+}
+
+.sales-report-table tbody tr:last-child td {
+  border-bottom: none;
 }
 
 .sales-report-table tbody tr {
   cursor: pointer;
 }
 
-.sales-report-table tbody tr.is-selected {
-  background: var(--tone-teal-bg);
+.sales-report-table tbody tr:hover {
+  background: var(--color-surface-alt);
 }
 
-.sales-report-table .cell-sub {
+.sales-report-table tbody tr.is-selected,
+.sales-report-table tbody tr.sales-report-detail-row {
+  background: var(--color-surface-alt);
+  cursor: default;
+}
+
+.sales-report-order {
+  width: 1%;
+  white-space: nowrap;
+}
+
+.sales-report-open {
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--color-accent);
+  font-weight: 700;
+}
+
+.sales-report-table .cell-sub,
+.sales-report-card .cell-sub {
   display: block;
   color: var(--color-muted);
-  font-size: 0.8rem;
+  font-size: 0.75rem;
+}
+
+.sales-report-reason {
+  max-width: 0;
+  overflow: hidden;
+  color: var(--color-muted);
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /* right-aligned with tabular digits, so amounts of different lengths still line up by their
    ones place instead of drifting left-aligned from row to row */
 .sales-report-table .sales-report-amount {
+  width: 1%;
   text-align: right;
   font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.sales-report-state {
+  width: 1%;
+  white-space: nowrap;
+}
+
+.sales-report-state .sales-report-chip + .sales-report-chip {
+  margin-left: 0.25rem;
 }
 
 .sales-report-chip {
   display: inline-block;
-  padding: 0.15rem 0.55rem;
+  padding: 0.05rem 0.5rem;
+  border: 1px solid color-mix(in srgb, var(--band-fg) 25%, var(--band-bg));
   border-radius: 999px;
   background: var(--band-bg);
   color: var(--band-fg);
-  font-size: 0.75rem;
-  font-weight: 700;
+  font-size: 0.72rem;
+  font-weight: 600;
+  white-space: nowrap;
 }
 
-.sales-report-detail-when {
-  color: var(--color-muted);
-  font-size: 0.8rem;
-  margin-top: 0.15rem;
+.sales-report-chip.tone-gray {
+  --band-bg: var(--color-surface-alt);
+  --band-fg: var(--color-muted-strong);
 }
 
-.sales-report-detail-section {
-  border-top: 1px solid var(--color-divider);
-  padding-top: 0.75rem;
-  margin-top: 0.75rem;
+/* a row opened in place: why, the rule, and the decision */
+.sales-report-detail {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem 1rem;
+  padding: 0.2rem 0 0.3rem;
+  border-top: 1px dashed var(--color-divider);
 }
 
-.sales-report-detail-section p {
-  margin: 0.35rem 0 0;
-  font-size: 0.85rem;
+.sales-report-detail-facts {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  min-width: 0;
+  white-space: normal;
+}
+
+.sales-report-detail-facts p {
+  margin: 0;
+}
+
+.sales-report-detail-facts .sales-report-chip {
+  align-self: flex-start;
 }
 
 .sales-report-detail-actions {
-  border-top: 1px solid var(--color-divider);
-  padding-top: 0.75rem;
-  margin-top: 0.75rem;
   display: flex;
+  flex-wrap: wrap;
+  align-items: center;
   gap: 0.5rem;
 }
 
-.sales-report-detail-actions button {
-  flex: 1;
+.sales-report-detail-actions .is-include {
+  background: var(--tone-green-fg);
+  border-color: var(--tone-green-fg);
+  color: #fff;
+  font-weight: 600;
 }
 
-@media (max-width: 900px) {
-  .sales-report-body.has-detail {
-    grid-template-columns: minmax(0, 1fr);
+:root.dark .sales-report-detail-actions .is-include {
+  color: #0b0b0b;
+}
+
+@media (max-width: 768px) {
+  .sales-report-page {
+    padding: 1rem;
   }
 
   .sales-report-kpis {

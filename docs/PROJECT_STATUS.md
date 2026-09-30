@@ -46,7 +46,7 @@ folder, and one was restored from that copy into a scratch database as a test.
   remains the no-setup default for a fresh clone)
 - Health endpoint and first order model — done
 - Minimal order list interface — done
-- Automated tests for core flows — done (1161 backend, 621 frontend passing
+- Automated tests for core flows — done (1161 backend, 622 frontend passing
   across the suite as of 2026-09-30)
 
 ---
@@ -99,6 +99,9 @@ re-imported. Production needs its own application and authorization; see
 ---
 
 ## Not yet verified
+
+The sales report page's layout (2026-09-30): tested, not yet opened in a
+browser (the owner's login), nor an override made from the new in-row panel.
 
 Payment trace for the non-invoiced sales record (2026-09-30, stage 1 of
 `NON_INVOICED_SALES.md`): first run on the real account 2026-09-30, the NAS on
