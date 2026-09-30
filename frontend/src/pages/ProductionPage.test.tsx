@@ -99,7 +99,8 @@ describe("the to-make list", () => {
     renderPage();
 
     const rows = await productRows();
-    expect(rows.map((row) => within(row).getAllByRole("cell")[2].textContent)).toEqual(["3", "1"]);
+    // the quantity comes right after the tick, before the product
+    expect(rows.map((row) => within(row).getAllByRole("cell")[1].textContent)).toEqual(["3", "1"]);
     expect(within(rows[0]).getByText("Mug")).toBeInTheDocument();
     expect(within(rows[0]).getByText("MUG")).toBeInTheDocument();
   });

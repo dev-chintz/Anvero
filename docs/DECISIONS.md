@@ -2073,3 +2073,14 @@ at all (the entry before this one).
 
 **Verified:** frontend tests (615, four new for the strip) and `tsc`. Not seen in a browser: it needs the owner's login.
 
+
+## 2026-09-30 — The to-make list
+
+**Decision (owner, from the Claude Design canvas https://claude.ai/artifact/CSkXq3juSgom9XZKQrF7jV):** The status filters (as underlined tabs, like the order list's), "Hide made", the search and how much is made share one card at the top; how much is made is one line (pieces, products, orders) over a bar instead of three tiles. In each deadline group a product's row starts with the tick and then the quantity in large type ("×6"), before the picture, name and SKU; the orders stay small chips at the end. A made product shows its quantity on green as well as its name struck through. The groups by deadline, their tones and everything a row does are unchanged.
+
+**Rationale:** At the bench the first thing looked for is how many to make; in the old row it came after the product's name, in smaller type. The monitor is upright, so the figures and the filters take one card instead of two rows.
+
+**Consequences:** The table's columns are tick, quantity, product, orders (the tests address the quantity as the second cell). The "×" is drawn by CSS, so the cell's text stays the number. Printing is unchanged: the filters are left off the paper, the figures and groups print.
+
+**Verified:** frontend tests (615) and `tsc`. Not seen in a browser: it needs the owner's login.
+

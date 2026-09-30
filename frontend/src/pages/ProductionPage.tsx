@@ -147,60 +147,95 @@ export function ProductionPage() {
       </header>
 
       <section className="production-body" aria-label={t('production.title')}>
-        <div className="production-filters">
-          <nav className="queue-tabs" aria-label={t('production.filter')}>
-            <button
-              type="button"
-              className="queue-tab"
-              aria-pressed={!status}
-              onClick={() => choose({ status: undefined })}
-            >
-              {t('queue.all')}
-            </button>
-            {MAKING_STATUSES.map((s) => (
+        <div className="card production-toolbar">
+          <div className="production-filters">
+            <nav className="queue-tabs" aria-label={t('production.filter')}>
               <button
-                key={s}
                 type="button"
                 className="queue-tab"
-                aria-pressed={status === s}
-                onClick={() => choose({ status: s })}
+                aria-pressed={!status}
+                onClick={() => choose({ status: undefined })}
               >
-                {t(`status.${s}`)}
+                {t('queue.all')}
               </button>
-            ))}
-          </nav>
-          <label className="production-hide">
-            <input
-              type="checkbox"
-              checked={hideDone}
-              onChange={(event) => toggleHideDone(event.target.checked)}
-            />
-            {t('production.hideDone')}
-          </label>
-          <div className="production-search">
-            <input
-              type="search"
-              value={typed}
-              onChange={(event) => setTyped(event.target.value)}
-              placeholder={t('production.search')}
-              aria-label={t('production.search')}
-              maxLength={500}
-            />
-            {typed && (
-              <button
-                type="button"
-                className="production-search-clear"
-                onClick={() => {
-                  setTyped('');
-                  choose({ search: undefined });
-                }}
-                aria-label={t('production.searchClear')}
-                title={t('production.searchClear')}
-              >
-                ✕
-              </button>
-            )}
+              {MAKING_STATUSES.map((s) => (
+                <button
+                  key={s}
+                  type="button"
+                  className="queue-tab"
+                  aria-pressed={status === s}
+                  onClick={() => choose({ status: s })}
+                >
+                  {t(`status.${s}`)}
+                </button>
+              ))}
+            </nav>
+            <label className="production-hide">
+              <input
+                type="checkbox"
+                checked={hideDone}
+                onChange={(event) => toggleHideDone(event.target.checked)}
+              />
+              {t('production.hideDone')}
+            </label>
+            <div className="production-search">
+              <input
+                type="search"
+                value={typed}
+                onChange={(event) => setTyped(event.target.value)}
+                placeholder={t('production.search')}
+                aria-label={t('production.search')}
+                maxLength={500}
+              />
+              {typed && (
+                <button
+                  type="button"
+                  className="production-search-clear"
+                  onClick={() => {
+                    setTyped('');
+                    choose({ search: undefined });
+                  }}
+                  aria-label={t('production.searchClear')}
+                  title={t('production.searchClear')}
+                >
+                  ✕
+                </button>
+              )}
+            </div>
           </div>
+
+          {list && list.lines.length > 0 && (
+            <div className="production-summary">
+              <div className="production-metrics">
+                <div>
+                  <b>
+                    {total.piecesDone} / {total.pieces}
+                  </b>
+                  <span>{t('production.metric.pieces')}</span>
+                </div>
+                <div>
+                  <b>
+                    {total.productsDone} / {total.products}
+                  </b>
+                  <span>{t('production.metric.products')}</span>
+                </div>
+                <div>
+                  <b>{list.order_count}</b>
+                  <span>{t('production.metric.orders')}</span>
+                </div>
+              </div>
+              <div
+                className="production-progress"
+                role="progressbar"
+                aria-label={t('production.metric.pieces')}
+                aria-valuemin={0}
+                aria-valuemax={total.pieces}
+                aria-valuenow={total.piecesDone}
+              >
+                <i style={{ width: `${total.pieces ? Math.round((total.piecesDone / total.pieces) * 100) : 0}%` }} />
+              </div>
+            </div>
+          )}
         </div>
 
         {error && (
@@ -216,35 +251,6 @@ export function ProductionPage() {
 
         {list && list.lines.length > 0 && (
           <>
-            <div className="production-metrics">
-              <div>
-                <b>
-                  {total.productsDone} / {total.products}
-                </b>
-                <span>{t('production.metric.products')}</span>
-              </div>
-              <div>
-                <b>
-                  {total.piecesDone} / {total.pieces}
-                </b>
-                <span>{t('production.metric.pieces')}</span>
-              </div>
-              <div>
-                <b>{list.order_count}</b>
-                <span>{t('production.metric.orders')}</span>
-              </div>
-            </div>
-            <div
-              className="production-progress"
-              role="progressbar"
-              aria-label={t('production.metric.pieces')}
-              aria-valuemin={0}
-              aria-valuemax={total.pieces}
-              aria-valuenow={total.piecesDone}
-            >
-              <i style={{ width: `${total.pieces ? Math.round((total.piecesDone / total.pieces) * 100) : 0}%` }} />
-            </div>
-
             {groups.map((group) => {
               const made = progress(group.lines);
               const allMade = made.productsDone === made.products;
@@ -272,8 +278,8 @@ export function ProductionPage() {
                       <thead className="sr-only">
                         <tr>
                           <th scope="col">{t('production.col.made')}</th>
-                          <th scope="col">{t('production.col.product')}</th>
                           <th scope="col">{t('production.col.quantity')}</th>
+                          <th scope="col">{t('production.col.product')}</th>
                           <th scope="col">{t('production.col.orders')}</th>
                         </tr>
                       </thead>
@@ -296,6 +302,9 @@ export function ProductionPage() {
                                 aria-label={t('production.markDone', { product: line.name })}
                               />
                             </td>
+                            <td className="col-quantity">
+                              <span className="production-quantity">{line.quantity}</span>
+                            </td>
                             <td>
                               <div className="production-product">
                                 {line.image_url ? (
@@ -316,9 +325,6 @@ export function ProductionPage() {
                                   </div>
                                 </div>
                               </div>
-                            </td>
-                            <td className="col-quantity">
-                              <span className="production-quantity">{line.quantity}</span>
                             </td>
                             <td>
                               <ul className="production-orders">

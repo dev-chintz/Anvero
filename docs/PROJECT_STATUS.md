@@ -100,6 +100,9 @@ re-imported. Production needs its own application and authorization; see
 
 ## Not yet verified
 
+The to-make list (2026-09-30): tested, not yet opened in a browser (the owner's
+login), nor printed since the change.
+
 The inbox (2026-09-30): tested, not yet opened in a browser (the owner's
 login); in particular the buyer's orders over a conversation with a real nick.
 

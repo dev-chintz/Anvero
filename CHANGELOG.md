@@ -6,6 +6,12 @@ All significant changes to the Anvero project.
 
 ## 2026-09-30
 
+### 🔨 The to-make list
+
+- How many to make leads each row in large type; the filters, search and progress share one card
+  at the top; a made product turns green as well as struck through. Designed in Claude Design. See
+  `docs/DECISIONS.md`.
+
 ### ✉️ The inbox
 
 - A narrower list of conversations (nick, channel letter, waiting time, the last message on one

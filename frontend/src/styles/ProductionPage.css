@@ -1,5 +1,6 @@
-/* The to-make list: figures and a bar for how much is made, then a card for each day the orders must go
-   out, its products ticked off as they are made (ProductionPage.tsx). */
+/* The to-make list: one card with the filters, the search and how much is made, then a card for each
+   day the orders must go out, its products ticked off as they are made (ProductionPage.tsx;
+   DECISIONS.md, 2026-09-30, "The to-make list"). */
 
 .production-page .print-button {
   padding: 0.5rem 1rem;
@@ -15,13 +16,50 @@
   padding: 1rem 2rem 2rem;
 }
 
-/* ---- Narrowing the list to a status or to some orders, and hiding what is made ---- */
+/* ---- One card: narrowing the list, hiding what is made, and how much is made ---- */
+.production-toolbar.card {
+  margin-bottom: 1rem;
+  padding: 0;
+}
+
 .production-filters {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 0.75rem 1rem;
-  margin-bottom: 1rem;
+  gap: 0.5rem 1rem;
+  padding: 0 0.9rem 0.6rem;
+}
+
+/* the statuses as tabs along the card's top edge, as over the order list */
+.production-page .production-filters .queue-tabs {
+  flex: 1 1 100%;
+  gap: 0 1.1rem;
+  margin: 0 -0.9rem;
+  padding: 0 0.9rem;
+  border-bottom: 1px solid var(--color-divider);
+}
+
+.production-page .production-filters .queue-tab {
+  padding: 0.5rem 0.1rem;
+  border: none;
+  border-bottom: 2px solid transparent;
+  border-radius: 0;
+  background: none;
+  color: var(--color-muted);
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.production-page .production-filters .queue-tab:hover {
+  border-color: transparent;
+  color: var(--color-text);
+}
+
+.production-page .production-filters .queue-tab[aria-pressed="true"] {
+  border-bottom-color: var(--color-accent);
+  background: none;
+  color: var(--color-accent);
+  font-weight: 700;
 }
 
 .production-hide {
@@ -59,39 +97,44 @@
   padding: 0.25rem 0.4rem;
 }
 
-/* ---- How much is made ---- */
+/* ---- How much is made: one line of figures and a bar, at the card's foot ---- */
+.production-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  padding: 0.6rem 0.9rem 0.75rem;
+  border-top: 1px solid var(--color-divider);
+}
+
 .production-metrics {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 0.75rem;
-  margin-bottom: 0.75rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 1.25rem;
+  font-size: 0.85rem;
 }
 
 .production-metrics > div {
-  padding: 0.6rem 0.9rem;
-  background: var(--color-bg);
-  border: 1px solid var(--color-border);
-  border-radius: 10px;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.35rem;
 }
 
 .production-metrics b {
-  display: block;
   color: var(--color-heading);
-  font-size: 1.3rem;
+  font-size: 1rem;
   font-weight: 700;
+  font-variant-numeric: tabular-nums;
 }
 
 .production-metrics span {
-  color: var(--color-muted-strong);
-  font-size: 0.8rem;
+  color: var(--color-muted);
 }
 
 .production-progress {
-  height: 6px;
-  margin-bottom: 1.25rem;
+  height: 8px;
   overflow: hidden;
-  background: var(--color-divider);
-  border-radius: 3px;
+  background: var(--color-surface-alt);
+  border-radius: 999px;
 }
 
 .production-progress i {
@@ -124,7 +167,7 @@
 
 .production-table th,
 .production-table td {
-  padding: 0.45rem 0.75rem;
+  padding: 0.35rem 0.75rem;
   border-bottom: 1px solid var(--color-divider);
   text-align: left;
   vertical-align: middle;
@@ -149,21 +192,31 @@
   text-align: center;
 }
 
+/* how many to make comes first, in large type: it is what is read before what the product is */
 .production-table .col-quantity {
-  width: 4.5rem;
-  text-align: right;
+  width: 3.75rem;
+  padding-right: 0;
 }
 
 .production-quantity {
   display: inline-block;
-  min-width: 2.2rem;
-  padding: 0.1rem 0.5rem;
-  background: var(--tone-blue-bg);
+  min-width: 2.75rem;
+  padding: 0.05rem 0.5rem;
+  background: var(--color-surface-alt);
   border-radius: 8px;
-  color: var(--tone-blue-fg);
-  font-size: 1.05rem;
-  font-weight: 700;
+  color: var(--color-heading);
+  font-size: 1.3rem;
+  font-weight: 800;
+  line-height: 1.3;
   text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.production-quantity::before {
+  content: "×";
+  margin-right: 0.05em;
+  font-size: 0.8em;
+  font-weight: 700;
 }
 
 .production-product {
@@ -173,8 +226,8 @@
 }
 
 .production-thumb {
-  width: 40px;
-  height: 40px;
+  width: 36px;
+  height: 36px;
   flex-shrink: 0;
   border-radius: var(--radius-md);
   background: var(--color-divider);
@@ -226,8 +279,8 @@
 }
 
 .production-table tr.is-done .production-quantity {
-  background: var(--color-divider);
-  color: var(--color-muted);
+  background: var(--tone-green-bg);
+  color: var(--tone-green-fg);
 }
 
 @media (max-width: 768px) {
@@ -235,19 +288,7 @@
     padding: 1rem;
   }
 
-  .production-metrics {
-    gap: 0.5rem;
-  }
-
-  .production-metrics > div {
-    padding: 0.5rem 0.6rem;
-  }
-
-  .production-metrics b {
-    font-size: 1.05rem;
-  }
-
-  /* a row is a small grid: the tick, the product, the number, and the orders under the product */
+  /* a row is a small grid: the tick, the number, the product, and the orders under the product */
   .production-table,
   .production-table tbody {
     display: block;
@@ -255,7 +296,7 @@
 
   .production-table tr {
     display: grid;
-    grid-template-columns: 2rem minmax(0, 1fr) auto;
+    grid-template-columns: 2rem auto minmax(0, 1fr);
     align-items: center;
     padding: 0.4rem 0.5rem;
     border-bottom: 1px solid var(--color-divider);
@@ -272,7 +313,7 @@
   }
 
   .production-table td:nth-child(4) {
-    grid-column: 2 / -1;
+    grid-column: 3 / -1;
   }
 }
 
@@ -293,6 +334,15 @@
   .production-page .print-button,
   .production-filters {
     display: none !important;
+  }
+
+  .production-toolbar.card {
+    border: none;
+  }
+
+  .production-summary {
+    border-top: none;
+    padding: 0;
   }
 
   .production-page .page-header {
