@@ -130,7 +130,16 @@ search, "hide made" and the progress in one card; in each deadline group a
 dense row led by the quantity in large type, then the picture, the product
 and SKU, and the orders as small chips) next to today's. Chosen and built
 (`DECISIONS.md`, 2026-09-30, "The to-make list"), tested, not yet seen in a
-browser. The order page's round two (status in
+browser.
+
+The sixth screen, **Etykiety** (labels), is on
+https://claude.ai/artifact/3nh6EAifHeSk5n5WRtMSx9: a proposal (the two ways
+to ship and the three views as underlined tabs, the print and courier buttons
+in a bar that appears only with something ticked, labels grouped by carrier
+with "tick the group", and one dense row per label: number, carrier, nick and
+locker or waybill, print state and courier as chips) next to today's. Waiting
+for the owner's verdict. Counts on the view tabs would need the labels of every
+view, not only the one shown. The order page's round two (status in
 the header, payment folded, Smart badge) was seen by the owner in the browser
 and adjusted (space under Wysyłka, a blue band for Wiadomości); what is still
 unseen is `delivery.smart` on a real import (`PROJECT_STATUS.md`).
