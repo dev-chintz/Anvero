@@ -101,22 +101,31 @@ re-imported. Production needs its own application and authorization; see
 ## Not yet verified
 
 Payment trace for the non-invoiced sales record (2026-09-30, stage 1 of
-`NON_INVOICED_SALES.md`): tested on payloads shaped like Allegro's specification;
-not yet read from the real account. After the NAS is updated, the first import
-should fill `payment_operations` back to 1 September and, over a few imports,
-`orders.payment_id` for September's paid orders; worth checking that
-`CONTRIBUTION` rows carry the orders' payment ids and that `tax`,
-`surcharges`, `buyer.address` and `invoice.address.company` come as documented.
+`NON_INVOICED_SALES.md`): first run on the real account 2026-09-30, the NAS on
+`f595bd4`, one import (15:45 UTC, no error). Seen working: `payment_operations`
+filled back to 1 August, the previous month's start as the code does (827 rows:
+365 `CONTRIBUTION`, every one with a payment id, 403 `DEDUCTION_CHARGE`, 39
+`PAYOUT`, 18 `REFUND_CHARGE`, 2 `SURCHARGE`); `orders.payment_id` on 108 of the
+234 orders since 1 September, the rest left to the next imports' backfill of
+100; `delivery_method_id` on all 108, `invoice.address.company` on 16.
+**Not seen: `tax`.** `order_items.tax_rate` and `tax_subject` are empty on all
+516 items of the orders read again - either Allegro sends no `tax` for this
+account or the mapper reads the wrong place; needs one raw response to tell.
 Then the classifier (stage 2): `python scripts/classify_non_invoiced.py` in the
 backend container prints September's counts by category and reason, to be
 looked at with the owner before anything uses them.
-Then the ledger (stage 3, 2026-09-30): tested only; it has not run on real data.
-After the NAS is updated, every import writes `non_invoiced_ledger`; worth
-checking that September's rows match the classifier's counts, that refunds
-became corrections, and above all that the payout each payment was linked to
-(`payout_link` `FIRST_AFTER`, an approximation) agrees with the payout report
-Allegro's Sales Center exports. The migration (`e3b7a1c9d524`) was checked with
-`alembic check` on SQLite only.
+Then the ledger (stage 3, 2026-09-30): first written by that same import, 233
+rows, none locked. Sales: 88 `EXEMPT_MAIL_ORDER` (E41), 20 `BUSINESS`, 14
+`PRIVATE_INVOICED`, 105 `TO_REVIEW` (92 `MISSING_BUYER_DATA`, every one an
+order not yet given its payment id by the backfill, so expected to shrink over
+the next imports; 11 `SOURCE_NOT_SUPPORTED`; 2 `CANCELLED_AFTER_PAYMENT`).
+Refunds became corrections (4 E41, 2 `TO_REVIEW`). Still to check: that the
+`TO_REVIEW` count falls once the backfill ends, that September's rows match the
+classifier's counts, and above all that the payout each payment was linked to
+(`payout_link` `FIRST_AFTER`, an approximation; 83 of the 88 E41 sales have one)
+agrees with the payout report Allegro's Sales Center exports. The three
+migrations of 2026-09-30 (`a9c4e7d2b815`, `c7e2a9f4d318`, `e3b7a1c9d524`) ran
+on the NAS's PostgreSQL without error.
 
 The new logo (2026-09-30): seen on the login page in light and dark; the menu,
 behind the login, not yet.
@@ -446,4 +455,4 @@ PostgreSQL 17, SQLite (no-setup default for a fresh clone)
 
 ## Last Update
 
-2026-09-27
+2026-09-30

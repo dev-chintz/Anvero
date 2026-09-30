@@ -176,8 +176,10 @@ The **non-invoiced sales report** is to be rebuilt from `NON_INVOICED_SALES.md`
 (2026-09-30): a design with the accountant's answers (section 3) and a plan of
 work in eight stages (section 5). Stages 1 (the import keeping what traces an
 order's money), 2 (the classifier) and 3 (the ledger, written by every import;
-`non_invoiced_ledger`, `app/services/non_invoiced/ledger.py`) are built and wait
-on the real data on the NAS; stage 4, the reports and exports with handing over
+`non_invoiced_ledger`, `app/services/non_invoiced/ledger.py`) are built and
+first ran on the real data on the NAS on 2026-09-30, with line items' `tax`
+still unseen and the payout links unchecked (`PROJECT_STATUS.md`, "Not yet
+verified"); stage 4, the reports and exports with handing over
 (which sets `locked_at`), is next. The choices made in stage 3 are listed under
 it in section 5.
 
