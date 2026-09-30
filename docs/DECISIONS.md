@@ -2155,3 +2155,14 @@ at all (the entry before this one).
 **Consequences:** On the NAS, confirm that `SECRETS_KEY` is set (it is commented out in `deploy/docker-compose.yml`); without it the Allegro and InPost tokens are plain text in the database and its backups. Keep two-factor authentication on the GitHub account and consider protecting `main`: whoever can push to it can, through the image pipeline and the updater, run code on the NAS.
 
 **Verified:** backend tests (six new, on tokens and the refresh permission) and the frontend checks. Not run: the nginx configuration in its container (no Docker on this machine) and the new condition in `publish.yml`, which the next push to `main` exercises. Later the same day both were: the pushes to `main` built and published all three images, and the owner updated the NAS to them and found the application working.
+
+
+## 2026-09-30 — The logo
+
+**Decision (owner):** Anvero's logo is the one on the brand board the owner had made with Gemini (`docs/brand/`): an A whose navy top is crossed by a wave running into a mint arrow up and to the right, beside "ANVERO" in Montserrat Bold and, where there is room, "Sales Management System". It replaces the A with an amber dot (2026-09-29, "The logo"). Only the logo is taken from the brief: its palette (Cobalt Flow as the main accent) and its fonts (Inter, Roboto) are not, and the two looks in `STYLE_GUIDE.md` stay as they are.
+
+**Rationale:** The owner chose the logo and asked for nothing else from the brief. Kept to the logo, the brand colours sit only in the mark and the name, as the old logo's did, so they look the same in Classic and Papier.
+
+**Consequences:** The board is a raster image, so the mark was redrawn as a vector from it (`public/favicon.svg`, `AnveroLogo.tsx`), with the navy `#0f172a` and the mint `#3ae4c8` sampled from it as `--brand-ink` and `--brand-teal`; on a dark page the navy turns white, the brand's negative. The name is set in Montserrat, the face the board draws it in, where the brief says Inter Bold; `@fontsource/montserrat` (bold only) is bundled like the Papier faces. One favicon, the main mark; the board's second, round two-arrow symbol is not used. The tagline shows on the login page; the menu, 200px wide, has room for the mark and the name only. `docs/brand/README.md` keeps the brief and lists where the board and the brief disagree.
+
+**Verified:** `tsc` and the frontend tests. In a browser, the login page: the mark, the name in Montserrat and the tagline, and the negative in dark mode. The mark rendered at 16, 28 and 32px stays legible at the two larger sizes. The menu is behind the login and not yet seen.

@@ -102,6 +102,14 @@ differ still can:
   grey when not) on a tile or in a band, not as a paragraph further down.
 - Many things that each need a form are **tiles** with the chosen one opened below, not a long column of forms.
 
+## The logo
+
+The mark and the name (`AnveroLogo`, `AnveroWordmark` in `components/AnveroLogo.tsx`; the favicon
+is the same drawing) are the brand's, from `docs/brand/`, and look the same in both looks: navy
+`--brand-ink` (white on a dark page) and mint `--brand-teal`, the name in Montserrat Bold
+capitals. "Sales Management System" goes under the name only where there is room for it (at
+least 120px across, the brief's minimum). Never recolour the mark to a look's accent.
+
 ## Colour of a channel
 
 Allegro, Erli and InPost each have a colour (`--channel-allegro|erli|inpost`, with `-bg`/`-fg` for a tinted band and

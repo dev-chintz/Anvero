@@ -9,6 +9,8 @@ import "@fontsource/instrument-sans/600.css";
 import "@fontsource/instrument-sans/700.css";
 import "@fontsource/fraunces/500.css";
 import "@fontsource/fraunces/600.css";
+// the wordmark's face (the logo, docs/brand/), in every look
+import "@fontsource/montserrat/700.css";
 import "./index.css";
 import "./styles/theme.css";
 

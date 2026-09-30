@@ -100,6 +100,9 @@ re-imported. Production needs its own application and authorization; see
 
 ## Not yet verified
 
+The new logo (2026-09-30): seen on the login page in light and dark; the menu,
+behind the login, not yet.
+
 `SECRETS_KEY` on the NAS (2026-09-30): not confirmed set; without it the
 Allegro and InPost tokens are plain text in the database and its backups
 (`DECISIONS.md`, "Security audit").

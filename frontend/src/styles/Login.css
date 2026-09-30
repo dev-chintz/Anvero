@@ -22,10 +22,11 @@
 .login-brand {
   display: flex;
   align-items: center;
-  gap: 0.6rem;
-  font-weight: 600;
-  font-size: 1.1rem;
-  color: var(--color-accent);
+  gap: 0.7rem;
+}
+
+.login-brand .anvero-wordmark-name {
+  font-size: 1.6rem;
 }
 
 .login-card h1 {

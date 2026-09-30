@@ -3,7 +3,7 @@ import { Navigate, useLocation } from "react-router-dom";
 import type { Location } from "react-router-dom";
 import { ApiError } from "../api/client";
 import { useAuth } from "../auth/AuthContext";
-import { AnveroLogo } from "../components/AnveroLogo";
+import { AnveroLogo, AnveroWordmark } from "../components/AnveroLogo";
 import { LANGUAGES, languageName, useTranslation } from "../i18n";
 import "../styles/Login.css";
 
@@ -41,7 +41,8 @@ export function LoginPage() {
     <main className="login-page">
       <form className="login-card" onSubmit={handleSubmit} aria-labelledby="login-title">
         <div className="login-brand">
-          <AnveroLogo size={32} /> Anvero
+          <AnveroLogo size={44} />
+          <AnveroWordmark tagline />
         </div>
         <div className="login-language">
           {LANGUAGES.map((code) => (

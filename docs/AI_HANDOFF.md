@@ -91,7 +91,8 @@ owner's claude.ai account hold it, readable only when signed in as the owner:
 - the **Anvero design system**, https://claude.ai/artifact/UUeEBotbDsA8UdJ7sWHMwY: tokens, brand book and nine
   components built from `index.css`, `theme.css` and `STYLE_GUIDE.md` at
   `3cfbdc0`. It follows the code: a token changes in `index.css` first. Not
-  yet brought up to 2026-09-30: the new variables and the Papier look.
+  yet brought up to 2026-09-30: the new variables, the Papier look and the new
+  logo (`docs/brand/`).
 - the **order page canvas**, https://claude.ai/artifact/QJHBPmAH386DKwASmqmG43: a proposal (two columns: the work on
   the left, the facts in a 340px rail on the right, payment back as a green
   card, the status facts beside the steps) next to today's layout.

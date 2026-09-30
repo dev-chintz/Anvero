@@ -56,13 +56,8 @@
   flex-shrink: 0;
 }
 
-.logo-text {
-  font-weight: 600;
-  font-size: 1.1rem;
-  color: var(--color-accent);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+.logo .anvero-wordmark-name {
+  font-size: 1.05rem;
 }
 
 /* Navigation */

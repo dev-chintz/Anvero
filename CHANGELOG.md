@@ -6,6 +6,12 @@ All significant changes to the Anvero project.
 
 ## 2026-09-30
 
+### ✳️ The new logo
+
+- An A crossed by a wave that runs into a rising arrow, navy and mint, with ANVERO in Montserrat and
+  "Sales Management System" on the login page; also the browser tab's icon. The brand board and
+  brief are in `docs/brand/`. See `docs/DECISIONS.md`.
+
 ### 🔒 Security audit and fixes
 
 - Images are published only for pushes to this repository's `main`, never for a fork's branch that

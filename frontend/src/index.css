@@ -91,6 +91,10 @@
   --color-badge-warning: #c2410c;
   --color-status-off: #9ca3af;
   --channel-inpost-on: #3d3200;
+  /* the logo's own colours (docs/brand/), the same in both looks: a brand's colours are
+     the one exception to "every colour a variable that a look may change" */
+  --brand-ink: #0f172a;
+  --brand-teal: #3ae4c8;
   /* each look's accent, marking its choice in Settings whichever look is on */
   --look-classic-mark: #0d7377;
   --look-papier-mark: #a8481f;
@@ -171,6 +175,8 @@
   --tone-violet-fg: #ddd6fe;
 
   --color-on-accent: #0b0b0b;
+  /* the logo's negative: its navy turns white on a dark page */
+  --brand-ink: #f8fafc;
   --color-accent-hover: #0f9384;
   --color-success-text: #4ade80;
   --color-attention-text: #fbbf24;
@@ -307,6 +313,31 @@
   --notice-update-bg: #3a2217;
   --notice-update-border: #6e3219;
   --notice-update-fg: #f0b89a;
+}
+
+/* ---- The logo's name (AnveroLogo.tsx, docs/brand/): Montserrat's bold capitals in the logo's
+   navy, and under them what Anvero is, quieter. The same in both looks. ---- */
+.anvero-wordmark {
+  display: inline-flex;
+  flex-direction: column;
+  min-width: 0;
+  line-height: 1;
+}
+
+.anvero-wordmark-name {
+  color: var(--brand-ink);
+  font-family: "Montserrat", var(--font-body);
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.anvero-wordmark-tagline {
+  margin-top: 0.3em;
+  color: var(--color-muted);
+  font-size: 0.8rem;
+  white-space: nowrap;
 }
 
 * {
