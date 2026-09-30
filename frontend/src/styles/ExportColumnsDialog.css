@@ -27,7 +27,7 @@
   height: 1.3rem;
   border-radius: 999px;
   background: var(--color-accent);
-  color: #fff;
+  color: var(--color-on-accent);
   font-size: 0.7rem;
   font-weight: 700;
   display: inline-flex;
@@ -125,6 +125,6 @@
 .export-columns-formats .is-primary {
   background: var(--color-accent);
   border-color: var(--color-accent);
-  color: #fff;
+  color: var(--color-on-accent);
   font-weight: 700;
 }

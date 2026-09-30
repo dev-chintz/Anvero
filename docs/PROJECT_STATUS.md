@@ -100,6 +100,10 @@ re-imported. Production needs its own application and authorization; see
 
 ## Not yet verified
 
+Colours as variables (2026-09-30): checked by script and on the login page in
+both modes; the pages behind the login not yet looked at in dark mode, where
+seven accent buttons now have dark text instead of white (`DECISIONS.md`).
+
 The finance page's layout (2026-09-30): tested, not yet opened in a browser
 (the owner's login).
 

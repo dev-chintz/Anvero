@@ -3,7 +3,7 @@
   border: 1px solid var(--color-accent);
   border-radius: var(--radius-md);
   background: var(--color-accent);
-  color: #fff;
+  color: var(--color-on-accent);
   font-weight: 600;
   cursor: pointer;
 }
@@ -97,7 +97,7 @@
   border: 1px solid var(--color-accent);
   border-radius: var(--radius-md);
   background: var(--color-accent);
-  color: #fff;
+  color: var(--color-on-accent);
   font-weight: 600;
   cursor: pointer;
 }
@@ -314,12 +314,8 @@
 .labels-selection .is-primary {
   background: var(--color-accent);
   border-color: var(--color-accent);
-  color: #fff;
+  color: var(--color-on-accent);
   font-weight: 600;
-}
-
-:root.dark .labels-selection .is-primary {
-  color: #0b0b0b;
 }
 
 .labels-selection .link-button {

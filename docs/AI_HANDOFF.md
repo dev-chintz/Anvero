@@ -161,6 +161,13 @@ side by side) next to today's, where below 1100px everything stacks into one
 column. Chosen and built (`DECISIONS.md`, 2026-09-30, "The finance page"),
 tested, not yet seen in a browser.
 
+A **second look** is on https://claude.ai/artifact/1tJfJmnRK6JXpe4dJzNSRy:
+three directions for the order list, the owner's pick ("Papier": cream,
+brick accent, serif titles) drawn for every menu, and Settings with a style
+switch beside light/dark, the layout the same in both looks. First step done
+(`DECISIONS.md`, 2026-09-30, "Every colour in the stylesheets is a
+variable"); next is the switch in Settings and Papier's set of values.
+
 The order page's round two (status in
 the header, payment folded, Smart badge) was seen by the owner in the browser
 and adjusted (space under Wysyłka, a blue band for Wiadomości); what is still

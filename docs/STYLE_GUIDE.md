@@ -28,6 +28,13 @@ weight. One teal accent. Buttons, fields and dropdowns look the same everywhere.
 Dark mode has its own value for each, set once in `:root.dark`; a stylesheet never writes a colour
 twice for the two modes, it uses the token.
 
+Every colour a stylesheet uses is a variable from `index.css`, never a literal: besides the table
+above, text on a solid fill (`--color-on-accent` on the accent, which is dark text in dark mode;
+`--color-on-strong` on a fill that stays dark in both modes), the menu (`--color-nav-*`), notices and
+banners (`--notice-<kind>-bg|border|fg`) and a few single ones listed in `DECISIONS.md`
+(2026-09-30). A brand's own colours drawn in a component (a carrier's badge, the logo) are the
+exception. This is what lets a second look be one more set of values.
+
 **Tones** say what a band or a chip means: `--tone-blue-*` for the thing itself (an order, its
 items, its buyer), `--tone-teal-*` for sending it (shipping, delivery, integrations),
 `--tone-green-*` / `--tone-red-*` for money and health (paid or not, ok or a problem),

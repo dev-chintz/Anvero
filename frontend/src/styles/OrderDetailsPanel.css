@@ -96,22 +96,13 @@
 }
 
 .order-paid {
-  color: #15803d;
+  color: var(--color-success-text);
 }
 
 .order-unpaid,
 .order-invoice-required {
-  color: #b45309;
+  color: var(--color-attention-text);
   font-weight: 600;
-}
-
-:root.dark .order-paid {
-  color: #4ade80;
-}
-
-:root.dark .order-unpaid,
-:root.dark .order-invoice-required {
-  color: #fbbf24;
 }
 
 .order-item-sku {
@@ -249,24 +240,16 @@
 }
 
 .write-success {
-  color: #15803d;
+  color: var(--color-success-text);
 }
 
 .write-info {
-  color: #0f766e;
+  color: var(--color-info-text);
 }
 
 .write-error {
   color: var(--color-error);
   font-weight: 600;
-}
-
-:root.dark .write-success {
-  color: #4ade80;
-}
-
-:root.dark .write-info {
-  color: #5eead4;
 }
 
 .add-shipment-fields {

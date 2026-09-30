@@ -58,11 +58,11 @@
 }
 
 .order-header .mark-star.is-on {
-  color: #f59e0b;
+  color: var(--color-warning);
 }
 
 .order-header .mark-flag.is-on {
-  color: #dc2626;
+  color: var(--color-danger-strong);
 }
 
 .order-header .country-badge {
@@ -85,14 +85,10 @@
   background: var(--color-accent);
   border: 1px solid var(--color-accent);
   border-radius: var(--radius);
-  color: #fff;
+  color: var(--color-on-accent);
   font: inherit;
   font-weight: 600;
   cursor: pointer;
-}
-
-:root.dark .order-next {
-  color: #0b0b0b;
 }
 
 .order-next:disabled {
@@ -173,8 +169,8 @@
 
 .order-step.is-cancelled {
   background: transparent;
-  border-color: #dc2626;
-  color: #dc2626;
+  border-color: var(--color-danger-strong);
+  color: var(--color-danger-strong);
 }
 
 /* under the road: the status itself, settable to any status, with its facts on one line */
@@ -207,11 +203,11 @@
 }
 
 .order-status-facts .dispatch-late {
-  color: #b91c1c;
+  color: var(--color-danger-text);
 }
 
 .order-status-facts .dispatch-soon {
-  color: #b45309;
+  color: var(--color-warning-text);
 }
 
 .order-header > .error-message,
@@ -247,15 +243,15 @@ button.attention-chip {
 }
 
 .attention-late {
-  background: #fef2f2;
-  border-color: #fecaca;
-  color: #b91c1c;
+  background: var(--notice-danger-bg);
+  border-color: var(--notice-danger-border);
+  color: var(--notice-danger-fg);
 }
 
 .attention-soon {
-  background: #fff7ed;
-  border-color: #fdba74;
-  color: #9a3412;
+  background: var(--notice-warning-bg);
+  border-color: var(--notice-warning-border);
+  color: var(--notice-warning-fg);
 }
 
 .attention-later {
@@ -265,39 +261,15 @@ button.attention-chip {
 }
 
 .attention-info {
-  background: #eff6ff;
-  border-color: #bfdbfe;
-  color: #1d4ed8;
+  background: var(--notice-info-bg);
+  border-color: var(--notice-info-border);
+  color: var(--notice-info-fg);
 }
 
 .attention-note {
-  background: #fefce8;
-  border-color: #fde047;
-  color: #854d0e;
-}
-
-:root.dark .attention-late {
-  background: #3b1212;
-  border-color: #b91c1c;
-  color: #fca5a5;
-}
-
-:root.dark .attention-soon {
-  background: #3b2412;
-  border-color: #9a3412;
-  color: #fdba74;
-}
-
-:root.dark .attention-info {
-  background: #1e3a5f;
-  border-color: #2563eb;
-  color: #bfdbfe;
-}
-
-:root.dark .attention-note {
-  background: #3f3405;
-  border-color: #a16207;
-  color: #fde68a;
+  background: var(--notice-note-bg);
+  border-color: var(--notice-note-border);
+  color: var(--notice-note-fg);
 }
 
 /* Pozycje is its own full-width row, as wide as the page, so long product names read
@@ -425,12 +397,12 @@ button.attention-chip {
 }
 
 .fact-list .dispatch-late {
-  color: #b91c1c;
+  color: var(--color-danger-text);
   font-weight: 600;
 }
 
 .fact-list .dispatch-soon {
-  color: #b45309;
+  color: var(--color-warning-text);
   font-weight: 600;
 }
 
@@ -587,11 +559,7 @@ button.attention-chip {
 .order-step.is-current {
   background: var(--color-accent);
   border-color: var(--color-accent);
-  color: #fff;
-}
-
-:root.dark .order-step.is-current {
-  color: #0b0b0b;
+  color: var(--color-on-accent);
 }
 
 .order-step.is-cancelled {

@@ -163,12 +163,8 @@
 :is(.labels-tabs, .after-sales-tabs, .shipping-tabs, .inbox-filters, .settings-tabs, .finance-periods, .finance-tabs, .finance-sort) button:is(.active, .is-on) {
   background: var(--color-accent);
   border-color: var(--color-accent);
-  color: #fff;
+  color: var(--color-on-accent);
   font-weight: 600;
-}
-
-:root.dark :is(.labels-tabs, .after-sales-tabs, .shipping-tabs, .inbox-filters, .settings-tabs, .finance-periods, .finance-tabs, .finance-sort) button:is(.active, .is-on) {
-  color: #0b0b0b;
 }
 
 /* ---- The dot that says whether something is set up, on, or fine ---- */
@@ -178,7 +174,7 @@
   height: 0.6rem;
   flex-shrink: 0;
   border-radius: 50%;
-  background: #9ca3af;
+  background: var(--color-status-off);
 }
 
 .status-dot.is-ok,

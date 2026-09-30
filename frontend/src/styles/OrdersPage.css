@@ -51,7 +51,7 @@
   width: 1.1rem;
   height: 1.1rem;
   border-radius: 4px;
-  color: #fff;
+  color: var(--color-on-strong);
   font-size: 0.7rem;
   font-weight: 700;
   line-height: 1;
@@ -104,7 +104,7 @@
   border: none;
   border-radius: var(--radius-md);
   background: var(--color-accent);
-  color: #fff;
+  color: var(--color-on-accent);
   font-weight: 600;
   font-size: 0.9rem;
   cursor: pointer;
@@ -113,20 +113,12 @@
 }
 
 :is(.orders-page, .dashboard) .import-bar-button:hover:not(:disabled) {
-  background: #0a5c60;
+  background: var(--color-accent-hover);
 }
 
 :is(.orders-page, .dashboard) .import-bar-button:disabled {
   opacity: 0.5;
   cursor: not-allowed;
-}
-
-:root.dark :is(.orders-page, .dashboard) .import-bar-button {
-  color: #1a1a1a;
-}
-
-:root.dark :is(.orders-page, .dashboard) .import-bar-button:hover:not(:disabled) {
-  background: #0f9384;
 }
 
 :is(.orders-page, .dashboard) .import-bar-hint {
@@ -181,15 +173,15 @@
 }
 
 .shipping-delivered {
-  background: #c8e6c9;
-  color: #1b5e20;
+  background: var(--shipping-ok-bg);
+  color: var(--shipping-ok-fg);
 }
 
 .shipping-issue,
 .shipping-returned,
 .shipping-notice_left {
-  background: #ffcdd2;
-  color: #b71c1c;
+  background: var(--shipping-problem-bg);
+  color: var(--shipping-problem-fg);
 }
 
 /* The list's own layout (DECISIONS.md, 2026-09-29, "The order list"): the four work queues
@@ -236,11 +228,7 @@
 
 .orders-page .queue-tile[aria-pressed="true"] .queue-count {
   background: var(--color-accent);
-  color: #fff;
-}
-
-:root.dark .orders-page .queue-tile[aria-pressed="true"] .queue-count {
-  color: #0b0b0b;
+  color: var(--color-on-accent);
 }
 
 .orders-page .queue-tile-late {
@@ -379,7 +367,7 @@
 :is(.orders-page, .production-page) .queue-tab[aria-pressed="true"] {
   background: var(--color-accent);
   border-color: var(--color-accent);
-  color: #fff;
+  color: var(--color-on-accent);
 }
 
 :is(.orders-page, .production-page) .queue-count {
@@ -395,12 +383,12 @@
 
 :is(.orders-page, .production-page) .queue-tab[aria-pressed="true"] .queue-count {
   background: rgba(255, 255, 255, 0.25);
-  color: #fff;
+  color: var(--color-on-accent);
 }
 
 .orders-page .queue-tab-late .queue-count {
   background: var(--color-error);
-  color: #fff;
+  color: var(--color-on-strong);
 }
 
 .orders-page .queue-production-link {
@@ -428,7 +416,7 @@
 }
 
 .dispatch-soon {
-  color: #b45309;
+  color: var(--color-warning-text);
   font-weight: 600;
 }
 
@@ -465,9 +453,9 @@
 }
 
 .orders-table .row-delete:hover {
-  color: #b91c1c;
-  border-color: #fecaca;
-  background: #fef2f2;
+  color: var(--color-danger-text);
+  border-color: var(--color-danger-soft-border);
+  background: var(--color-danger-soft-bg);
 }
 
 /* Ticking orders and acting on them at once (OrderList.tsx, BulkActionsBar.tsx) */
@@ -556,11 +544,11 @@
 }
 
 .orders-table .mark-star.is-on {
-  color: #f59e0b;
+  color: var(--color-warning);
 }
 
 .orders-table .mark-flag.is-on {
-  color: #dc2626;
+  color: var(--color-danger-strong);
 }
 
 .orders-table .country-badge {

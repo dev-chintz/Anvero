@@ -48,8 +48,8 @@
   padding: 0.7rem;
   border: none;
   border-radius: var(--radius-md);
-  background: #0d7377;
-  color: #fff;
+  background: var(--color-accent-deep);
+  color: var(--color-on-strong);
   font-size: 1rem;
   font-weight: 600;
   cursor: pointer;

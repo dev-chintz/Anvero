@@ -3,11 +3,7 @@
    the shared ones (theme.css); this file lays them out. */
 
 .finance-page {
-  --fee: #b45309;
-}
-
-:root.dark .finance-page {
-  --fee: #f59e0b;
+  --fee: var(--color-fee);
 }
 
 .finance-body {
@@ -531,12 +527,8 @@ button.finance-kpi.is-open {
 
 .finance-nav .finance-periods button.active {
   background: var(--color-accent);
-  color: #fff;
+  color: var(--color-on-accent);
   font-weight: 600;
-}
-
-:root.dark .finance-nav .finance-periods button.active {
-  color: #0b0b0b;
 }
 
 /* the four figures in one row, lower */

@@ -30,13 +30,9 @@
   padding: 0.6rem 1.1rem;
   background: var(--color-accent);
   border-color: var(--color-accent);
-  color: #fff;
+  color: var(--color-on-accent);
   font-weight: 600;
   white-space: nowrap;
-}
-
-:root.dark .filters-toggle {
-  color: #0b0b0b;
 }
 
 .filters-toggle:hover {
@@ -100,17 +96,13 @@
   margin-left: auto;
   background: var(--tone-red-fg);
   border-color: var(--tone-red-fg);
-  color: #fff;
+  color: var(--color-on-accent);
   font-weight: 600;
 }
 
 .clear-filters-btn:hover {
   background: var(--tone-red-fg);
   filter: brightness(0.9);
-}
-
-:root.dark .clear-filters-btn {
-  color: #0b0b0b;
 }
 
 /* Responsive */

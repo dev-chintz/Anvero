@@ -59,6 +59,69 @@
   --color-error: #ef4444;
   --color-warning: #f59e0b;
   --color-info: #3b82f6;
+
+  /*
+   * Added 2026-09-30: every colour the stylesheets still wrote as a literal, so that a
+   * second look can be a second set of these values (DECISIONS.md, 2026-09-30). Like
+   * the block above, consolidation, not a restyle: each is the value it replaced, in
+   * each mode, so a dark value that equals the light one below is not an oversight.
+   */
+  /* text on a solid accent (or tone -fg) fill */
+  --color-on-accent: #fff;
+  /* text on a fill that stays dark in both modes: the deep accent, the red, a channel */
+  --color-on-strong: #fff;
+  /* the accent at its light value, where a rule keeps it in both modes */
+  --color-accent-deep: #0d7377;
+  --color-accent-hover: #0a5c60;
+  --color-danger-strong: #dc2626;
+  --color-danger-text: #b91c1c;
+  --color-danger-soft-bg: #fef2f2;
+  --color-danger-soft-border: #fecaca;
+  --color-warning-text: #b45309;
+  --color-success-text: #15803d;
+  --color-attention-text: #b45309;
+  --color-info-text: #0f766e;
+  --color-fee: #b45309;
+  --color-badge-warning: #c2410c;
+  --color-status-off: #9ca3af;
+  --channel-inpost-on: #3d3200;
+
+  /* the menu (Sidebar.css) */
+  --color-nav-bg: var(--color-surface-alt);
+  --color-nav-border: var(--color-divider);
+  --color-nav-fg: var(--color-muted-strong);
+  --color-nav-hover-bg: var(--color-divider);
+  --color-nav-hover-fg: var(--color-accent-deep);
+  --color-nav-active-bg: #d0f0ed;
+  --color-nav-active-fg: var(--color-accent);
+  --color-nav-badge-bg: var(--color-divider);
+  --color-nav-badge-fg: var(--color-heading);
+
+  /* a tracking state in the order list */
+  --shipping-ok-bg: #c8e6c9;
+  --shipping-ok-fg: #1b5e20;
+  --shipping-problem-bg: #ffcdd2;
+  --shipping-problem-fg: #b71c1c;
+
+  /* notices: a banner or a chip with a tinted fill, a border and its text */
+  --notice-danger-bg: #fef2f2;
+  --notice-danger-border: #fecaca;
+  --notice-danger-fg: #b91c1c;
+  --notice-warning-bg: #fff7ed;
+  --notice-warning-border: #fdba74;
+  --notice-warning-fg: #9a3412;
+  --notice-info-bg: #eff6ff;
+  --notice-info-border: #bfdbfe;
+  --notice-info-fg: #1d4ed8;
+  --notice-note-bg: #fefce8;
+  --notice-note-border: #fde047;
+  --notice-note-fg: #854d0e;
+  --notice-safe-bg: #ecfdf5;
+  --notice-safe-border: #a7f3d0;
+  --notice-safe-fg: #065f46;
+  --notice-update-bg: #e6f4f4;
+  --notice-update-border: #b9dcdc;
+  --notice-update-fg: var(--color-accent);
 }
 
 :root.dark {
@@ -97,6 +160,42 @@
   --tone-amber-fg: #fde68a;
   --tone-violet-bg: #2e1065;
   --tone-violet-fg: #ddd6fe;
+
+  --color-on-accent: #0b0b0b;
+  --color-accent-hover: #0f9384;
+  --color-success-text: #4ade80;
+  --color-attention-text: #fbbf24;
+  --color-info-text: #5eead4;
+  --color-fee: #f59e0b;
+
+  --color-nav-bg: #1e1e1e;
+  --color-nav-border: #333;
+  --color-nav-fg: var(--color-text);
+  --color-nav-hover-bg: var(--color-surface-alt);
+  --color-nav-hover-fg: var(--color-text);
+  --color-nav-active-bg: var(--color-accent-deep);
+  --color-nav-active-fg: #fff;
+  --color-nav-badge-bg: #3d3d3d;
+  --color-nav-badge-fg: var(--color-text);
+
+  --notice-danger-bg: #3b1212;
+  --notice-danger-border: #b91c1c;
+  --notice-danger-fg: #fca5a5;
+  --notice-warning-bg: #3b2412;
+  --notice-warning-border: #9a3412;
+  --notice-warning-fg: #fdba74;
+  --notice-info-bg: #1e3a5f;
+  --notice-info-border: #2563eb;
+  --notice-info-fg: #bfdbfe;
+  --notice-note-bg: #3f3405;
+  --notice-note-border: #a16207;
+  --notice-note-fg: #fde68a;
+  --notice-safe-bg: #0f2e25;
+  --notice-safe-border: #065f46;
+  --notice-safe-fg: #a7f3d0;
+  --notice-update-bg: #0e2c2d;
+  --notice-update-border: #155e61;
+  --notice-update-fg: #9fdcdc;
 }
 
 * {
@@ -148,17 +247,13 @@ body {
 :where(button[type="submit"]) {
   background: var(--color-accent);
   border-color: var(--color-accent);
-  color: #fff;
+  color: var(--color-on-accent);
   font-weight: 600;
 }
 
 :where(button[type="submit"]:hover:not(:disabled)) {
   background: var(--color-accent);
   filter: brightness(0.92);
-}
-
-:where(:root.dark button[type="submit"]) {
-  color: #0b0b0b;
 }
 
 :where(input:not([type="checkbox"], [type="radio"], [type="range"], [type="file"], [type="color"]), textarea) {
@@ -301,7 +396,7 @@ td {
   border-radius: 999px;
   font-size: 0.75rem;
   font-weight: 600;
-  color: var(--badge-fg, #fff);
+  color: var(--badge-fg, var(--color-on-strong));
   background-color: var(--badge-bg, transparent);
   border: 1px solid color-mix(in srgb, var(--badge-fg, transparent) 22%, var(--badge-bg, transparent));
 }
@@ -415,7 +510,7 @@ select.status-select {
 }
 
 .badge-warning {
-  background: #c2410c;
+  background: var(--color-badge-warning);
   margin-left: 0.4rem;
 }
 
@@ -535,18 +630,12 @@ select.status-select {
 }
 
 .warning-banner {
-  background: #fff7ed;
-  border: 1px solid #fdba74;
-  color: #9a3412;
+  background: var(--notice-warning-bg);
+  border: 1px solid var(--notice-warning-border);
+  color: var(--notice-warning-fg);
   padding: 0.75rem 1rem;
   border-radius: var(--radius);
   margin-bottom: 1rem;
-}
-
-:root.dark .warning-banner {
-  background: #3b2412;
-  border-color: #9a3412;
-  color: #fdba74;
 }
 
 .warning-banner a,
@@ -565,9 +654,9 @@ select.status-select {
 }
 
 .error-message {
-  color: #b91c1c;
-  background: #fef2f2;
-  border: 1px solid #fecaca;
+  color: var(--color-danger-text);
+  background: var(--color-danger-soft-bg);
+  border: 1px solid var(--color-danger-soft-border);
   padding: 0.75rem 1rem;
   border-radius: var(--radius);
 }
@@ -644,7 +733,7 @@ select.status-select {
 /* A tracking number that opens the carrier's page (TrackingLink.tsx): reads as
    a link, but keeps the size and weight of the text around it. */
 .tracking-link {
-  color: var(--color-accent, #0d7377);
+  color: var(--color-accent);
   text-decoration: underline;
   text-decoration-thickness: 1px;
   text-underline-offset: 2px;
@@ -667,14 +756,14 @@ select.status-select {
 }
 
 .order-delete:hover:not(:disabled) {
-  color: #b91c1c;
-  border-color: #fecaca;
-  background: #fef2f2;
+  color: var(--color-danger-text);
+  border-color: var(--color-danger-soft-border);
+  background: var(--color-danger-soft-bg);
 }
 
 .order-restore {
-  border-color: var(--color-accent, #0d7377);
-  color: var(--color-accent, #0d7377);
+  border-color: var(--color-accent);
+  color: var(--color-accent);
 }
 
 .order-delete:disabled,

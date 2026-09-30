@@ -84,9 +84,9 @@
 /* safe mode: the reminder above every page, and its switch in Settings */
 .safe-mode-banner {
   padding: 0.5rem 2rem;
-  background: #ecfdf5;
-  border-bottom: 1px solid #a7f3d0;
-  color: #065f46;
+  background: var(--notice-safe-bg);
+  border-bottom: 1px solid var(--notice-safe-border);
+  color: var(--notice-safe-fg);
   font-size: 0.9rem;
 }
 
@@ -95,20 +95,14 @@
   font-weight: 600;
 }
 
-:root.dark .safe-mode-banner {
-  background: #0f2e25;
-  border-color: #065f46;
-  color: #a7f3d0;
-}
-
 .update-banner {
   display: flex;
   align-items: center;
   gap: 0.35rem;
   padding: 0.5rem 2rem;
-  background: #e6f4f4;
-  border-bottom: 1px solid #b9dcdc;
-  color: var(--color-accent);
+  background: var(--notice-update-bg);
+  border-bottom: 1px solid var(--notice-update-border);
+  color: var(--notice-update-fg);
   font-size: 0.9rem;
 }
 
@@ -125,12 +119,6 @@
   color: inherit;
   font-size: 1.1rem;
   line-height: 1;
-}
-
-:root.dark .update-banner {
-  background: #0e2c2d;
-  border-color: #155e61;
-  color: #9fdcdc;
 }
 
 .update-changes {
@@ -153,7 +141,7 @@
 .safe-mode-settings .danger-button {
   background: var(--color-error);
   border-color: var(--color-error);
-  color: #fff;
+  color: var(--color-on-strong);
 }
 
 .safe-mode-log {

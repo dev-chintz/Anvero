@@ -2117,3 +2117,13 @@ at all (the entry before this one).
 
 **Verified:** frontend tests (616) and `tsc`. Not seen in a browser: it needs the owner's login.
 
+
+## 2026-09-30 — Every colour in the stylesheets is a variable
+
+**Decision (owner):** Anvero may get a second look ("Papier": warm cream, a brick accent, serif titles) that a user picks in Settings next to light and dark, sketched on the Claude Design canvas https://claude.ai/artifact/1tJfJmnRK6JXpe4dJzNSRy. A look changes colours, type, radii and spacing only; the layout of every page stays one and the same for both, so a page is never built twice. As the first step, every colour the stylesheets still wrote as a literal (136, in 16 files) became a variable in `index.css`, and the `:root.dark` rules that only swapped a colour were folded into the dark value of that variable.
+
+**Rationale:** A second look can then be one more set of variable values, as dark mode already is, instead of a second set of rules in every stylesheet.
+
+**Consequences:** New variables: text on a fill (`--color-on-accent`, `--color-on-strong`), the menu (`--color-nav-*`), notices (`--notice-danger|warning|info|note|safe|update-*`), tracking states (`--shipping-*`) and a few single ones (`--color-accent-deep`, `--color-accent-hover`, `--color-danger-*`, `--color-warning-text`, `--color-success-text`, `--color-attention-text`, `--color-info-text`, `--color-fee`, `--color-badge-warning`, `--color-status-off`, `--channel-inpost-on`). Each is the value it replaced in each mode, so where a rule kept one value in both modes its variable does too (for example `--color-danger-text` is `#b91c1c` in dark mode as well); whether those should change in dark mode is a separate question. One deliberate change: text on a solid accent fill is now `--color-on-accent` everywhere, so seven places that had white text on the dark-mode accent (`#14b8a6`, too little contrast) now have the dark text the other accent buttons already had: the print and courier buttons on the labels page, the shipping buttons, the chosen queue tab and its count, and two in the export dialog; the import button's dark text moves from `#1a1a1a` to the same `#0b0b0b`. Brand colours drawn by components (the carriers' badges, the Smart badge, the logo) stay literals: they belong to those companies and do not change with the look.
+
+**Verified:** frontend tests (616), `tsc` and the build. A script resolved every colour declaration before and after in both modes and found no difference besides the ones above; in a browser the menu, banners, submit button and badges were measured in both modes on the login page (the other pages need the owner's login).

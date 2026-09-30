@@ -6,6 +6,12 @@ All significant changes to the Anvero project.
 
 ## 2026-09-30
 
+### 🎨 Every colour is a variable
+
+- The 136 colours the stylesheets still wrote directly are variables in `index.css`, the first step
+  towards a second look to pick in Settings. Nothing changes on screen except dark mode's text on the
+  teal buttons that were still white. See `docs/DECISIONS.md`.
+
 ### 💰 The finance page
 
 - Tabs and period on one line, the four figures in one row, the fees by kind full width and the

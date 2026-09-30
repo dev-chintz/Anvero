@@ -218,12 +218,12 @@
   height: 1.6rem;
   background: var(--channel);
   border-radius: 7px;
-  color: #fff;
+  color: var(--color-on-strong);
   font-weight: 700;
 }
 
 .channel-inpost .channel-avatar {
-  color: #3d3200;
+  color: var(--channel-inpost-on);
 }
 
 .integration-tile-name {

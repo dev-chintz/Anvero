@@ -138,12 +138,8 @@
 .after-sales-kinds button[aria-pressed="true"] {
   background: var(--color-accent);
   border-color: var(--color-accent);
-  color: #fff;
+  color: var(--color-on-accent);
   font-weight: 600;
-}
-
-:root.dark .after-sales-kinds button[aria-pressed="true"] {
-  color: #0b0b0b;
 }
 
 .after-sales-note {
