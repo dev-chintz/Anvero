@@ -17,6 +17,13 @@ this file only points at it and records how to work here without tripping.
 5. If the pull changed `frontend/package-lock.json`, run `npm install` in
    `frontend/`. `node_modules` is per machine, and a stale one fails the
    type-check in the pre-commit hook or the dev server itself.
+6. If the pull changed `backend/requirements.txt`, run
+   `.\.venv\Scripts\python.exe -m pip install -r requirements.txt` in
+   `backend/`. The venv is per machine too, and a stale one runs the old
+   versions of what was updated (a security fix, say) without any error.
+
+The `/pull` skill (`.claude/skills/pull/`) does steps 3 to 6; `/push` follows
+"Before ending a session" below.
 
 ## Rules that are easy to miss
 
