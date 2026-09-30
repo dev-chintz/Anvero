@@ -1,30 +1,23 @@
 /* Returns and claims: the queue page, and the card on an order */
 
 .after-sales-content {
-  padding: 1.5rem 2rem 2rem;
+  padding: 1rem 2rem 2rem;
   max-width: 1600px;
-}
-
-.after-sales-toolbar {
   display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 1rem;
-  margin-bottom: 1rem;
+  flex-direction: column;
+  gap: 0.9rem;
 }
 
-.after-sales-kind {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  color: var(--color-muted-strong);
+.after-sales-content > p {
+  margin: 0;
 }
 
-
+.after-sales-page .page-header {
+  align-items: flex-end;
+}
 
 .after-sales-sync {
-  margin-left: auto;
-  padding: 0.5rem 1rem;
+  padding: 0.4rem 0.9rem;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   background: var(--color-bg);
@@ -38,29 +31,125 @@
   cursor: not-allowed;
 }
 
-.after-sales-chips {
+/* the summary as tiles, like the order list's queues */
+.after-sales-tiles {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.6rem;
+}
+
+.after-sales-tile {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  padding: 0.6rem 0.9rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  color: var(--color-muted);
+  font-size: 0.8rem;
+}
+
+.after-sales-tile strong {
+  color: var(--color-text);
+  font-size: 1.6rem;
+  line-height: 1.1;
+}
+
+.after-sales-tile.is-overdue {
+  background: var(--tone-red-bg);
+  border-color: color-mix(in srgb, var(--tone-red-fg) 25%, var(--tone-red-bg));
+}
+
+.after-sales-tile.is-overdue,
+.after-sales-tile.is-overdue strong {
+  color: var(--tone-red-fg);
+}
+
+.after-sales-tile.is-soon {
+  background: var(--tone-amber-bg);
+  border-color: color-mix(in srgb, var(--tone-amber-fg) 25%, var(--tone-amber-bg));
+}
+
+.after-sales-tile.is-soon,
+.after-sales-tile.is-soon strong {
+  color: var(--tone-amber-fg);
+}
+
+/* one card: the views as tabs and the kind as pills, over the cases */
+.after-sales-card-list.card {
+  padding: 0;
+  overflow: hidden;
+}
+
+.after-sales-toolbar {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.75rem;
-  margin-bottom: 1rem;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.4rem 1rem;
+  padding: 0 0.9rem;
+  border-bottom: 1px solid var(--color-divider);
 }
 
-.after-sales-chips .chip {
-  padding: 0.4rem 0.8rem;
-  border: 1px solid var(--color-divider);
+.after-sales-tabs {
+  display: flex;
+  gap: 1.1rem;
+}
+
+.after-sales-tabs button {
+  padding: 0.5rem 0.1rem;
+  border: none;
+  border-bottom: 2px solid transparent;
+  border-radius: 0;
+  background: none;
+  color: var(--color-muted);
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.after-sales-tabs button:hover {
+  color: var(--color-text);
+}
+
+.after-sales-tabs button.active {
+  border-bottom-color: var(--color-accent);
+  color: var(--color-accent);
+  font-weight: 700;
+}
+
+.after-sales-kinds {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  padding: 0.4rem 0;
+}
+
+.after-sales-kinds button {
+  padding: 0.15rem 0.65rem;
+  border: 1px solid var(--color-border);
   border-radius: 999px;
-  background: var(--color-surface-alt);
+  background: var(--color-surface);
   color: var(--color-muted-strong);
+  font-size: 0.8rem;
+  cursor: pointer;
 }
 
-.after-sales-chips .chip-overdue {
-  border-color: var(--color-error);
-  color: var(--color-error);
+.after-sales-kinds button[aria-pressed="true"] {
+  background: var(--color-accent);
+  border-color: var(--color-accent);
+  color: #fff;
+  font-weight: 600;
 }
 
-.after-sales-chips .chip-soon {
-  border-color: var(--color-warning);
-  color: var(--color-warning);
+:root.dark .after-sales-kinds button[aria-pressed="true"] {
+  color: #0b0b0b;
+}
+
+.after-sales-note {
+  margin: 0;
+  padding: 0.9rem;
+  color: var(--color-muted);
 }
 
 .after-sales-table-wrap {
@@ -70,42 +159,126 @@
 .after-sales-table {
   width: 100%;
   border-collapse: collapse;
+  font-size: 0.85rem;
 }
 
 .after-sales-table th,
 .after-sales-table td {
-  padding: 0.65rem 0.6rem;
+  padding: 0.45rem 0.7rem;
   border-bottom: 1px solid var(--color-divider);
   text-align: left;
   vertical-align: top;
 }
 
-
-.after-sales-table .row-overdue {
-  background: color-mix(in srgb, var(--color-error) 8%, transparent);
+.after-sales-table th:first-child,
+.after-sales-table td:first-child {
+  padding-left: 0.9rem;
 }
 
-.case-due {
+.after-sales-table .row-overdue {
+  background: color-mix(in srgb, var(--tone-red-bg) 45%, transparent);
+}
+
+.case-when {
+  width: 1%;
   white-space: nowrap;
+}
+
+.case-when,
+.case-about {
+  display: table-cell;
+}
+
+.case-sub {
+  display: block;
+  margin-top: 0.15rem;
+  color: var(--color-muted);
+  font-size: 0.75rem;
+}
+
+.case-about > span {
+  display: block;
+}
+
+.case-action {
+  font-weight: 700;
+}
+
+.case-line a {
+  font-weight: 700;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.case-summary {
+  overflow: hidden;
+  color: var(--color-muted);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 34rem;
+}
+
+.after-sales-deadlines.field-note {
+  margin: 0;
+  padding: 0.6rem 0.9rem;
+  font-size: 0.75rem;
+}
+
+/* chips: the deadline, the kind and the status */
+.case-due,
+.case-kind,
+.case-status {
+  display: inline-block;
+  padding: 0.05rem 0.5rem;
+  border: 1px solid var(--color-divider);
+  border-radius: 999px;
+  background: var(--color-surface-alt);
+  color: var(--color-muted-strong);
+  font-size: 0.75rem;
   font-weight: 600;
+  white-space: nowrap;
 }
 
 .case-due.soon {
-  color: var(--color-warning);
+  background: var(--tone-amber-bg);
+  color: var(--tone-amber-fg);
+  border-color: color-mix(in srgb, var(--tone-amber-fg) 25%, var(--tone-amber-bg));
 }
 
 .case-due.overdue {
-  color: var(--color-error);
+  background: var(--tone-red-bg);
+  color: var(--tone-red-fg);
+  border-color: color-mix(in srgb, var(--tone-red-fg) 25%, var(--tone-red-bg));
 }
 
-.case-kind {
-  display: inline-block;
-  padding: 0.1rem 0.5rem;
-  border-radius: 999px;
-  border: 1px solid var(--color-border);
-  font-size: 0.8rem;
-  font-weight: 600;
-  white-space: nowrap;
+.case-kind-return {
+  background: var(--tone-blue-bg);
+  color: var(--tone-blue-fg);
+  border-color: color-mix(in srgb, var(--tone-blue-fg) 25%, var(--tone-blue-bg));
+}
+
+.case-kind-claim {
+  background: var(--tone-violet-bg);
+  color: var(--tone-violet-fg);
+  border-color: color-mix(in srgb, var(--tone-violet-fg) 25%, var(--tone-violet-bg));
+}
+
+.case-kind-dispute {
+  background: var(--tone-amber-bg);
+  color: var(--tone-amber-fg);
+  border-color: color-mix(in srgb, var(--tone-amber-fg) 25%, var(--tone-amber-bg));
+}
+
+.case-status.is-done {
+  background: var(--tone-teal-bg);
+  color: var(--tone-teal-fg);
+  border-color: color-mix(in srgb, var(--tone-teal-fg) 25%, var(--tone-teal-bg));
+}
+
+.case-status.is-refused {
+  background: var(--tone-red-bg);
+  color: var(--tone-red-fg);
+  border-color: color-mix(in srgb, var(--tone-red-fg) 25%, var(--tone-red-bg));
 }
 
 /* the card on an order */
@@ -144,7 +317,7 @@
     padding: 1rem;
   }
 
-  .after-sales-sync {
-    margin-left: 0;
+  .after-sales-tiles {
+    grid-template-columns: minmax(0, 1fr);
   }
 }

@@ -2095,3 +2095,14 @@ at all (the entry before this one).
 
 **Verified:** frontend tests (616) and `tsc`. Not seen in a browser: it needs the owner's login.
 
+
+## 2026-09-30 — Returns and claims
+
+**Decision (owner, from the Claude Design canvas https://claude.ai/artifact/PaHeT5BkF7g4EVxjjB1tLS):** The summary is three tiles (waiting for you, overdue in red, due within three days in amber) instead of chips. The views are underlined tabs and the kind is a row of pills (all, returns, claims, disputes) in one card with the cases. A case is one dense row in four columns: the deadline as a chip with the date under it, the kind as a tinted chip with its reference, what to do in bold over the order, nick and reason (then the buyer's text on one line, and the detail), and the status as a chip (teal when it came to an end, red when refused). "Read from Allegro" sits by the title.
+
+**Rationale:** Seven columns did not fit the upright monitor; what to do is the first thing looked for, so it leads the widest column.
+
+**Consequences:** The canvas also showed a fourth tile (open cases) and when Allegro was last read; neither is built, as the summary has no open count and the last read is not stored. The order page's card and `CaseDeadline` are shared and now show the deadline as a chip too.
+
+**Verified:** frontend tests (616) and `tsc`. Not seen in a browser: it needs the owner's login.
+

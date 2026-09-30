@@ -6,6 +6,13 @@ All significant changes to the Anvero project.
 
 ## 2026-09-30
 
+### ↩️ Returns and claims
+
+- The summary as tiles, the views and kinds in one card, one dense row per case led by what to do,
+  deadline, kind and status as chips. Designed in Claude Design. See `docs/DECISIONS.md`.
+- Inbox: a conversation on the list no longer takes about 200px when none is open (a flex basis
+  meant as a width became a height).
+
 ### 🏷️ The labels page
 
 - Views as tabs, labels grouped by carrier with "tick the group", print and courier in a bar that

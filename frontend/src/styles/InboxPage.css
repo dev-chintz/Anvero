@@ -389,7 +389,9 @@
   align-items: stretch;
 }
 
+/* in a column the base rule's 12rem basis would be a height: each row came out about 200px tall */
 .inbox-page .inbox-thread-excerpt {
+  flex: none;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;

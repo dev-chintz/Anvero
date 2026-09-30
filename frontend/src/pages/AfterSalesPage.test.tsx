@@ -109,9 +109,9 @@ describe("AfterSalesPage", () => {
     vi.mocked(afterSalesApi.summary).mockResolvedValue({ needs_action: 5, overdue: 2, due_soon: 1 });
     renderPage();
 
-    const waiting = (await screen.findByText(/Czeka na Ciebie|Waiting for you/)).closest(".chip")!;
+    const waiting = (await screen.findByText(/Czeka na Ciebie|Waiting for you/)).closest(".after-sales-tile")!;
     expect(within(waiting as HTMLElement).getByText("5")).toBeInTheDocument();
-    const late = document.querySelector(".chip-overdue") as HTMLElement;
+    const late = document.querySelector(".after-sales-tile.is-overdue") as HTMLElement;
     expect(within(late).getByText("2")).toBeInTheDocument();
   });
 
@@ -122,7 +122,7 @@ describe("AfterSalesPage", () => {
     fireEvent.click(screen.getByRole("tab", { name: /Otwarte|Open/ }));
     await waitFor(() => expect(afterSalesApi.list).toHaveBeenLastCalledWith("open", undefined));
 
-    fireEvent.change(screen.getByRole("combobox"), { target: { value: "RETURN" } });
+    fireEvent.click(screen.getByRole("button", { name: /^(Zwroty|Returns)$/ }));
     await waitFor(() => expect(afterSalesApi.list).toHaveBeenLastCalledWith("open", "RETURN"));
   });
 

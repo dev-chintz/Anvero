@@ -100,6 +100,10 @@ re-imported. Production needs its own application and authorization; see
 
 ## Not yet verified
 
+Returns and claims (2026-09-30): tested, not yet opened in a browser (the
+owner's login). The inbox's row height fix was checked on the real stylesheet
+in a browser (a row 229px before, 58px after), not on the live page.
+
 The labels page (2026-09-30): tested, not yet opened in a browser (the owner's
 login), nor a courier ordered or labels printed since the change.
 

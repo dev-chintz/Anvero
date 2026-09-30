@@ -148,7 +148,9 @@ four tiles like the order list's queues, the views as underlined tabs and the
 kind as pills in one card, one dense row per case: the deadline as a chip with
 the date under it, the kind as a chip with its reference, what to do in bold
 over the order, nick and reason, the status as a chip) next to today's.
-Waiting for the owner's verdict.
+Chosen and built (`DECISIONS.md`, 2026-09-30, "Returns and claims") without
+the fourth tile and the last-read time, which have no data yet; tested, not
+yet seen in a browser.
 
 The order page's round two (status in
 the header, payment folded, Smart badge) was seen by the owner in the browser
