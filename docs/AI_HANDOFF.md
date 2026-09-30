@@ -210,6 +210,17 @@ time first, the channel letter, a failed one on a red ground) next to today's.
 Chosen and built (`DECISIONS.md`, 2026-10-01, "The status tab"), tested, not
 yet seen in a browser.
 
+The last three, **Users**, **Updates** and the **login page**, share
+https://claude.ai/artifact/RSBvFYG9B2ymzFxy1YEtDm: proposals (Users: a 250px
+list with role and inactive as chips, the chosen account with role and state as
+segmented choices and the six permissions as a segmented Brak/Podgląd/Zarządza
+each, the save in a footer; Updates: one card whose head says available or up
+to date, running and latest side by side, the changes, and the install button in
+its footer; the history as dense rows with the result as a chip; Login: the new
+logo and wordmark, the language as a segmented PL/EN, "show password", the hint
+pointing to Settings instead of a script) next to today's. Waiting for the
+owner's verdict.
+
 A **second look** is on https://claude.ai/artifact/1tJfJmnRK6JXpe4dJzNSRy:
 three directions for the order list, the owner's pick ("Papier": cream,
 brick accent, serif titles) drawn for every menu, and Settings with a style
