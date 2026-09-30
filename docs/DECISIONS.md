@@ -2190,3 +2190,29 @@ back; a report for any date range, by default the previous month, in CSV, Excel 
 date, buyer's name and amount by default. The plan of work is section 5. The import has to keep more of each order (`payment.id`, surcharges,
 item tax rates, the buyer company's VAT status) and the `CONTRIBUTION` payment operations. The old
 page, API and `sales_report_overrides` stay until the new ledger replaces them.
+
+
+## 2026-09-30 — The non-invoiced sales ledger, and the buyer it keeps
+
+**Decision:** Stage 3 of `NON_INVOICED_SALES.md`: the ledger is its own table, `non_invoiced_ledger`,
+one row per money event (a sale for an order's main payment and one per surcharge, a correction for
+each refund and for each move of a locked sale in or out of the report), written by every import
+after the payment operations. Each row copies the buyer's name and own address from the order when
+it is written. That copy is **kept when the buyer asks for erasure** while the tax period runs, and
+erased only by the daily retention run, five years after the end of the year the tax was due,
+counted from the row's own date (a sale's payment). The choices made while building it (one main
+sale per order, what follows the order until a row is locked, how corrections are categorized, the
+payout approximation, the flag per offer) are recorded in `NON_INVOICED_SALES.md`, section 5, stage 3.
+
+**Rationale:** poz. 41 makes the exemption depend on records showing, for each sale, whom it was for,
+"w tym jego adres"; that record is a tax record, which the law requires kept for the tax period, so
+the GDPR's right to erasure does not reach it then (art. 17(3)(b)), as it already does not reach a
+company invoice on an order (`GDPR.md`). The copy is what makes a report handed over to the
+accountant stay the same file: the order itself may be anonymized, re-imported or deleted later. The
+period is counted from the row's date rather than the order's because the payment date decides the
+tax period (the accountant, 2026-09-30), and an order placed on 31 December may be paid in January.
+
+**Consequences:** `anonymize_person.py` says how many rows of the record it kept; `export_person.py`
+includes them; `apply_retention.py` counts them. The buyer's erasure is therefore partial for up to
+six years, which the privacy notice buyers are given should say (`GDPR.md`, "For the owner"). A
+row's override note is erased with the buyer, as it may name them. Not yet run on real data.

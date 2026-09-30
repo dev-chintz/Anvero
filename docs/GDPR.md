@@ -16,11 +16,14 @@ and erasure").
 | Message Center threads: login and every message's text | `message_threads`, `messages` | answering the buyer | 2 years after the last message |
 | Returns, claims, disputes: login, e-mail, the buyer's own words | `after_sales_cases` | handling the claim (consumer law) | 2 years after it was opened, once closed |
 | What Anvero sent to a marketplace or InPost (a label's recipient, a reply's text) | `marketplace_writes` | a record of what was sent | 2 years, or with its order |
+| The non-invoiced sales record: the buyer's name and own address, copied per sale and correction | `non_invoiced_ledger` | the record poz. 41 requires (tax duty) | 5 years after the year its tax was due, counted from the row's own date; not erased on the buyer's request |
 | Operators' e-mails and password hashes | `users` | logging in | while the account exists |
 
 Buyers' personal data is never written to the application log (`DATABASE.md`).
-The buyer's own address and personal identity number, which Allegro also offers,
-are not stored at all (`INTEGRATIONS.md`).
+The buyer's personal identity number, which Allegro also offers, is not stored at
+all (`INTEGRATIONS.md`). The buyer's own address is, since 2026-09-30, as an
+address of type `BUYER`: the non-invoiced sales record must show it
+(`NON_INVOICED_SALES.md`); it is kept and erased with the order.
 
 ## Retention: erased by itself
 
@@ -35,6 +38,12 @@ an anonymized order or case again, so the marketplace still having the data does
 not bring it back. A message thread is the one exception: if the buyer writes
 again, that is a new contact, kept for two years from then, while the old
 messages stay erased.
+
+The non-invoiced sales record (`NON_INVOICED_SALES.md`) is erased by the same run
+and for the same period, counted from each row's own date (a sale's is its
+payment's, which may fall in the year after the order's): its buyer fields and
+any override's note are emptied, while the amount, date, order, payment trace
+and category stay, so past totals still add up.
 
 **The order period, worked out:** tax records are kept five years from the end of
 the year in which the tax was due (Ordynacja podatkowa, art. 86 and 70). Income
@@ -61,13 +70,18 @@ container's terminal (`DEPLOYMENT.md`), as `python scripts/...`.
 - **Access or portability (art. 15, 20).** `scripts/export_person.py --login LOGIN
   --out buyer.json` writes everything held about them as JSON: orders with
   addresses, items, shipments and labels, what was sent about those orders,
-  message threads with every message, after-sales cases. Hand the file over,
+  their rows in the non-invoiced sales record, message threads with every
+  message, after-sales cases. Hand the file over,
   then delete it.
 - **Erasure (art. 17).** `scripts/anonymize_person.py --login LOGIN` shows what it
   would erase; with `--apply` it erases it, with the functions the retention
   run uses. An order still inside its tax period keeps a company invoice's
   name, tax id and address, which the law requires kept (art. 17(3)(b)); the
-  retention run erases those once the period is over. It cannot be undone.
+  retention run erases those once the period is over. The non-invoiced sales
+  record's copy of the buyer (name and address, per sale) is kept the same way
+  and for the same reason: it is the record the tax law requires for the sale,
+  so the script leaves it and says how many rows it kept; the retention run
+  erases it after the period (`DECISIONS.md`). It cannot be undone.
 - **Correction (art. 16).** The data comes from the marketplace, and an import
   replaces it: correct it there. The operator's own note is edited on the order.
 - **Objection or restriction (art. 21, 18).** Nothing here markets to anyone, so
@@ -141,7 +155,8 @@ ever given access.
   the contract (art. 6(1)(b)) and the tax duty (art. 6(1)(c)).
 - The information given to buyers (art. 13/14): the shop's privacy notice on
   each marketplace names the owner, the purposes, the periods above and the
-  recipients.
+  recipients, and that an erasure request leaves the tax records (a company
+  invoice, the non-invoiced sales record) until their period is over.
 - Data processing agreements where one is needed (the accountant, if they act
   on the owner's behalf; Google for the backup copy); the carriers and
   marketplaces act as controllers under their own terms.

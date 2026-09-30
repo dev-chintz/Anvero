@@ -7,6 +7,8 @@ held about them as plain data; `anonymize_person` erases it with the same
 functions the retention rule uses (app/services/retention.py). An order still
 inside its tax period keeps a company invoice's name, tax id and address,
 which the law requires kept (article 17(3)(b)); retention erases those later.
+The non-invoiced sales record's copy of the buyer is kept for the same reason
+and left to retention alike.
 
 Used by `scripts/export_person.py` and `scripts/anonymize_person.py`.
 """
@@ -27,6 +29,7 @@ from app.models.marketplace_write import MarketplaceWrite
 from app.models.message import MessageThread
 from app.models.order import Order
 from app.models.shipping_label import ShippingLabel
+from app.repositories.non_invoiced_repository import NonInvoicedRepository
 from app.services.retention import (
     anonymize_case,
     anonymize_order,
@@ -137,6 +140,10 @@ def export_person(db: Session, person: PersonData) -> dict[str, Any]:
                 select(MarketplaceWrite).where(MarketplaceWrite.order_id == order.id)
             )
         ]
+        entry["non_invoiced_record"] = [
+            _row(row, leave_out=("order_id", "overridden_by_user_id"))
+            for row in NonInvoicedRepository(db).entries_of_orders([order.id])
+        ]
         orders.append(entry)
     threads = []
     for thread in person.threads:
@@ -157,6 +164,9 @@ class ErasureResult:
     invoices_kept: int = 0
     threads: int = 0
     cases: int = 0
+    # rows of the non-invoiced sales record left as they are: a tax record the law requires kept
+    # (article 17(3)(b)); retention erases their buyer copy once the period is over
+    records_kept: int = 0
 
 
 def anonymize_person(db: Session, person: PersonData, now: datetime | None = None) -> ErasureResult:
@@ -172,6 +182,9 @@ def anonymize_person(db: Session, person: PersonData, now: datetime | None = Non
         in_tax_period = ordered_at >= cutoff
         anonymize_order(db, order, now, keep_invoice=in_tax_period)
         result.orders += 1
+        result.records_kept += sum(
+            1 for row in NonInvoicedRepository(db).entries_of_orders([order.id]) if row.anonymized_at is None
+        )
         if in_tax_period and any(a.tax_id for a in order.addresses):
             result.invoices_kept += 1
     for thread in person.threads:

@@ -10,6 +10,7 @@ from app.repositories.integration_credential_repository import (
 from app.repositories.order_repository import OrderRepository
 from app.schemas.order import OrderCreate
 from app.schemas.types import _as_utc
+from app.services.non_invoiced.ledger import write_ledger
 from app.services.order_details import apply_details
 
 logger = logging.getLogger(__name__)
@@ -142,6 +143,7 @@ class OrderImportService:
         self._sync_billing(started_at)
         self._sync_payouts(started_at)
         self._sync_payment_operations(started_at)
+        self._write_non_invoiced_ledger(started_at)
         return result
 
     def _read_open_orders(self, already_read: set[str]) -> list[OrderCreate]:
@@ -300,6 +302,22 @@ class OrderImportService:
             self.repository.db.rollback()
             logger.exception("Reading payment operations failed; the import itself is unaffected")
             return 0
+
+    def _write_non_invoiced_ledger(self, started_at: datetime) -> None:
+        """Bring the non-invoiced sales ledger up to date with what this import stored: the orders
+        paid, and the refunds, since the previous month began (NON_INVOICED_SALES.md, stage 3).
+
+        After the payment operations, which it matches payments and refunds against. Best effort,
+        like them: a failure is logged and the import is unaffected, and the next import writes
+        what this one did not, since writing is idempotent.
+        """
+        try:
+            write_ledger(
+                self.repository.db, self.adapter.source, since=start_of_previous_month(started_at), now=started_at
+            )
+        except Exception:
+            self.repository.db.rollback()
+            logger.exception("Writing the non-invoiced sales ledger failed; the import itself is unaffected")
 
     def _refresh_tracking(self) -> None:
         """Bring the tracking status of parcels on their way up to date.

@@ -21,8 +21,9 @@ The model will be deployed via migrations after framework selection, but a commo
 Migrations currently create `users`, `user_permissions`, `orders`, `order_items`,
 `order_addresses`, `order_shipments`, `billing_entries`,
 `order_status_history`, `integration_credentials`, `message_threads`,
-`messages`, `after_sales_cases`, `payouts`, `sales_report_overrides`, `order_item_packing`
-and `app_updates`.
+`messages`, `after_sales_cases`, `payouts`, `sales_report_overrides`, `order_item_packing`,
+`app_updates`, `order_payments`, `payment_operations`, `product_settings` and
+`non_invoiced_ledger`.
 `integration` and `customer` are still targets.
 
 `orders` deviates from the target shape while there are no integrations to
@@ -167,6 +168,36 @@ unique with `source`, and never changed once stored. `type`, `group`, `occurred_
 `AF`, ...), `wallet_type` (`AVAILABLE` or `WAITING`), `wallet_balance`, `payment_id` (indexed;
 the order's `payment_id`), `payout_id` (indexed), `surcharge_id`, `marketplace_id`. No buyer's
 data: the participant's login Allegro sends is not kept, the payment id finds the order.
+
+`product_settings` (added by `e3b7a1c9d524`): what the owner has said about one product, kept by
+`(source, offer_id)` (unique together; `offer_id` as `order_items.offer_id` holds it). So far only
+`excluded_from_exemption` (not null, default false): the goods are on the list of § 4 of the
+regulation and can never use the poz. 41 exemption (`NON_INVOICED_SALES.md`, 4h). No row means
+not excluded. `updated_at`, `updated_by_user_id` (nullable, `SET NULL`). No API or screen yet.
+
+`non_invoiced_ledger` (added by `e3b7a1c9d524`): the non-invoiced sales record, one row per money
+event (`NON_INVOICED_SALES.md`, 4b), written after every import
+(`app/services/non_invoiced/ledger.py`). Not a view over the orders: what the record must show is
+copied when the row is written and never changed after.
+
+| Column | Meaning |
+| --- | --- |
+| `kind` | `SALE` (money received: an order's main payment, or one surcharge) or `CORRECTION` (a refund, a refund's cancelling, or a locked sale moved in or out of the report) |
+| `event_key` | what makes the event one, unique with `source`: `ORDER:<order's marketplace id>` for the main payment, `SURCHARGE:<surcharge id>`, `OPERATION:<fingerprint>` for a refund's payment operation, `RECLASSIFIED:<sale row id>:<n>` for the n-th move of a locked sale. Writing again finds the row instead of adding one |
+| `entry_at`, `entry_date` | when (UTC), and that moment's day in `BUSINESS_TIMEZONE` (indexed): a sale's payment time, a refund operation's time, or when a reclassification was found |
+| `source`, `order_id`, `order_external_id`, `order_number` | the order; `order_id` is `SET NULL` if the order row ever goes, the rest stays |
+| `corrects_entry_id` | a correction's sale (indexed, `SET NULL`) |
+| `amount`, `currency` | gross and signed: a sale positive, money returned negative |
+| `buyer_first_name`, `buyer_last_name`, `buyer_street`, `buyer_postal_code`, `buyer_city`, `buyer_country_code` | the buyer and their own (`BUYER`) address, copied from the order when the row is written (a correction copies its sale's); erased by the retention run only (`GDPR.md`) |
+| `anonymized_at` | set when retention erased the buyer fields and the override's note |
+| `payment_type`, `payment_operator` | as the order (or the surcharge) had them when written |
+| `payment_id` | the marketplace's payment id, or the surcharge's (indexed) |
+| `operation_fingerprint` | the `payment_operations` row matched: the `CONTRIBUTION` or `SURCHARGE`, for a refund its own |
+| `payout_id`, `payout_at`, `payout_link` | the payout the money most likely went out in, and how it was found: `FIRST_AFTER` (4d) |
+| `category`, `reason`, `ruleset` | the classifier's result; for a correction, the category whose total it adjusts |
+| `override_category`, `override_note`, `overridden_by_user_id`, `overridden_at` | a person's category, with the written reason, beside the automatic result; never on a company's sale or a locked row |
+| `locked_at` | set when a report holding the row is handed over (indexed); the row never changes after |
+| `created_at`, `updated_at` | |
 
 `order_item_packing` (added by `b4e6f9c2a831`): how many of one order line an operator has
 physically gathered into the parcel for that order - their own use, kept by `(order_id,

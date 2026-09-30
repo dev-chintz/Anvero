@@ -6,7 +6,16 @@ All significant changes to the Anvero project.
 
 ## 2026-09-30
 
-### 🧾 Non-invoiced sales, stage 2: the classifier
+### 🧾 Non-invoiced sales, stage 3: the ledger
+
+- Every import now writes the non-invoiced sales record: a row for each payment received since the
+  previous month began (an order's main payment, each surcharge on its own), dated the payment,
+  with the buyer's name and own address copied; a correction for each refund, dated when the money
+  went back; the payout each payment most likely went out in. Rows are classified again until a
+  report holding them is handed over; after that a change becomes a correction dated when it was
+  found. Overrides with a written reason (not on a company's sale), a per-offer flag for goods the
+  exemption can never cover, and the buyer copy kept through a buyer's erasure request and erased
+  by retention after the tax period. No screen or export yet. See `docs/NON_INVOICED_SALES.md`.
 
 - Each paid order is put in a category (exempt under poz. 41, a company, a private buyer's invoice,
   needs the register, to review, not a sale) with the reason, by rules tested one by one;

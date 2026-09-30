@@ -46,8 +46,8 @@ folder, and one was restored from that copy into a scratch database as a test.
   remains the no-setup default for a fresh clone)
 - Health endpoint and first order model — done
 - Minimal order list interface — done
-- Automated tests for core flows — done (1125 backend, 621 frontend passing
-  across the suite as of 2026-09-29)
+- Automated tests for core flows — done (1161 backend, 621 frontend passing
+  across the suite as of 2026-09-30)
 
 ---
 
@@ -110,6 +110,13 @@ should fill `payment_operations` back to 1 September and, over a few imports,
 Then the classifier (stage 2): `python scripts/classify_non_invoiced.py` in the
 backend container prints September's counts by category and reason, to be
 looked at with the owner before anything uses them.
+Then the ledger (stage 3, 2026-09-30): tested only; it has not run on real data.
+After the NAS is updated, every import writes `non_invoiced_ledger`; worth
+checking that September's rows match the classifier's counts, that refunds
+became corrections, and above all that the payout each payment was linked to
+(`payout_link` `FIRST_AFTER`, an approximation) agrees with the payout report
+Allegro's Sales Center exports. The migration (`e3b7a1c9d524`) was checked with
+`alembic check` on SQLite only.
 
 The new logo (2026-09-30): seen on the login page in light and dark; the menu,
 behind the login, not yet.

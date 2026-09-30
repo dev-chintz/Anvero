@@ -12,6 +12,9 @@ The periods, decided by the owner on 2026-09-28 (`DECISIONS.md`):
 - An order is kept whole for five years after the end of the year in which the
   tax on it was due. Income tax for a year is settled in the next one, so an
   order placed in 2020 is kept through 2026 and anonymized from 1 January 2027.
+- A row of the non-invoiced sales record keeps its buyer copy for the same five
+  years, counted from the row's own date (a sale's payment), and only
+  retention erases it: a buyer's own request leaves it (`docs/GDPR.md`).
 - A message thread is kept two years after its last message; an after-sales
   case two years after it was opened, once it is closed; what Anvero sent to a
   marketplace (a label's recipient, a reply's text) two years after it was sent.
@@ -37,9 +40,11 @@ from app.models.after_sales import AfterSalesCase
 from app.models.inpost_shipment import InpostShipment
 from app.models.marketplace_write import AppSetting, MarketplaceWrite
 from app.models.message import MessageThread
+from app.models.non_invoiced import LedgerEntry
 from app.models.order import AddressType, Order, OrderAddress
 from app.models.sales_report import SalesReportOverride
 from app.models.shipping_label import ShippingLabel
+from app.repositories.non_invoiced_repository import NonInvoicedRepository
 
 logger = logging.getLogger(__name__)
 
@@ -60,10 +65,12 @@ class RetentionResult:
     threads: int = 0
     cases: int = 0
     writes: int = 0
+    # rows of the non-invoiced sales record whose buyer copy was erased
+    ledger_entries: int = 0
 
     @property
     def total(self) -> int:
-        return self.orders + self.threads + self.cases + self.writes
+        return self.orders + self.threads + self.cases + self.writes + self.ledger_entries
 
 
 def order_cutoff(now: datetime) -> datetime:
@@ -176,6 +183,20 @@ def anonymize_write(write: MarketplaceWrite, now: datetime) -> None:
     write.anonymized_at = now
 
 
+def anonymize_ledger_entry(entry: LedgerEntry, now: datetime) -> None:
+    """Empty the buyer copy of a row of the non-invoiced sales record; the amount, date, order,
+    payment trace and classification stay, so past totals still add up. Only retention does this: a
+    buyer's own request leaves the copy, which is a tax record the law requires kept (GDPR art.
+    17(3)(b), `docs/GDPR.md`). An override's note may name the buyer too."""
+    entry.buyer_first_name = None
+    entry.buyer_last_name = None
+    entry.buyer_street = None
+    entry.buyer_postal_code = None
+    entry.buyer_city = None
+    entry.override_note = None
+    entry.anonymized_at = now
+
+
 def apply_retention(
     db: Session, now: datetime | None = None, dry_run: bool = False
 ) -> RetentionResult:
@@ -223,7 +244,11 @@ def apply_retention(
         )
     ).all()
 
-    result = RetentionResult(len(orders), len(threads), len(cases), len(writes))
+    # the record's rows by their own date (a sale's is its payment's), with the orders' period:
+    # five years after the end of the year the tax was due
+    ledger_entries = NonInvoicedRepository(db).entries_with_buyer_before(order_cutoff(now))
+
+    result = RetentionResult(len(orders), len(threads), len(cases), len(writes), len(ledger_entries))
     if dry_run:
         return result
 
@@ -237,15 +262,18 @@ def apply_retention(
         # an order's own writes may have been emptied with it just above
         if write.anonymized_at is None:
             anonymize_write(write, now)
+    for entry in ledger_entries:
+        anonymize_ledger_entry(entry, now)
     db.commit()
     if result.total:
         logger.info(
             "Retention: anonymized %d orders, %d message threads, %d after-sales cases, "
-            "%d marketplace writes",
+            "%d marketplace writes, %d non-invoiced ledger rows",
             result.orders,
             result.threads,
             result.cases,
             result.writes,
+            result.ledger_entries,
         )
     return result
 

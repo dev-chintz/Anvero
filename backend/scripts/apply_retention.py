@@ -39,6 +39,7 @@ def main() -> int:
     print(f"Message threads quiet since before {contact_cutoff(now):%Y-%m-%d}: {result.threads}")
     print(f"Closed after-sales cases opened before then: {result.cases}")
     print(f"Marketplace writes (old, or of an order above): {result.writes}")
+    print(f"Non-invoiced sales record rows dated before then: {result.ledger_entries}")
     if args.apply:
         print("Anonymized.")
     elif result.total:

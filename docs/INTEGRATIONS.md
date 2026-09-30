@@ -307,11 +307,12 @@ refreshed on re-import, as the marketplace owns it.
 
 The detail field names were checked against Allegro's published OpenAPI
 specification. `unit_price` is `price`, what the buyer pays per unit;
-`originalPrice` is the price before discounts. `buyer.address` (the buyer's
-own address, as opposed to where the parcel goes) and
-`buyer.personalIdentity` are deliberately not stored: the delivery and invoice
-addresses are what the seller needs, and personal data that serves no purpose
-should not be kept.
+`originalPrice` is the price before discounts. `buyer.personalIdentity` is
+deliberately not stored: personal data that serves no purpose should not be kept.
+`buyer.address` (the buyer's own address, as opposed to where the parcel goes)
+was left out the same way until 2026-09-30, and is stored since, as an address
+of type `BUYER`: the non-invoiced sales record must show it (see "Payment
+operations, and the payment's id").
 
 | Allegro `payment.type` | Anvero |
 | --- | --- |
@@ -442,6 +443,12 @@ type `BUYER`), `payment.id`, `delivery.method.id`, whether
 
 - **Built from the published specification**, tested on payloads shaped like it; not yet seen in
   a real response (`PROJECT_STATUS.md`).
+
+Last, after the payment operations it matches against, an import writes the non-invoiced sales
+ledger (`NON_INVOICED_SALES.md`, stage 3): a sale for each order (and each surcharge) paid since the
+previous month began, a correction for each refund of one, the payout each payment most likely went
+out in. It calls nothing on Allegro: it reads only what the import has stored. Best effort like the
+steps before it; running it again writes nothing new.
 
 ### Known limits
 

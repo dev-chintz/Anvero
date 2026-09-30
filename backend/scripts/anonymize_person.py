@@ -58,6 +58,12 @@ def main() -> int:
             f"{result.invoices_kept} company invoice(s) kept for the tax period; "
             "the daily retention run erases them after it."
         )
+    if result.records_kept:
+        print(
+            f"{result.records_kept} row(s) of the non-invoiced sales record kept with the buyer's "
+            "name and address: a tax record the law requires kept; the daily retention run erases "
+            "them after the period."
+        )
     return 0
 
 

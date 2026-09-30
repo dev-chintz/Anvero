@@ -1,6 +1,6 @@
 # Non-invoiced sales (sprzedaż bezrachunkowa): design
 
-A design, not yet built, for the record of mail-order sales exempt from the cash register and the
+A design, built in stages (section 5; stages 1 to 3 so far), for the record of mail-order sales exempt from the cash register and the
 exports the accountant needs from it. Researched from scratch on 2026-09-30 (the law, the tax
 authority's reading of it, Allegro's API) rather than from the report ported on 2026-09-27; how the
 two differ is at the end. Nothing here is tax advice: the classification rules are to be confirmed
@@ -228,7 +228,53 @@ Each stage is committed and pushed on its own, with its tests, and the contracts
    Stage 1 also keeps the buyer's own address now (`buyer.address`), which poz. 41 asks for and the
    recipient's is not. Waiting on the counts for September from the real data.
 3. **The ledger (4b, 4d).** The table, writing sales and corrections after each import, linking
-   contributions to payouts, overrides with a reason, retention with the orders.
+   contributions to payouts, overrides with a reason, retention with the orders. *Built
+   2026-09-30*: `non_invoiced_ledger` and `product_settings` (`DATABASE.md`), the writer in
+   `app/services/non_invoiced/ledger.py`, run by every import after the payment operations (best
+   effort), over the orders paid since the previous month began and the refunds since then. No API,
+   screen or export yet (stage 4). Choices made while building it:
+   - **One main sale per order.** The main payment's row is keyed by the order
+     (`ORDER:<marketplace id>`), not by `payment.id`: an Allegro order has one payment, and an
+     order imported before its payment id was kept gets the id later (stage 1); keyed by the id it
+     would then be written twice. The id is kept on the row once known. A surcharge is keyed by its
+     own id, a refund by its operation's fingerprint.
+   - **What follows the order, and what never does.** While a row is not locked, its category,
+     reason and rule set follow the classifier, and so does the trace of its money (the payment id,
+     the operation matched, the payout), since those can only be completed after the payment. The
+     amount, the date, the buyer copy and the payment type and operator are fixed when the row is
+     written. A locked row changes in nothing.
+   - **A deleted order, or one whose buyer's data was erased, is not classified again** (and gets
+     no new row): classified again it would lack the facts it was classified on, and an erased buyer
+     would push a sale to `TO_REVIEW`. Its rows stay as they are; its refunds are still corrections.
+   - **A correction's category is the category whose total it adjusts.** A refund's follows its sale
+     while the refund is not locked, so the report carries exactly the refunds of the sales it
+     carries. A refund of a sale the ledger never held (paid before its first period) is not
+     written. A locked sale that moves in or out of the report gets one `EXEMPT_MAIL_ORDER`
+     correction dated when it was found, carrying what the report holds wrongly of the sale *and
+     its refunds* (so a sale of 100 refunded by 30, both locked and then found to be a company's, is
+     corrected by −70, not −100); a move between two categories outside the report writes nothing.
+   - **Overrides** are on sales only (a correction follows its sale), refused on a row the
+     classifier calls `BUSINESS` or a locked one, and need a written reason. An override given
+     before the sale turned out a company's no longer counts: `BUSINESS` always wins.
+   - **The payout (4d)** is the first `PAYOUT` of the same wallet operator after the payment, a
+     `PAYOUT_CANCEL` with the same payout id taking that payout out of the reckoning
+     (`payout_link` `FIRST_AFTER`). An approximation: the operations do not show when money moves
+     from `WAITING` to `AVAILABLE`, so a payment may in fact wait for a later payout. **To be
+     checked against the payout report Allegro's Sales Center exports, on real data**, before
+     anyone relies on it. A row locked before its payout came keeps no payout.
+   - **The product flag** is per offer (`(source, offer_id)`), not per SKU as 4h suggested: the
+     classifier reads offer ids, and an offer is what a flag can be set on without guessing which
+     listings share a product.
+   - **Erli's sales are written too**, so that nothing paid is missing from the record, by the same
+     rules: those the earlier rules do not place elsewhere (a company, a private buyer's invoice,
+     what needs the register) are `TO_REVIEW` (`SOURCE_NOT_SUPPORTED`) until stage 7 classifies
+     them properly. Because a `TO_REVIEW` row blocks handing a report over (4c), every such Erli
+     sale will block it until stage 7: stage 4 must decide how to treat them, or stage 7 comes
+     before the first real report.
+   - **Retention** erases a row's buyer fields and override note five years after the end of the
+     year its tax was due, counted from the row's own date; a buyer's own erasure request leaves
+     them (`GDPR.md`, `DECISIONS.md`).
+   Not yet run on real data.
 4. **Reports and exports (4c, 4e, 4f).** The API for a range with its checks, CSV, Excel
    (`openpyxl`) and PDF (a library that embeds a font with Polish letters), the column choice,
    handing over, the limit counter.

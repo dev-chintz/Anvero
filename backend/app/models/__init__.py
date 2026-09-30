@@ -23,6 +23,7 @@ from app.models.order import (
     PaymentType,
     Payout,
 )
+from app.models.non_invoiced import LedgerEntry, LedgerKind, ProductSetting
 from app.models.production_check import ProductionCheck
 from app.models.sales_report import SalesReportOverride
 from app.models.shipping_label import LabelStatus, ShippingLabel
@@ -43,6 +44,8 @@ __all__ = [
     "IntegrationCredential",
     "IntegrationSettings",
     "LabelStatus",
+    "LedgerEntry",
+    "LedgerKind",
     "MarketplaceWrite",
     "Message",
     "MessageDirection",
@@ -63,6 +66,7 @@ __all__ = [
     "PermissionArea",
     "PermissionLevel",
     "PickupStatus",
+    "ProductSetting",
     "ProductionCheck",
     "SalesReportOverride",
     "ShippingLabel",
