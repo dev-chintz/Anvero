@@ -61,6 +61,9 @@ class AddressType(str, enum.Enum):
     DELIVERY = "DELIVERY"
     INVOICE = "INVOICE"
     PICKUP_POINT = "PICKUP_POINT"
+    # the buyer's own address on their marketplace account (Allegro's buyer.address), which
+    # the non-invoiced sales record must show (NON_INVOICED_SALES.md); the recipient may differ
+    BUYER = "BUYER"
 
 
 # one shared type object, referenced by both the orders table and the history

@@ -46,7 +46,7 @@ folder, and one was restored from that copy into a scratch database as a test.
   remains the no-setup default for a fresh clone)
 - Health endpoint and first order model — done
 - Minimal order list interface — done
-- Automated tests for core flows — done (1075 backend, 621 frontend passing
+- Automated tests for core flows — done (1125 backend, 621 frontend passing
   across the suite as of 2026-09-29)
 
 ---
@@ -106,7 +106,10 @@ not yet read from the real account. After the NAS is updated, the first import
 should fill `payment_operations` back to 1 September and, over a few imports,
 `orders.payment_id` for September's paid orders; worth checking that
 `CONTRIBUTION` rows carry the orders' payment ids and that `tax`,
-`surcharges` and `invoice.address.company` come as documented.
+`surcharges`, `buyer.address` and `invoice.address.company` come as documented.
+Then the classifier (stage 2): `python scripts/classify_non_invoiced.py` in the
+backend container prints September's counts by category and reason, to be
+looked at with the owner before anything uses them.
 
 The new logo (2026-09-30): seen on the login page in light and dark; the menu,
 behind the login, not yet.

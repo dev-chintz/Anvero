@@ -1025,7 +1025,7 @@ Returns the order with the fields the list has, plus its details:
   "ordered_at": "...Z", "created_at": "...Z", "updated_at": "...Z",
   "marketplace_status": "CONFIRMED", "marketplace_status_label": "PROCESSING",
   "marketplace_cancelled_at": null, "dispatch_by": "...Z",
-  "customer": {"login": "...", "first_name": "...", "last_name": "...", "company_name": null, "phone": "..."},
+  "customer": {"login": "...", "first_name": "...", "last_name": "...", "company_name": null, "phone": "...", "address": {"first_name": "...", "last_name": "...", "company_name": null, "street": "...", "postal_code": "...", "city": "...", "country_code": "PL", "phone": null, "tax_id": null}},
   "items": [
     {"id": "...", "external_id": "...", "offer_id": "...", "sku": "KUB-350", "name": "...", "quantity": 1, "unit_price": "24.99", "image_url": "https://a.allegroimg.com/original/...", "tax_rate": null, "tax_subject": null, "tax_exemption": null}
   ],

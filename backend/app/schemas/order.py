@@ -68,6 +68,8 @@ class Customer(BaseModel):
     last_name: str | None = _text(255)
     company_name: str | None = _text(255)
     phone: str | None = _text(64)
+    # the buyer's own address on their account, which the recipient's may differ from
+    address: "Address | None" = None
 
 
 class OrderItemCreate(BaseModel):
@@ -390,6 +392,7 @@ class OrderDetailRead(OrderRead, OrderDetails):
                 last_name=order.customer_last_name,
                 company_name=order.customer_company_name,
                 phone=order.customer_phone,
+                address=_address(order, AddressType.BUYER),
             ),
             items=[
                 OrderItemRead.model_validate(item).model_copy(

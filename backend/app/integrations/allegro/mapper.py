@@ -421,6 +421,19 @@ def map_details(checkout_form: dict[str, Any]) -> OrderDetails:
             "last_name": _text(buyer.get("lastName")),
             "company_name": _text(buyer.get("companyName")),
             "phone": _text(buyer.get("phoneNumber")),
+            "address": _address(
+                external_id,
+                "buyer address",
+                {
+                    "first_name": _text(buyer.get("firstName")),
+                    "last_name": _text(buyer.get("lastName")),
+                    "company_name": _text(buyer.get("companyName")),
+                    "street": _text(_obj(buyer.get("address")).get("street")),
+                    "postal_code": _text(_obj(buyer.get("address")).get("postCode")),
+                    "city": _text(_obj(buyer.get("address")).get("city")),
+                    "country_code": _text(_obj(buyer.get("address")).get("countryCode")),
+                },
+            ),
         },
     )
 

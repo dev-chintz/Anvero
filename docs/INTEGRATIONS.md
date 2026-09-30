@@ -433,7 +433,8 @@ first report has its payments without a separate run (which would refresh the ro
 outside the import's lock); later ones from a day before the latest stored. Same scope as the
 payouts (`allegro:api:payments:read`), best effort like them.
 
-From the checkout form an import also keeps `payment.id`, `delivery.method.id`, whether
+From the checkout form an import also keeps the buyer's own `buyer.address` (an address of
+type `BUYER`), `payment.id`, `delivery.method.id`, whether
 `invoice.address.company` is present and its `vatPayerStatus`, each line item's `tax`, and the
 `surcharges` and `codBookedPayments` (`order_payments`). A paid order imported before
 `payment.id` was kept is not changed on Allegro, so no window names it again: an import reads up to

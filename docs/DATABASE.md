@@ -116,7 +116,9 @@ collected), `external_id` (the payment's id), `payment_type` and `provider` (a s
 cash (`NON_INVOICED_SALES.md`).
 
 `order_addresses` (matches the target `address`): `order_id`, `type`
-(`DELIVERY`, `INVOICE` or `PICKUP_POINT`, at most one of each per order,
+(`DELIVERY`, `INVOICE`, `PICKUP_POINT` or `BUYER`, the buyer's own address on their
+marketplace account, which the non-invoiced sales record must show and the recipient's may
+differ from; `BUYER` needed no migration, the column being a plain string; at most one of each per order,
 enforced by a unique constraint), `first_name`, `last_name`, `company_name`,
 `street`, `postal_code`, `city`, `country_code`, `phone`, `tax_id`.
 

@@ -6,6 +6,13 @@ All significant changes to the Anvero project.
 
 ## 2026-09-30
 
+### 🧾 Non-invoiced sales, stage 2: the classifier
+
+- Each paid order is put in a category (exempt under poz. 41, a company, a private buyer's invoice,
+  needs the register, to review, not a sale) with the reason, by rules tested one by one;
+  `scripts/classify_non_invoiced.py` prints a period's counts. The import also keeps the buyer's
+  own address. See `docs/NON_INVOICED_SALES.md`.
+
 ### 🧾 Non-invoiced sales, stage 1: tracing the money
 
 - The import keeps each order's payment id, delivery method id, whether the invoice names a company

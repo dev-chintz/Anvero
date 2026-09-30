@@ -218,6 +218,15 @@ Each stage is committed and pushed on its own, with its tests, and the contracts
    Waiting on the first real read, on the NAS after the update.
 2. **The classifier (4a).** A pure function with a test for every category and reason code, and a
    run over the orders already imported, its counts shown to the owner before anything uses them.
+   *Built 2026-09-30*: `app/services/non_invoiced/classifier.py` (rule set `poz41-2024/1`), the run
+   over a period in `run.py`, and `scripts/classify_non_invoiced.py`, which prints the counts by
+   category and reason for a period (the previous month by default), reads only and calls nothing,
+   so it can run on the NAS beside the import. The rules decide in this order: not paid; a company;
+   cash, personal collection or excluded goods; a private buyer's invoice; what needs a person
+   (another channel, cancelled after payment, abroad, no delivery method, not through an operator,
+   underpaid, no buyer name or address, no payment id, no payment or surcharge found); else poz. 41.
+   Stage 1 also keeps the buyer's own address now (`buyer.address`), which poz. 41 asks for and the
+   recipient's is not. Waiting on the counts for September from the real data.
 3. **The ledger (4b, 4d).** The table, writing sales and corrections after each import, linking
    contributions to payouts, overrides with a reason, retention with the orders.
 4. **Reports and exports (4c, 4e, 4f).** The API for a range with its checks, CSV, Excel

@@ -70,6 +70,7 @@ def apply_details(order: Order, details: OrderDetails) -> None:
         AddressType.DELIVERY: delivery.address,
         AddressType.PICKUP_POINT: pickup_point.address if pickup_point else None,
         AddressType.INVOICE: details.invoice.address,
+        AddressType.BUYER: details.customer.address,
     }
     order.addresses = [
         _address_row(address_type, address)

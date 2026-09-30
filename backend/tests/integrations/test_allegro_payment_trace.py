@@ -40,6 +40,25 @@ def test_keeps_the_payments_id_and_the_delivery_methods():
     assert details.delivery.method_id == "m-1"
 
 
+def test_keeps_the_buyers_own_address_apart_from_the_recipients():
+    form = _checkout_form()
+    form["buyer"]["address"] = {"street": "Lipowa 3", "city": "Gdańsk", "postCode": "80-001", "countryCode": "PL"}
+
+    address = map_details(form).customer.address
+
+    assert (address.first_name, address.last_name, address.street, address.postal_code, address.city) == (
+        "Jan", "Kowalski", "Lipowa 3", "80-001", "Gdańsk"
+    )
+
+
+def test_a_buyer_without_an_address_on_the_account_has_none():
+    assert map_details(_checkout_form()).customer.address is not None  # the name alone still makes one
+    form = _checkout_form()
+    form["buyer"] = {"email": "buyer@example.com"}
+
+    assert map_details(form).customer.address is None
+
+
 def test_an_invoice_with_a_company_is_a_company_purchase_with_its_vat_status():
     details = map_details(_checkout_form())
 
