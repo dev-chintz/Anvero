@@ -207,7 +207,8 @@ tinted card holding "check again" and one line per problem with its link; the
 three tiles in one row, each head with the channel letter and its state as a
 chip, the schedule rows shown rather than folded; the events as dense rows,
 time first, the channel letter, a failed one on a red ground) next to today's.
-Waiting for the owner's verdict.
+Chosen and built (`DECISIONS.md`, 2026-10-01, "The status tab"), tested, not
+yet seen in a browser.
 
 A **second look** is on https://claude.ai/artifact/1tJfJmnRK6JXpe4dJzNSRy:
 three directions for the order list, the owner's pick ("Papier": cream,

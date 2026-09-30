@@ -2250,3 +2250,14 @@ row's override note is erased with the buyer, as it may name them. Not yet run o
 
 **Verified:** frontend tests (622) and `tsc`. Not seen in a browser: it needs the owner's login.
 
+
+## 2026-10-01 — The status tab
+
+**Decision (owner, from the Claude Design canvas https://claude.ai/artifact/3XwrUu632HmHBdS7AN1aEP):** In Settings' status tab, the summary is one tinted card whose head holds the verdict, when it was checked and "Check again" (the tab no longer has its own toolbar and subtitle); under it one line per problem with the channel's letter and its link to Integrations. The three tiles (Allegro, Erli, Anvero) sit in one row from 769px up, each headed by the channel's letter, its name and its state as a tinted chip; the schedules (import, message sync) and the environment are in plain view rather than folded behind "Details". The recent events are dense rows: how long ago first, the channel's letter, then the event in one line; a failed one on a red ground, a held-back one in amber. Channel names in the events are written as names ("Allegro"), no longer as the log's capitals.
+
+**Rationale:** At 1080px the third tile wrapped under the other two, and the schedules, the first thing to look at when imports stop, were one click away.
+
+**Consequences:** The standalone page (`/status` redirects to the tab) keeps its header and button. Nothing the page reads or computes changed.
+
+**Verified:** frontend tests (622) and `tsc`. Not seen in a browser: it needs the owner's login.
+

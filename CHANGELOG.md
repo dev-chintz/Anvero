@@ -4,6 +4,13 @@ All significant changes to the Anvero project.
 
 ---
 
+## 2026-10-01
+
+### 🩺 The status tab
+
+- The summary as one card with "check again", the three tiles in one row with their schedules in
+  view, the events as dense rows. Designed in Claude Design. See `docs/DECISIONS.md`.
+
 ## 2026-09-30
 
 ### 📦 The InPost lockers tab

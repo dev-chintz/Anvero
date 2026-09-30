@@ -258,16 +258,14 @@ describe("the tiles", () => {
     expect(screen.getByRole("region", { name: "Anvero" })).toHaveTextContent("Version 0.1.0");
   });
 
-  it("keep the schedules behind Details, closed, and the last import in plain view", async () => {
+  it("show the schedules in plain view, beside the last import, nothing folded away", async () => {
     vi.mocked(statusApi.get).mockResolvedValue(status());
     renderPage();
 
     const allegro = await screen.findByRole("region", { name: "Allegro" });
-    const details = allegro.querySelector("details") as HTMLDetailsElement;
-    expect(details.open).toBe(false);
-    expect(within(details).getByText("Automatic import")).toBeInTheDocument();
-    expect(within(details).getByText("Message sync")).toBeInTheDocument();
-    expect(within(details).queryByText(/3 new, 5 updated/)).toBeNull();
+    expect(allegro.querySelector("details")).toBeNull();
+    expect(within(allegro).getByText("Automatic import")).toBeInTheDocument();
+    expect(within(allegro).getByText("Message sync")).toBeInTheDocument();
     expect(within(allegro).getByText(/3 new, 5 updated/)).toBeInTheDocument();
   });
 
@@ -287,12 +285,12 @@ describe("the timeline of recent events", () => {
     renderPage();
 
     const timeline = await screen.findByRole("region", { name: "Recent events" });
-    await within(timeline).findByText(/Held back for ALLEGRO/);
+    await within(timeline).findByText(/Held back for Allegro/);
     const titles = within(timeline)
       .getAllByRole("listitem")
       .map((item) => item.querySelector("strong")?.textContent);
     // messages 11:58, import 11:55, held back 10:00
-    expect(titles).toEqual(["Buyer messages read", "Allegro import", "Held back for ALLEGRO (safe mode)"]);
+    expect(titles).toEqual(["Buyer messages read", "Allegro import", "Held back for Allegro (safe mode)"]);
   });
 
   it("says how an import ended, and marks a failed one", async () => {
@@ -319,7 +317,7 @@ describe("the timeline of recent events", () => {
     ]);
     renderPage();
 
-    const refused = (await screen.findByText("Not sent to ALLEGRO")).closest("li") as HTMLElement;
+    const refused = (await screen.findByText("Not sent to Allegro")).closest("li") as HTMLElement;
     expect(refused).toHaveClass("is-bad");
     expect(refused).toHaveTextContent("scope missing");
   });

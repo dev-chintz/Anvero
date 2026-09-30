@@ -100,6 +100,9 @@ re-imported. Production needs its own application and authorization; see
 
 ## Not yet verified
 
+The status tab (2026-10-01): tested, not yet opened in a browser (the owner's
+login).
+
 The InPost lockers tab (2026-09-30): tested, not yet opened in a browser (the
 owner's login), nor a parcel created from it since the change.
 

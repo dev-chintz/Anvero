@@ -307,3 +307,202 @@
   margin: 0;
   color: var(--color-muted);
 }
+
+/* ---- The status tab for a monitor turned upright (DECISIONS.md, 2026-09-30, "The status tab") ---- */
+.status-summary {
+  padding: 0;
+  overflow: hidden;
+}
+
+.status-summary-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem 1rem;
+  padding: 0.6rem 0.9rem;
+}
+
+.status-summary-head .status-summary-title {
+  flex: 1 1 auto;
+}
+
+.status-summary .status-checked {
+  margin-left: 0.25rem;
+}
+
+.status-summary .refresh-button {
+  padding: 0.3rem 0.8rem;
+  background: var(--color-bg);
+  font-size: 0.85rem;
+}
+
+.status-summary .status-summary-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  background: var(--color-bg);
+  color: var(--color-text);
+}
+
+.status-summary .status-summary-list li {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0.45rem 0.9rem;
+  border-top: 1px solid color-mix(in srgb, currentColor 15%, transparent);
+  font-size: 0.85rem;
+}
+
+.status-summary-text {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.status-summary .status-summary-list a {
+  flex-shrink: 0;
+  color: var(--color-accent);
+}
+
+/* the channel's letter; Anvero's own in the accent's tint */
+.source-anvero {
+  background: var(--tone-teal-bg);
+  border: 1px solid var(--color-accent);
+  color: var(--tone-teal-fg);
+}
+
+/* three tiles in one row, each head: the letter, the name, the state */
+@media (min-width: 769px) {
+  .status-cards {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.6rem;
+  }
+}
+
+.status-tile.card {
+  padding: 0;
+}
+
+.status-tile-title {
+  padding: 0.55rem 0.9rem;
+  border-bottom: 1px solid var(--color-divider);
+  font-size: 0.95rem;
+}
+
+.status-tile-summary {
+  margin: 0;
+  padding: 0.45rem 0.9rem;
+  color: var(--color-text);
+  font-size: 0.85rem;
+}
+
+.status-problems {
+  margin: 0;
+  padding: 0 0.9rem 0.45rem 2rem;
+  font-size: 0.85rem;
+}
+
+.status-tile .status-row {
+  grid-template-columns: 7.5rem minmax(0, 1fr);
+  gap: 0.5rem;
+  padding: 0.35rem 0.9rem;
+  font-size: 0.8rem;
+}
+
+.status-tile .status-row dd {
+  font-weight: 500;
+}
+
+.status-settings-link {
+  margin: 0;
+  padding: 0.45rem 0.9rem 0.6rem;
+}
+
+.health-badge {
+  padding: 0.05rem 0.5rem;
+  border-color: transparent;
+  font-size: 0.72rem;
+  white-space: nowrap;
+}
+
+.health-ok {
+  background: var(--tone-green-bg);
+}
+
+.health-warning {
+  background: var(--tone-amber-bg);
+}
+
+.health-error {
+  background: var(--tone-red-bg);
+}
+
+.health-off {
+  background: var(--color-surface-alt);
+}
+
+/* the events as dense rows: when, whose, what */
+.status-events.card {
+  padding: 0;
+}
+
+.status-events.card > h2:first-child {
+  margin: 0;
+  padding: 0.55rem 0.9rem;
+  border-bottom: 1px solid var(--color-divider);
+  background: none;
+  color: var(--color-heading);
+  font-size: 0.95rem;
+}
+
+.status-events .subtitle {
+  margin: 0;
+  padding: 0.7rem 0.9rem;
+}
+
+.status-events .status-timeline {
+  padding: 0;
+  border-left: none;
+}
+
+.status-events .status-timeline li {
+  display: grid;
+  grid-template-columns: 7rem 1.1rem minmax(0, 1fr);
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.4rem 0.9rem;
+  border-top: 1px solid var(--color-divider);
+  font-size: 0.85rem;
+}
+
+.status-events .status-timeline li:first-child {
+  border-top: none;
+}
+
+.status-events .status-timeline li::before {
+  content: none;
+}
+
+.status-events .status-timeline time {
+  margin: 0;
+}
+
+.status-events .status-event-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.status-events .status-timeline li.is-bad {
+  background: color-mix(in srgb, var(--tone-red-bg) 55%, var(--color-bg));
+}
+
+.status-events .status-timeline li.is-bad strong,
+.status-events .status-timeline li.is-bad time {
+  color: var(--tone-red-fg);
+}
+
+.status-events .status-timeline li.is-hold strong {
+  color: var(--tone-amber-fg);
+}
