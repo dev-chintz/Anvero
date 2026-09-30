@@ -191,6 +191,15 @@ four colour themes (Classic and Papier, light and dark) with every colour
 `index.css` names; the new logo, its negative and the brand board. It follows
 the code: a new token goes in `index.css` first, then a re-sync.
 
+Beyond the menu, the **InPost lockers** tab of Etykiety is on
+https://claude.ai/artifact/3ycKauSESvGp3HfVPjrUMW: a proposal (the two stages
+as numbered cards, 1 orders without a parcel and 2 parcels to print; the size
+as a segmented A/B/C in the first card's head; each card's actions in a
+selection bar like the Allegro tab's; the dispatch-by time as a chip, red today,
+amber tomorrow; the last run's outcome as chips instead of a list; the second
+card's views as underlined tabs) next to today's. Waiting for the owner's
+verdict.
+
 A **second look** is on https://claude.ai/artifact/1tJfJmnRK6JXpe4dJzNSRy:
 three directions for the order list, the owner's pick ("Papier": cream,
 brick accent, serif titles) drawn for every menu, and Settings with a style
