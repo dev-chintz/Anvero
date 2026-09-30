@@ -163,6 +163,15 @@ side by side) next to today's, where below 1100px everything stacks into one
 column. Chosen and built (`DECISIONS.md`, 2026-09-30, "The finance page"),
 tested, not yet seen in a browser.
 
+The ninth screen, the **Raport bezrachunkowy** (sales report), is on
+https://claude.ai/artifact/ATH51aiZ3dF99ZizrSNT97: a proposal (CSV export by
+the title, Excel and PDF hidden until built; the period with "this month" and
+"previous" shortcuts and the source as pills; the four counts as tiles that
+filter the list; what needs review in its own amber card first, a row opening
+in place with its rule and the include/exclude buttons instead of a 340px side
+panel; the rest below; categories in Polish words instead of RETAIL/COMPANY)
+next to today's. Waiting for the owner's verdict.
+
 A **second look** is on https://claude.ai/artifact/1tJfJmnRK6JXpe4dJzNSRy:
 three directions for the order list, the owner's pick ("Papier": cream,
 brick accent, serif titles) drawn for every menu, and Settings with a style
