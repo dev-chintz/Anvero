@@ -551,6 +551,12 @@ Sources: Allegro's Wysyłam z Allegro tutorial on `developer.allegro.pl`;
 (InPost transaction id); Erli's `swagger.json` read on 2026-09-25; Xprinter's
 product pages (XP-420B).
 
+## Non-invoiced sales: redesign (2026-09-30)
+
+The report ported on 2026-09-27 is to be replaced by a ledger designed from the law and
+Allegro's API: `NON_INVOICED_SALES.md`, with its order of work and the questions for the
+accountant that come first.
+
 ## GDPR (RODO): done in code 2026-09-28 (reviewed 2026-09-27)
 
 Not legal advice. The review of 2026-09-27 listed six things; all six are built, and `GDPR.md` is now where

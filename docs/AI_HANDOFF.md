@@ -172,6 +172,10 @@ variable"), then the Style choice in Settings with Papier's values
 (2026-09-30, "A second look, chosen in Settings"); Papier is not yet looked at
 behind the login.
 
+The **non-invoiced sales report** is to be rebuilt from `NON_INVOICED_SALES.md`
+(2026-09-30): a design only, waiting on the accountant's answers to its open
+questions before any code.
+
 The order page's round two (status in
 the header, payment folded, Smart badge) was seen by the owner in the browser
 and adjusted (space under Wysyłka, a blue band for Wiadomości); what is still

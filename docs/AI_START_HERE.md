@@ -24,6 +24,7 @@ Read the following files in order:
 10. INTEGRATIONS.md
 11. STYLE_GUIDE.md (before writing any interface: the one look every page shares)
 12. GDPR.md (before storing, showing or exporting anything about a buyer)
+13. NON_INVOICED_SALES.md (before touching the non-invoiced sales report: its redesign)
 
 ---
 

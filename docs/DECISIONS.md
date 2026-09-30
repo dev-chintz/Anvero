@@ -2166,3 +2166,25 @@ at all (the entry before this one).
 **Consequences:** The board is a raster image, so the mark was redrawn as a vector from it (`public/favicon.svg`, `AnveroLogo.tsx`), with the navy `#0f172a` and the mint `#3ae4c8` sampled from it as `--brand-ink` and `--brand-teal`; on a dark page the navy turns white, the brand's negative. The name is set in Montserrat, the face the board draws it in, where the brief says Inter Bold; `@fontsource/montserrat` (bold only) is bundled like the Papier faces. One favicon, the main mark; the board's second, round two-arrow symbol is not used. The tagline shows on the login page; the menu, 200px wide, has room for the mark and the name only. `docs/brand/README.md` keeps the brief and lists where the board and the brief disagree.
 
 **Verified:** `tsc` and the frontend tests. In a browser, the login page: the mark, the name in Montserrat and the tagline, and the negative in dark mode. The mark rendered at 16, 28 and 32px stays legible at the two larger sizes. The menu is behind the login and not yet seen.
+
+
+## 2026-09-30 — The non-invoiced sales record, redesigned from the law
+
+**Decision (owner):** Rebuild the non-invoiced sales report from scratch, designed from the law and
+Allegro's API rather than from the tool ported on 2026-09-27. The design is `NON_INVOICED_SALES.md`:
+a classifier that checks the conditions of poz. 41 of the annex to the regulation of 2024-12-17
+(Dz.U. 2024 poz. 1902, amended by Dz.U. 2026 poz. 420) on each order, an append-only ledger with
+corrections and months that are closed and then frozen, each payment linked through Allegro's
+payment operations to the payout that reached the bank account, and exports of the detailed record
+and of the per-day, per-rate totals the accountant enters as `WEW` in JPK_V7.
+
+**Rationale:** The ported report checks three conditions of its own and none of the law's (the payment
+operator, a cash part, personal collection, the goods excluded by § 4, a delivery abroad), splits
+nothing by VAT rate, is recomputed on every request so a month already handed over can change, and
+leaves out the buyer's name and address, which poz. 41 requires the record to show.
+
+**Consequences:** Nothing is built yet. First the open questions of the design are answered with
+the accountant (how the business is taxed, which date puts a sale in a month, the VAT rates, what
+her software imports). The import then has to keep more of each order (`payment.id`, surcharges,
+item tax rates, the buyer company's VAT status) and the `CONTRIBUTION` payment operations. The old
+page, API and `sales_report_overrides` stay until the new ledger replaces them.
