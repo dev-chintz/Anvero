@@ -2235,7 +2235,7 @@ row's override note is erased with the buyer, as it may name them. Not yet run o
 
 **Rationale:** Safe mode is the one setting on General that changes what reaches buyers; look and language are set once. Two options fit a segmented control better than a drop-down.
 
-**Consequences:** The canvas also showed the safe mode's switch in the card's head, the log open and the seller account above the application's keys; those were left as they are (the switch and its confirmation stay together in the card, the log stays folded as it holds 20 lines). Users, Updates and Status are unchanged.
+**Consequences:** Users, Updates and Status are unchanged. At the owner's request the rest of the canvas followed the same day: the safe mode's switch sits in the card's head after its state (`SafeModeSettings` takes a `renderHead`, so the confirmation still opens in the card's body), the log of what was sent is open by default (it still folds), and on the Allegro tile the seller account comes before the application's keys, its notes now pointing "below".
 
 **Verified:** frontend tests (622) and `tsc`; the tabs, the segmented control, the four tiles and the label-beside-field rows seen in a browser at 1080px on the real stylesheets with static markup. The page itself not seen: it needs the owner's login.
 

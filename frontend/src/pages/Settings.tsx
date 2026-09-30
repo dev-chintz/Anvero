@@ -108,16 +108,20 @@ export const Settings: React.FC<SettingsProps> = ({ isDarkMode, onThemeToggle, l
         className={`settings-section card ${safeMode && !safeMode.enabled ? 'tone-amber' : 'tone-green'}`}
         aria-label={t('safeMode.title')}
       >
-        <div className="card-head">
-          <h2>{t('safeMode.title')}</h2>
-          {safeMode && (
-            <span className={`state-chip ${safeMode.enabled ? 'is-on' : 'is-off'}`}>
-              <span className="status-dot" aria-hidden="true" />
-              {safeMode.enabled ? t('safeMode.chipOn') : t('safeMode.chipOff')}
-            </span>
+        <SafeModeSettings
+          renderHead={(control) => (
+            <div className="card-head">
+              <h2>{t('safeMode.title')}</h2>
+              {safeMode && (
+                <span className={`state-chip ${safeMode.enabled ? 'is-on' : 'is-off'}`}>
+                  <span className="status-dot" aria-hidden="true" />
+                  {safeMode.enabled ? t('safeMode.chipOn') : t('safeMode.chipOff')}
+                </span>
+              )}
+              {control && <span className="safe-mode-switch">{control}</span>}
+            </div>
           )}
-        </div>
-        <SafeModeSettings />
+        />
       </section>
       <section className="settings-section card tone-blue" aria-label={t('settings.appearanceCard')}>
         <h2>{t('settings.appearanceCard')}</h2>

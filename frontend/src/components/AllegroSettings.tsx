@@ -216,6 +216,54 @@ export function AllegroSettings({ onChanged }: AllegroSettingsProps = {}) {
         </p>
       )}
 
+      <div className="allegro-connect">
+        <h4 className="allegro-subtitle">{t("allegro.sellerAccount")}</h4>
+
+        {flow ? (
+          <div className="allegro-flow" role="status">
+            <p>
+              {t("allegro.flowBefore")}{" "}
+              <a href={flow.verification_uri} target="_blank" rel="noreferrer">{t("allegro.flowLink")}</a>{" "}
+              {t("allegro.flowMiddle")}{" "}
+              <strong className="allegro-code">{flow.user_code}</strong>
+              {t("allegro.flowAfter")}
+            </p>
+            <p className="field-note">{t("allegro.waiting")}</p>
+            <button type="button" onClick={handleCancelConnect}>
+              {t("allegro.cancel")}
+            </button>
+          </div>
+        ) : (
+          <div className="allegro-actions">
+            <button
+              type="button"
+              onClick={handleConnect}
+              disabled={starting || dirty || !status.application_complete}
+            >
+              {starting ? t("allegro.starting") : status.connected ? t("allegro.connectOther") : t("allegro.connect")}
+            </button>
+            {status.connected && (
+              <button type="button" className="danger" onClick={handleDisconnect}>
+                {t("allegro.disconnect")}
+              </button>
+            )}
+          </div>
+        )}
+
+        {dirty && status.application_complete && !flow && (
+          <p className="field-note">{t("allegro.saveFirst")}</p>
+        )}
+        {!status.application_complete && !flow && (
+          <p className="field-note">{t("allegro.enterCredentials")}</p>
+        )}
+        {connectedNote && <p role="status">{connectedNote}</p>}
+        {connectError && (
+          <p role="alert" className="error-message">
+            {connectError}
+          </p>
+        )}
+      </div>
+
       <h4 className="allegro-subtitle">{t("allegro.application")}</h4>
       <form onSubmit={handleSave} className="allegro-form">
         <label>
@@ -280,53 +328,6 @@ export function AllegroSettings({ onChanged }: AllegroSettingsProps = {}) {
         </div>
       </form>
 
-      <div className="allegro-connect">
-        <h4 className="allegro-subtitle">{t("allegro.sellerAccount")}</h4>
-
-        {flow ? (
-          <div className="allegro-flow" role="status">
-            <p>
-              {t("allegro.flowBefore")}{" "}
-              <a href={flow.verification_uri} target="_blank" rel="noreferrer">{t("allegro.flowLink")}</a>{" "}
-              {t("allegro.flowMiddle")}{" "}
-              <strong className="allegro-code">{flow.user_code}</strong>
-              {t("allegro.flowAfter")}
-            </p>
-            <p className="field-note">{t("allegro.waiting")}</p>
-            <button type="button" onClick={handleCancelConnect}>
-              {t("allegro.cancel")}
-            </button>
-          </div>
-        ) : (
-          <div className="allegro-actions">
-            <button
-              type="button"
-              onClick={handleConnect}
-              disabled={starting || dirty || !status.application_complete}
-            >
-              {starting ? t("allegro.starting") : status.connected ? t("allegro.connectOther") : t("allegro.connect")}
-            </button>
-            {status.connected && (
-              <button type="button" className="danger" onClick={handleDisconnect}>
-                {t("allegro.disconnect")}
-              </button>
-            )}
-          </div>
-        )}
-
-        {dirty && status.application_complete && !flow && (
-          <p className="field-note">{t("allegro.saveFirst")}</p>
-        )}
-        {!status.application_complete && !flow && (
-          <p className="field-note">{t("allegro.enterCredentials")}</p>
-        )}
-        {connectedNote && <p role="status">{connectedNote}</p>}
-        {connectError && (
-          <p role="alert" className="error-message">
-            {connectError}
-          </p>
-        )}
-      </div>
     </div>
   );
 }

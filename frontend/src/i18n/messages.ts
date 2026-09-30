@@ -908,8 +908,8 @@ export const en = {
   "allegro.flowAfter": ".",
   "allegro.waiting": "Waiting for the confirmation…",
   "allegro.cancel": "Cancel",
-  "allegro.saveFirst": "Save the changes above before connecting.",
-  "allegro.enterCredentials": "Enter and save the application's credentials first.",
+  "allegro.saveFirst": "Save the changes below before connecting.",
+  "allegro.enterCredentials": "Enter and save the application's credentials below first.",
   "allegro.connectedNote": "Connected as {login}.",
   "allegro.connectedNoteAnonymous": "Connected.",
 
@@ -2129,8 +2129,8 @@ export const pl: Record<MessageKey, string> & Record<string, string> = {
   "allegro.flowAfter": ".",
   "allegro.waiting": "Czekam na potwierdzenie…",
   "allegro.cancel": "Anuluj",
-  "allegro.saveFirst": "Zapisz zmiany powyżej przed połączeniem.",
-  "allegro.enterCredentials": "Najpierw wpisz i zapisz dane aplikacji.",
+  "allegro.saveFirst": "Zapisz zmiany poniżej przed połączeniem.",
+  "allegro.enterCredentials": "Najpierw wpisz i zapisz dane aplikacji poniżej.",
   "allegro.connectedNote": "Połączono jako {login}.",
   "allegro.connectedNoteAnonymous": "Połączono.",
 

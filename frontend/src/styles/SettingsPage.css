@@ -560,3 +560,20 @@
     grid-column: 2;
   }
 }
+
+/* the safe mode's switch in its card's head, after the state */
+.safe-mode-switch {
+  margin-left: auto;
+}
+
+.card-head:has(.safe-mode-switch) {
+  justify-content: flex-start;
+  flex-wrap: wrap;
+}
+
+.safe-mode-switch button {
+  padding: 0.25rem 0.75rem;
+  background: var(--color-bg);
+  font-size: 0.85rem;
+  font-weight: 600;
+}

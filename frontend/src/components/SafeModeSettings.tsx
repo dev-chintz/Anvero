@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { ApiError, marketplaceWritesApi, type MarketplaceWrite } from "../api/client";
 import { translate, useTranslation } from "../i18n";
 import { useSafeMode } from "../safeMode/SafeModeContext";
@@ -9,8 +9,11 @@ const RECENT_WRITES = 20;
  * The safe mode switch, and the log of what Anvero sent to the marketplaces,
  * or held back. Switching it off asks first: from then on status changes and
  * tracking numbers reach real buyers.
+ *
+ * `renderHead` lets the card put the switch in its own head, beside its title and state
+ * (DECISIONS.md, 2026-09-30, "The settings page"); without it the switch sits beside the words.
  */
-export function SafeModeSettings() {
+export function SafeModeSettings({ renderHead }: { renderHead?: (control: ReactNode) => ReactNode } = {}) {
   const { t, formatDateTime } = useTranslation();
   const { safeMode, setEnabled } = useSafeMode();
   const [confirming, setConfirming] = useState(false);
@@ -46,7 +49,13 @@ export function SafeModeSettings() {
     }
   };
 
-  if (!safeMode) return <p role="status">{t("safeMode.loading")}</p>;
+  if (!safeMode)
+    return (
+      <>
+        {renderHead?.(null)}
+        <p role="status">{t("safeMode.loading")}</p>
+      </>
+    );
 
   const turnOffButton = safeMode.enabled && !confirming && (
     <button type="button" onClick={() => setConfirming(true)} disabled={saving}>
@@ -59,7 +68,16 @@ export function SafeModeSettings() {
     </button>
   );
 
+  const control = (
+    <>
+      {turnOffButton}
+      {turnOnButton}
+    </>
+  );
+
   return (
+    <>
+    {renderHead?.(control)}
     <div className="safe-mode-settings">
       <div className="setting-row">
         <div className="setting-row-text">
@@ -78,10 +96,7 @@ export function SafeModeSettings() {
             </p>
           )}
         </div>
-        <div className="setting-row-control">
-          {turnOffButton}
-          {turnOnButton}
-        </div>
+        {!renderHead && <div className="setting-row-control">{control}</div>}
       </div>
 
       {safeMode.enabled && confirming && (
@@ -101,8 +116,8 @@ export function SafeModeSettings() {
         </p>
       )}
 
-      {/* the log is for looking things up, so it is folded away, with how many it holds */}
-      <details className="safe-mode-fold">
+      {/* open, since it is what to check before switching off; it still folds, with how many it holds */}
+      <details className="safe-mode-fold" open>
         <summary>
           <span>{t("safeMode.logTitle")}</span>
           {writes !== null && <span className="safe-mode-fold-count">{writes.length}</span>}
@@ -139,5 +154,6 @@ export function SafeModeSettings() {
         )}
       </details>
     </div>
+    </>
   );
 }

@@ -9,7 +9,14 @@ vi.mock("../auth/AuthContext", () => ({
 }));
 
 // the safe-mode card has its own tests; here only the page's structure matters
-vi.mock("../components/SafeModeSettings", () => ({ SafeModeSettings: () => <p>safe-card</p> }));
+vi.mock("../components/SafeModeSettings", () => ({
+  SafeModeSettings: ({ renderHead }: { renderHead?: (control: React.ReactNode) => React.ReactNode }) => (
+    <>
+      {renderHead?.(<button type="button">safe-switch</button>)}
+      <p>safe-card</p>
+    </>
+  ),
+}));
 // the integrations are a tab of their own: none of their cards may turn up on the general one
 vi.mock("../components/AllegroSettings", () => ({ AllegroSettings: () => <p>allegro-card</p> }));
 vi.mock("../components/ErliSettings", () => ({ ErliSettings: () => <p>erli-card</p> }));
@@ -77,6 +84,8 @@ describe("Settings page", () => {
     const card = screen.getByRole("region", { name: "Safe mode" });
     expect(within(card).getByText("safe-card")).toBeInTheDocument();
     expect(within(card).getByText("On")).toBeInTheDocument();
+    // the switch sits in the head, beside the state
+    expect(within(card.querySelector(".card-head") as HTMLElement).getByRole("button", { name: "safe-switch" })).toBeInTheDocument();
   });
 
   it("says when the safe mode is off", () => {
