@@ -6,6 +6,12 @@ All significant changes to the Anvero project.
 
 ## 2026-09-30
 
+### 🏷️ The labels page
+
+- Views as tabs, labels grouped by carrier with "tick the group", print and courier in a bar that
+  shows only with something ticked, print and courier state as chips. Designed in Claude Design. See
+  `docs/DECISIONS.md`.
+
 ### 🔨 The to-make list
 
 - How many to make leads each row in large type; the filters, search and progress share one card

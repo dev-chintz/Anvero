@@ -210,3 +210,224 @@
     padding: 0 1rem 0.75rem;
   }
 }
+
+/* ---- The labels page for a monitor turned upright (DECISIONS.md, 2026-09-30, "The labels page") ---- */
+.labels-page .labels-test {
+  align-self: flex-end;
+  font-size: 0.85rem;
+}
+
+/* the ways to ship as tabs along a rule under the title */
+.labels-page .labels-tabs {
+  gap: 1.25rem;
+  margin: 0 2rem;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.labels-page .labels-tabs button {
+  padding: 0.5rem 0.1rem;
+  border: none;
+  border-bottom: 2px solid transparent;
+  border-radius: 0;
+  background: none;
+  color: var(--color-muted);
+  font-weight: 500;
+}
+
+.labels-page .labels-tabs button:hover {
+  background: none;
+  color: var(--color-text);
+}
+
+.labels-page .labels-tabs button.active {
+  border-bottom-color: var(--color-accent);
+  background: none;
+  color: var(--color-accent);
+  font-weight: 700;
+}
+
+.labels-page .labels-body {
+  padding-top: 1rem;
+}
+
+.labels-card.card {
+  padding: 0;
+}
+
+/* the three views as tabs along the card's top edge */
+.labels-views {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 1.1rem;
+  padding: 0 0.9rem;
+  border-bottom: 1px solid var(--color-divider);
+}
+
+.labels-views button {
+  padding: 0.5rem 0.1rem;
+  border: none;
+  border-bottom: 2px solid transparent;
+  border-radius: 0;
+  background: none;
+  color: var(--color-muted);
+  font-weight: 500;
+}
+
+.labels-views button:hover {
+  background: none;
+  color: var(--color-text);
+}
+
+.labels-views button[aria-pressed="true"] {
+  border-bottom-color: var(--color-accent);
+  color: var(--color-accent);
+  font-weight: 700;
+}
+
+/* what to do with what is ticked, only while anything is */
+.labels-selection {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem 1rem;
+  padding: 0.5rem 0.9rem;
+  background: var(--tone-blue-bg);
+  border-bottom: 1px solid color-mix(in srgb, var(--tone-blue-fg) 25%, var(--tone-blue-bg));
+}
+
+.labels-selection-count {
+  color: var(--tone-blue-fg);
+  font-weight: 700;
+}
+
+.labels-selection-actions {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.labels-selection .is-primary {
+  background: var(--color-accent);
+  border-color: var(--color-accent);
+  color: #fff;
+  font-weight: 600;
+}
+
+:root.dark .labels-selection .is-primary {
+  color: #0b0b0b;
+}
+
+.labels-selection .link-button {
+  color: var(--tone-blue-fg);
+}
+
+.labels-note {
+  margin: 0;
+  padding: 0.9rem;
+  color: var(--color-muted);
+}
+
+.labels-scroll {
+  overflow-x: auto;
+}
+
+.labels-page .labels-table th,
+.labels-page .labels-table td {
+  padding: 0.4rem 0.6rem;
+  vertical-align: middle;
+}
+
+.labels-page .labels-table thead th {
+  border-bottom: 1px solid var(--color-divider);
+}
+
+/* a carrier's group: its name and count, and a way to tick all of it */
+.labels-page .labels-group th {
+  padding: 0.35rem 0.9rem;
+  background: var(--color-surface-alt);
+  color: var(--color-muted-strong);
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.labels-page .labels-group th > span {
+  margin-right: 1rem;
+}
+
+.labels-order a {
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.labels-parcel {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.25rem 0.5rem;
+  font-size: 0.85rem;
+}
+
+.labels-carrier {
+  font-weight: 600;
+}
+
+.labels-buyer {
+  color: var(--color-muted);
+}
+
+.labels-chip {
+  display: inline-block;
+  padding: 0.05rem 0.5rem;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.labels-chip.is-waiting {
+  background: var(--tone-amber-bg);
+  color: var(--tone-amber-fg);
+  border-color: color-mix(in srgb, var(--tone-amber-fg) 25%, var(--tone-amber-bg));
+}
+
+.labels-chip.is-printed {
+  background: var(--tone-green-bg);
+  color: var(--tone-green-fg);
+  border-color: color-mix(in srgb, var(--tone-green-fg) 25%, var(--tone-green-bg));
+}
+
+.labels-pickup {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.25rem 0.5rem;
+}
+
+.labels-chip.pickup-ordered {
+  background: var(--tone-blue-bg);
+  color: var(--tone-blue-fg);
+}
+
+.labels-chip.pickup-pending {
+  background: var(--tone-amber-bg);
+  color: var(--tone-amber-fg);
+}
+
+.labels-chip.pickup-failed {
+  background: var(--tone-red-bg);
+  color: var(--tone-red-fg);
+}
+
+@media (max-width: 768px) {
+  .labels-page .labels-tabs {
+    margin: 0 1rem;
+  }
+}

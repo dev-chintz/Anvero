@@ -46,7 +46,7 @@ folder, and one was restored from that copy into a scratch database as a test.
   remains the no-setup default for a fresh clone)
 - Health endpoint and first order model — done
 - Minimal order list interface — done
-- Automated tests for core flows — done (1031 backend, 610 frontend passing
+- Automated tests for core flows — done (1042 backend, 616 frontend passing
   across the suite as of 2026-09-29)
 
 ---
@@ -99,6 +99,9 @@ re-imported. Production needs its own application and authorization; see
 ---
 
 ## Not yet verified
+
+The labels page (2026-09-30): tested, not yet opened in a browser (the owner's
+login), nor a courier ordered or labels printed since the change.
 
 The to-make list (2026-09-30): tested, not yet opened in a browser (the owner's
 login), nor printed since the change.

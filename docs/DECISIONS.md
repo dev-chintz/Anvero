@@ -2084,3 +2084,14 @@ at all (the entry before this one).
 
 **Verified:** frontend tests (615) and `tsc`. Not seen in a browser: it needs the owner's login.
 
+
+## 2026-09-30 — The labels page
+
+**Decision (owner, from the Claude Design canvas https://claude.ai/artifact/3nh6EAifHeSk5n5WRtMSx9):** The two ways to ship and the three views (to print, no courier ordered, all bought) are underlined tabs; the view is no longer a drop-down. Printing and ordering a courier sit in a bar that shows only while something is ticked ("Selected: N", order a courier, print, clear); the test label is a small link by the title. The labels are grouped by carrier, in the list's own order, each group with its count and a button to tick or untick all of it. A row is the order number, the carrier's badge with the buyer and the waybill, whether it is printed as a chip (amber waiting, green printed; when it was bought is the chip's tooltip) and the courier's state as a chip.
+
+**Rationale:** A courier is ordered per carrier, so the group is what gets ticked; the buttons with "0" in them said nothing while nothing was ticked. Dense rows fit the upright monitor.
+
+**Consequences:** The view tabs carry no counts (that would need every view's labels, not only the one shown). With nothing ticked there is no print button at all, rather than a disabled one. The limit of 50 labels at once is unchanged and still reported above the list.
+
+**Verified:** frontend tests (616) and `tsc`. Not seen in a browser: it needs the owner's login.
+

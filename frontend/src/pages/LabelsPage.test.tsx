@@ -127,7 +127,8 @@ describe("the labels page", () => {
     vi.mocked(shippingApi.printable).mockResolvedValue([label("1")]);
     renderPage();
 
-    const row = (await screen.findAllByRole("row"))[1];
+    // the first row is the header, then the carrier's group, then the label
+    const row = (await screen.findByRole("link", { name: "AN-000001" })).closest("tr") as HTMLElement;
     expect(within(row).getByRole("link", { name: "AN-000001" })).toHaveAttribute("href", "/orders/order-1");
     expect(within(row).getByText(/WB-1/)).toBeInTheDocument();
   });
@@ -139,11 +140,28 @@ describe("the labels page", () => {
     renderPage();
     expect(await screen.findByText("No labels to print.")).toBeInTheDocument();
 
-    fireEvent.change(screen.getByRole("combobox", { name: "Show" }), { target: { value: "all" } });
+    fireEvent.click(screen.getByRole("button", { name: "All bought" }));
 
     await waitFor(() => expect(shippingApi.printable).toHaveBeenLastCalledWith("all"));
     expect(await screen.findByRole("checkbox", { name: "Select the label of AN-000001" })).not.toBeChecked();
-    expect(screen.getByRole("button", { name: "Print 0 labels" })).toBeDisabled();
+    // nothing ticked, so there is nothing to act on
+    expect(screen.queryByRole("toolbar")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "All bought" })).toHaveAttribute("aria-pressed", "true");
+  });
+
+  it("groups the labels by carrier and ticks a group at once", async () => {
+    vi.mocked(shippingApi.printable).mockResolvedValue([label("1"), label("2")]);
+    renderPage();
+
+    // everything to print starts ticked; the group's button unticks it and ticks it again
+    fireEvent.click(await screen.findByRole("button", { name: "Untick the group" }));
+    expect(screen.queryByRole("toolbar")).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Tick the group" }));
+
+    expect(screen.getByRole("toolbar")).toHaveTextContent("Selected: 2");
+    expect(screen.getByRole("button", { name: "Print 2 labels" })).toBeEnabled();
+    fireEvent.click(screen.getByRole("button", { name: "Clear" }));
+    expect(screen.queryByRole("toolbar")).not.toBeInTheDocument();
   });
 
   it("says why the labels could not be fetched", async () => {
