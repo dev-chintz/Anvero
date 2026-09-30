@@ -90,7 +90,8 @@ owner's claude.ai account hold it, readable only when signed in as the owner:
 
 - the **Anvero design system**, https://claude.ai/artifact/UUeEBotbDsA8UdJ7sWHMwY: tokens, brand book and nine
   components built from `index.css`, `theme.css` and `STYLE_GUIDE.md` at
-  `3cfbdc0`. It follows the code: a token changes in `index.css` first. Not
+  `3cfbdc0`, re-synced at `d36e48e`. It follows the code: a token changes in
+  `index.css` first. Not
   yet brought up to 2026-09-30: the new variables, the Papier look and the new
   logo (`docs/brand/`).
 - the **order page canvas**, https://claude.ai/artifact/QJHBPmAH386DKwASmqmG43: a proposal (two columns: the work on
@@ -183,8 +184,12 @@ instead of three and a wrapped fourth, and the chosen integration's panel as
 label-and-field rows) next to today's. Users, Updates and Status are left as
 they are. Chosen and built (`DECISIONS.md`, 2026-09-30, "The settings
 page"), tested, not yet seen in a browser. That was the last screen: every
-page of the app has now been through Claude Design. Still open from the pass:
-re-sync the design system from the code (it shows the old solid badges).
+page of the app has now been through Claude Design. The design system was then
+re-synced from the code at `d36e48e` (2026-09-30): tinted chips, underlined
+tabs, pills and the segmented control, tiles and the list card as components;
+four colour themes (Classic and Papier, light and dark) with every colour
+`index.css` names; the new logo, its negative and the brand board. It follows
+the code: a new token goes in `index.css` first, then a re-sync.
 
 A **second look** is on https://claude.ai/artifact/1tJfJmnRK6JXpe4dJzNSRy:
 three directions for the order list, the owner's pick ("Papier": cream,
