@@ -173,6 +173,16 @@ panel; the rest below; categories in Polish words instead of RETAIL/COMPANY)
 next to today's. Chosen and built (`DECISIONS.md`, 2026-09-30, "The sales
 report page"), tested, not yet seen in a browser.
 
+The tenth and last screen, **Ustawienia** (settings), is on
+https://claude.ai/artifact/TSxRFceDAPU3vsT9LZg3DE: proposals for the General
+and Integrations tabs (the tabs underlined; on General, safe mode first with
+its state in the card's head and the log as dense rows, then look and language
+with theme and language as segmented controls instead of drop-downs; on
+Integrations, the import interval as one line, the four tiles in one row
+instead of three and a wrapped fourth, and the chosen integration's panel as
+label-and-field rows) next to today's. Users, Updates and Status are left as
+they are. Waiting for the owner's verdict.
+
 A **second look** is on https://claude.ai/artifact/1tJfJmnRK6JXpe4dJzNSRy:
 three directions for the order list, the owner's pick ("Papier": cream,
 brick accent, serif titles) drawn for every menu, and Settings with a style
