@@ -20,13 +20,14 @@ from app.models.order import (
     OrderStatus,
     OrderStatusHistory,
     PaymentType,
+    PaymentOperation,
     Payout,
 )
 
 # packing an order that has reached any of these is moot, whether an operator moved it there
 # by hand or a sync did (OrderItemPacking's own docstring)
 PACKING_CLEARED_AT = (OrderStatus.SHIPPED, OrderStatus.DELIVERED, OrderStatus.CANCELLED)
-from app.schemas.order import BillingEntryCreate, PayoutCreate
+from app.schemas.order import BillingEntryCreate, PaymentOperationCreate, PayoutCreate
 
 PENDING_STATUSES = (OrderStatus.NEW, OrderStatus.CONFIRMED, OrderStatus.READY_FOR_SHIPMENT)
 TO_MAKE_STATUSES = (OrderStatus.NEW, OrderStatus.CONFIRMED)
@@ -166,6 +167,25 @@ class OrderRepository:
                     Order.deleted_at.is_(None),
                     Order.marketplace_status.in_(PENDING_STATUSES),
                 )
+            )
+        )
+
+    def untraced_paid_external_ids(self, source: OrderSource, paid_since: datetime, limit: int) -> list[str]:
+        """The marketplace ids of paid orders since `paid_since` with no payment id kept, oldest
+        first, at most `limit` (not deleted or anonymized here)."""
+        return list(
+            self.db.scalars(
+                select(Order.external_id)
+                .where(
+                    Order.source == source,
+                    Order.deleted_at.is_(None),
+                    Order.anonymized_at.is_(None),
+                    Order.paid_at.is_not(None),
+                    Order.paid_at >= paid_since,
+                    Order.payment_id.is_(None),
+                )
+                .order_by(Order.paid_at)
+                .limit(limit)
             )
         )
 
@@ -376,6 +396,34 @@ class OrderRepository:
                     continue
                 known.add((payout.source, payout.external_id))
                 self.db.add(Payout(**payout.model_dump()))
+                added += 1
+        self.db.commit()
+        return added
+
+    def latest_payment_operation_at(self, source: OrderSource) -> datetime | None:
+        return self.db.scalar(
+            select(func.max(PaymentOperation.occurred_at)).where(PaymentOperation.source == source)
+        )
+
+    def add_payment_operations(self, operations: list[PaymentOperationCreate]) -> int:
+        """Store the payment operations not stored yet, known by their fingerprint; returns how
+        many were new."""
+        added = 0
+        for start in range(0, len(operations), 500):
+            chunk = operations[start : start + 500]
+            known = {
+                (source, fingerprint)
+                for source, fingerprint in self.db.execute(
+                    select(PaymentOperation.source, PaymentOperation.fingerprint).where(
+                        PaymentOperation.fingerprint.in_([o.fingerprint for o in chunk])
+                    )
+                )
+            }
+            for operation in chunk:
+                if (operation.source, operation.fingerprint) in known:
+                    continue
+                known.add((operation.source, operation.fingerprint))
+                self.db.add(PaymentOperation(**operation.model_dump()))
                 added += 1
         self.db.commit()
         return added

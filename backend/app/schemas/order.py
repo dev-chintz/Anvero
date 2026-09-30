@@ -14,6 +14,7 @@ from app.core.order_number import format_order_number
 from app.models.order import (
     AddressType,
     Order,
+    OrderPaymentKind,
     OrderSource,
     OrderStatus,
     PaymentType,
@@ -80,6 +81,10 @@ class OrderItemCreate(BaseModel):
     # the offer's picture, fetched from Allegro at import time; best effort,
     # so a deleted offer or a missing scope leaves this null
     image_url: str | None = _text(500)
+    # the tax the offer declares (Allegro: lineItems[].tax); null when it declares none
+    tax_rate: str | None = _text(16)
+    tax_subject: str | None = _text(64)
+    tax_exemption: str | None = _text(64)
 
 
 class OrderItemRead(OrderItemCreate):
@@ -170,6 +175,8 @@ class PickupPoint(BaseModel):
 
 class Delivery(BaseModel):
     method: str | None = _text(255)
+    # the marketplace's id of the method (Allegro: delivery.method.id)
+    method_id: str | None = _text(64)
     cost: Decimal | None = _amount()
     # Allegro Smart: the buyer's subscription covers the delivery
     smart: bool = False
@@ -178,6 +185,8 @@ class Delivery(BaseModel):
 
 
 class Payment(BaseModel):
+    # the marketplace's id of the payment (Allegro: payment.id), what its payment operations name
+    id: str | None = _text(64)
     type: PaymentType | None = None
     provider: str | None = _text(64)
     # null means unknown; zero means known to be unpaid
@@ -188,6 +197,43 @@ class Payment(BaseModel):
 class Invoice(BaseModel):
     required: bool = False
     address: Address | None = None
+    # whether the invoice data names a company (true) or a private person (false), as the
+    # marketplace says it (Allegro: invoice.address.company present or null); null when unknown
+    is_company: bool | None = None
+    # the company's own declaration (Allegro: ACTIVE, NON_ACTIVE, NOT_APPLICABLE)
+    vat_payer_status: str | None = _text(16)
+
+
+class ExtraPayment(BaseModel):
+    """A payment for an order beyond its main one: a surcharge, or cash taken on delivery."""
+
+    kind: OrderPaymentKind
+    external_id: str | None = _text(64)
+    payment_type: PaymentType | None = None
+    provider: str | None = _text(64)
+    # null means unknown; zero means known to be unpaid
+    paid_amount: Decimal | None = _amount()
+    currency: str | None = _text(3)
+    paid_at: UtcDateTime | None = None
+
+
+class PaymentOperationCreate(BaseModel):
+    """One operation on the seller's wallet at a payment operator (app/models/order.py)."""
+
+    source: OrderSource
+    fingerprint: str = Field(min_length=1, max_length=64)
+    type: str = Field(min_length=1, max_length=48)
+    group: str = Field(min_length=1, max_length=16)
+    occurred_at: UtcDateTime
+    amount: Decimal = Field(max_digits=12, decimal_places=2)
+    currency: str = Field(min_length=3, max_length=3)
+    wallet_operator: str | None = _text(16)
+    wallet_type: str | None = _text(16)
+    wallet_balance: Decimal | None = _amount()
+    payment_id: str | None = _text(64)
+    payout_id: str | None = _text(64)
+    surcharge_id: str | None = _text(64)
+    marketplace_id: str | None = _text(32)
 
 
 class OrderDetails(BaseModel):
@@ -201,6 +247,8 @@ class OrderDetails(BaseModel):
     items: list[OrderItemCreate] = Field(default_factory=list)
     delivery: Delivery = Field(default_factory=Delivery)
     payment: Payment = Field(default_factory=Payment)
+    # the payments beyond the main one: surcharges and cash collected on delivery
+    extra_payments: list[ExtraPayment] = Field(default_factory=list)
     invoice: Invoice = Field(default_factory=Invoice)
     buyer_message: str | None = _text(BUYER_MESSAGE_MAX_LENGTH)
     # the seller's own note on the order, e.g. Allegro's "note" on the
@@ -351,6 +399,7 @@ class OrderDetailRead(OrderRead, OrderDetails):
             ],
             delivery=Delivery(
                 method=order.delivery_method,
+                method_id=order.delivery_method_id,
                 cost=order.delivery_cost,
                 smart=order.delivery_smart,
                 address=_address(order, AddressType.DELIVERY),
@@ -365,6 +414,7 @@ class OrderDetailRead(OrderRead, OrderDetails):
                 ),
             ),
             payment=Payment(
+                id=order.payment_id,
                 type=order.payment_type,
                 provider=order.payment_provider,
                 paid_amount=order.paid_amount,
@@ -373,7 +423,10 @@ class OrderDetailRead(OrderRead, OrderDetails):
             invoice=Invoice(
                 required=order.invoice_required,
                 address=_address(order, AddressType.INVOICE),
+                is_company=order.invoice_is_company,
+                vat_payer_status=order.invoice_vat_payer_status,
             ),
+            extra_payments=[ExtraPayment.model_validate(p, from_attributes=True) for p in order.extra_payments],
             buyer_message=order.buyer_message,
             seller_note=order.seller_note,
             internal_note=order.internal_note,

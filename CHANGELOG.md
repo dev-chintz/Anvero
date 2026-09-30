@@ -6,6 +6,13 @@ All significant changes to the Anvero project.
 
 ## 2026-09-30
 
+### 🧾 Non-invoiced sales, stage 1: tracing the money
+
+- The import keeps each order's payment id, delivery method id, whether the invoice names a company
+  and its VAT status, the tax each offer declares, and its surcharges and cash on delivery; and it
+  reads Allegro's payment operations (payments in, refunds, payouts), back to the start of the
+  previous month the first time. See `docs/NON_INVOICED_SALES.md`.
+
 ### ✳️ The new logo
 
 - An A crossed by a wave that runs into a rising arrow, navy and mint, with ANVERO in Montserrat and

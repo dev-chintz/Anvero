@@ -80,12 +80,15 @@ Columns on `orders`, one per order:
 | `buyer_message` | what the buyer wrote to the seller at checkout |
 | `seller_note` | the seller's own note on the order, written on the marketplace itself; read-only here |
 | `delivery_method`, `delivery_cost` | how it ships and what the buyer paid for that |
+| `delivery_method_id` | the marketplace's id of that method (Allegro's `delivery.method.id`), which tells a courier from personal collection where the name may not. Added by `c7e2a9f4d318` |
 | `delivery_smart` | an Allegro Smart delivery (the buyer's subscription covers it); not null, default false |
 | `pickup_point_id`, `pickup_point_name` | the parcel locker or pickup point, if any |
 | `payment_type` | `ONLINE`, `BANK_TRANSFER`, `CASH_ON_DELIVERY`, `DEFERRED` or `OTHER` |
 | `payment_provider` | the payment operator as the marketplace names it, e.g. `P24` |
 | `paid_amount`, `paid_at` | null means unknown; `0.00` means known to be unpaid |
+| `payment_id` | the marketplace's id of the payment (Allegro's `payment.id`), indexed: what `payment_operations` names it by, tracing the money to the order (`NON_INVOICED_SALES.md`). Null for Erli and for orders imported before it was kept, which an import reads again by id (`INTEGRATIONS.md`). Added by `c7e2a9f4d318` |
 | `invoice_required` | the buyer asked for an invoice |
+| `invoice_is_company`, `invoice_vat_payer_status` | whether the invoice data names a company (`true`) or a private person (`false`), as the marketplace says it (Allegro: `invoice.address.company` present or null), null when the order has no invoice data; and the company's own declaration, `ACTIVE`, `NON_ACTIVE` or `NOT_APPLICABLE`. Added by `c7e2a9f4d318` |
 | `deleted_at`, `deleted_by_user_id` | set when an operator deletes the order from the list (`DELETE /orders/{id}`); the row is kept, every list, figure and queue leaves it out, and an import does not touch it. Null while the order is in use. `deleted_by_user_id` is `SET NULL` when the account goes. Added by `b8e3d5a7c246` |
 | `anonymized_at` | set when the buyer's personal data on the order was erased (`docs/GDPR.md`): by the daily retention run, or at the buyer's request. `customer_email` is then `''` (it is required), the other buyer fields, notes and address fields are null except `country_code`, and a company invoice address may keep its name, tax id and address while the tax period runs. An import does not touch such an order. Added by `a7d4e2c9f136` |
 | `starred`, `flagged` | the operator's own marks for finding an order again, both `false` for every order until set (`PATCH /orders/{id}/marks`); Anvero's alone, no marketplace has them and an import never touches them. Added by `a4d7c1e9b352` |
@@ -101,7 +104,16 @@ marketplace's line order), `external_id`, `offer_id`, `sku` (the seller's own
 product code, if the listing has one), `name`, `quantity`, `unit_price` (per
 unit, in the order's currency, after discounts), `image_url` (the offer's
 picture, fetched from Allegro's own product-offer resource at import time;
-best-effort, so a deleted offer or a missing scope leaves it null).
+best-effort, so a deleted offer or a missing scope leaves it null), `tax_rate`,
+`tax_subject`, `tax_exemption` (the tax the offer declares, Allegro's `lineItems[].tax`, as
+text; null when it declares none; added by `c7e2a9f4d318`).
+
+`order_payments` (added by `c7e2a9f4d318`): the payments for an order beyond its main one,
+owned by the marketplace like the items (an import replaces them). `order_id`, `position`,
+`kind` (`SURCHARGE`, a later additional payment, or `CASH_ON_DELIVERY`, cash the carrier
+collected), `external_id` (the payment's id), `payment_type` and `provider` (a surcharge's),
+`paid_amount`, `currency`, `paid_at`. What tells whether an order was paid in full and without
+cash (`NON_INVOICED_SALES.md`).
 
 `order_addresses` (matches the target `address`): `order_id`, `type`
 (`DELIVERY`, `INVOICE` or `PICKUP_POINT`, at most one of each per order,
@@ -141,6 +153,18 @@ the fees paid, which the Finance page leaves out of the fees. For Erli,
 payout, never changed once stored. `source`, `external_id` (unique together),
 `paid_at` (indexed), `amount`, `currency`, `operator` (e.g. `PAYU`). Read from
 Erli and Allegro since 2026-09-27 (Allegro's from `/payments/payment-operations`; a cancelled payout is a second row, `<id>:cancel`, negative). Added by `d8b3f1a6c925`.
+
+`payment_operations` (added by `c7e2a9f4d318`): every operation on the seller's wallets at the
+payment operators that Allegro's `/payments/payment-operations` lists in its `INCOME`, `REFUND`
+and `OUTCOME` groups: a buyer's payment (`CONTRIBUTION`), a surcharge, a refund, a payout, a
+deduction. What ties the money on the bank account to the orders it came from
+(`NON_INVOICED_SALES.md`). Allegro gives an operation no id, so a row is kept by `fingerprint`
+(a SHA-256 of its type, group, time, wallet, balance after it, value and what it concerns),
+unique with `source`, and never changed once stored. `type`, `group`, `occurred_at` (indexed),
+`amount` (signed: into the wallet positive), `currency`, `wallet_operator` (`PAYU`, `P24`,
+`AF`, ...), `wallet_type` (`AVAILABLE` or `WAITING`), `wallet_balance`, `payment_id` (indexed;
+the order's `payment_id`), `payout_id` (indexed), `surcharge_id`, `marketplace_id`. No buyer's
+data: the participant's login Allegro sends is not kept, the payment id finds the order.
 
 `order_item_packing` (added by `b4e6f9c2a831`): how many of one order line an operator has
 physically gathered into the parcel for that order - their own use, kept by `(order_id,

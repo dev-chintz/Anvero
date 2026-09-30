@@ -4,6 +4,8 @@ Field names follow GET /order/checkout-forms. Nothing here leaks outside the
 allegro package: callers receive OrderCreate.
 """
 
+import hashlib
+import json
 import logging
 from datetime import UTC, datetime
 from decimal import Decimal, InvalidOperation
@@ -17,7 +19,7 @@ from app.integrations.mapping import build as _build
 from app.integrations.mapping import obj as _obj
 from app.integrations.mapping import text as _text
 from app.models.message import MessageDirection
-from app.models.order import OrderSource, OrderStatus, PaymentType
+from app.models.order import OrderPaymentKind, OrderSource, OrderStatus, PaymentType
 from app.schemas.message import SyncedMessage, SyncedThread
 from app.schemas.order import (
     BUYER_MESSAGE_MAX_LENGTH,
@@ -26,11 +28,13 @@ from app.schemas.order import (
     BillingEntryCreate,
     Customer,
     Delivery,
+    ExtraPayment,
     Invoice,
     OrderCreate,
     OrderDetails,
     OrderItemCreate,
     Payment,
+    PaymentOperationCreate,
     PayoutCreate,
     PickupPoint,
     ShipmentCreate,
@@ -274,6 +278,60 @@ def map_payout_operation(raw: dict[str, Any]) -> PayoutCreate | None:
     )
 
 
+def map_payment_operation(raw: dict[str, Any]) -> PaymentOperationCreate | None:
+    """Any operation of GET /payments/payment-operations, or None when it lacks what makes one.
+
+    Allegro gives an operation no id, so it is kept by a fingerprint: a hash of its type, group,
+    time, wallet (operator, type and the balance after it), value and what it concerns (payment,
+    payout, surcharge). Reading the same operation again gives the same fingerprint; two different
+    ones would have to agree on all of it, the wallet's balance after them included.
+    """
+    kind = _text(raw.get("type"))
+    group = _text(raw.get("group"))
+    occurred = _text(raw.get("occurredAt"))
+    occurred_at = _moment(occurred)
+    value = _obj(raw.get("value"))
+    wallet = _obj(raw.get("wallet"))
+    balance = _obj(wallet.get("balance"))
+    try:
+        amount = Decimal(_text(value.get("amount")) or "")
+    except InvalidOperation:
+        return None
+    if kind is None or group is None or occurred_at is None:
+        return None
+    payment_id = _text(_obj(raw.get("payment")).get("id"))
+    payout_id = _text(_obj(raw.get("payout")).get("id"))
+    surcharge_id = _text(_obj(raw.get("surcharge")).get("id"))
+    wallet_balance = _amount(wallet.get("balance")) if balance else None
+    identity = [
+        kind, group, occurred, _text(wallet.get("paymentOperator")), _text(wallet.get("type")),
+        _text(balance.get("amount")), _text(value.get("amount")), _text(value.get("currency")),
+        payment_id, payout_id, surcharge_id,
+    ]
+    fingerprint = hashlib.sha256(json.dumps(identity).encode()).hexdigest()
+    return _build(
+        PaymentOperationCreate,
+        payment_id or payout_id or kind,
+        "payment operation",
+        {
+            "source": OrderSource.ALLEGRO,
+            "fingerprint": fingerprint,
+            "type": kind,
+            "group": group,
+            "occurred_at": occurred_at,
+            "amount": amount,
+            "currency": _text(value.get("currency")) or "PLN",
+            "wallet_operator": _text(wallet.get("paymentOperator")),
+            "wallet_type": _text(wallet.get("type")),
+            "wallet_balance": wallet_balance,
+            "payment_id": payment_id,
+            "payout_id": payout_id,
+            "surcharge_id": surcharge_id,
+            "marketplace_id": _text(raw.get("marketplaceId")),
+        },
+    )
+
+
 def map_tracking(raw: dict[str, Any]) -> tuple[str, datetime | None] | None:
     """The latest tracking status code, and when it was reported, of one waybill.
 
@@ -291,6 +349,57 @@ def map_tracking(raw: dict[str, Any]) -> tuple[str, datetime | None] | None:
     code = _text(latest.get("code"))
     assert code is not None
     return code[:32], _moment(latest.get("occurredAt")) or _moment(details.get("updatedAt"))
+
+
+def _extra_payments(external_id: Any, checkout_form: dict[str, Any]) -> list[ExtraPayment]:
+    """The order's surcharges and the cash collected on its delivery, each as a payment.
+
+    A surcharge has the main payment's shape (`id`, `type`, `provider`, `paidAmount`,
+    `finishedAt`); a cash payment `paymentId`, `paidAmount` and `paidAt`. One that cannot be read
+    is left out and logged, like any other detail.
+    """
+    payments: list[ExtraPayment] = []
+    surcharges = checkout_form.get("surcharges")
+    for index, raw in enumerate(surcharges if isinstance(surcharges, list) else []):
+        raw = _obj(raw)
+        raw_type = _text(raw.get("type"))
+        paid = _obj(raw.get("paidAmount"))
+        payment = _build(
+            ExtraPayment,
+            external_id,
+            f"surcharge {index + 1}",
+            {
+                "kind": OrderPaymentKind.SURCHARGE,
+                "external_id": _text(raw.get("id")),
+                "payment_type": _PAYMENT_TYPES.get(raw_type, PaymentType.OTHER) if raw_type else None,
+                "provider": _text(raw.get("provider")),
+                "paid_amount": _amount(raw.get("paidAmount")),
+                "currency": _text(paid.get("currency")),
+                "paid_at": _text(raw.get("finishedAt")),
+            },
+        )
+        if payment is not None:
+            payments.append(payment)
+    cod = checkout_form.get("codBookedPayments")
+    for index, raw in enumerate(cod if isinstance(cod, list) else []):
+        raw = _obj(raw)
+        paid = _obj(raw.get("paidAmount"))
+        payment = _build(
+            ExtraPayment,
+            external_id,
+            f"cash on delivery payment {index + 1}",
+            {
+                "kind": OrderPaymentKind.CASH_ON_DELIVERY,
+                "external_id": _text(raw.get("paymentId")),
+                "payment_type": PaymentType.CASH_ON_DELIVERY,
+                "paid_amount": _amount(raw.get("paidAmount")),
+                "currency": _text(paid.get("currency")),
+                "paid_at": _text(raw.get("paidAt")),
+            },
+        )
+        if payment is not None:
+            payments.append(payment)
+    return payments
 
 
 def map_details(checkout_form: dict[str, Any]) -> OrderDetails:
@@ -333,6 +442,9 @@ def map_details(checkout_form: dict[str, Any]) -> OrderDetails:
                 # `price` is what the buyer pays per unit; `originalPrice` is
                 # before discounts
                 "unit_price": _amount(line_item.get("price")),
+                "tax_rate": _text(_obj(line_item.get("tax")).get("rate")),
+                "tax_subject": _text(_obj(line_item.get("tax")).get("subject")),
+                "tax_exemption": _text(_obj(line_item.get("tax")).get("exemption")),
             },
         )
         if item is not None:
@@ -369,6 +481,7 @@ def map_details(checkout_form: dict[str, Any]) -> OrderDetails:
         "delivery",
         {
             "method": _text(_obj(delivery.get("method")).get("name")),
+            "method_id": _text(_obj(delivery.get("method")).get("id")),
             "cost": _amount(delivery.get("cost")),
             "smart": delivery.get("smart") is True,
             "address": _address(
@@ -402,11 +515,13 @@ def map_details(checkout_form: dict[str, Any]) -> OrderDetails:
                 if raw_payment_type
                 else None
             ),
+            "id": _text(payment.get("id")),
             "provider": _text(payment.get("provider")),
             "paid_amount": _amount(payment.get("paidAmount")),
             "paid_at": _text(payment.get("finishedAt")),
         },
     )
+    extra_payments = _extra_payments(external_id, checkout_form)
 
     invoice = _obj(checkout_form.get("invoice"))
     invoice_address = _obj(invoice.get("address"))
@@ -414,6 +529,13 @@ def map_details(checkout_form: dict[str, Any]) -> OrderDetails:
     person = _obj(invoice_address.get("naturalPerson"))
     invoice_details = Invoice(
         required=invoice.get("required") is True,
+        # "Setting the value to null indicates a private purchase, while any other value
+        # indicates a corporate purchase" (the specification); with no invoice address at all,
+        # the order says neither
+        is_company=(
+            isinstance(invoice_address.get("company"), dict) if isinstance(invoice.get("address"), dict) else None
+        ),
+        vat_payer_status=_text(company.get("vatPayerStatus")),
         address=_address(
             external_id,
             "invoice address",
@@ -438,6 +560,7 @@ def map_details(checkout_form: dict[str, Any]) -> OrderDetails:
         items=items,
         delivery=delivery_details or Delivery(),
         payment=payment_details or Payment(),
+        extra_payments=extra_payments,
         invoice=invoice_details,
         buyer_message=_shorten(
             "buyer message",

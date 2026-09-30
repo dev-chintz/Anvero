@@ -674,6 +674,8 @@ def test_an_order_returns_its_details():
     assert order["delivery"]["pickup_point"]["id"] == "WAW01A"
     assert order["delivery"]["pickup_point"]["address"]["street"] == "Długa 5"
     assert order["payment"] == {
+        # the order was entered here, not imported, so no payment id traces it
+        "id": None,
         "type": "ONLINE",
         "provider": "P24",
         "paid_amount": "180.98",
@@ -711,13 +713,15 @@ def test_an_order_without_details_has_the_same_shape_with_nulls():
     assert set(order["customer"].values()) == {None}
     assert order["delivery"] == {
         "method": None,
+        "method_id": None,
         "cost": None,
         "smart": False,
         "address": None,
         "pickup_point": None,
     }
     assert set(order["payment"].values()) == {None}
-    assert order["invoice"] == {"required": False, "address": None}
+    assert order["extra_payments"] == []
+    assert order["invoice"] == {"required": False, "address": None, "is_company": None, "vat_payer_status": None}
     assert order["buyer_message"] is None
     assert order["seller_note"] is None
 

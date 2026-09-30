@@ -210,7 +210,12 @@ Each stage is committed and pushed on its own, with its tests, and the contracts
 1. **The import (h).** The new checkout-form fields and a migration; the `CONTRIBUTION` operations
    and refunds read on the import's schedule, into a table of payment operations. Tested against
    payloads shaped like the specification; then read once from the production account (read only,
-   nothing written to Allegro) to confirm the fields are filled.
+   nothing written to Allegro) to confirm the fields are filled. *Built 2026-09-30*
+   (`order_payments`, `payment_operations`, the new columns; `INTEGRATIONS.md`, "Payment
+   operations, and the payment's id"). Refunds come from the `REFUND` group of the payment
+   operations rather than `/payments/refunds`: they carry the payment's id and the amount, which is
+   what a correction needs. The product's § 4 flag moves to stage 3, where it is first read.
+   Waiting on the first real read, on the NAS after the update.
 2. **The classifier (4a).** A pure function with a test for every category and reason code, and a
    run over the orders already imported, its counts shown to the owner before anything uses them.
 3. **The ledger (4b, 4d).** The table, writing sales and corrections after each import, linking

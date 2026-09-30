@@ -1027,15 +1027,16 @@ Returns the order with the fields the list has, plus its details:
   "marketplace_cancelled_at": null, "dispatch_by": "...Z",
   "customer": {"login": "...", "first_name": "...", "last_name": "...", "company_name": null, "phone": "..."},
   "items": [
-    {"id": "...", "external_id": "...", "offer_id": "...", "sku": "KUB-350", "name": "...", "quantity": 1, "unit_price": "24.99", "image_url": "https://a.allegroimg.com/original/..."}
+    {"id": "...", "external_id": "...", "offer_id": "...", "sku": "KUB-350", "name": "...", "quantity": 1, "unit_price": "24.99", "image_url": "https://a.allegroimg.com/original/...", "tax_rate": null, "tax_subject": null, "tax_exemption": null}
   ],
   "delivery": {
-    "method": "InPost Paczkomat 24/7", "cost": "12.99",
+    "method": "InPost Paczkomat 24/7", "method_id": "...", "cost": "12.99",
     "address": {"first_name": "...", "last_name": "...", "company_name": null, "street": "...", "postal_code": "...", "city": "...", "country_code": "PL", "phone": "...", "tax_id": null},
     "pickup_point": {"id": "WAW01M", "name": "...", "address": null}
   },
-  "payment": {"type": "ONLINE", "provider": "P24", "paid_amount": "149.99", "paid_at": "...Z"},
-  "invoice": {"required": false, "address": null},
+  "payment": {"id": "...", "type": "ONLINE", "provider": "P24", "paid_amount": "149.99", "paid_at": "...Z"},
+  "extra_payments": [],
+  "invoice": {"required": false, "address": null, "is_company": null, "vat_payer_status": null},
   "buyer_message": null,
   "seller_note": null,
   "shipments": [

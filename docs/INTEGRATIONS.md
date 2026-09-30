@@ -422,6 +422,26 @@ the first time `ALLEGRO_INITIAL_IMPORT_DAYS` back.
   30 August by hand, since the first read reaches back only the initial window.
   No `PAYOUT_CANCEL` has been seen.
 
+### Payment operations, and the payment's id
+
+For the non-invoiced sales record (`NON_INVOICED_SALES.md`), after the payouts an import reads
+every operation of the `INCOME`, `REFUND` and `OUTCOME` groups of the same endpoint, all pages,
+into `payment_operations`: the buyers' payments (`CONTRIBUTION`, carrying `payment.id`), their
+surcharges, the refunds, the payouts. They have no id of their own and are kept by a fingerprint
+(`DATABASE.md`). The first read reaches back to the first day of the previous month, so that the
+first report has its payments without a separate run (which would refresh the rotating token
+outside the import's lock); later ones from a day before the latest stored. Same scope as the
+payouts (`allegro:api:payments:read`), best effort like them.
+
+From the checkout form an import also keeps `payment.id`, `delivery.method.id`, whether
+`invoice.address.company` is present and its `vatPayerStatus`, each line item's `tax`, and the
+`surcharges` and `codBookedPayments` (`order_payments`). A paid order imported before
+`payment.id` was kept is not changed on Allegro, so no window names it again: an import reads up to
+100 such orders by id (paid since the previous month began, oldest first) until none is left.
+
+- **Built from the published specification**, tested on payloads shaped like it; not yet seen in
+  a real response (`PROJECT_STATUS.md`).
+
 ### Known limits
 
 - **An unused token chain lapses after three months.** Each rotation grants

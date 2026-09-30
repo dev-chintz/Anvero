@@ -62,7 +62,7 @@ Repository: <https://github.com/dev-chintz/Anvero>
   scope). Full detail in `DECISIONS.md` and `CHANGELOG.md`.
 - Order page (2026-09-29): status picker in the header, payment folded,
   Allegro Smart badge (`DECISIONS.md`)
-- 1048 backend tests and 621 frontend tests (Vitest + React Testing Library)
+- 1075 backend tests and 621 frontend tests (Vitest + React Testing Library)
   passing
 
 ---
@@ -174,7 +174,9 @@ behind the login.
 
 The **non-invoiced sales report** is to be rebuilt from `NON_INVOICED_SALES.md`
 (2026-09-30): a design with the accountant's answers (section 3) and a plan of
-work in eight stages (section 5); no code yet.
+work in eight stages (section 5). Stage 1, the import keeping what traces an
+order's money, is built and waits on its first real read on the NAS; stage 2,
+the classifier, is next.
 
 The order page's round two (status in
 the header, payment folded, Smart badge) was seen by the owner in the browser

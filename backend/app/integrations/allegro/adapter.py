@@ -12,6 +12,7 @@ from app.integrations.allegro.mapper import (
     OrderMappingError,
     map_billing_entry,
     map_checkout_form,
+    map_payment_operation,
     map_payout_operation,
     map_shipment,
     map_tracking,
@@ -23,7 +24,7 @@ from app.integrations.base import (
 )
 from app.integrations.mapping import KnownImages, attach_item_images
 from app.models.order import OrderSource, OrderStatus
-from app.schemas.order import BillingEntryCreate, OrderCreate, PayoutCreate
+from app.schemas.order import BillingEntryCreate, OrderCreate, PaymentOperationCreate, PayoutCreate
 
 logger = logging.getLogger(__name__)
 
@@ -196,6 +197,39 @@ class AllegroAdapter:
             if len(raw) < PAYMENT_OPERATIONS_PAGE_SIZE:
                 return payouts
         raise IntegrationUnavailable("Allegro returned too many payment operations; narrow the window")
+
+    # what the non-invoiced sales record reads (NON_INVOICED_SALES.md): the buyers' payments and
+    # surcharges coming in, the refunds going back, and the payouts to the bank; not the
+    # blockades, which only hold money for a while
+    PAYMENT_OPERATION_GROUPS = ("INCOME", "REFUND", "OUTCOME")
+    # its orders carry the payment's id, which the import reads again for orders stored without it
+    traces_payments = True
+
+    def fetch_payment_operations(self, since: datetime) -> list[PaymentOperationCreate]:
+        """Every payment operation of the groups above since `since`, all pages of each.
+
+        An operation that cannot be read is skipped and counted in the log.
+        """
+        operations: list[PaymentOperationCreate] = []
+        skipped = 0
+        for group in self.PAYMENT_OPERATION_GROUPS:
+            for page_number in range(MAX_PAGES):
+                raw = self._client.fetch_payment_operations(
+                    since, group, PAYMENT_OPERATIONS_PAGE_SIZE, page_number * PAYMENT_OPERATIONS_PAGE_SIZE
+                )
+                for item in raw:
+                    operation = map_payment_operation(item)
+                    if operation is None:
+                        skipped += 1
+                    else:
+                        operations.append(operation)
+                if len(raw) < PAYMENT_OPERATIONS_PAGE_SIZE:
+                    break
+            else:
+                raise IntegrationUnavailable("Allegro returned too many payment operations; narrow the window")
+        if skipped:
+            logger.warning("%d payment operations could not be read and were skipped", skipped)
+        return operations
 
     def _fetch_page(
         self,

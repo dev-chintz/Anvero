@@ -46,7 +46,7 @@ folder, and one was restored from that copy into a scratch database as a test.
   remains the no-setup default for a fresh clone)
 - Health endpoint and first order model — done
 - Minimal order list interface — done
-- Automated tests for core flows — done (1048 backend, 621 frontend passing
+- Automated tests for core flows — done (1075 backend, 621 frontend passing
   across the suite as of 2026-09-29)
 
 ---
@@ -99,6 +99,14 @@ re-imported. Production needs its own application and authorization; see
 ---
 
 ## Not yet verified
+
+Payment trace for the non-invoiced sales record (2026-09-30, stage 1 of
+`NON_INVOICED_SALES.md`): tested on payloads shaped like Allegro's specification;
+not yet read from the real account. After the NAS is updated, the first import
+should fill `payment_operations` back to 1 September and, over a few imports,
+`orders.payment_id` for September's paid orders; worth checking that
+`CONTRIBUTION` rows carry the orders' payment ids and that `tax`,
+`surcharges` and `invoice.address.company` come as documented.
 
 The new logo (2026-09-30): seen on the login page in light and dark; the menu,
 behind the login, not yet.

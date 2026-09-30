@@ -44,6 +44,18 @@ BILLING_OVERLAP = timedelta(days=1)
 # payouts are read again from a week before the latest stored, which also
 # catches a payout cancelled after it was read
 PAYOUT_OVERLAP = timedelta(days=7)
+# payment operations are read again from a day before the latest stored: one posted a moment
+# late is not missed, and one read twice is known by its fingerprint
+PAYMENT_OPERATIONS_OVERLAP = timedelta(days=1)
+# how many paid orders imported before the payment's id was kept are read again by id in one
+# import, so that the previous month's are complete without one long run
+UNTRACED_ORDERS_PER_RUN = 100
+
+
+def start_of_previous_month(moment: datetime) -> datetime:
+    """Midnight UTC on the first day of the month before `moment`'s."""
+    first = moment.astimezone(UTC).replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    return (first - timedelta(days=1)).replace(day=1)
 
 
 class OrderImportService:
@@ -109,7 +121,9 @@ class OrderImportService:
         # (sent) is named by neither the window nor the list of open orders
         held = self._read_held_orders({order.external_id for order in fetched})
         fetched.extend(held)
-        rechecked = rechecked + held
+        untraced = self._read_untraced_orders({order.external_id for order in fetched}, started_at)
+        fetched.extend(untraced)
+        rechecked = rechecked + held + untraced
         fetched.sort(key=lambda order: order.ordered_at or started_at)
         result = self._store(
             fetched,
@@ -127,6 +141,7 @@ class OrderImportService:
         self._settle_delivered()
         self._sync_billing(started_at)
         self._sync_payouts(started_at)
+        self._sync_payment_operations(started_at)
         return result
 
     def _read_open_orders(self, already_read: set[str]) -> list[OrderCreate]:
@@ -173,6 +188,33 @@ class OrderImportService:
             logger.warning("Reading the held orders failed, so the import goes on without them: %s", exc)
             return []
         logger.info("Held orders read again by id: %d", len(orders))
+        return orders
+
+    def _read_untraced_orders(self, already_read: set[str], started_at: datetime) -> list[OrderCreate]:
+        """Paid orders since the previous month began that lack the payment's id, asked for by id.
+
+        Orders imported before the id was kept (NON_INVOICED_SALES.md) are not changed on the
+        marketplace, so no window names them again; this reads them, a hundred per import, until
+        the previous month's are complete. Only for an adapter that keeps the id
+        (`traces_payments`). Best effort, like `_read_held_orders`.
+        """
+        read = getattr(self.adapter, "fetch_orders_by_id", None)
+        if read is None or not getattr(self.adapter, "traces_payments", False):
+            return []
+        try:
+            wanted = [
+                external_id
+                for external_id in self.repository.untraced_paid_external_ids(
+                    self.adapter.source, start_of_previous_month(started_at), UNTRACED_ORDERS_PER_RUN
+                )
+                if external_id not in already_read
+            ]
+            orders = read(wanted) if wanted else []
+        except IntegrationError as exc:
+            logger.warning("Reading the untraced orders failed, so the import goes on without them: %s", exc)
+            return []
+        if orders:
+            logger.info("Paid orders read again for their payment id: %d", len(orders))
         return orders
 
     def _sync_billing(self, started_at: datetime) -> None:
@@ -228,6 +270,36 @@ class OrderImportService:
         except Exception:
             self.repository.db.rollback()
             logger.exception("Reading payouts failed; the import itself is unaffected")
+
+    def _sync_payment_operations(self, started_at: datetime) -> int:
+        """Read the payment operations (payments in, refunds, payouts) that are new.
+
+        What ties the money on the bank account to the orders it came from, for the
+        non-invoiced sales record (NON_INVOICED_SALES.md). From a day before the latest stored;
+        the first time, from the first day of the previous month, so that the first report (the
+        previous month, by default) has its payments without a separate backfill run, which would
+        refresh Allegro's rotating token outside the import's lock. Best effort, like the
+        payouts, which need the same scope: a failure is logged and the import is unaffected.
+        Returns how many were new.
+        """
+        fetch = getattr(self.adapter, "fetch_payment_operations", None)
+        if fetch is None:
+            return 0
+        try:
+            latest = self.repository.latest_payment_operation_at(self.adapter.source)
+            since = (
+                _as_utc(latest) - PAYMENT_OPERATIONS_OVERLAP
+                if latest is not None
+                else start_of_previous_month(started_at)
+            )
+            operations = fetch(since)
+            added = self.repository.add_payment_operations(operations)
+            logger.info("Payment operations read: %d, %d new", len(operations), added)
+            return added
+        except Exception:
+            self.repository.db.rollback()
+            logger.exception("Reading payment operations failed; the import itself is unaffected")
+            return 0
 
     def _refresh_tracking(self) -> None:
         """Bring the tracking status of parcels on their way up to date.

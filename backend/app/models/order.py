@@ -255,6 +255,9 @@ class Order(Base):
     seller_note: Mapped[str | None] = mapped_column(Text)
 
     delivery_method: Mapped[str | None] = mapped_column(String(255))
+    # the marketplace's id of that method, which tells a courier from personal collection where
+    # the name alone may not (NON_INVOICED_SALES.md)
+    delivery_method_id: Mapped[str | None] = mapped_column(String(64))
     delivery_cost: Mapped[Decimal | None] = mapped_column(Numeric(12, 2))
     # Allegro Smart: the buyer's subscription covers the delivery
     delivery_smart: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, server_default=false())
@@ -271,6 +274,9 @@ class Order(Base):
     # null means unknown; zero means known to be unpaid
     paid_amount: Mapped[Decimal | None] = mapped_column(Numeric(12, 2))
     paid_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    # the marketplace's id of the payment (Allegro's payment.id): what its payment operations
+    # name it by, so the money can be traced to the order (NON_INVOICED_SALES.md)
+    payment_id: Mapped[str | None] = mapped_column(String(64), index=True)
 
     invoice_required: Mapped[bool] = mapped_column(
         Boolean,
@@ -278,6 +284,12 @@ class Order(Base):
         server_default=false(),
         nullable=False,
     )
+    # whether the invoice data names a company (true) or a private person (false), as the
+    # marketplace itself says it (Allegro: invoice.address.company present or null); null when
+    # the order carries no invoice data to tell
+    invoice_is_company: Mapped[bool | None] = mapped_column(Boolean)
+    # the company's own declaration: ACTIVE, NON_ACTIVE or NOT_APPLICABLE (Allegro)
+    invoice_vat_payer_status: Mapped[str | None] = mapped_column(String(16))
 
     status_history: Mapped[list["OrderStatusHistory"]] = relationship(
         back_populates="order",
@@ -313,6 +325,13 @@ class Order(Base):
         cascade="all, delete-orphan",
         order_by="OrderShipment.position",
         lazy="selectin",
+    )
+
+    # the payments beyond the main one: surcharges and cash collected on delivery
+    extra_payments: Mapped[list["OrderPayment"]] = relationship(
+        back_populates="order",
+        cascade="all, delete-orphan",
+        order_by="OrderPayment.position",
     )
 
     def address(self, address_type: AddressType) -> "OrderAddress | None":
@@ -372,7 +391,58 @@ class OrderItem(Base):
     # per unit, in the order's currency
     unit_price: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False)
 
+    # the tax the offer declares, as the marketplace states it (Allegro: lineItems[].tax);
+    # null when the offer carries no tax setting
+    tax_rate: Mapped[str | None] = mapped_column(String(16))
+    tax_subject: Mapped[str | None] = mapped_column(String(64))
+    tax_exemption: Mapped[str | None] = mapped_column(String(64))
+
     order: Mapped["Order"] = relationship(back_populates="items")
+
+
+class OrderPaymentKind(str, enum.Enum):
+    # a later additional payment for the order (Allegro's surcharges)
+    SURCHARGE = "SURCHARGE"
+    # cash collected by the carrier on delivery (Allegro's codBookedPayments)
+    CASH_ON_DELIVERY = "CASH_ON_DELIVERY"
+
+
+class OrderPayment(Base):
+    """A payment for an order beyond its main one: a surcharge, or cash taken on delivery.
+
+    Owned by the marketplace like the items: an import replaces them. What decides whether an
+    order was paid in full and without cash (NON_INVOICED_SALES.md).
+    """
+
+    __tablename__ = "order_payments"
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        Uuid(as_uuid=True),
+        primary_key=True,
+        default=uuid.uuid4,
+    )
+
+    order_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("orders.id", ondelete="CASCADE"),
+        index=True,
+        nullable=False,
+    )
+
+    position: Mapped[int] = mapped_column(Integer, nullable=False)
+    kind: Mapped[OrderPaymentKind] = mapped_column(
+        Enum(OrderPaymentKind, native_enum=False, length=32), nullable=False
+    )
+    # the marketplace's id of the payment (a surcharge's payment id, a cash payment's id)
+    external_id: Mapped[str | None] = mapped_column(String(64))
+    # for a surcharge: its type and operator, as for the main payment
+    payment_type: Mapped[PaymentType | None] = mapped_column(PAYMENT_TYPE)
+    provider: Mapped[str | None] = mapped_column(String(64))
+    # null means unknown; zero means known to be unpaid
+    paid_amount: Mapped[Decimal | None] = mapped_column(Numeric(12, 2))
+    currency: Mapped[str | None] = mapped_column(String(3))
+    paid_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+    order: Mapped["Order"] = relationship(back_populates="extra_payments")
 
 
 class OrderShipment(Base):
@@ -490,6 +560,56 @@ class Payout(Base):
     currency: Mapped[str] = mapped_column(String(3), nullable=False)
     # who carried it out, e.g. PayU
     operator: Mapped[str | None] = mapped_column(String(64))
+
+
+class PaymentOperation(Base):
+    """One operation on the seller's wallet at a payment operator: a buyer's payment coming in,
+    a refund going out, a payout to the bank (Allegro's payment operations).
+
+    What ties the money on the bank account to the orders it came from (NON_INVOICED_SALES.md).
+    The marketplace gives an operation no id of its own, so it is kept by `fingerprint`, a hash of
+    the fields that make it one (among them the wallet's balance after it), and never changed once
+    stored. Kept like the billing entries, with no buyer's data: the payment id is enough to find
+    the order.
+    """
+
+    __tablename__ = "payment_operations"
+    __table_args__ = (
+        UniqueConstraint("source", "fingerprint", name="uq_payment_operations_source_fingerprint"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        Uuid(as_uuid=True),
+        primary_key=True,
+        default=uuid.uuid4,
+    )
+    source: Mapped[OrderSource] = mapped_column(
+        Enum(OrderSource, native_enum=False, length=32), nullable=False
+    )
+    fingerprint: Mapped[str] = mapped_column(String(64), nullable=False)
+
+    # the marketplace's own words: CONTRIBUTION, SURCHARGE, REFUND_CHARGE, PAYOUT, ...; and
+    # the group it puts the type in: INCOME, OUTCOME, REFUND
+    type: Mapped[str] = mapped_column(String(48), nullable=False)
+    group: Mapped[str] = mapped_column(String(16), nullable=False)
+    occurred_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, index=True)
+
+    # signed as the marketplace states it: money into the wallet positive, out of it negative
+    amount: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False)
+    currency: Mapped[str] = mapped_column(String(3), nullable=False)
+
+    # the wallet: which operator holds it (PAYU, P24, AF, ...), whether the money in it can be
+    # paid out yet (AVAILABLE) or not (WAITING), and its balance after this operation
+    wallet_operator: Mapped[str | None] = mapped_column(String(16))
+    wallet_type: Mapped[str | None] = mapped_column(String(16))
+    wallet_balance: Mapped[Decimal | None] = mapped_column(Numeric(12, 2))
+
+    # what the operation concerns: the buyer's payment (the order's `payment_id`), a payout, a
+    # surcharge
+    payment_id: Mapped[str | None] = mapped_column(String(64), index=True)
+    payout_id: Mapped[str | None] = mapped_column(String(64), index=True)
+    surcharge_id: Mapped[str | None] = mapped_column(String(64))
+    marketplace_id: Mapped[str | None] = mapped_column(String(32))
 
 
 class OrderAddress(Base):
