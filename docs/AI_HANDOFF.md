@@ -62,7 +62,7 @@ Repository: <https://github.com/dev-chintz/Anvero>
   scope). Full detail in `DECISIONS.md` and `CHANGELOG.md`.
 - Order page (2026-09-29): status picker in the header, payment folded,
   Allegro Smart badge (`DECISIONS.md`)
-- 1042 backend tests and 621 frontend tests (Vitest + React Testing Library)
+- 1048 backend tests and 621 frontend tests (Vitest + React Testing Library)
   passing
 
 ---
@@ -90,7 +90,8 @@ owner's claude.ai account hold it, readable only when signed in as the owner:
 
 - the **Anvero design system**, https://claude.ai/artifact/UUeEBotbDsA8UdJ7sWHMwY: tokens, brand book and nine
   components built from `index.css`, `theme.css` and `STYLE_GUIDE.md` at
-  `3cfbdc0`. It follows the code: a token changes in `index.css` first.
+  `3cfbdc0`. It follows the code: a token changes in `index.css` first. Not
+  yet brought up to 2026-09-30: the new variables and the Papier look.
 - the **order page canvas**, https://claude.ai/artifact/QJHBPmAH386DKwASmqmG43: a proposal (two columns: the work on
   the left, the facts in a 340px rail on the right, payment back as a green
   card, the status facts beside the steps) next to today's layout.
@@ -193,18 +194,25 @@ distinction that matters: does it change what a screen *looks* like
 everywhere, or does it add a capability without touching the values already
 in `index.css`.
 
+One exception, at the owner's request (`DECISIONS.md`, 2026-09-30): a second
+look, Papier, to pick in Settings beside Classic. It is only a second set of
+variable values; the layout and parts are the same in both looks.
+
 What exists today:
 
-- Dark left sidebar (200px open, 70px collapsed), bright workspace, rounded
-  corners
+- Left sidebar (200px open, 70px collapsed), light grey in light mode and
+  dark in dark mode, beside a grey canvas of white rounded cards
 - Plain CSS, stylesheets under `frontend/src/styles/` plus `index.css`; no
   component library, no CSS framework. `index.css`'s `:root`/`:root.dark`
   hold named tokens for values repeated across files (accent, surface,
   divider, headings, radii, semantic colours) — see `DECISIONS.md`
   2026-09-18 before assuming a value is a one-off
-- Colours, spacing and radii come from the variables in `index.css`; the
-  accent is blue in light mode, teal in dark
-- Light and dark follow the system, with an explicit override
+- Colours, fonts and radii come from the variables in `index.css`, never a
+  literal in a stylesheet (since 2026-09-30); the accent is teal (brick in
+  Papier)
+- Two choices in Settings, both kept in the browser: the look (Classic or
+  Papier, `theme-look`) and the mode (light until dark is chosen, whatever
+  the system prefers, `theme-mode`)
 - Vitest + React Testing Library, wired into the pre-commit hook and CI
   (`npm run test`); still thin, per `ROADMAP.md`
 

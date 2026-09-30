@@ -228,6 +228,12 @@ either form.
 `users` that becomes null if the account is deleted, so the history outlives
 the user. Entries made before logins existed have no author.
 
+`users.token_version` (added by `a9c4e7d2b815`) is a counter, 0 to begin with,
+written into every login token and compared on every request. A new password
+raises it, so the tokens issued before stop working instead of living out
+their eight hours (`API.md`, `POST /auth/login`). Tokens from before the
+column existed carry no version and count as 0, so adding it logged nobody out.
+
 `users.role` (added by `c2a6f9e3b184`) is `admin` or `user`, a plain string
 column like `payment_type` rather than a database enum, for the same reason:
 what a role can do is decided by the application, not by a fixed set the

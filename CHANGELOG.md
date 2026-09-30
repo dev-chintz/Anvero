@@ -6,6 +6,15 @@ All significant changes to the Anvero project.
 
 ## 2026-09-30
 
+### 🔒 Security audit and fixes
+
+- Images are published only for pushes to this repository's `main`, never for a fork's branch that
+  happens to be called `main`.
+- The login rate limit can no longer be dodged with a made-up `X-Forwarded-For`.
+- A new password logs out the sessions that used the old one.
+- `pyjwt` and `httpx2` updated, security headers from nginx, refreshing a label or pickup needs
+  `manage`. See `docs/DECISIONS.md`.
+
 ### 📜 A second look: Papier
 
 - Settings has a Style choice, Classic or Papier (warm cream, a brick accent, serif titles), in

@@ -56,8 +56,13 @@ Delivered green, Cancelled red.
 
 ## Type
 
-- Body 14px (`0.875rem`), line height 1.45, the system font stack.
-- Page title (`.page-header h1`): 1.5rem, bold. Card title: 0.9rem, bold, in its band.
+The faces, the page title's size and weight and the card title's weight are variables
+(`--font-body`, `--font-heading`, `--page-title-size`, `--page-title-weight`,
+`--card-title-weight`), because Papier changes them; the values below are Classic's.
+
+- Body 14px (`0.875rem`), line height 1.45, the system font stack (Papier: Instrument Sans).
+- Page title (`.page-header h1`): 1.5rem, bold (Papier: Fraunces, 2rem, medium). Card title:
+  0.9rem, bold, in its band (Papier: Fraunces, semibold).
 - Small labels (`.label-caps`, table heads, `dt` in a card): 0.7rem, bold, capitals, letter spacing
   0.05em, `--color-muted-strong`.
 - Values beside a label: 0.9rem, semibold. Names and the first line of an address: semibold.
@@ -66,7 +71,7 @@ Delivered green, Cancelled red.
 ## Cards
 
 A card is `class="card"` (or `order-card` on the order page): white, 1px `--color-border`, radius
-10px, padding 1rem, no shadow. Its first `h2` or `h3` is the title band; where the title shares a
+`--radius-card` (10px; Papier 16px), padding 1rem, no shadow. Its first `h2` or `h3` is the title band; where the title shares a
 row with a button, that row is `class="card-head"`. Add a tone class for the band's colour.
 Content that needs to sit in a card without a frame (a tab's body, a folded section) is
 `CardShell` with `embedded`.
@@ -125,4 +130,5 @@ page's cards stack.
 ## When you change the look
 
 Change the token or the shared rule, not the page. Record it in `DECISIONS.md`, and look at every
-page in both modes (`localStorage.setItem("theme-mode", "dark")`).
+page in all four combinations of look and mode (`localStorage.setItem("theme-look", "papier")`,
+`localStorage.setItem("theme-mode", "dark")`, or Settings, "Appearance and language").

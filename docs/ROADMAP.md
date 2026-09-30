@@ -169,6 +169,10 @@ whether the Figma dashboard prototype and the premium-SaaS direction in
 rewrite of ten stylesheets, and what a design pass would cost. Judging that
 after real daily use costs least and is most likely to be right.
 
+One step of it was taken early, at the owner's request, on 2026-09-30: a
+second look, Papier, to pick in Settings beside today's (`DECISIONS.md`). It
+changes values only, not layouts, and leaves the rest of this item open.
+
 Until then, nothing decorative, only what makes the screens readable — plus,
 as of 2026-09-18, three additive interface capabilities pulled forward while
 production Allegro waits on the owner's own steps (not the redesign above,

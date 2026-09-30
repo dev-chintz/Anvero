@@ -52,6 +52,8 @@ class UserService:
             user.is_active = data.is_active
         if data.password is not None:
             user.hashed_password = hash_password(data.password)
+            # whoever was logged in with the old password is logged out
+            user.token_version += 1
         user = self.repository.save(user)
 
         if data.permissions is not None:
@@ -69,6 +71,8 @@ class UserService:
             )
 
         user.hashed_password = hash_password(password)
+        # whoever was logged in with the old password is logged out
+        user.token_version += 1
         return self.repository.save(user)
 
     def get_user_by_email(self, email: str) -> User | None:

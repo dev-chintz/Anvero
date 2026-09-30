@@ -95,7 +95,7 @@ def buy_label(
     )
 
 
-@router.post("/orders/{order_id}/labels/{label_id}/refresh", response_model=ShippingLabelRead)
+@router.post("/orders/{order_id}/labels/{label_id}/refresh", response_model=ShippingLabelRead, dependencies=[_manage])
 def refresh_label(
     order_id: uuid.UUID,
     label_id: uuid.UUID,
@@ -231,7 +231,7 @@ def order_pickup(
     )
 
 
-@router.post("/pickups/{pickup_id}/refresh", response_model=PickupRead)
+@router.post("/pickups/{pickup_id}/refresh", response_model=PickupRead, dependencies=[_manage])
 def refresh_pickup(pickup_id: uuid.UUID, db: Session = Depends(get_db)):
     pickups = CourierPickups(db)
     pickup = pickups.get(pickup_id)

@@ -98,7 +98,11 @@ There is no registration endpoint. Accounts are created on the server with
 Body: `{"email": "...", "password": "..."}`. Returns
 `{"access_token": "...", "token_type": "bearer"}`. Send the token as
 `Authorization: Bearer <token>`. It lasts `ACCESS_TOKEN_EXPIRE_MINUTES`,
-default 480 (a working day), and cannot be revoked early.
+default 480 (a working day). It carries the account's `token_version`
+(`DATABASE.md`); a new password (`PATCH /users/{id}` with `password`, or
+`scripts/reset_password.py`) raises it, and every token issued before is
+refused `401` from then on. Logging out on the page only forgets the token
+in that browser.
 
 A wrong password, an unknown email and a deactivated account all return the
 same `401 {"detail": "Invalid credentials"}`, taking comparable time, so the
@@ -121,7 +125,7 @@ Every endpoint below `/api/v1` except `/health`, `/`, `/auth/login` and
 | `orders` | `GET /orders*`, `GET /orders/{id}*` | `PATCH/DELETE/POST` on an order, its status, shipments, marks, note, packing and the production checks |
 | `messages` | `GET /messages/threads*` | `PATCH .../aside`, `POST .../reply`, `POST /integrations/allegro/messages/sync` |
 | `after_sales` | `GET /after-sales*`, `GET /orders/{id}/after-sales` | `POST /integrations/allegro/after-sales/sync` |
-| `labels` | `GET` on shipping settings, labels, InPost status and shipments, printing a PDF | buying or cancelling a label, ordering a pickup, the InPost settings and shipments, `PUT /settings/shipping` |
+| `labels` | `GET` on shipping settings, labels, InPost status and shipments, printing a PDF | buying, cancelling or refreshing a label, ordering or refreshing a pickup, the InPost settings and shipments, `PUT /settings/shipping` |
 | `finance` | `GET /finance/*`, `GET /sales-report/*` | `PUT/DELETE` a sales-report override |
 | `integrations` | `GET` on the Allegro/Erli/InPost status, the schedule, safe mode and marketplace-writes log, `GET /status` | the Allegro/Erli settings, connect and import, the schedule, `PUT /settings/safe-mode` |
 
@@ -131,9 +135,10 @@ grant: only `role == "admin"` may call it, checked by a separate dependency
 `409` a change that would leave no active admin account (demoting or
 deactivating the last one).
 
-A deactivated or downgraded account's already-issued token keeps working
-until it expires (`ACCESS_TOKEN_EXPIRE_MINUTES`, "no revocation" above):
-there is no session store to check on every request.
+Every request reads the account again, so a deactivated account's token is
+refused at once, and a changed role or set of grants applies to the very next
+request; a new password ends the account's earlier tokens (`token_version`,
+`POST /auth/login` above).
 
 ## `GET /api/v1/integrations/allegro`
 

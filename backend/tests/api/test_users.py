@@ -189,6 +189,78 @@ def test_token_signed_with_another_key_is_rejected():
     assert response.status_code == 401
 
 
+def _user_id(email: str) -> int:
+    db = TestingSessionLocal()
+    try:
+        return db.query(User).filter(User.email == email).one().id
+    finally:
+        db.close()
+
+
+def test_a_new_password_logs_out_the_tokens_issued_before_it():
+    """Without it a token taken with the old password lived out its eight hours."""
+    admin_email = _create_user(role="admin")
+    email = _create_user()
+    old_token = _token(email)
+
+    response = client.patch(
+        f"/api/v1/users/{_user_id(email)}",
+        headers=_auth(admin_email),
+        json={"password": "a-brand-new-password"},
+    )
+
+    assert response.status_code == 200
+    old = client.get("/api/v1/users/me", headers={"Authorization": f"Bearer {old_token}"})
+    assert old.status_code == 401
+    assert client.get("/api/v1/users/me", headers=_auth(email, "a-brand-new-password")).status_code == 200
+
+
+def test_an_admin_changing_a_role_does_not_log_the_user_out():
+    admin_email = _create_user(role="admin")
+    email = _create_user(role="user")
+    token = _token(email)
+
+    client.patch(f"/api/v1/users/{_user_id(email)}", headers=_auth(admin_email), json={"role": "admin"})
+
+    assert client.get("/api/v1/users/me", headers={"Authorization": f"Bearer {token}"}).status_code == 200
+
+
+def test_the_reset_password_script_logs_out_the_old_sessions():
+    email = _create_user()
+    old_token = _token(email)
+
+    result = _run_reset_password(email, "a-brand-new-password")
+
+    assert result.returncode == 0, result.stderr
+    old = client.get("/api/v1/users/me", headers={"Authorization": f"Bearer {old_token}"})
+    assert old.status_code == 401
+
+
+def test_a_token_from_before_versions_existed_still_works():
+    """Tokens issued before the upgrade carry no version; nobody is logged out by it."""
+    email = _create_user()
+    token = jwt.encode(
+        {"sub": str(_user_id(email)), "exp": datetime.now(UTC) + timedelta(hours=1)},
+        settings.secret_key,
+        algorithm="HS256",
+    )
+
+    assert client.get("/api/v1/users/me", headers={"Authorization": f"Bearer {token}"}).status_code == 200
+
+
+def test_a_malformed_token_is_a_401_not_a_500():
+    for claims in ({"sub": "not-a-number"}, {"sub": "1", "ver": "x"}):
+        token = jwt.encode(
+            {**claims, "exp": datetime.now(UTC) + timedelta(hours=1)},
+            settings.secret_key,
+            algorithm="HS256",
+        )
+
+        response = client.get("/api/v1/users/me", headers={"Authorization": f"Bearer {token}"})
+
+        assert response.status_code == 401
+
+
 def _run_create_user(email: str, password: str) -> subprocess.CompletedProcess:
     return subprocess.run(
         [sys.executable, "scripts/create_user.py", email],
@@ -305,6 +377,18 @@ def test_a_view_grant_allows_reading_but_not_managing():
         ).status_code
         == 403
     )
+
+
+def test_asking_allegro_again_about_a_label_or_pickup_needs_manage():
+    """Both write what Allegro answers, as the InPost refresh does, which needed manage already."""
+    email = _create_user(role="user", permissions=[PermissionGrant(area="labels", level="view")])
+    headers = _auth(email)
+
+    label = client.post(f"/api/v1/orders/{uuid.uuid4()}/labels/{uuid.uuid4()}/refresh", headers=headers)
+    pickup = client.post(f"/api/v1/pickups/{uuid.uuid4()}/refresh", headers=headers)
+
+    assert label.status_code == 403
+    assert pickup.status_code == 403
 
 
 def test_a_manage_grant_satisfies_a_view_requirement_too():

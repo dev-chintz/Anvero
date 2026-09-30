@@ -13,3 +13,4 @@ class Token(BaseModel):
 
 class TokenPayload(BaseModel):
     sub: int
+    ver: int = 0

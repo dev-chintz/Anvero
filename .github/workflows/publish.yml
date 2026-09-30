@@ -15,7 +15,15 @@ permissions:
 
 jobs:
   publish:
-    if: github.event.workflow_run.conclusion == 'success'
+    # Only a push to this repository's own main. The `branches` filter above
+    # compares the branch's name alone, and Checks also runs for pull requests
+    # from forks, so without these a fork's branch named main would be built
+    # and pushed as :latest, which the NAS's updater installs as root
+    # (DECISIONS.md, 2026-09-30, "Security audit").
+    if: >-
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'push' &&
+      github.event.workflow_run.head_repository.full_name == github.repository
     runs-on: ubuntu-latest
     timeout-minutes: 30
     strategy:

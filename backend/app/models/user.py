@@ -1,6 +1,6 @@
 from typing import TYPE_CHECKING
 
-from sqlalchemy import Boolean, DateTime, String, func
+from sqlalchemy import Boolean, DateTime, Integer, String, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
@@ -45,6 +45,16 @@ class User(Base):
         String(10),
         default=USER_ROLE,
         server_default=USER_ROLE,
+        nullable=False,
+    )
+
+    # Carried in every login token and compared on every request: raising it
+    # (a new password) makes every token issued before worthless, where they
+    # would otherwise live out their eight hours (DATABASE.md).
+    token_version: Mapped[int] = mapped_column(
+        Integer,
+        default=0,
+        server_default="0",
         nullable=False,
     )
 

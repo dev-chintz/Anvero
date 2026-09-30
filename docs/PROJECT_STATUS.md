@@ -46,7 +46,7 @@ folder, and one was restored from that copy into a scratch database as a test.
   remains the no-setup default for a fresh clone)
 - Health endpoint and first order model — done
 - Minimal order list interface — done
-- Automated tests for core flows — done (1042 backend, 621 frontend passing
+- Automated tests for core flows — done (1048 backend, 621 frontend passing
   across the suite as of 2026-09-29)
 
 ---
@@ -99,6 +99,11 @@ re-imported. Production needs its own application and authorization; see
 ---
 
 ## Not yet verified
+
+Security fixes (2026-09-30): tested; the nginx headers and forwarded address
+not yet run in the web container, and the publish workflow's new condition
+not yet exercised (the next push to `main` does). `SECRETS_KEY` on the NAS
+not confirmed set (`DECISIONS.md`, "Security audit").
 
 The Papier look (2026-09-30): tested, seen on the login page in light and dark;
 the pages behind the login not yet looked at in Papier.

@@ -42,4 +42,4 @@ class AuthService:
         if not user.is_active:
             raise _invalid_credentials
 
-        return Token(access_token=create_access_token(user.id))
+        return Token(access_token=create_access_token(user.id, user.token_version))
