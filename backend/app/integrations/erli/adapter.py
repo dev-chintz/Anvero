@@ -2,7 +2,11 @@ import logging
 from collections.abc import Iterator
 from datetime import datetime
 
-from app.integrations.base import IntegrationUnavailable
+from app.integrations.base import (
+    IntegrationAuthError,
+    IntegrationError,
+    IntegrationUnavailable,
+)
 from app.integrations.erli.billing import (
     is_known_other,
     map_billing_entry,
@@ -12,14 +16,21 @@ from app.integrations.erli.billing import (
 from app.integrations.erli.client import (
     BILLING_PAGE_SIZE,
     MAX_PAGE_SIZE,
+    PAYMENT_PAGE_SIZE,
     PAYOUT_PAGE_SIZE,
     ErliClient,
     erli_timestamp,
 )
 from app.integrations.erli.mapper import OrderMappingError, map_order
+from app.integrations.erli.payments import map_payment, map_payout_operation
 from app.integrations.mapping import KnownImages, attach_item_images
 from app.models.order import OrderSource
-from app.schemas.order import BillingEntryCreate, OrderCreate, PayoutCreate
+from app.schemas.order import (
+    BillingEntryCreate,
+    OrderCreate,
+    PaymentOperationCreate,
+    PayoutCreate,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -31,6 +42,9 @@ class ErliAdapter:
     """Erli's side of the MarketplaceAdapter protocol."""
 
     source = OrderSource.ERLI
+    # an order keeps the id of the payment that paid it (`payment.id`), which the payments read
+    # below name: so the import reads again, by id, paid orders stored before the id was kept
+    traces_payments = True
 
     def __init__(self, client: ErliClient | None = None, known_images: KnownImages | None = None):
         self._client = client or ErliClient()
@@ -126,6 +140,52 @@ class ErliAdapter:
             payouts.extend(p for p in (map_payout(item) for item in raw) if p is not None)
             if len(raw) < PAYOUT_PAGE_SIZE:
                 return payouts
+            last = raw[-1].get("id")
+            if not isinstance(last, int):
+                raise IntegrationUnavailable("Erli returned a full page of payouts without an id to continue from")
+            after_id = last
+        raise IntegrationUnavailable("Erli returned too many payouts; narrow the window and run it again")
+
+    def fetch_orders_by_id(self, external_ids: list[str]) -> list[OrderCreate]:
+        """The given orders as Erli has them now, one request each.
+
+        For orders Anvero still holds as open, and for paid ones stored before their payment's id
+        was kept. An order that cannot be read is skipped and logged; a refused request ends the
+        attempt, since every other would be refused the same way.
+        """
+        raw_orders: list[dict] = []
+        for external_id in external_ids:
+            try:
+                raw_orders.append(self._client.fetch_order(external_id))
+            except IntegrationAuthError:
+                raise
+            except IntegrationError as exc:
+                logger.warning("Erli order %s could not be read again: %s", external_id, exc)
+        return self._map(raw_orders)
+
+    def fetch_payment_operations(self, since: datetime) -> list[PaymentOperationCreate]:
+        """The buyers' payments completed since `since`, and the payouts made since then, as
+        payment operations (app/integrations/erli/payments.py), all pages. Raises rather than
+        returning part of them, so the caller does not record a read it did not make."""
+        operations: list[PaymentOperationCreate] = []
+        after_id: int | None = None
+        for _ in range(MAX_PAGES):
+            raw = self._client.search_payments(since, after_id, PAYMENT_PAGE_SIZE)
+            operations.extend(op for op in (map_payment(item) for item in raw) if op is not None)
+            if len(raw) < PAYMENT_PAGE_SIZE:
+                break
+            last = raw[-1].get("id")
+            if not isinstance(last, int):
+                raise IntegrationUnavailable("Erli returned a full page of payments without an id to continue from")
+            after_id = last
+        else:
+            raise IntegrationUnavailable("Erli returned too many payments; narrow the window and run it again")
+        after_id = None
+        for _ in range(MAX_PAGES):
+            raw = self._client.search_payouts(since, after_id, PAYOUT_PAGE_SIZE)
+            operations.extend(op for op in (map_payout_operation(item) for item in raw) if op is not None)
+            if len(raw) < PAYOUT_PAGE_SIZE:
+                return operations
             last = raw[-1].get("id")
             if not isinstance(last, int):
                 raise IntegrationUnavailable("Erli returned a full page of payouts without an id to continue from")

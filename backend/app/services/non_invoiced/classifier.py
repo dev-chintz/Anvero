@@ -31,11 +31,16 @@ from app.models.order import (
 )
 
 # Bumped whenever a rule changes, and kept on every classified row, so that a record made under
-# older rules can be told apart (the exemptions hold until 2027-12-31 at most).
-RULESET = "poz41-2024/1"
+# older rules can be told apart (the exemptions hold until 2027-12-31 at most). /2: Erli's sales are
+# classified by the same rules as Allegro's (stage 7).
+RULESET = "poz41-2024/2"
 
-# the payment operators through which a payment reaches the seller's bank account
-OPERATORS = frozenset({"PAYU", "P24", "AF"})
+# the payment operators through which a payment reaches the seller's bank account: Allegro's
+# (PayU, Przelewy24, Allegro Finance), and Erli, which collects through PayU and pays out to the
+# seller's bank account itself (app/integrations/erli/payments.py)
+OPERATORS = frozenset({"PAYU", "P24", "AF", "ERLI"})
+# the marketplaces the rules know how to read
+SOURCES = frozenset({OrderSource.ALLEGRO, OrderSource.ERLI})
 # the payment types that are neither cash nor deferred
 BANK_PAYMENT_TYPES = frozenset({PaymentType.ONLINE, PaymentType.BANK_TRANSFER})
 # the operation that is a buyer's payment arriving at the operator
@@ -201,7 +206,7 @@ def classify(facts: SaleFacts) -> Classification:
         return result(Category.PRIVATE_INVOICED, Reason.PRIVATE_INVOICE)
 
     # 5. what the rules cannot decide
-    if facts.source is not OrderSource.ALLEGRO:
+    if facts.source not in SOURCES:
         return result(Category.TO_REVIEW, Reason.SOURCE_NOT_SUPPORTED)
     if facts.status is OrderStatus.CANCELLED or facts.cancelled_on_marketplace:
         return result(Category.TO_REVIEW, Reason.CANCELLED_AFTER_PAYMENT)
@@ -227,6 +232,15 @@ def classify(facts: SaleFacts) -> Classification:
     return result(Category.EXEMPT_MAIL_ORDER, Reason.E41)
 
 
+def buyer_address(order: Order):
+    """The buyer's own address: Allegro names it apart (`buyer.address`); Erli names no buyer apart
+    from the delivery address (INTEGRATIONS.md, "Erli"), so for Erli that is the buyer's."""
+    address = order.address(AddressType.BUYER)
+    if address is None and order.source is OrderSource.ERLI:
+        address = order.address(AddressType.DELIVERY)
+    return address
+
+
 def facts_from_order(
     order: Order,
     operations: Iterable[PaymentOperation] = (),
@@ -242,7 +256,7 @@ def facts_from_order(
     surcharge_ids_found = frozenset(
         value for op in operations if op.type == SURCHARGE for value in (op.surcharge_id, op.payment_id) if value
     )
-    buyer_address = order.address(AddressType.BUYER)
+    buyer = buyer_address(order)
     invoice_address = order.address(AddressType.INVOICE)
     return SaleFacts(
         source=order.source,
@@ -264,9 +278,7 @@ def facts_from_order(
         delivery_country_code=order.delivery_country_code,
         buyer_first_name=order.customer_first_name,
         buyer_last_name=order.customer_last_name,
-        buyer_has_address=bool(
-            buyer_address is not None and buyer_address.street and buyer_address.city and buyer_address.postal_code
-        ),
+        buyer_has_address=bool(buyer is not None and buyer.street and buyer.city and buyer.postal_code),
         contribution_found=contribution_found,
         surcharge_ids_found=surcharge_ids_found,
         has_excluded_goods=any(item.offer_id in excluded_offer_ids for item in order.items if item.offer_id),

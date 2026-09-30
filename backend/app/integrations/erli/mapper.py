@@ -146,6 +146,9 @@ def _payment(order: dict[str, Any], total: Decimal) -> Payment:
         order.get("status")
     ) in ("purchased", "returned")
     return Payment(
+        # the payment's id, which Erli's payments name (app/integrations/erli/payments.py); Erli
+        # marks the order's `payment` deprecated, so an order without it is read as it was
+        id=text(obj(order.get("payment")).get("id")),
         type=PaymentType.ONLINE,
         provider="ERLI",
         paid_amount=total if paid else Decimal("0.00"),

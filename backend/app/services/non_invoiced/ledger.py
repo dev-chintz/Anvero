@@ -32,7 +32,6 @@ from sqlalchemy.orm import Session
 from app.core.config import settings
 from app.models.non_invoiced import PAYOUT_FIRST_AFTER, LedgerEntry, LedgerKind
 from app.models.order import (
-    AddressType,
     Order,
     OrderPayment,
     OrderPaymentKind,
@@ -40,13 +39,18 @@ from app.models.order import (
     PaymentOperation,
     PaymentType,
 )
-from app.repositories.non_invoiced_repository import PAYOUT, PAYOUT_CANCEL, NonInvoicedRepository
+from app.repositories.non_invoiced_repository import (
+    PAYOUT,
+    PAYOUT_CANCEL,
+    NonInvoicedRepository,
+)
 from app.schemas.types import _as_utc
 from app.services.non_invoiced.classifier import (
     CONTRIBUTION,
     SURCHARGE,
     Category,
     Classification,
+    buyer_address,
     classify,
     facts_from_order,
 )
@@ -240,7 +244,7 @@ def _traced(entry: LedgerEntry, payment: _Payment, payouts: list[PaymentOperatio
 
 
 def _new_sale(order: Order, payment: _Payment, classification: Classification) -> LedgerEntry:
-    buyer = order.address(AddressType.BUYER)
+    buyer = buyer_address(order)
     entry = LedgerEntry(
         kind=LedgerKind.SALE,
         event_key=payment.key,

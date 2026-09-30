@@ -69,7 +69,7 @@ def test_a_private_courier_order_paid_through_an_operator_is_exempt_under_poz_41
     assert result.in_report is True
 
 
-@pytest.mark.parametrize("provider", ["PAYU", "P24", "AF", "af"])
+@pytest.mark.parametrize("provider", ["PAYU", "P24", "AF", "af", "ERLI"])
 def test_every_payment_operator_counts(provider):
     assert _decided(payment_provider=provider) == (Category.EXEMPT_MAIL_ORDER, Reason.E41)
 
@@ -169,7 +169,6 @@ def test_an_invoice_does_not_hide_a_cash_payment():
 @pytest.mark.parametrize(
     "changes, reason",
     [
-        ({"source": OrderSource.ERLI}, Reason.SOURCE_NOT_SUPPORTED),
         ({"status": OrderStatus.CANCELLED}, Reason.CANCELLED_AFTER_PAYMENT),
         ({"cancelled_on_marketplace": True}, Reason.CANCELLED_AFTER_PAYMENT),
         ({"delivery_country_code": "DE"}, Reason.FOREIGN_DELIVERY),
@@ -192,6 +191,22 @@ def test_an_invoice_does_not_hide_a_cash_payment():
 )
 def test_what_the_rules_cannot_decide_is_left_to_a_person(changes, reason):
     assert _decided(**changes) == (Category.TO_REVIEW, reason)
+
+
+def test_an_erli_sale_is_judged_by_the_same_rules():
+    # Erli collects the money through PayU and pays it out to the seller's bank account itself
+    erli = {"source": OrderSource.ERLI, "payment_provider": "ERLI"}
+
+    assert _decided(**erli) == (Category.EXEMPT_MAIL_ORDER, Reason.E41)
+    assert _decided(**erli, contribution_found=False) == (Category.TO_REVIEW, Reason.NO_CONTRIBUTION)
+    assert _decided(**erli, payment_type=PaymentType.CASH_ON_DELIVERY) == (Category.NEEDS_REGISTER, Reason.CASH_PART)
+
+
+def test_a_marketplace_the_rules_do_not_know_is_left_to_a_person():
+    class Other:
+        value = "OTHER"
+
+    assert _decided(source=Other()) == (Category.TO_REVIEW, Reason.SOURCE_NOT_SUPPORTED)
 
 
 def test_a_delivery_with_no_country_recorded_is_not_taken_for_a_foreign_one():
@@ -280,6 +295,18 @@ def test_the_recipients_address_is_not_the_buyers(session):
     session.commit()
 
     assert classify(facts_from_order(order, [_contribution(session, "pay-o-1")])).reason is Reason.MISSING_BUYER_DATA
+
+
+def test_an_erli_buyer_is_named_by_the_delivery_address(session):
+    # Erli names no buyer apart from the delivery address (INTEGRATIONS.md, "Erli")
+    order = _order(session, source=OrderSource.ERLI, payment_provider="ERLI")
+    order.addresses = [a for a in order.addresses if a.type is not AddressType.BUYER]
+    session.commit()
+
+    facts = facts_from_order(order, [_contribution(session, "pay-o-1", source=OrderSource.ERLI, wallet_operator="PAYU")])
+
+    assert facts.buyer_has_address is True
+    assert classify(facts).category is Category.EXEMPT_MAIL_ORDER
 
 
 def test_an_offer_flagged_as_excluded_goods_marks_the_order(session):

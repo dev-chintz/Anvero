@@ -282,6 +282,17 @@ Each stage is committed and pushed on its own, with its tests, and the contracts
 6. **The first real month.** September 2026 produced and compared with Allegro's payout report and
    with what the accountant received before; any difference explained before the report is used.
 7. **Erli.** Its buyer, payment and payout fields checked against its API, then the same classifier.
+   *Built 2026-10-01*, from Erli's published API description (read that day; never run against the
+   real service yet). Erli collects the buyer's money itself, through PayU, and pays it out to the
+   seller's bank account, so a paid Erli sale is judged by the same rules as Allegro's (rule set
+   `poz41-2024/2`, which adds `ERLI` to the operators): its payment's id is the order's
+   `payment.id`, its `CONTRIBUTION` a completed payment from `POST /payments/operations/_search`
+   (`type` `payment`, amount in złoty, `orderIds`), and its payout the first of Erli's payouts
+   after it, read as `PAYOUT` operations. Erli names no buyer apart from the delivery address, so
+   that is the buyer's address for poz. 41 (`buyer_address` in the classifier). The paid orders
+   stored before the id was kept are read again by id (`GET /orders/{id}`), as Allegro's were.
+   Not yet: Erli's refunds (its return operations), so a returned Erli sale gets no correction
+   until they are read; `INTEGRATIONS.md`, "Erli", "Payments".
 8. **The old report removed.** Its page, API and `sales_report_overrides` dropped, the docs brought
    up to date.
 

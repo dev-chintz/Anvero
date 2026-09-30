@@ -100,6 +100,12 @@ re-imported. Production needs its own application and authorization; see
 
 ## Not yet verified
 
+Erli's payments for the non-invoiced record (2026-10-01): built from Erli's API
+description, tested against fakes, never read from the real service. The first
+import after the update should store `CONTRIBUTION` and `PAYOUT` operations of
+source `ERLI`, give the Erli orders their payment ids, and move the eleven Erli
+sales out of `TO_REVIEW`.
+
 The Users and Updates tabs (2026-10-01): tested, not yet opened in a browser
 (the owner's login), nor an account saved or an update installed since.
 

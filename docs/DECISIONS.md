@@ -2275,3 +2275,12 @@ row's override note is erased with the buyer, as it may name them. Not yet run o
 
 **Verified:** frontend tests (622) and `tsc`; the login page seen in a browser (the show/hide button switches the field, no console errors). Users and Updates not seen: they need the owner's login.
 
+
+## 2026-10-01 — Erli's sales in the non-invoiced record
+
+**Decision (owner: "do the missing stages"):** Erli's paid sales are classified by the same poz. 41 rules as Allegro's, instead of all waiting for a person (`SOURCE_NOT_SUPPORTED`). Erli collects the buyer's money through PayU and pays it out to the seller's bank account itself, so `ERLI` counts as a payment operator; the proof of a payment is Erli's own completed payment naming the order, and its payout the first Erli payout after it. Erli names no buyer apart from the delivery address, so that address is the buyer's for poz. 41. Rule set `poz41-2024/2`.
+
+**Rationale:** A `TO_REVIEW` row blocks handing a report over (NON_INVOICED_SALES.md, 4c), so without this every month with an Erli sale could not be handed over. Erli's API does give what poz. 41 needs: which payment paid which order, through which operator, and the payouts.
+
+**Consequences:** Built from Erli's API description; the first import on the NAS after the update must show the payments read (`payment_operations` rows of source `ERLI`) and the eleven Erli sales of August and September moving from `TO_REVIEW` to their categories. Erli's refunds are not read yet, so a returned Erli sale has no correction until they are.
+

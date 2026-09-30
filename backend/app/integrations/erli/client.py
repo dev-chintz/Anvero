@@ -30,6 +30,8 @@ MAX_PAGE_SIZE = 200
 # and for one page of its billing account, and of payouts
 BILLING_PAGE_SIZE = 500
 PAYOUT_PAGE_SIZE = 200
+# and of the buyers' payments
+PAYMENT_PAGE_SIZE = 200
 
 
 def erli_timestamp(value: datetime) -> str:
@@ -154,6 +156,37 @@ class ErliClient:
         if not isinstance(payload, list):
             raise IntegrationUnavailable("Erli payouts did not return a list")
         return [item for item in payload if isinstance(item, dict)]
+
+    def search_payments(
+        self, since: datetime, after_id: int | None = None, limit: int = PAYMENT_PAGE_SIZE
+    ) -> list[dict[str, Any]]:
+        """One page of the buyers' payments completed since `since`, by id ascending.
+
+        `/payments/operations/_search` with `type` `payment`: Erli marks `/payments/_search` and an
+        order's own `payment` as deprecated in favour of it (app/integrations/erli/payments.py).
+        """
+        pagination: dict[str, Any] = {"sortField": "id", "order": "ASC", "limit": limit}
+        if after_id is not None:
+            pagination["after"] = after_id
+        payload = self._post(
+            "/payments/operations/_search",
+            {
+                "type": "payment",
+                "pagination": pagination,
+                "filter": {"field": "completedAt", "operator": ">=", "value": erli_timestamp(since)},
+            },
+            "Erli payments",
+        )
+        if not isinstance(payload, list):
+            raise IntegrationUnavailable("Erli payments did not return a list")
+        return [item for item in payload if isinstance(item, dict)]
+
+    def fetch_order(self, order_id: str) -> dict[str, Any]:
+        """One order as Erli has it now (`GET /orders/{id}`)."""
+        payload = self._request("GET", f"/orders/{quote(order_id, safe='')}", None, "Erli order")
+        if not isinstance(payload, dict):
+            raise IntegrationUnavailable("Erli order did not return an object")
+        return payload
 
     def _post(self, path: str, body: dict[str, Any], what: str) -> Any:
         return self._request("POST", path, body, what)

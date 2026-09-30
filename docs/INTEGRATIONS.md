@@ -827,6 +827,24 @@ On the owner's account, everything read from 31 July to 26 September: fees
 205.30 zł, taken from the proceeds 205.30 zł. The first read went back 120
 days by hand; later imports resume from the sync point.
 
+### Payments (for the non-invoiced sales record)
+
+**Built 2026-10-01 from Erli's published API description only; not yet seen on the real
+service.** After the payouts, an import reads (`app/integrations/erli/payments.py`):
+
+- `POST /payments/operations/_search` with `{"type": "payment", "filter": {"field":
+  "completedAt", "operator": ">=", …}}`, by `id` ascending, 200 a page: the buyers' payments. A
+  `COMPLETED` one is stored as a `CONTRIBUTION` payment operation named by its `id`; its `amount`
+  is in **złoty** (Erli's description says so, unlike the grosze of orders and payouts),
+  `operator` is `PAYU`. Erli marks `/payments/_search` and the order's own `payment` deprecated in
+  favour of this search.
+- the payouts again (`/payments/payouts/_search`), each also stored as a `PAYOUT` operation of the
+  same operator, so a payment is tied to its payout as Allegro's are (`NON_INVOICED_SALES.md`, 4d).
+
+The order keeps `payment.id` as its payment's id. Paid orders stored before that are read again by
+id (`GET /orders/{id}`), up to a hundred per import, and so are the orders Anvero still holds as
+open. Refunds (Erli's return operations) are not read yet.
+
 ### Status mapping
 
 Erli's `status` covers buying (`pending`, `purchased`, `cancelled`,
