@@ -14,7 +14,9 @@ import '../styles/SettingsPage.css';
 // Settings holds what belongs to the application itself and, in a tab of its own, everything that
 // connects it to a marketplace or a carrier. Its last tab is the application's status: looked at
 // when something is wrong, not every day, so it has no place in the menu; the users tab exists
-// only for an administrator, who is the only one who can act on it (API.md, "Users").
+// only for an administrator, who is the only one who can act on it (API.md, "Users"). Laid out for a
+// monitor turned upright: safe mode first, theme and language as segmented choices, the integration
+// tiles in one row (DECISIONS.md, 2026-09-30, "The settings page").
 
 type Tab = 'general' | 'integrations' | 'users' | 'updates' | 'status';
 const TABS: Tab[] = ['general', 'integrations', 'users', 'updates', 'status'];
@@ -102,6 +104,21 @@ export const Settings: React.FC<SettingsProps> = ({ isDarkMode, onThemeToggle, l
         </div>
       ) : (
       <div className="settings-grid" role="tabpanel" id="settings-panel-general" aria-labelledby="settings-tab-general">
+      <section
+        className={`settings-section card ${safeMode && !safeMode.enabled ? 'tone-amber' : 'tone-green'}`}
+        aria-label={t('safeMode.title')}
+      >
+        <div className="card-head">
+          <h2>{t('safeMode.title')}</h2>
+          {safeMode && (
+            <span className={`state-chip ${safeMode.enabled ? 'is-on' : 'is-off'}`}>
+              <span className="status-dot" aria-hidden="true" />
+              {safeMode.enabled ? t('safeMode.chipOn') : t('safeMode.chipOff')}
+            </span>
+          )}
+        </div>
+        <SafeModeSettings />
+      </section>
       <section className="settings-section card tone-blue" aria-label={t('settings.appearanceCard')}>
         <h2>{t('settings.appearanceCard')}</h2>
         <SettingRow title={t('settings.look')} help={t('settings.lookHelp')}>
@@ -122,48 +139,40 @@ export const Settings: React.FC<SettingsProps> = ({ isDarkMode, onThemeToggle, l
           </div>
         </SettingRow>
         <SettingRow title={t('settings.theme')} help={t('settings.themeHelp')}>
-          <select
-            aria-label={t('settings.theme')}
-            value={isDarkMode ? 'dark' : 'light'}
-            onChange={(e) => {
-              // the page knows only how to flip the theme, so it is flipped only when the choice differs
-              if ((e.target.value === 'dark') !== isDarkMode) onThemeToggle();
-            }}
-          >
-            <option value="light">{t('settings.themeLight')}</option>
-            <option value="dark">{t('settings.themeDark')}</option>
-          </select>
+          <div className="segmented" role="radiogroup" aria-label={t('settings.theme')}>
+            {(['light', 'dark'] as const).map((mode) => (
+              <button
+                key={mode}
+                type="button"
+                role="radio"
+                aria-checked={(mode === 'dark') === isDarkMode}
+                onClick={() => {
+                  // the page knows only how to flip the theme, so it is flipped only when the choice differs
+                  if ((mode === 'dark') !== isDarkMode) onThemeToggle();
+                }}
+              >
+                {t(mode === 'dark' ? 'settings.themeDark' : 'settings.themeLight')}
+              </button>
+            ))}
+          </div>
         </SettingRow>
         <SettingRow title={t('settings.language')} help={t('settings.languageHelp')}>
-          <select
-            aria-label={t('settings.language')}
-            value={language}
-            onChange={(e) => setLanguage(e.target.value as Language)}
-          >
-            {LANGUAGES.map((code) => (
-              <option key={code} value={code}>
+          <div className="segmented" role="radiogroup" aria-label={t('settings.language')}>
+            {LANGUAGES.map((code: Language) => (
+              <button
+                key={code}
+                type="button"
+                role="radio"
+                aria-checked={language === code}
+                onClick={() => setLanguage(code)}
+              >
                 {languageName(code)}
-              </option>
+              </button>
             ))}
-          </select>
+          </div>
         </SettingRow>
       </section>
 
-      <section
-        className={`settings-section card ${safeMode && !safeMode.enabled ? 'tone-amber' : 'tone-green'}`}
-        aria-label={t('safeMode.title')}
-      >
-        <div className="card-head">
-          <h2>{t('safeMode.title')}</h2>
-          {safeMode && (
-            <span className={`state-chip ${safeMode.enabled ? 'is-on' : 'is-off'}`}>
-              <span className="status-dot" aria-hidden="true" />
-              {safeMode.enabled ? t('safeMode.chipOn') : t('safeMode.chipOff')}
-            </span>
-          )}
-        </div>
-        <SafeModeSettings />
-      </section>
       </div>
       )}
     </div>

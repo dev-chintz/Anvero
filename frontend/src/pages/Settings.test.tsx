@@ -65,8 +65,8 @@ describe("Settings page", () => {
 
     const card = screen.getByRole("region", { name: "Appearance and language" });
     expect(within(card).getByRole("radiogroup", { name: "Style" })).toBeInTheDocument();
-    expect(within(card).getByRole("combobox", { name: "Mode" })).toBeInTheDocument();
-    expect(within(card).getByRole("combobox", { name: "Language" })).toBeInTheDocument();
+    expect(within(card).getByRole("radiogroup", { name: "Mode" })).toBeInTheDocument();
+    expect(within(card).getByRole("radiogroup", { name: "Language" })).toBeInTheDocument();
     expect(within(card).getByText("Light or dark, in either style. Saved in this browser.")).toBeInTheDocument();
     expect(within(card).getByText("The language of the interface. Saved in this browser.")).toBeInTheDocument();
   });
@@ -96,12 +96,13 @@ describe("Settings page", () => {
     expect(screen.getByRole("region", { name: "Safe mode" })).toHaveClass("tone-amber");
   });
 
-  it("puts the two cards side by side, in one grid across the page", () => {
+  it("puts the safe mode first, then the appearance, in one column", () => {
     renderIt();
 
     const grid = document.querySelector(".settings-grid") as HTMLElement;
-    expect(within(grid).getByRole("region", { name: "Appearance and language" })).toBeInTheDocument();
-    expect(within(grid).getByRole("region", { name: "Safe mode" })).toBeInTheDocument();
+    const cards = within(grid).getAllByRole("region");
+    expect(cards[0]).toHaveAccessibleName("Safe mode");
+    expect(cards[1]).toHaveAccessibleName("Appearance and language");
   });
 
   it("says nothing of it until the server has answered", () => {
@@ -131,15 +132,15 @@ describe("the appearance choice", () => {
   it("shows the theme now in use", () => {
     renderIt({ isDarkMode: true });
 
-    expect(screen.getByRole("combobox", { name: "Mode" })).toHaveValue("dark");
+    const mode = screen.getByRole("radiogroup", { name: "Mode" });
+    expect(within(mode).getByRole("radio", { name: "Dark" })).toHaveAttribute("aria-checked", "true");
+    expect(within(mode).getByRole("radio", { name: "Light" })).toHaveAttribute("aria-checked", "false");
   });
 
   it("switches the theme when the other one is chosen", () => {
     const { onThemeToggle } = renderIt({ isDarkMode: false });
 
-    fireEvent.change(screen.getByRole("combobox", { name: "Mode" }), {
-      target: { value: "dark" },
-    });
+    fireEvent.click(screen.getByRole("radio", { name: "Dark" }));
 
     expect(onThemeToggle).toHaveBeenCalledTimes(1);
   });
@@ -147,9 +148,7 @@ describe("the appearance choice", () => {
   it("does nothing when the theme already in use is chosen again", () => {
     const { onThemeToggle } = renderIt({ isDarkMode: false });
 
-    fireEvent.change(screen.getByRole("combobox", { name: "Mode" }), {
-      target: { value: "light" },
-    });
+    fireEvent.click(screen.getByRole("radio", { name: "Light" }));
 
     expect(onThemeToggle).not.toHaveBeenCalled();
   });

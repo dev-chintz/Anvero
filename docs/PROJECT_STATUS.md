@@ -100,6 +100,9 @@ re-imported. Production needs its own application and authorization; see
 
 ## Not yet verified
 
+The settings page (2026-09-30): tested, its new pieces seen on the real
+stylesheets, the page itself not yet opened in a browser (the owner's login).
+
 The sales report page's layout (2026-09-30): tested, not yet opened in a
 browser (the owner's login), nor an override made from the new in-row panel.
 

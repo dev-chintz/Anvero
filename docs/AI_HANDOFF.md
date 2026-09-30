@@ -181,7 +181,10 @@ with theme and language as segmented controls instead of drop-downs; on
 Integrations, the import interval as one line, the four tiles in one row
 instead of three and a wrapped fourth, and the chosen integration's panel as
 label-and-field rows) next to today's. Users, Updates and Status are left as
-they are. Waiting for the owner's verdict.
+they are. Chosen and built (`DECISIONS.md`, 2026-09-30, "The settings
+page"), tested, not yet seen in a browser. That was the last screen: every
+page of the app has now been through Claude Design. Still open from the pass:
+re-sync the design system from the code (it shows the old solid badges).
 
 A **second look** is on https://claude.ai/artifact/1tJfJmnRK6JXpe4dJzNSRy:
 three directions for the order list, the owner's pick ("Papier": cream,

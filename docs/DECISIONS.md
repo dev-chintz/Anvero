@@ -2228,3 +2228,14 @@ row's override note is erased with the buyer, as it may name them. Not yet run o
 
 **Verified:** frontend tests (622) and `tsc`. Not seen in a browser: it needs the owner's login.
 
+
+## 2026-09-30 — The settings page
+
+**Decision (owner, from the Claude Design canvas https://claude.ai/artifact/TSxRFceDAPU3vsT9LZg3DE):** Settings' tabs are underlined like every other page's. On General, safe mode comes first and look and language second, in one column; the theme (light, dark) and the language are segmented choices (radio groups) instead of drop-downs, and the safe mode's log is in denser rows. On Integrations, the four tiles sit in one row from 769px up (at 1080px there used to be three and a fourth wrapped), lower, with their summaries cut to one line; the Allegro, Erli and InPost forms put each label beside its field from 641px up, a note under the field.
+
+**Rationale:** Safe mode is the one setting on General that changes what reaches buyers; look and language are set once. Two options fit a segmented control better than a drop-down.
+
+**Consequences:** The canvas also showed the safe mode's switch in the card's head, the log open and the seller account above the application's keys; those were left as they are (the switch and its confirmation stay together in the card, the log stays folded as it holds 20 lines). Users, Updates and Status are unchanged.
+
+**Verified:** frontend tests (622) and `tsc`; the tabs, the segmented control, the four tiles and the label-beside-field rows seen in a browser at 1080px on the real stylesheets with static markup. The page itself not seen: it needs the owner's login.
+

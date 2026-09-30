@@ -6,6 +6,12 @@ All significant changes to the Anvero project.
 
 ## 2026-09-30
 
+### ⚙️ The settings page
+
+- Tabs underlined, safe mode first, theme and language as segmented choices, the integration tiles in
+  one row and their forms as label-beside-field rows. Designed in Claude Design. This was the last
+  screen of the Claude Design pass. See `docs/DECISIONS.md`.
+
 ### 🧮 The sales report page
 
 - The counts as tiles that filter, what needs review first in its own card, a row that opens in
