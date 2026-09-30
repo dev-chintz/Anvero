@@ -26,7 +26,6 @@
 
 .order-header .order-page-title {
   margin: 0;
-  font-size: 1.5rem;
 }
 
 .order-header-buyer {
@@ -596,8 +595,9 @@ button.attention-chip {
    what reads at a glance. */
 /* the page's title and who it is for */
 .order-header .order-page-title {
-  font-size: 1.5rem;
-  font-weight: 700;
+  font-family: var(--font-heading);
+  font-size: var(--page-title-size);
+  font-weight: var(--page-title-weight);
   color: var(--color-heading);
 }
 

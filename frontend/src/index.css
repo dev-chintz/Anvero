@@ -10,6 +10,12 @@
   /* the backdrop of the order page, under its white cards */
   --color-canvas: #eef0f3;
   --radius: 8px;
+  --radius-card: 10px;
+  --font-body: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-heading: var(--font-body);
+  --page-title-size: 1.5rem;
+  --page-title-weight: 700;
+  --card-title-weight: 700;
   --color-scheme: light;
 
   /*
@@ -85,6 +91,9 @@
   --color-badge-warning: #c2410c;
   --color-status-off: #9ca3af;
   --channel-inpost-on: #3d3200;
+  /* each look's accent, marking its choice in Settings whichever look is on */
+  --look-classic-mark: #0d7377;
+  --look-papier-mark: #a8481f;
 
   /* the menu (Sidebar.css) */
   --color-nav-bg: var(--color-surface-alt);
@@ -198,6 +207,108 @@
   --notice-update-fg: #9fdcdc;
 }
 
+/* The Papier look (Settings, "Style"; DECISIONS.md 2026-09-30): warm cream, a brick accent,
+   Fraunces titles over Instrument Sans. Only values change, never the layout. A look is a class
+   on the root (App.tsx) and weighs the same as .dark, so it comes after it, and Papier's dark
+   values carry both classes to win over both. What Papier does not set stays classic. */
+:root.look-papier {
+  --font-body: "Instrument Sans", system-ui, sans-serif;
+  --font-heading: "Fraunces", Georgia, serif;
+  --page-title-size: 2rem;
+  --page-title-weight: 500;
+  --card-title-weight: 600;
+  --radius: 10px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-card: 16px;
+
+  --color-text: #231f1a;
+  --color-muted: #5f574d;
+  --color-muted-strong: #4a4239;
+  --color-heading: #1c1814;
+  --color-border: #e0d6c5;
+  --color-divider: #ece4d6;
+  --color-bg: #fffdf8;
+  --color-canvas: #f5f0e6;
+  --color-surface-alt: #f3ede2;
+  --color-accent: #a8481f;
+  --color-primary: #a8481f;
+  --color-accent-deep: #a8481f;
+  --color-accent-hover: #8a3a18;
+  --color-on-accent: #fffdf8;
+
+  --color-nav-bg: #ece5d8;
+  --color-nav-border: #e0d6c5;
+  --color-nav-fg: #4a4239;
+  --color-nav-hover-bg: #e4dccd;
+  --color-nav-hover-fg: #a8481f;
+  --color-nav-active-bg: #fffdf8;
+  --color-nav-active-fg: #231f1a;
+  --color-nav-badge-bg: #ddd2bf;
+  --color-nav-badge-fg: #4a4239;
+
+  --tone-blue-bg: #e3e9f2;
+  --tone-blue-fg: #2c4a73;
+  --tone-teal-bg: #dfede6;
+  --tone-teal-fg: #1f5a46;
+  --tone-green-bg: #e3ecd9;
+  --tone-green-fg: #3a5622;
+  --tone-red-bg: #f4dfd8;
+  --tone-red-fg: #8a2e1c;
+  --tone-amber-bg: #f5e7cf;
+  --tone-amber-fg: #734a0e;
+  --tone-violet-bg: #ebe4f2;
+  --tone-violet-fg: #553a78;
+
+  --notice-update-bg: #f6e4d6;
+  --notice-update-border: #e7c3aa;
+  --notice-update-fg: #7a3416;
+}
+
+:root.look-papier.dark {
+  --color-text: #f1e9dc;
+  --color-muted: #b3a795;
+  --color-muted-strong: #d6cbb9;
+  --color-heading: #fbf5ea;
+  --color-border: #3a332b;
+  --color-divider: #332d26;
+  --color-bg: #25211c;
+  --color-canvas: #1b1814;
+  --color-surface-alt: #2c2721;
+  --color-accent: #e07a4a;
+  --color-primary: #e07a4a;
+  --color-accent-deep: #b4532a;
+  --color-accent-hover: #eb8f63;
+  --color-on-accent: #1b1814;
+
+  --color-nav-bg: #15120f;
+  --color-nav-border: #2a251f;
+  --color-nav-fg: #d6cbb9;
+  --color-nav-hover-bg: #221e19;
+  --color-nav-hover-fg: #f1e9dc;
+  --color-nav-active-bg: #2c2721;
+  --color-nav-active-fg: #fbf5ea;
+  --color-nav-badge-bg: #3a332b;
+  --color-nav-badge-fg: #d6cbb9;
+
+  --tone-blue-bg: #26344a;
+  --tone-blue-fg: #b9cdf0;
+  --tone-teal-bg: #1f3a31;
+  --tone-teal-fg: #a9dcc6;
+  --tone-green-bg: #2a3820;
+  --tone-green-fg: #c4dca8;
+  --tone-red-bg: #45231b;
+  --tone-red-fg: #f0b3a3;
+  --tone-amber-bg: #3d3018;
+  --tone-amber-fg: #f0d49a;
+  --tone-violet-bg: #33294a;
+  --tone-violet-fg: #d3c2f0;
+
+  --notice-update-bg: #3a2217;
+  --notice-update-border: #6e3219;
+  --notice-update-fg: #f0b89a;
+}
+
 * {
   box-sizing: border-box;
 }
@@ -208,7 +319,7 @@ html {
 
 body {
   margin: 0;
-  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font-family: var(--font-body);
   color: var(--color-text);
   font-size: 0.875rem;
   background: var(--color-canvas);

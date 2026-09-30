@@ -10,6 +10,14 @@ A light grey canvas under white, rounded cards. A card's title is a band tinted 
 is. Text is 14px in a dark ink, with small labels in bold capitals and values in medium or semibold
 weight. One teal accent. Buttons, fields and dropdowns look the same everywhere.
 
+## Two looks
+
+Anvero has two looks, picked in Settings: Classic (below) and Papier (warm cream, a brick accent,
+Fraunces titles over Instrument Sans, larger radii). A look is only a set of variable values
+(`:root.look-papier` and `:root.look-papier.dark` in `index.css`); the layout, spacing and parts
+are the same in both. So a page never writes a colour, a font or a card radius itself: it uses the
+variable, and must look right in all four combinations of look and mode.
+
 ## Colour
 
 | Token | Light | Use |

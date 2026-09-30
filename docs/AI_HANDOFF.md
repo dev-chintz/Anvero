@@ -62,7 +62,7 @@ Repository: <https://github.com/dev-chintz/Anvero>
   scope). Full detail in `DECISIONS.md` and `CHANGELOG.md`.
 - Order page (2026-09-29): status picker in the header, payment folded,
   Allegro Smart badge (`DECISIONS.md`)
-- 1042 backend tests and 616 frontend tests (Vitest + React Testing Library)
+- 1042 backend tests and 621 frontend tests (Vitest + React Testing Library)
   passing
 
 ---
@@ -166,7 +166,9 @@ three directions for the order list, the owner's pick ("Papier": cream,
 brick accent, serif titles) drawn for every menu, and Settings with a style
 switch beside light/dark, the layout the same in both looks. First step done
 (`DECISIONS.md`, 2026-09-30, "Every colour in the stylesheets is a
-variable"); next is the switch in Settings and Papier's set of values.
+variable"), then the Style choice in Settings with Papier's values
+(2026-09-30, "A second look, chosen in Settings"); Papier is not yet looked at
+behind the login.
 
 The order page's round two (status in
 the header, payment folded, Smart badge) was seen by the owner in the browser

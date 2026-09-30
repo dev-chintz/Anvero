@@ -65,6 +65,71 @@
   }
 }
 
+/* ---- The style: each look as a choice drawn in its own accent and title face ---- */
+.look-choice {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.look-option {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.15rem;
+  width: 13rem;
+  padding: 0.6rem 0.8rem;
+  text-align: left;
+}
+
+.look-option.is-on {
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 1px var(--color-accent);
+}
+
+.look-option-name {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  color: var(--color-heading);
+  font-weight: 600;
+}
+
+.look-option-name::before {
+  content: "";
+  width: 0.7rem;
+  height: 0.7rem;
+  border-radius: 50%;
+  background: var(--look-mark);
+}
+
+.look-option-classic {
+  --look-mark: var(--look-classic-mark);
+}
+
+.look-option-papier {
+  --look-mark: var(--look-papier-mark);
+}
+
+.look-option-papier .look-option-name {
+  font-family: "Fraunces", Georgia, serif;
+}
+
+.look-option-help {
+  color: var(--color-muted);
+  font-size: 0.8rem;
+  font-weight: 400;
+}
+
+@media (max-width: 640px) {
+  .look-choice {
+    flex-direction: column;
+  }
+
+  .look-option {
+    width: auto;
+  }
+}
+
 /* ---- Safe mode: the log is for looking things up, so it folds away ---- */
 .safe-mode-fold {
   margin-top: 0.75rem;

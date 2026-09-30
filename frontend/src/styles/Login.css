@@ -30,7 +30,9 @@
 
 .login-card h1 {
   margin: 0.25rem 0 1rem;
-  font-size: 1.5rem;
+  font-family: var(--font-heading);
+  font-size: var(--page-title-size);
+  font-weight: var(--page-title-weight);
   color: var(--color-text);
 }
 

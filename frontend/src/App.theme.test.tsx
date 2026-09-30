@@ -7,7 +7,7 @@ import App from "./App";
 
 beforeEach(() => {
   localStorage.clear();
-  document.documentElement.classList.remove("dark");
+  document.documentElement.classList.remove("dark", "look-papier");
   window.history.pushState({}, "", "/login");
 });
 
@@ -44,5 +44,32 @@ describe("the theme", () => {
 
     expect(document.documentElement.classList.contains("dark")).toBe(true);
     expect(document.documentElement.style.colorScheme).toBe("dark");
+  });
+});
+
+describe("the style", () => {
+  it("is classic on a first visit", () => {
+    render(<App />);
+
+    expect(document.documentElement.classList.contains("look-papier")).toBe(false);
+    expect(localStorage.getItem("theme-look")).toBe("classic");
+  });
+
+  it("is Papier once chosen, in either mode", () => {
+    localStorage.setItem("theme-look", "papier");
+    localStorage.setItem("theme-mode", "dark");
+
+    render(<App />);
+
+    expect(document.documentElement.classList.contains("look-papier")).toBe(true);
+    expect(document.documentElement.classList.contains("dark")).toBe(true);
+  });
+
+  it("falls back to classic for a value it does not know", () => {
+    localStorage.setItem("theme-look", "neon");
+
+    render(<App />);
+
+    expect(document.documentElement.classList.contains("look-papier")).toBe(false);
   });
 });

@@ -6,6 +6,12 @@ All significant changes to the Anvero project.
 
 ## 2026-09-30
 
+### 📜 A second look: Papier
+
+- Settings has a Style choice, Classic or Papier (warm cream, a brick accent, serif titles), in
+  light and dark alike. Only colours, type and corners change; every page keeps its layout. The
+  fonts are bundled, not loaded from Google. See `docs/DECISIONS.md`.
+
 ### 🎨 Every colour is a variable
 
 - The 136 colours the stylesheets still wrote directly are variables in `index.css`, the first step

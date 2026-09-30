@@ -46,7 +46,7 @@ folder, and one was restored from that copy into a scratch database as a test.
   remains the no-setup default for a fresh clone)
 - Health endpoint and first order model — done
 - Minimal order list interface — done
-- Automated tests for core flows — done (1042 backend, 616 frontend passing
+- Automated tests for core flows — done (1042 backend, 621 frontend passing
   across the suite as of 2026-09-29)
 
 ---
@@ -99,6 +99,9 @@ re-imported. Production needs its own application and authorization; see
 ---
 
 ## Not yet verified
+
+The Papier look (2026-09-30): tested, seen on the login page in light and dark;
+the pages behind the login not yet looked at in Papier.
 
 Colours as variables (2026-09-30): checked by script and on the login page in
 both modes; the pages behind the login not yet looked at in dark mode, where

@@ -21,12 +21,18 @@ const TABS: Tab[] = ['general', 'integrations', 'users', 'updates', 'status'];
 // what only an administrator can act on, and so only one sees
 const ADMIN_TABS: Tab[] = ['users', 'updates'];
 
+/** The application's look: its colours, type and radii; the layout is the same in both. */
+export type Look = 'classic' | 'papier';
+const LOOKS: Look[] = ['classic', 'papier'];
+
 interface SettingsProps {
   isDarkMode: boolean;
   onThemeToggle: () => void;
+  look: Look;
+  onLookChange: (look: Look) => void;
 }
 
-export const Settings: React.FC<SettingsProps> = ({ isDarkMode, onThemeToggle }) => {
+export const Settings: React.FC<SettingsProps> = ({ isDarkMode, onThemeToggle, look, onLookChange }) => {
   const { t, language, setLanguage } = useTranslation();
   const { safeMode } = useSafeMode();
   const { user } = useAuth();
@@ -98,6 +104,23 @@ export const Settings: React.FC<SettingsProps> = ({ isDarkMode, onThemeToggle })
       <div className="settings-grid" role="tabpanel" id="settings-panel-general" aria-labelledby="settings-tab-general">
       <section className="settings-section card tone-blue" aria-label={t('settings.appearanceCard')}>
         <h2>{t('settings.appearanceCard')}</h2>
+        <SettingRow title={t('settings.look')} help={t('settings.lookHelp')}>
+          <div className="look-choice" role="radiogroup" aria-label={t('settings.look')}>
+            {LOOKS.map((id) => (
+              <button
+                key={id}
+                type="button"
+                role="radio"
+                aria-checked={look === id}
+                className={`look-option look-option-${id}${look === id ? ' is-on' : ''}`}
+                onClick={() => onLookChange(id)}
+              >
+                <span className="look-option-name">{t(`settings.look.${id}`)}</span>
+                <span className="look-option-help">{t(`settings.look.${id}.help`)}</span>
+              </button>
+            ))}
+          </div>
+        </SettingRow>
         <SettingRow title={t('settings.theme')} help={t('settings.themeHelp')}>
           <select
             aria-label={t('settings.theme')}

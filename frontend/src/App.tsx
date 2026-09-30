@@ -14,7 +14,7 @@ import { LoginPage } from './pages/LoginPage';
 import { OrdersPage } from './pages/OrdersPage';
 import { ProductionPage } from './pages/ProductionPage';
 import { InboxPage } from './pages/InboxPage';
-import { Settings } from './pages/Settings';
+import { Settings, type Look } from './pages/Settings';
 import { LabelsPage } from './pages/LabelsPage';
 import { AfterSalesPage } from './pages/AfterSalesPage';
 import { FinancePage } from './pages/FinancePage';
@@ -97,6 +97,25 @@ export default function App() {
     setIsDarkMode(!isDarkMode);
   };
 
+  // the look (colours, type, radii) is a second choice beside light and dark, remembered the
+  // same way; a look is a class on the root whose values index.css sets (DECISIONS.md, 2026-09-30)
+  const [look, setLook] = useState<Look>(() => {
+    try {
+      return localStorage.getItem('theme-look') === 'papier' ? 'papier' : 'classic';
+    } catch {
+      return 'classic';
+    }
+  });
+
+  useEffect(() => {
+    document.documentElement.classList.toggle('look-papier', look === 'papier');
+    try {
+      localStorage.setItem('theme-look', look);
+    } catch {
+      // the look still applies for this visit
+    }
+  }, [look]);
+
   const addToast = (message: string, type: 'success' | 'error' | 'info' | 'warning' = 'info') => {
     const id = `${Date.now()}-${Math.random()}`;
     setToasts((prev) => [...prev, { id, message, type }]);
@@ -139,7 +158,9 @@ export default function App() {
                 <Route path="/integrations" element={<IntegrationsRedirect />} />
                 <Route
                   path="/settings"
-                  element={<Settings isDarkMode={isDarkMode} onThemeToggle={toggleTheme} />}
+                  element={
+                    <Settings isDarkMode={isDarkMode} onThemeToggle={toggleTheme} look={look} onLookChange={setLook} />
+                  }
                 />
                 <Route
                   path="*"

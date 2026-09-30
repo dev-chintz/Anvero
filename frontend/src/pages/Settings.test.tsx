@@ -1,7 +1,7 @@
 import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { Settings } from "./Settings";
+import { Settings, type Look } from "./Settings";
 
 // an admin so the Users tab is there too; none of these tests open it
 vi.mock("../auth/AuthContext", () => ({
@@ -34,14 +34,22 @@ beforeEach(() => {
   safeMode.value = { enabled: true };
 });
 
-function renderIt(props: { isDarkMode?: boolean; onThemeToggle?: () => void; at?: string } = {}) {
+function renderIt(
+  props: { isDarkMode?: boolean; onThemeToggle?: () => void; look?: Look; at?: string } = {},
+) {
   const onThemeToggle = props.onThemeToggle ?? vi.fn();
+  const onLookChange = vi.fn();
   render(
     <MemoryRouter initialEntries={[props.at ?? "/settings"]}>
-      <Settings isDarkMode={props.isDarkMode ?? false} onThemeToggle={onThemeToggle} />
+      <Settings
+        isDarkMode={props.isDarkMode ?? false}
+        onThemeToggle={onThemeToggle}
+        look={props.look ?? "classic"}
+        onLookChange={onLookChange}
+      />
     </MemoryRouter>,
   );
-  return { onThemeToggle };
+  return { onThemeToggle, onLookChange };
 }
 
 describe("Settings page", () => {
@@ -56,9 +64,10 @@ describe("Settings page", () => {
     renderIt();
 
     const card = screen.getByRole("region", { name: "Appearance and language" });
-    expect(within(card).getByRole("combobox", { name: "Appearance" })).toBeInTheDocument();
+    expect(within(card).getByRole("radiogroup", { name: "Style" })).toBeInTheDocument();
+    expect(within(card).getByRole("combobox", { name: "Mode" })).toBeInTheDocument();
     expect(within(card).getByRole("combobox", { name: "Language" })).toBeInTheDocument();
-    expect(within(card).getByText("The colours of the interface. Saved in this browser.")).toBeInTheDocument();
+    expect(within(card).getByText("Light or dark, in either style. Saved in this browser.")).toBeInTheDocument();
     expect(within(card).getByText("The language of the interface. Saved in this browser.")).toBeInTheDocument();
   });
 
@@ -122,13 +131,13 @@ describe("the appearance choice", () => {
   it("shows the theme now in use", () => {
     renderIt({ isDarkMode: true });
 
-    expect(screen.getByRole("combobox", { name: "Appearance" })).toHaveValue("dark");
+    expect(screen.getByRole("combobox", { name: "Mode" })).toHaveValue("dark");
   });
 
   it("switches the theme when the other one is chosen", () => {
     const { onThemeToggle } = renderIt({ isDarkMode: false });
 
-    fireEvent.change(screen.getByRole("combobox", { name: "Appearance" }), {
+    fireEvent.change(screen.getByRole("combobox", { name: "Mode" }), {
       target: { value: "dark" },
     });
 
@@ -138,11 +147,27 @@ describe("the appearance choice", () => {
   it("does nothing when the theme already in use is chosen again", () => {
     const { onThemeToggle } = renderIt({ isDarkMode: false });
 
-    fireEvent.change(screen.getByRole("combobox", { name: "Appearance" }), {
+    fireEvent.change(screen.getByRole("combobox", { name: "Mode" }), {
       target: { value: "light" },
     });
 
     expect(onThemeToggle).not.toHaveBeenCalled();
+  });
+
+  it("offers the two styles and marks the one in use", () => {
+    renderIt({ look: "papier" });
+
+    const group = screen.getByRole("radiogroup", { name: "Style" });
+    expect(within(group).getByRole("radio", { name: /Classic/ })).toHaveAttribute("aria-checked", "false");
+    expect(within(group).getByRole("radio", { name: /Papier/ })).toHaveAttribute("aria-checked", "true");
+  });
+
+  it("switches the style when the other one is chosen", () => {
+    const { onLookChange } = renderIt({ look: "classic" });
+
+    fireEvent.click(screen.getByRole("radio", { name: /Papier/ }));
+
+    expect(onLookChange).toHaveBeenCalledWith("papier");
   });
 
   it("opens on the general tab, with the status one beside it", () => {

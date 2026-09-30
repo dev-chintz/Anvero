@@ -17,7 +17,7 @@
   overflow: hidden;
   background: var(--color-bg);
   border: 1px solid var(--color-border);
-  border-radius: 10px;
+  border-radius: var(--radius-card);
 }
 
 /* the title of a card is its band; where the title shares a row with a button, the row is */
@@ -27,8 +27,9 @@
   padding: 0.55rem 1rem;
   background: var(--band-bg);
   color: var(--band-fg);
+  font-family: var(--font-heading);
   font-size: 0.9rem;
-  font-weight: 700;
+  font-weight: var(--card-title-weight);
   letter-spacing: 0.01em;
   text-transform: none;
 }
@@ -43,8 +44,9 @@
 :is(.card, .order-card) > :is(.card-head, .order-card-head) > :is(h2, h3) {
   margin: 0;
   color: inherit;
+  font-family: var(--font-heading);
   font-size: 0.9rem;
-  font-weight: 700;
+  font-weight: var(--card-title-weight);
   letter-spacing: 0.01em;
   text-transform: none;
 }
@@ -105,8 +107,9 @@
 .page-header h1,
 .dashboard-header h1 {
   margin: 0;
-  font-size: 1.5rem;
-  font-weight: 700;
+  font-family: var(--font-heading);
+  font-size: var(--page-title-size);
+  font-weight: var(--page-title-weight);
   color: var(--color-heading);
 }
 
@@ -132,7 +135,7 @@
   overflow-x: auto;
   background: var(--color-bg);
   border: 1px solid var(--color-border);
-  border-radius: 10px;
+  border-radius: var(--radius-card);
 }
 
 .table-wrapper tbody tr:last-child > :is(td, th),
