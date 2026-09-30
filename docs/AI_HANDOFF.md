@@ -197,8 +197,9 @@ as numbered cards, 1 orders without a parcel and 2 parcels to print; the size
 as a segmented A/B/C in the first card's head; each card's actions in a
 selection bar like the Allegro tab's; the dispatch-by time as a chip, red today,
 amber tomorrow; the last run's outcome as chips instead of a list; the second
-card's views as underlined tabs) next to today's. Waiting for the owner's
-verdict.
+card's views as underlined tabs) next to today's. Chosen and built
+(`DECISIONS.md`, 2026-09-30, "The InPost lockers tab"), tested, not yet seen in
+a browser.
 
 A **second look** is on https://claude.ai/artifact/1tJfJmnRK6JXpe4dJzNSRy:
 three directions for the order list, the owner's pick ("Papier": cream,

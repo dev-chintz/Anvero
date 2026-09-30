@@ -154,47 +154,111 @@
   overflow-wrap: anywhere;
 }
 
-.inpost-labels section {
-  margin-bottom: 2rem;
+/* ---- The InPost lockers tab: two numbered cards (DECISIONS.md, 2026-09-30, "The InPost lockers tab") ---- */
+.inpost-labels {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
 }
 
-.inpost-labels h2 {
-  margin: 0 0 0.4rem;
-  font-size: 1.15rem;
+.inpost-card-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.4rem 1rem;
+  min-height: 2.6rem;
+  padding: 0 0.9rem;
+  border-bottom: 1px solid var(--color-divider);
+}
+
+.inpost-card-head h2 {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin: 0;
+  font-size: 0.95rem;
   color: var(--color-heading);
 }
 
-.inpost-bulk-actions {
+.inpost-step {
+  display: inline-flex;
   align-items: center;
-  margin: 0.75rem 0;
+  justify-content: center;
+  width: 1.3rem;
+  height: 1.3rem;
+  border-radius: 50%;
+  background: var(--color-accent);
+  color: var(--color-on-accent);
+  font-size: 0.75rem;
+  font-weight: 700;
 }
 
-.inpost-bulk-actions .labels-filter {
-  margin-bottom: 0;
-}
-
-.inpost-results {
-  margin: 1rem 0 0;
+.inpost-card-head .labels-views {
   padding: 0;
+  border-bottom: none;
+}
+
+.inpost-size {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--color-muted);
+  font-size: 0.85rem;
+}
+
+.labels-sub {
+  display: block;
+  color: var(--color-muted);
+  font-size: 0.75rem;
+  font-weight: 400;
+}
+
+.inpost-locker {
+  font-size: 0.85rem;
+}
+
+.labels-chip.is-late {
+  background: var(--tone-red-bg);
+  color: var(--tone-red-fg);
+  border-color: color-mix(in srgb, var(--tone-red-fg) 25%, var(--tone-red-bg));
+}
+
+.labels-chip.is-later {
+  background: var(--color-surface-alt);
+  color: var(--color-muted-strong);
+  border-color: var(--color-divider);
+}
+
+/* what the last run made, one chip an order */
+.inpost-results {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin: 0;
+  padding: 0.55rem 0.9rem;
   list-style: none;
-  font-size: 0.9rem;
+  border-top: 1px solid var(--color-divider);
+  background: var(--color-surface-alt);
 }
 
-.inpost-results li {
-  padding: 0.3rem 0;
+.inpost-results .labels-chip {
+  white-space: normal;
 }
 
-.inpost-result-created strong {
-  color: var(--color-success);
+.labels-chip.inpost-result-created {
+  background: var(--tone-green-bg);
+  color: var(--tone-green-fg);
 }
 
-.inpost-result-held_back strong {
-  color: var(--color-warning);
+.labels-chip.inpost-result-held_back {
+  background: var(--tone-amber-bg);
+  color: var(--tone-amber-fg);
 }
 
-.inpost-result-refused strong,
-.inpost-result-failed strong {
-  color: var(--color-error);
+.labels-chip:is(.inpost-result-refused, .inpost-result-failed) {
+  background: var(--tone-red-bg);
+  color: var(--tone-red-fg);
 }
 
 @media (max-width: 768px) {

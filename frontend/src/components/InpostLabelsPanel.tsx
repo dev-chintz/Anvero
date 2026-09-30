@@ -10,6 +10,7 @@ import {
   type InpostTemplate,
 } from "../api/client";
 import { translate, useTranslation } from "../i18n";
+import { CarrierBadge } from "./carrierBadge";
 import type { MessageKey } from "../i18n/messages";
 import { inpostStatusLabel } from "./InpostShipmentCard";
 import { INPOST_TEMPLATES } from "./InpostSettings";
@@ -21,6 +22,17 @@ const MAX_AT_ONCE = 50;
 
 type PrintedView = "to_print" | "all";
 
+/** How close a dispatch deadline is: today or past in red, tomorrow in amber, later quiet. */
+function dispatchTone(when: string, now: Date = new Date()): string {
+  const day = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+  const days = Math.round((day(new Date(when)) - day(now)) / 86_400_000);
+  if (days <= 0) return "is-late";
+  if (days === 1) return "is-waiting";
+  return "is-later";
+}
+
+const SIZE_LETTER: Record<string, string> = { small: "A", medium: "B", large: "C" };
+
 function toggled(current: Set<string>, id: string): Set<string> {
   const next = new Set(current);
   if (next.has(id)) next.delete(id);
@@ -31,7 +43,9 @@ function toggled(current: Set<string>, id: string): Set<string> {
 /**
  * InPost parcel lockers in bulk: the orders that still need a parcel, made in one
  * go, and the parcels with a number, printed together as one A6 PDF. Making the
- * parcels and printing them can be one click ("create and print").
+ * parcels and printing them can be one click ("create and print"). Two numbered cards, each
+ * acting on what is ticked in a bar like the Allegro tab's (DECISIONS.md, 2026-09-30, "The
+ * InPost lockers tab").
  */
 export function InpostLabelsPanel() {
   const { t, tc, formatDateTime } = useTranslation();
@@ -143,6 +157,8 @@ export function InpostLabelsPanel() {
   const tooManyOrders = orderChoice.size > MAX_AT_ONCE;
   const tooManyLabels = labelChoice.size > MAX_AT_ONCE;
 
+  const sizeLabel = (size: string) => t(`inpost.size.${size}` as MessageKey);
+
   return (
     <div className="inpost-labels">
       {error && (
@@ -151,53 +167,77 @@ export function InpostLabelsPanel() {
         </p>
       )}
 
-      <section aria-label={t("inpost.awaitingTitle")}>
-        <h2>{t("inpost.awaitingTitle")}</h2>
-        <p className="labels-muted">{t("inpost.awaitingHelp")}</p>
+      <section className="card labels-card" aria-labelledby="inpost-awaiting">
+        <div className="inpost-card-head">
+          <h2 id="inpost-awaiting">
+            <span className="inpost-step" aria-hidden="true">1</span>
+            {t("inpost.awaitingTitle")}
+            {awaiting && ` · ${awaiting.length}`}
+          </h2>
+          <span className="inpost-size">
+            <span id="inpost-size-label">{t("inpost.size")}</span>
+            <span className="segmented" role="radiogroup" aria-labelledby="inpost-size-label">
+              {INPOST_TEMPLATES.map((size) => (
+                <button
+                  key={size}
+                  type="button"
+                  role="radio"
+                  aria-checked={template === size}
+                  aria-label={sizeLabel(size)}
+                  title={sizeLabel(size)}
+                  disabled={busy}
+                  onClick={() => setTemplate(size)}
+                >
+                  {SIZE_LETTER[size]}
+                </button>
+              ))}
+            </span>
+          </span>
+        </div>
 
-        {!awaiting && !error && <p role="status">{t("orders.loading")}</p>}
-        {awaiting && awaiting.length === 0 && <p role="status">{t("inpost.awaitingNone")}</p>}
+        {!awaiting && !error && (
+          <p role="status" className="labels-note">
+            {t("orders.loading")}
+          </p>
+        )}
+        {awaiting && awaiting.length === 0 && (
+          <p role="status" className="labels-note">
+            {t("inpost.awaitingNone")}
+          </p>
+        )}
 
         {awaiting && awaiting.length > 0 && (
           <>
-            <div className="labels-actions inpost-bulk-actions">
-              <label className="labels-filter">
-                {t("inpost.size")}
-                <select
-                  value={template}
-                  onChange={(e) => setTemplate(e.target.value as InpostTemplate)}
-                  disabled={busy}
-                >
-                  {INPOST_TEMPLATES.map((size) => (
-                    <option key={size} value={size}>
-                      {t(`inpost.size.${size}` as MessageKey)}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <button
-                type="button"
-                className="print-button secondary"
-                onClick={() => create(false)}
-                disabled={busy || chosenOrders.length === 0 || tooManyOrders}
-              >
-                {busy ? t("inpost.creating") : tc("inpost.createSelected", chosenOrders.length)}
-              </button>
-              <button
-                type="button"
-                className="print-button"
-                onClick={() => create(true)}
-                disabled={busy || chosenOrders.length === 0 || tooManyOrders}
-              >
-                {busy ? t("inpost.creating") : tc("inpost.createAndPrint", chosenOrders.length)}
-              </button>
-            </div>
+            {orderChoice.size > 0 && (
+              <div className="labels-selection" role="toolbar" aria-label={t("labels.selection")}>
+                <span className="labels-selection-count">
+                  {t("labels.selectedCount", { count: orderChoice.size })}
+                </span>
+                <span className="labels-selection-actions">
+                  <button
+                    type="button"
+                    onClick={() => create(false)}
+                    disabled={busy || chosenOrders.length === 0 || tooManyOrders}
+                  >
+                    {busy ? t("inpost.creating") : tc("inpost.createSelected", chosenOrders.length)}
+                  </button>
+                  <button
+                    type="button"
+                    className="is-primary"
+                    onClick={() => create(true)}
+                    disabled={busy || chosenOrders.length === 0 || tooManyOrders}
+                  >
+                    {busy ? t("inpost.creating") : tc("inpost.createAndPrint", chosenOrders.length)}
+                  </button>
+                </span>
+              </div>
+            )}
             {tooManyOrders && (
               <p role="alert" className="error-message">
                 {t("labels.tooMany", { max: MAX_AT_ONCE })}
               </p>
             )}
-            <div className="table-wrapper">
+            <div className="labels-scroll">
               <table className="labels-table">
                 <thead>
                   <tr>
@@ -216,7 +256,6 @@ export function InpostLabelsPanel() {
                       />
                     </th>
                     <th scope="col">{t("labels.col.order")}</th>
-                    <th scope="col">{t("labels.col.buyer")}</th>
                     <th scope="col">{t("inpost.col.locker")}</th>
                     <th scope="col">{t("inpost.col.dispatchBy")}</th>
                   </tr>
@@ -232,19 +271,25 @@ export function InpostLabelsPanel() {
                           aria-label={t("labels.select", { order: order.order_label })}
                         />
                       </td>
-                      <td>
+                      <td className="labels-order">
                         <Link to={`/orders/${order.id}`} state={{ closeTo: "/labels" }}>
                           {order.order_label}
                         </Link>
+                        <span className="labels-sub">{order.buyer ?? "—"}</span>
                       </td>
-                      <td>{order.buyer ?? "—"}</td>
+                      <td className="inpost-locker">
+                        <strong>{order.target_point}</strong>
+                        {order.pickup_point_name && <span className="labels-muted"> · {order.pickup_point_name}</span>}
+                      </td>
                       <td>
-                        <div>{order.target_point}</div>
-                        {order.pickup_point_name && (
-                          <div className="labels-muted">{order.pickup_point_name}</div>
+                        {order.dispatch_by ? (
+                          <span className={`labels-chip ${dispatchTone(order.dispatch_by)}`}>
+                            {formatDateTime(order.dispatch_by)}
+                          </span>
+                        ) : (
+                          <span className="labels-muted">—</span>
                         )}
                       </td>
-                      <td>{order.dispatch_by ? formatDateTime(order.dispatch_by) : "—"}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -256,45 +301,61 @@ export function InpostLabelsPanel() {
         {results.length > 0 && (
           <ul className="inpost-results" aria-label={t("inpost.resultsTitle")}>
             {results.map((item) => (
-              <li key={item.order_id} className={`inpost-result-${item.outcome}`}>
+              <li key={item.order_id} className={`labels-chip inpost-result-${item.outcome}`}>
                 <strong>{item.order_label}</strong> · {t(`inpost.outcome.${item.outcome}` as MessageKey)}
-                {item.message && <span className="labels-muted"> — {item.message}</span>}
-                {item.shipment && !item.shipment.tracking_number && (
-                  <span className="labels-muted"> — {t("inpost.numberPending")}</span>
-                )}
+                {item.message && <span> — {item.message}</span>}
+                {item.shipment && !item.shipment.tracking_number && <span> — {t("inpost.numberPending")}</span>}
               </li>
             ))}
           </ul>
         )}
       </section>
 
-      <section aria-label={t("inpost.printTitle")}>
-        <h2>{t("inpost.printTitle")}</h2>
-        <div className="labels-actions inpost-bulk-actions">
-          <label className="labels-filter">
-            {t("labels.view")}
-            <select value={view} onChange={(e) => setView(e.target.value as PrintedView)}>
-              <option value="to_print">{t("labels.view.to_print")}</option>
-              <option value="all">{t("labels.view.all")}</option>
-            </select>
-          </label>
-          <button
-            type="button"
-            className="print-button"
-            onClick={print}
-            disabled={busy || chosenLabels.length === 0 || tooManyLabels}
-          >
-            {busy ? t("labels.printing") : tc("labels.printSelected", chosenLabels.length)}
-          </button>
+      <section className="card labels-card" aria-labelledby="inpost-print">
+        <div className="inpost-card-head">
+          <h2 id="inpost-print">
+            <span className="inpost-step" aria-hidden="true">2</span>
+            {t("inpost.printTitle")}
+          </h2>
+          <nav className="labels-views" aria-label={t("labels.view")}>
+            {(["to_print", "all"] as PrintedView[]).map((id) => (
+              <button key={id} type="button" aria-pressed={view === id} onClick={() => setView(id)}>
+                {t(`labels.view.${id}` as MessageKey)}
+              </button>
+            ))}
+          </nav>
         </div>
+
+        {labelChoice.size > 0 && (
+          <div className="labels-selection" role="toolbar" aria-label={t("labels.selection")}>
+            <span className="labels-selection-count">{t("labels.selectedCount", { count: labelChoice.size })}</span>
+            <span className="labels-selection-actions">
+              <button
+                type="button"
+                className="is-primary"
+                onClick={print}
+                disabled={busy || chosenLabels.length === 0 || tooManyLabels}
+              >
+                {busy ? t("labels.printing") : tc("labels.printSelected", chosenLabels.length)}
+              </button>
+              <button type="button" className="link-button" onClick={() => setLabelChoice(new Set())}>
+                {t("labels.clearSelection")}
+              </button>
+            </span>
+          </div>
+        )}
         {tooManyLabels && (
           <p role="alert" className="error-message">
             {t("labels.tooMany", { max: MAX_AT_ONCE })}
           </p>
         )}
-        {labels && labels.length === 0 && <p role="status">{t("labels.none")}</p>}
+        {labels && labels.length === 0 && (
+          <p role="status" className="labels-note">
+            {t("labels.none")}
+          </p>
+        )}
         {labels && labels.length > 0 && (
-          <div className="table-wrapper">
+          <div className="labels-scroll">
             <table className="labels-table">
               <thead>
                 <tr>
@@ -313,7 +374,6 @@ export function InpostLabelsPanel() {
                     />
                   </th>
                   <th scope="col">{t("labels.col.order")}</th>
-                  <th scope="col">{t("labels.col.buyer")}</th>
                   <th scope="col">{t("labels.col.parcel")}</th>
                   <th scope="col">{t("labels.col.when")}</th>
                 </tr>
@@ -329,31 +389,31 @@ export function InpostLabelsPanel() {
                         aria-label={t("labels.select", { order: label.order_label })}
                       />
                     </td>
-                    <td>
+                    <td className="labels-order">
                       <Link to={`/orders/${label.order_id}`} state={{ closeTo: "/labels" }}>
                         {label.order_label}
                       </Link>
+                      <span className="labels-sub">{label.buyer ?? "—"}</span>
                     </td>
-                    <td>{label.buyer ?? "—"}</td>
-                    <td>
-                      <div>
-                        INPOST{" "}
-                        {label.tracking_number && (
-                          <TrackingLink carrierId="INPOST" waybill={label.tracking_number} />
-                        )}
-                      </div>
-                      <div className="labels-muted">
-                        {label.target_point} · {t(`inpost.size.${label.template}` as MessageKey)} ·{" "}
-                        {inpostStatusLabel(label.status)}
-                      </div>
+                    <td className="labels-parcel">
+                      <CarrierBadge deliveryMethod="InPost" />
+                      {label.tracking_number && <TrackingLink carrierId="INPOST" waybill={label.tracking_number} />}
+                      <span className="labels-buyer" title={sizeLabel(label.template)}>
+                        {label.target_point} · {SIZE_LETTER[label.template] ?? label.template}
+                      </span>
                     </td>
                     <td>
-                      <div>{t("labels.bought", { when: formatDateTime(label.created_at) })}</div>
-                      <div className="labels-muted">
-                        {label.printed_at
-                          ? t("labels.printed", { when: formatDateTime(label.printed_at) })
-                          : t("labels.notPrinted")}
-                      </div>
+                      <span className="labels-pickup">
+                        <span className="labels-chip pickup-ordered">{inpostStatusLabel(label.status)}</span>
+                        <span
+                          className={`labels-chip ${label.printed_at ? "is-printed" : "is-waiting"}`}
+                          title={t("labels.bought", { when: formatDateTime(label.created_at) })}
+                        >
+                          {label.printed_at
+                            ? t("labels.printed", { when: formatDateTime(label.printed_at) })
+                            : t("labels.notPrinted")}
+                        </span>
+                      </span>
                     </td>
                   </tr>
                 ))}

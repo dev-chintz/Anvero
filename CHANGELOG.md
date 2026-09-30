@@ -6,6 +6,11 @@ All significant changes to the Anvero project.
 
 ## 2026-09-30
 
+### 📦 The InPost lockers tab
+
+- Two numbered cards, the size as A/B/C, a selection bar like the Allegro tab's, dispatch deadlines
+  and outcomes as chips. Designed in Claude Design. See `docs/DECISIONS.md`.
+
 ### ⚙️ The settings page
 
 - Tabs underlined, safe mode first, theme and language as segmented choices, the integration tiles in

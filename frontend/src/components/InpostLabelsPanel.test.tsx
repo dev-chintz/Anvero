@@ -110,7 +110,8 @@ describe("InpostLabelsPanel", () => {
     const row = (await screen.findByRole("link", { name: "AN-000001" })).closest("tr")!;
     expect(within(row).getByRole("checkbox")).toBeChecked();
     expect(within(row).getByText("KRA010")).toBeInTheDocument();
-    expect(await screen.findByLabelText(/Rozmiar|Size/)).toHaveValue("medium");
+    const size = await screen.findByRole("radiogroup", { name: /Rozmiar|Size/ });
+    expect(within(size).getByRole("radio", { name: /B \((średnia|medium)\)/ })).toHaveAttribute("aria-checked", "true");
   });
 
   it("makes parcels only for the orders left ticked, in the size chosen", async () => {
@@ -119,7 +120,7 @@ describe("InpostLabelsPanel", () => {
     await screen.findByRole("link", { name: "AN-000001" });
 
     fireEvent.click(screen.getByRole("checkbox", { name: /AN-000002/ }));
-    fireEvent.change(screen.getByLabelText(/Rozmiar|Size/), { target: { value: "large" } });
+    fireEvent.click(screen.getByRole("radio", { name: /C \((duża|large)\)/ }));
     fireEvent.click(screen.getByRole("button", { name: /Utwórz 1 przesyłkę|Create 1 parcel$/ }));
 
     await waitFor(() => expect(inpostApi.createMany).toHaveBeenCalledWith(["order-1"], "large"));

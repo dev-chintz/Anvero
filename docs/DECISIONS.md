@@ -2239,3 +2239,14 @@ row's override note is erased with the buyer, as it may name them. Not yet run o
 
 **Verified:** frontend tests (622) and `tsc`; the tabs, the segmented control, the four tiles and the label-beside-field rows seen in a browser at 1080px on the real stylesheets with static markup. The page itself not seen: it needs the owner's login.
 
+
+## 2026-09-30 — The InPost lockers tab
+
+**Decision (owner, from the Claude Design canvas https://claude.ai/artifact/3ycKauSESvGp3HfVPjrUMW):** The InPost lockers tab of Etykiety is two numbered cards: 1, the orders without a parcel (with their count), and 2, the parcels to print. The parcel size is a segmented A / B / C in the first card's head instead of a drop-down; each card's actions sit in a selection bar that shows only while something is ticked, as on the Allegro tab ("Create N parcels", "Create and print N"; "Print N labels"). A row is the order number with the nick under it, the locker's code in bold with its name, and the dispatch-by time as a chip (red today or late, amber tomorrow, grey later); a parcel's row has the InPost badge, the tracking link, the locker and size letter, and its InPost state and print state as chips. The last run's outcome is a row of chips (created green, held back amber, refused or failed red). The second card's views are underlined tabs.
+
+**Rationale:** The same page, one tab over, already works this way; the two stages read as a sequence, and on the upright monitor the buyer and locker columns fold into the order and locker cells.
+
+**Consequences:** The help line under the first title is gone (the title and the locker column say it). Nothing the tab does changed: the same limits of 50 at a time, the same create-and-print flow.
+
+**Verified:** frontend tests (622) and `tsc`. Not seen in a browser: it needs the owner's login.
+
