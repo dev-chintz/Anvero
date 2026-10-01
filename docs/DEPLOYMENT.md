@@ -184,8 +184,8 @@ nginx's only since 2026-10-01 (`frontend/nginx.conf`, a `log_format` of its own:
 default line wrote the whole request, with the referer and the user agent). What nginx wrote
 before stays in the web container's log until that container is recreated, which the update that
 brings this change does. One line nginx still writes in full is its error log, when it cannot
-reach the backend: it names the request as it came, query included, and that cannot be configured
-away.
+reach the backend: it names the request as it came and the upstream address it tried, query
+included in both (seen 2026-10-01 with the backend stopped), and that cannot be configured away.
 
 **No size limit.** Docker keeps a container's log without a limit unless told otherwise, and
 these now hold operators' account numbers and the addresses they came from.
@@ -206,11 +206,14 @@ yet set on the NAS, nor tried there.
 
 **Trying the nginx file.** `frontend/nginx.conf` is the one file whose mistake only nginx catches,
 and a mistake would stop the web container from starting. Before publishing a change to it, from
-the project's root (Docker running):
-`docker run --rm -v "${PWD}/frontend/nginx.conf:/etc/nginx/conf.d/default.conf:ro" nginx:1-alpine nginx -t`
-(`${PWD}` in PowerShell) must say `syntax is ok` and `test is successful`; not yet run, since Docker
-was not running when the file was written. `backend/tests/test_nginx_conf.py` checks only the file's
-text and the one regular expression, not that nginx accepts it.
+the project's root, with Docker running (PowerShell):
+
+`docker run --rm --add-host backend:127.0.0.1 -v "${PWD}/frontend/nginx.conf:/etc/nginx/conf.d/default.conf:ro" nginx:1-alpine nginx -t`
+
+must end with `syntax is ok` and `test is successful`. `--add-host` is needed: the file names the
+host `backend`, which exists only inside the compose application, and without it `nginx -t` fails
+with `host not found in upstream "backend"` whatever else is right. `backend/tests/test_nginx_conf.py`
+checks only the file's text and the one regular expression, not that nginx accepts it.
 
 ## Limits
 

@@ -100,13 +100,17 @@ re-imported. Production needs its own application and authorization; see
 
 ## Not yet verified
 
-`frontend/nginx.conf`'s own log format (2026-10-01, `DECISIONS.md`): the file's text and its one regular
-expression are tested (`backend/tests/test_nginx_conf.py`, which fails when the format writes the whole request, the
-expression keeps the query, or an `access_log` uses the default), but **nginx itself has not read the file**: Docker was
-not running, and nothing in CI runs `nginx -t`. A mistake only nginx catches would stop the web container from
-starting after the next update, so run the `nginx -t` command in `DEPLOYMENT.md` ("The log") before pushing, and
-look at the web container's log on the NAS afterwards: its lines should read `address [time] "GET /path?..." status
-bytes seconds`, with no search term in them.
+`frontend/nginx.conf`'s own log format (2026-10-01, `DECISIONS.md`): tested
+(`backend/tests/test_nginx_conf.py`, which fails when the format writes the whole request, the expression keeps the
+query, or an `access_log` uses the default) and tried with `nginx:1-alpine` in containers on the developer's machine:
+`nginx -t` passed, and requests carrying `?search=`, a referer, a user agent and a forged `X-Forwarded-For`, sent
+through the file to a stand-in backend, left none of them in the web container's log (its lines read `address [time]
+"GET /api/v1/orders?..." 200 bytes seconds`), while the backend received the client's own address and not the forged
+one. Also seen: with the backend unreachable, nginx's error log still carries the request and the upstream address with
+the full query, which no setting removes. **Not seen on the NAS:** the web container's log after the update (look at it
+once), and the address nginx sees there: on Docker Desktop for Windows every client looked like the network's gateway
+(`172.x.0.1`), and whether the NAS does the same is what the security log's address check settles (below). Nothing
+in CI runs `nginx -t`; run the command in `DEPLOYMENT.md` ("The log") before publishing a change to the file.
 
 The security log (2026-10-01, `GDPR.md`, "The security log"): tested through the API and the services (every
 event, that no e-mail or password reaches the log, that a line cannot be forged), and its line seen under the
