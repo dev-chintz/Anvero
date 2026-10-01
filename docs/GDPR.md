@@ -135,8 +135,13 @@ address (`frontend/src/hooks/useListSearch.ts`), so it does not stay in the
 browser's history and suggestions; the other filters stay in the address, to be
 shared. The Inbox's link to an order passes the order's number the same way. An
 old address with `?search=` still works and loses it at once. The API's own
-`?search=` never reaches a log: the access log drops query strings (`CHANGELOG.md`,
-2026-09-17).
+`?search=` is kept out of the logs: the backend's access log (uvicorn) and the web
+container's (nginx) both write the path without its query, marking a dropped one `?...`
+(`CHANGELOG.md`, 2026-09-17 for the backend and 2026-10-01 for nginx, whose default line had
+written the whole request until then; `frontend/nginx.conf`). One line is still written in
+full: nginx's error log, when it cannot reach the backend, names the request as it came,
+query included, and that cannot be configured away. So the containers' logs need a size
+limit as well (`DEPLOYMENT.md`, "The log").
 
 ## Who looked at what
 
@@ -161,7 +166,7 @@ their new value, never a password.
 
 - **What it holds about a person:** the *number* of an account, not the e-mail, and the address
   the request came from (the one the rate limit counts by, which the web container's proxy sets;
-  uvicorn's access log already holds the address with every request). A change made by a script
+  uvicorn's and nginx's access logs already hold the address with every request). A change made by a script
   says `actor=console`.
 - **What it never holds:** an e-mail or anything typed at the login form (for an account that
   does not exist that is whatever a stranger typed, a password typed into the wrong field

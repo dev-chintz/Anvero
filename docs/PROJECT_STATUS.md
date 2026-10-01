@@ -46,7 +46,7 @@ folder, and one was restored from that copy into a scratch database as a test.
   remains the no-setup default for a fresh clone)
 - Health endpoint and first order model — done
 - Minimal order list interface — done
-- Automated tests for core flows — done (1373 backend, 764 frontend passing <!-- sync-tests -->
+- Automated tests for core flows — done (1382 backend, 764 frontend passing <!-- sync-tests -->
   across the suite as of 2026-10-01, the backend on SQLite)
 
 ---
@@ -99,6 +99,14 @@ re-imported. Production needs its own application and authorization; see
 ---
 
 ## Not yet verified
+
+`frontend/nginx.conf`'s own log format (2026-10-01, `DECISIONS.md`): the file's text and its one regular
+expression are tested (`backend/tests/test_nginx_conf.py`, which fails when the format writes the whole request, the
+expression keeps the query, or an `access_log` uses the default), but **nginx itself has not read the file**: Docker was
+not running, and nothing in CI runs `nginx -t`. A mistake only nginx catches would stop the web container from
+starting after the next update, so run the `nginx -t` command in `DEPLOYMENT.md` ("The log") before pushing, and
+look at the web container's log on the NAS afterwards: its lines should read `address [time] "GET /path?..." status
+bytes seconds`, with no search term in them.
 
 The security log (2026-10-01, `GDPR.md`, "The security log"): tested through the API and the services (every
 event, that no e-mail or password reaches the log, that a line cannot be forged), and its line seen under the

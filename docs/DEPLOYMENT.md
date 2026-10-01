@@ -170,16 +170,28 @@ the `backend` container and run, for example,
 
 ## The log
 
-The backend writes to its standard output, so the log is the `backend` container's: in
-Container Station the container's Logs, or `docker logs`. The security events are lines with
-`| security |` in them (logins, refused logins and why, requests stopped by a rate limit,
-accounts made or changed; `GDPR.md`, "The security log"), for example
-`docker logs <backend container> | grep "| security |"`.
+The backend and the web container write to their standard output, so their logs are the
+containers' own: in Container Station the container's Logs, or `docker logs`. The security events
+are lines of the backend's log with `| security |` in them (logins, refused logins and why,
+requests stopped by a rate limit, accounts made or changed; `GDPR.md`, "The security log"), for
+example `docker logs <backend container> | grep "| security |"`.
 
-Docker keeps a container's log without a limit unless told otherwise, and this one now holds the
-numbers of operators' accounts and the addresses they came from. **`deploy/docker-compose.yml`
-sets no limit**, so on the NAS there is none. To keep the last 50 MB and drop the rest, add to the
-`backend` service in the NAS's own compose file and recreate the container:
+**What each access log writes.** The backend's (uvicorn) and the web container's (nginx) both write
+the address a request came from and the path called, without what follows a `?`, and mark a dropped
+query `?...`. A search typed in the interface travels as `?search=<what was typed>`, often a buyer's
+name (`GDPR.md`, "Addresses and the browser's history"). The backend's has done so since 2026-09-17;
+nginx's only since 2026-10-01 (`frontend/nginx.conf`, a `log_format` of its own: before, nginx's
+default line wrote the whole request, with the referer and the user agent). What nginx wrote
+before stays in the web container's log until that container is recreated, which the update that
+brings this change does. One line nginx still writes in full is its error log, when it cannot
+reach the backend: it names the request as it came, query included, and that cannot be configured
+away.
+
+**No size limit.** Docker keeps a container's log without a limit unless told otherwise, and
+these now hold operators' account numbers and the addresses they came from.
+**`deploy/docker-compose.yml` sets no limit**, so on the NAS there is none. To keep the last 50 MB
+of each and drop the rest, add to the `backend` **and the `web`** service in the NAS's own compose
+file and recreate the containers:
 
 ```yaml
     logging:
@@ -189,8 +201,16 @@ sets no limit**, so on the NAS there is none. To keep the last 50 MB and drop th
         max-file: "5"
 ```
 
-How long 50 MB lasts depends on what the backend writes (an import logs a good deal); not yet set
-on the NAS, nor tried there.
+How long 50 MB lasts depends on what is written (an import makes the backend log a good deal); not
+yet set on the NAS, nor tried there.
+
+**Trying the nginx file.** `frontend/nginx.conf` is the one file whose mistake only nginx catches,
+and a mistake would stop the web container from starting. Before publishing a change to it, from
+the project's root (Docker running):
+`docker run --rm -v "${PWD}/frontend/nginx.conf:/etc/nginx/conf.d/default.conf:ro" nginx:1-alpine nginx -t`
+(`${PWD}` in PowerShell) must say `syntax is ok` and `test is successful`; not yet run, since Docker
+was not running when the file was written. `backend/tests/test_nginx_conf.py` checks only the file's
+text and the one regular expression, not that nginx accepts it.
 
 ## Limits
 

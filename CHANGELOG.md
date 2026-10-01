@@ -19,6 +19,13 @@ All significant changes to the Anvero project.
   New `GET /gdpr/overview` and `PUT /gdpr/controller`. See `docs/GDPR.md`, `docs/API.md` and `docs/DECISIONS.md`.
 - `tools/guide/make.ps1` makes the screenshots from a scratch database with made-up data.
 
+### 🔒 nginx's access log drops the query string
+
+- The web container's nginx wrote every request in full to its log, so a search typed in the order list
+  (`?search=<a buyer's name>`) and the referer were in it, contrary to `docs/GDPR.md`, which said no log held
+  them. It now writes the path without its query (`?...` marks a dropped one), and no referer or user agent. See
+  `frontend/nginx.conf`, `docs/DEPLOYMENT.md` ("The log") and `docs/DECISIONS.md`.
+
 ### 🔒 The security log
 
 - Logins (succeeded, or refused with the reason: no such account, wrong password, switched off), requests stopped
