@@ -19,6 +19,14 @@ All significant changes to the Anvero project.
   New `GET /gdpr/overview` and `PUT /gdpr/controller`. See `docs/GDPR.md`, `docs/API.md` and `docs/DECISIONS.md`.
 - `tools/guide/make.ps1` makes the screenshots from a scratch database with made-up data.
 
+### 🧪 Tests and tooling
+
+- `sync-test-counts.ps1` rewrote every "NNN backend" and "NNN frontend" in the three docs it keeps, including
+  counts of one feature ("161 backend and 61 frontend tests" of the assortment); it now changes only the line
+  marked `<!-- sync-tests -->` in each, and reports a doc with no marked line instead of leaving its count stale.
+- A catalog test failed on SQLite on a machine whose time zone is not UTC (it read a zoneless timestamp as local
+  time); it now normalises with `_as_utc`, as the order import test did.
+
 ### 🗂️ The assortment
 
 - New "Asortyment" page: every offer in the Allegro account with its price, stock, SKU, category and

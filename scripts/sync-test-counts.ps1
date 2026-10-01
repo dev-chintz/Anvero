@@ -15,6 +15,13 @@
     and "NNN frontend" - leaving everything else in each sentence as its
     author wrote it. Prints a diff-style summary; nothing is committed.
 
+    Only the line that carries the marker `<!-- sync-tests -->` is rewritten,
+    one in each doc. Those docs also quote other, unrelated counts ("161
+    backend and 61 frontend tests" of one feature, say), and rewriting every
+    "NNN backend" in the file would have overwritten them with the suite's
+    total. A doc with no marked line, or a marked line without both numbers,
+    is an error: the count would otherwise go stale without a word.
+
 .EXAMPLE
     .\scripts\sync-test-counts.ps1
 #>
@@ -77,6 +84,8 @@ $docs = @(
     (Join-Path $root "docs\AI_START_HERE.md"),
     (Join-Path $root "docs\AI_HANDOFF.md")
 )
+$marker = "<!-- sync-tests -->"
+$failed = $false
 
 foreach ($doc in $docs) {
     if (!(Test-Path $doc)) {
@@ -90,8 +99,33 @@ foreach ($doc in $docs) {
     # for piped stdin, just on the write side instead.
     $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
     $before = [System.IO.File]::ReadAllText($doc, $utf8NoBom)
-    $after = $before -replace '\d+(?= backend)', $backendCount `
-                      -replace '\d+(?= frontend)', $frontendCount
+
+    # line by line, each line keeping its own terminator (the docs are CRLF),
+    # and only a marked line is touched
+    $marked = 0
+    $docFailed = $false
+    $rewritten = foreach ($line in [regex]::Split($before, '(?<=\n)')) {
+        if ($line.Contains($marker)) {
+            $marked++
+            $line = $line -replace '\d+(?= backend)', $backendCount `
+                          -replace '\d+(?= frontend)', $frontendCount
+            if ($line -notmatch '\d+ backend' -or $line -notmatch '\d+ frontend') {
+                Write-Host "  [ERROR] The line marked $marker in $doc has no 'NNN backend' and 'NNN frontend' to update." -ForegroundColor Red
+                $docFailed = $true
+            }
+        }
+        $line
+    }
+    if ($marked -eq 0) {
+        Write-Host "  [ERROR] No line in $doc carries $marker, so its test counts were not updated." -ForegroundColor Red
+        $docFailed = $true
+    }
+    if ($docFailed) {
+        # a doc that could not be updated whole is left as it was
+        $failed = $true
+        continue
+    }
+    $after = -join $rewritten
     if ($after -ne $before) {
         [System.IO.File]::WriteAllText($doc, $after, $utf8NoBom)
         Write-Host "  updated $doc"
@@ -102,4 +136,8 @@ foreach ($doc in $docs) {
 }
 
 Write-Host ""
+if ($failed) {
+    Write-Host "[ERROR] Some test counts were not updated (see above)." -ForegroundColor Red
+    exit 1
+}
 Write-Host "Review the changes (git diff), then commit them with the rest of the work." -ForegroundColor Cyan

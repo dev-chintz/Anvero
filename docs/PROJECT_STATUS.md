@@ -46,9 +46,8 @@ folder, and one was restored from that copy into a scratch database as a test.
   remains the no-setup default for a fresh clone)
 - Health endpoint and first order model — done
 - Minimal order list interface — done
-- Automated tests for core flows — done (1352 backend, 764 frontend passing
-  across the suite as of 2026-10-01, the backend on SQLite, where one more
-  fails on a machine not in UTC: see "Not yet verified")
+- Automated tests for core flows — done (1353 backend, 764 frontend passing <!-- sync-tests -->
+  across the suite as of 2026-10-01, the backend on SQLite)
 
 ---
 
@@ -115,11 +114,12 @@ nobody has yet compared the guide's sentences with the live screens. The notice 
 buyers and the register are drafts no lawyer has seen (the tab lists what is theirs to
 settle). No migration (`gdpr_controller` is a row of `app_settings`).
 
-A known failure, found 2026-10-01 on a machine in UTC+2 on SQLite and not on this
-branch's code: `tests/services/test_catalog.py::test_the_first_sync_keeps_every_offer_with_its_category_and_pictures`
-reads `last_seen_at` back without its zone and `.astimezone(UTC)` takes it for local
-time (10:00 for 12:00 UTC). Not run on PostgreSQL or on a machine in UTC; the order import
-test that did the same was fixed with `_as_utc` on 2026-09-24.
+A test that depended on the machine's time zone was fixed on 2026-10-01:
+`tests/services/test_catalog.py::test_the_first_sync_keeps_every_offer_with_its_category_and_pictures`
+compared `last_seen_at`, which SQLite returns without its zone, using `.astimezone(UTC)`,
+which takes it for local time (10:00 for 12:00 UTC on a machine in UTC+2). It now uses
+`_as_utc`, as the order import test did from 2026-09-24. The whole suite then passed on
+SQLite on that machine; not run on PostgreSQL.
 
 The assortment (2026-10-01, `CATALOG.md`): built from Allegro's and Erli's published descriptions, tested against fakes (161 backend and 61 frontend tests), and seen in a browser on a scratch database with made-up offers and pictures, in both looks and modes; the backend tests ran on SQLite only (the main machine's PostgreSQL run of the suite is still to do); never read from the real services. To check on the first sync (the button on the page, on a machine with the real Allegro connection, after `alembic upgrade head`): that the application has the scope `allegro:api:sale:offers:read` (a refusal is shown on the page); that the offers and their pictures arrive and the pictures are stored; how many of Erli's products are tied to an offer and by what (`EXTERNAL_REFERENCE`, `EXTERNAL_ID`, `SKU`) or not at all, and whether the "different category" ones are real differences. The cost of making a piece and the margin (2026-10-01): tested (backend and page), and used in a browser on a scratch
 database (a cost typed in, kept, the margin worked out again, an invalid one refused, Enter going on to the next

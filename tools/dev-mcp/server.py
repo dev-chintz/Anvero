@@ -118,9 +118,11 @@ def sync_test_counts() -> str:
 
     Runs the backend pytest suite and the frontend vitest suite, reads the
     passing counts back out of their own output, and replaces just the
-    numbers - "NNN backend" / "NNN frontend" - in `docs/PROJECT_STATUS.md`,
-    `docs/AI_START_HERE.md` and `docs/AI_HANDOFF.md`, leaving the rest of
-    each sentence as its author wrote it. Nothing is committed; review the
+    numbers - "NNN backend" / "NNN frontend" - on the line marked
+    `<!-- sync-tests -->` in `docs/PROJECT_STATUS.md`, `docs/AI_START_HERE.md`
+    and `docs/AI_HANDOFF.md`, leaving the rest of each sentence (and any other
+    count in the file) as its author wrote it; a doc with no marked line is
+    an error. Nothing is committed; review the
     diff afterwards. Runs `scripts/sync-test-counts.ps1`. Takes under a
     minute.
     """

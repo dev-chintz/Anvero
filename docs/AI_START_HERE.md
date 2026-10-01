@@ -89,8 +89,7 @@ breakdown; the short version:
   history.
 - Allegro adapter, import script, an import endpoint and a button, one
   import at a time.
-- 1352 backend and 764 frontend tests passing (one more backend test fails on
-  SQLite on a machine not in UTC: `PROJECT_STATUS.md`, "Not yet verified").
+- 1353 backend and 764 frontend tests passing. <!-- sync-tests -->
 - The order opens as a page of its own with back and next/previous arrows, the
   list shows each order's items, the menu shows what waits, and a new interface
   language is a dictionary file and one line (`DECISIONS.md`, 2026-09-24).

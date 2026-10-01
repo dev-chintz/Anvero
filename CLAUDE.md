@@ -92,7 +92,9 @@ whichever side a commit touches.
 - `.\scripts\anvero.ps1 sync-tests` runs both test suites and updates just the
   test-count numbers in `PROJECT_STATUS.md`, `AI_START_HERE.md` and
   `AI_HANDOFF.md` (see "Before ending a session"); review the diff before
-  committing.
+  committing. It rewrites only the line marked `<!-- sync-tests -->` in each
+  of the three: keep the marker, and both numbers on that line, when rewording
+  it (a doc without the marker makes the script fail).
 - Both of the above are also callable as MCP tools (`restart_backend`,
   `sync_test_counts`) via `tools/dev-mcp/` — see its README note above and
   `server.py`'s docstring. One caveat found while building it: a server

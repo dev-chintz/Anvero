@@ -70,9 +70,8 @@ Repository: <https://github.com/dev-chintz/Anvero>
   scope). Full detail in `DECISIONS.md` and `CHANGELOG.md`.
 - Order page (2026-09-29): status picker in the header, payment folded,
   Allegro Smart badge (`DECISIONS.md`)
-- 1352 backend tests and 764 frontend tests (Vitest + React Testing Library)
-  passing (one more backend test fails on SQLite on a machine not in UTC:
-  `PROJECT_STATUS.md`)
+- 1353 backend tests and 764 frontend tests (Vitest + React Testing Library) <!-- sync-tests -->
+  passing
 
 ---
 
