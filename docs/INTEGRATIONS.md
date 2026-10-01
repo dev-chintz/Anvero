@@ -529,7 +529,13 @@ order ("Label" card), after the sender is entered in Integrations, "Shipping":
    once more.
 4. `GET /shipment-management/shipments/{shipmentId}` for the carrier and the
    waybill, which is then added to the order as a tracking number would be
-   (`POST /order/checkout-forms/{id}/shipments`).
+   (`POST /order/checkout-forms/{id}/shipments`). **Allegro refuses this for a
+   Wysyłam z Allegro shipment**, every time (15 of 16 labels, 2026-09-29 to
+   2026-10-01): `CarrierIdValidationException`, "Tracking number cannot be
+   assigned to carrier ALLEGRO because ALLEGRO tracking numbers are added
+   automatically by Ship with Allegro". The shipment is linked to the order by
+   Allegro itself, so the step is redundant; it is recorded as a `FAILED` write
+   and changes nothing (`PROJECT_STATUS.md`).
 5. `POST /shipment-management/label` with `pageSize: A6` returns the PDF.
    The Labels page sends several `shipmentIds` at once (at most 50, Anvero's
    own cap: the documentation names none) for one PDF of many labels.
@@ -574,18 +580,21 @@ not built.
 Unverified until tried on the Sandbox with safe mode off: that the application
 carries the `allegro:api:shipments:write` (and read) scope; the exact shape
 of the shipment's carrier and waybill (both shapes the documentation suggests
-are read); whether Allegro already links the shipment to the order by itself,
-in which case step 4's tracking number may be refused as a duplicate, harmless
-but noted as a failed write; and the label's `Accept` header. Not built yet:
+are read); and the label's `Accept` header. (Whether Allegro links the
+shipment to the order by itself is settled: it does, and refuses step 4's
+tracking number, see there. The scope and the shipment's shape were settled
+by 16 real purchases from 2026-09-29.) Not built yet:
 insurance and several parcels per order. Cash on delivery will not be: the
 business does not ship it, and such an order is refused a label. Unverified too: that one label
 request takes many shipments and how Allegro lays several A6 labels out.
 
 ### Writing to Allegro
 
-Built 2026-09-24, from Allegro's documentation, and **never sent**: safe mode
-has been on throughout. Two changes go to Allegro, both through
-`MarketplaceWriter`, so with safe mode on they are only recorded:
+Built 2026-09-24 from Allegro's documentation and **sent for real since
+2026-09-29**, when safe mode was switched off: 46 status changes and 4 InPost
+tracking numbers were accepted by 2026-10-02 (`PROJECT_STATUS.md`). Two changes
+go to Allegro, both through `MarketplaceWriter`, so with safe mode on they are
+only recorded:
 
 - **The status** an operator sets: `PUT /order/checkout-forms/{id}/fulfillment`
   with `{"status": ...}` (mapping in `API.md`, "Changes that reach the

@@ -4,6 +4,18 @@ All significant changes to the Anvero project.
 
 ---
 
+## 2026-10-02
+
+### 📝 Safe mode has been off since 2026-09-29: what it sent
+
+- The docs said safe mode had been on throughout and nothing had been sent. It was switched off on 2026-09-29 07:23
+  UTC, and since then Allegro accepted 46 status changes, 16 label purchases and 4 InPost tracking numbers
+  (`marketplace_writes`, read on 2026-10-02). Corrected in `docs/PROJECT_STATUS.md`, `docs/INTEGRATIONS.md`,
+  `docs/AI_START_HERE.md`, `docs/ROADMAP.md` and `CLAUDE.md`.
+- Found in it: Allegro adds the tracking number of a Wysyłam z Allegro shipment to the order itself, so the
+  registration Anvero makes after each label is refused every time (15 of 16: `CarrierIdValidationException`,
+  recorded as a `FAILED` write, changing nothing). Not yet fixed.
+
 ## 2026-10-01
 
 ### ❓ Help: the guide and the GDPR tab

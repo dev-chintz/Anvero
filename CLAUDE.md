@@ -68,7 +68,8 @@ whichever side a commit touches.
 - Allegro credentials are per machine too, and the refresh token rotates on
   every use, so imports run from the machine that was authorized
   (`docs/INTEGRATIONS.md`). Since 2026-09-25 that is production Allegro,
-  with real orders and (since 2026-09-29) real label purchases. Credentials
+  with real orders and, since 2026-09-29 (safe mode is off), real status
+  changes, tracking numbers and label purchases. Credentials
   entered in Settings live in the database and win over `.env`, so a machine
   whose `.env` still names the sandbox uses production when its
   `DATABASE_URL` points at the production database.

@@ -100,6 +100,24 @@ re-imported. Production needs its own application and authorization; see
 
 ## Not yet verified
 
+**Safe mode has been off since 2026-09-29 07:23 UTC** (`app_settings`, `safe_mode`, switched off by the owner's
+account), so Anvero has been writing to the real Allegro for days; several paragraphs below were written when it
+was on and are corrected here and in them. What `marketplace_writes` holds on 2026-10-02 (counts, kinds and dates
+only, read from the shared database): before that moment 26 status changes and 2 InPost shipments were only
+recorded (`DRY_RUN`). Since then Allegro accepted (`SENT`) **46 status changes** (`PUT .../fulfillment`, none
+refused; 2026-09-29 07:24 to 2026-10-01 21:58 UTC), **16 label purchases** through
+Wysyłam z Allegro (2026-09-29 16:07 to 2026-10-01 17:00) and 4 tracking numbers of InPost shipments (2026-09-29
+16:45). So the application carries the scopes `allegro:api:orders:write` and `allegro:api:shipments:write`, and
+Allegro accepts the status changes used so far as mapped. **15 tracking-number writes were refused**, in the same minutes as the
+label purchases, always with the same answer: `CarrierIdValidationException`, "Tracking number cannot be assigned
+to carrier ALLEGRO because ALLEGRO tracking numbers are added automatically by Ship with Allegro". So Allegro does
+link a Wysyłam z Allegro shipment to the order by itself, and the registration that `ShippingLabels._tell_the_buyer`
+makes after every label is redundant for them: it fails each time, is recorded as `FAILED` and changes nothing at
+Allegro (the number is already there). Whether a `FAILED` row shows anywhere as a problem (the status page, the
+order's writes) is not known. Not yet seen, because never attempted in either mode (`marketplace_writes` has no
+row of the kind): a reply to a buyer, a courier pickup, a cancelled shipment. Whether the label PDFs printed
+as they should is not recorded anywhere that can be read.
+
 `frontend/nginx.conf`'s own log format (2026-10-01, `DECISIONS.md`): tested
 (`backend/tests/test_nginx_conf.py`, which fails when the format writes the whole request, the expression keeps the
 query, or an `access_log` uses the default) and tried with `nginx:1-alpine` in containers on the developer's machine:
@@ -306,10 +324,10 @@ ways of importing have now run against the real API.
 **Since 2026-09-25 (Friday), Allegro and Erli are connected on the owner's
 real, production accounts** (not the Sandbox), confirmed by the owner
 2026-09-28: orders import from both, and Allegro's buyer messages, on the
-usual 15-minute schedule. Safe mode has stayed on throughout, so nothing has
-been written back to either marketplace - every "Writing to Allegro" and
-"never bought/sent" note below still stands for what leaves Anvero, only not
-for what comes in. Returns, claims and disputes have not been checked this
+usual 15-minute schedule. Safe mode was on until 2026-09-29 07:23 UTC, when
+the owner's account switched it off; since then Allegro has been written to
+for real (the first paragraph of this section says what was sent and how it
+went), and no write to Erli has ever been recorded. Returns, claims and disputes have not been checked this
 way and, unlike orders and messages, have no automatic schedule at all
 (`app/services/schedule.py`'s `default_jobs()` lists only Allegro orders,
 Erli orders and Allegro messages): the sync only runs when the button in the
@@ -325,17 +343,17 @@ The InPost integration (`INTEGRATIONS.md`, "InPost") has never run against InPos
 
 The Erli import (`INTEGRATIONS.md`, "Erli") was built from Erli's published OpenAPI description and tested against fakes before it had ever run for real; since 2026-09-25 it runs against the owner's real shop (see above). Still unconfirmed from that: that amounts are in grosze, the status mapping, and how soon Erli fills in the buyer's email - the owner has not reported checking those specifically, only that orders come in.
 
-Writing to Allegro (status and tracking number, `INTEGRATIONS.md`, "Writing to Allegro") has never sent anything: safe mode has been on. Unverified: that the application carries the `allegro:api:orders:write` scope, that Allegro accepts the status transitions as mapped, and the carrier ids. Safe mode itself was checked in the browser on 2026-09-24 (banner, Settings, the confirmation), without switching it off on the shared database.
+Writing to Allegro (status and tracking number, `INTEGRATIONS.md`, "Writing to Allegro") has sent for real since 2026-09-29 (the first paragraph of this section): the scope is carried and 46 status changes and 4 InPost tracking numbers were accepted. Still unverified: the carrier ids other than InPost, and what a status that Allegro would refuse does (none has been refused). Safe mode itself was checked in the browser on 2026-09-24 (banner, Settings, the confirmation); it was switched off for real on 2026-09-29.
 
 The application status page (`GET /status`, the Status page) was checked in the browser on 2026-09-24 on a scratch SQLite database with made-up connection rows (an expiring token, a failed import, an Erli key never used), not against a real account: its verdicts rest on the last import, and the token expiry assumes Allegro's three months hold.
 
-Labels through Wysyłam z Allegro (`INTEGRATIONS.md`) have never bought anything: safe mode has been on and no Allegro was reachable where they were built. Unverified: the `allegro:api:shipments:write` scope, the shape of Allegro's shipment (carrier and waybill), whether Allegro links the shipment to the order itself, and the label PDF request, including one request for many labels (the Labels page), and every courier pickup call (proposals, ordering, their shapes). The Settings section and the order's label card were checked in the browser on 2026-09-24 on a scratch SQLite database, with a label row made up by hand, and the Labels page the same way.
+Labels through Wysyłam z Allegro (`INTEGRATIONS.md`) have bought 16 shipments since 2026-09-29 (the first paragraph of this section), so the `allegro:api:shipments:write` scope is carried and Allegro links the shipment to the order itself (it refused our own tracking-number write for that reason, 15 times). Still unverified: the label PDF request, including one request for many labels (the Labels page), cancelling a bought shipment, and every courier pickup call (proposals, ordering, their shapes), none of which has been attempted. The Settings section and the order's label card were checked in the browser on 2026-09-24 on a scratch SQLite database, with a label row made up by hand, and the Labels page the same way.
 
 Returns, claims and disputes (plan B4, `INTEGRATIONS.md`, "Returns and claims") were built from Allegro's published OpenAPI specification, read in full, and tested against payloads shaped like its examples. First read against the real account, 2026-09-28: failed with a `406` (the disputes-and-claims call was missing the beta `Accept` header the endpoint needs); fixed, and a second read succeeded - 0 open issues, 10 closed issues, 10 customer returns (`DECISIONS.md`). Still unverified: the 14 and 45 day rules (Allegro's API gives no deadline for a return), whether the 45 days start at the declaration, and all of it against a real *open* case (none was open at the time of this read). The queue does not track Allegro's own automatic refund, 7 days after a return parcel is delivered to the seller, which can come before its 14-day deadline: noted 2026-10-01, the owner's to decide (`INTEGRATIONS.md`, `DECISIONS.md`). Read only; every action is left.
 
 Billing entries (fees, `INTEGRATIONS.md`, "Fees") have been read from the owner's real Allegro account since 2026-09-27, and Erli's billing and payouts from the real Erli the same day. Allegro's payouts (`INTEGRATIONS.md`, "Payouts") were read from the real account on 2026-09-27, once `allegro:api:payments:read` had been added to the application and the account connected again: 21 payouts in September, all through Allegro Finance (`AF`), none cancelled, so `PAYOUT_CANCEL` has not been seen.
 
-Buyer messages (plan B2, `INTEGRATIONS.md`, "Buyer messages") made their first real call on 2026-09-24, to production Allegro, and were answered `422 Incorrect limit or offset`: the page size was 100 where the Message Center allows 20. Fixed (`MESSAGING_PAGE_SIZE`), and the specification, fetched that day from `developer.allegro.pl/swagger.yaml`, confirmed the sort order, the scope name and the message shape, and gave a message's direction as a field (`author.isInterlocutor`). Since 2026-09-25 it runs successfully against the owner's real account on the usual schedule (see "Not yet verified" above), so the retry after the fix did succeed. Still unseen: a reply, and the link of a thread to its order, which the public thread schema does not carry (`INTEGRATIONS.md`). Safe mode has been on throughout, so nothing has reached a real buyer. Erli is not read: no messaging endpoint was found in its public API.
+Buyer messages (plan B2, `INTEGRATIONS.md`, "Buyer messages") made their first real call on 2026-09-24, to production Allegro, and were answered `422 Incorrect limit or offset`: the page size was 100 where the Message Center allows 20. Fixed (`MESSAGING_PAGE_SIZE`), and the specification, fetched that day from `developer.allegro.pl/swagger.yaml`, confirmed the sort order, the scope name and the message shape, and gave a message's direction as a field (`author.isInterlocutor`). Since 2026-09-25 it runs successfully against the owner's real account on the usual schedule (see "Not yet verified" above), so the retry after the fix did succeed. Still unseen: a reply, and the link of a thread to its order, which the public thread schema does not carry (`INTEGRATIONS.md`). Safe mode has been off since 2026-09-29, but no reply has been attempted (`marketplace_writes` has no row of that kind, in either mode), so nothing has reached a real buyer. Erli is not read: no messaging endpoint was found in its public API.
 
 The non-invoiced sales report ported on 2026-09-27 (`DECISIONS.md`, "Non-invoiced sales report,
 ported") was opened in the browser against the owner's real September orders that day. It was
@@ -481,8 +499,8 @@ Sandbox. Agreed plan, in order:
    a reason: a cancelled order and an order with several line items.
 3. ~~**Production Allegro** with the owner's seller account, same steps.~~
    Connected and importing since 2026-09-25 ("Not yet verified" above); what
-   the sandbox did not cover (below) still applies, and every write is still
-   untried for real (safe mode has stayed on).
+   the sandbox did not cover (below) still applies, and its writes have been
+   sent for real since 2026-09-29, when safe mode was switched off ("Not yet verified" above).
 4. **What real data will likely demand:** ~~importing every page and only
    what changed~~ done 2026-09-21 (first import: last 7 days, then only new
    or changed orders, all pages; `DECISIONS.md`); what remains is a

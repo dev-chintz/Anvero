@@ -315,8 +315,9 @@ In this order (the owner chose queues before any write to Allegro):
    Erli is not read: no messaging endpoint was found in its public API.
    Left: starting a new thread from Anvero (only replying to an existing
    one works), attachments, disputes (the sync itself runs on a schedule when
-   `ALLEGRO_MESSAGE_SYNC_INTERVAL_MINUTES` is set), and sending anything for real (safe mode has been on
-   throughout, as for the first Allegro status and tracking-number writes).
+   `ALLEGRO_MESSAGE_SYNC_INTERVAL_MINUTES` is set), and sending a reply for real (safe mode has been off since
+   2026-09-29 and status changes, tracking numbers and labels go to Allegro for real, but no reply
+   has been attempted).
 3. **Invoices and money.** Choose the invoicing program first (compare APIs,
    KSeF support and cost; Fakturownia, wFirma, inFakt are candidates). Then a
    queue of orders waiting for an invoice, issuing through that program, and

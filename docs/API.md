@@ -891,7 +891,9 @@ Allegro, then sends the create command through safe mode: with safe mode on,
 `label` is null and the write is `DRY_RUN`, its payload what would have been
 sent; a refused command is a `FAILED` write and no label. Otherwise it waits a
 few seconds for Allegro: the label comes back `CREATED` (and the waybill is
-added to the order, as `POST /orders/{id}/shipments` would), `FAILED`, or
+offered to the order, as `POST /orders/{id}/shipments` would; Allegro refuses it
+for its own shipments, which it links to the order itself, so a `FAILED` write
+of kind `shipment` beside the label is expected, `INTEGRATIONS.md`), `FAILED`, or
 still `PENDING`, for `refresh` to settle. `409` when the label cannot be asked
 for: not an Allegro order, cash on delivery (not shipped by the business), no sender in
 the settings, a label already `PENDING` or `CREATED` on the order (cancel it

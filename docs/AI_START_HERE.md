@@ -39,11 +39,14 @@ suggested next steps (stages A1–A3 are done: work queues, the "to make" list,
 wider search and the buyer's other orders; A4, the Erli import, has its
 adapter built from Erli's docs and waits for the owner's API key; A5, safe
 mode, is done, so every marketplace write must go through `MarketplaceWriter`;
-A6, status and tracking number to Allegro, is built but never sent for real;
+A6, status and tracking number to Allegro, has been sent for real since
+2026-09-29, when safe mode was switched off (`PROJECT_STATUS.md`);
 A7, the application status page, is done. Stage A is complete apart from
-A4's first real run and A6's first real send. B1, labels through "Wysyłam z
+A4's first real run. B1, labels through "Wysyłam z
 Allegro", is built for one parcel per order, with printing many at once and
-ordering a courier on the Labels page, and never used for real; cash on
+ordering a courier on the Labels page, and in use for real since 2026-09-29
+(16 labels bought; Allegro adds their tracking numbers itself, so Anvero's own
+registration of them is refused every time, `PROJECT_STATUS.md`); cash on
 delivery is not shipped, so B1 is complete in code. B2, buyer messages, is
 started: see below. B4, returns and claims, is started: a read-only queue
 with deadlines, an alert on the order and a dashboard reminder, built from
@@ -103,8 +106,9 @@ breakdown; the short version:
 The Allegro import first ran against the real API in the Allegro Sandbox, on
 2026-09-17. Since 2026-09-25 both Allegro and Erli are connected on the
 owner's real, production accounts and import real orders (Allegro also its
-buyer messages) on the usual schedule - safe mode has stayed on throughout,
-so nothing has been written back to either marketplace. See
+buyer messages) on the usual schedule. Safe mode was on until 2026-09-29, when
+it was switched off: since then status changes, tracking numbers and labels
+have been sent to Allegro for real (nothing has been written to Erli). See
 PROJECT_STATUS.md, "Not yet verified", and INTEGRATIONS.md.
 
 Treat anything in the "Not yet verified" section of PROJECT_STATUS.md as
