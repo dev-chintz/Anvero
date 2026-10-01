@@ -19,6 +19,13 @@ All significant changes to the Anvero project.
   New `GET /gdpr/overview` and `PUT /gdpr/controller`. See `docs/GDPR.md`, `docs/API.md` and `docs/DECISIONS.md`.
 - `tools/guide/make.ps1` makes the screenshots from a scratch database with made-up data.
 
+### 📝 Allegro's automatic refund after 7 days
+
+- Noted in `docs/INTEGRATIONS.md` ("Returns and claims") and `docs/DECISIONS.md`, not built: since 2026-09-01
+  Allegro refunds a return from the seller's own funds on the 8th day after its parcel is delivered to the
+  seller, unless the seller decided first. The queue's 14-day deadline can come after it, and Allegro's API
+  has no date of delivery to start a clock from. Whether to track it is the owner's to decide.
+
 ### 🧪 Tests and tooling
 
 - `sync-test-counts.ps1` rewrote every "NNN backend" and "NNN frontend" in the three docs it keeps, including

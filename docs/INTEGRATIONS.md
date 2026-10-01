@@ -740,10 +740,31 @@ What each asks of the seller, and by when (`app/services/after_sales.py`):
 **Unverified, and to be confirmed by the first real read:** the 14 and 45 days are
 the owner's figures (from AlleIntegrator's rules) and the law's, not something
 Allegro's API states; they are counted from `createdAt`, the declaration, so they
-can only come early. Whether the 45 days start there is not known. Whether
+can only come early against the law's deadlines (not against Allegro's own 7-day
+automatic refund, below). Whether the 45 days start there is not known. Whether
 Allegro Warehouse returns (`WAREHOUSE_*`) need the seller at all is not known, so
 they ask nothing. A dispute with no `lastMessage` status is treated as waiting.
 Whether the application carries the two scopes is not known: a `403` says so.
+
+**Allegro refunds a return by itself after 7 days (noted 2026-10-01; not built).**
+Since 2026-09-01, when a return parcel is delivered to the seller by one of Allegro's
+return methods and the seller has not decided within **7 calendar days of the
+shipment's status turning "Delivered"**, Allegro refunds the buyer on the 8th day
+**from the seller's own funds** (done daily around midnight, with a reminder on the
+6th day). A refund by hand stops it, a partial one too, and then the rest is not
+refunded by itself; so does rejecting the return in Allegro's returns tab with a
+reason, or a parcel that never reached the seller. A return sent by another method is
+not covered. This is from Allegro's own words (the Allegro Community FAQ "Automatyczne
+zwroty po 1 września", and a news article of 2026-05-28), not from its API, which says
+nothing about it. It is a different and shorter clock than the 14 days from the
+declaration in the table: on a return whose parcel comes back quickly Allegro acts
+first, while the queue still shows the later deadline. A customer return has `createdAt` and
+`status` and no date of delivery, so a 7-day clock cannot be started from Allegro's
+data; the first time a sync sees `DELIVERED` would only be as good as how often the
+sync runs, and it runs from a button. Whether and how to track it is the owner's
+decision (`DECISIONS.md`, 2026-10-01); until then a return in `DELIVERED` is to be
+looked at within a week of its parcel arriving. The pages the notes above rest on say
+nothing of Allegro Warehouse returns (`WAREHOUSE_*`), which stay "ask nothing" as above.
 
 A sync reads returns back `ALLEGRO_AFTER_SALES_DAYS` (default 90) and as far as
 the oldest return still open here; every open dispute and claim however old; and
