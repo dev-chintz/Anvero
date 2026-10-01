@@ -1,7 +1,8 @@
 """The assortment's API: the list and its filters, the category tree, the summary, the button that
 reads the offers, and the stored pictures."""
 
-from datetime import UTC, datetime
+import uuid
+from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 
 import pytest
@@ -18,7 +19,7 @@ from app.integrations.base import IntegrationNotConfigured
 from app.main import app
 from app.models.catalog import CatalogImage, CatalogItem, CatalogListing
 from app.models.marketplace_write import AppSetting
-from app.models.order import OrderSource
+from app.models.order import BillingEntry, Order, OrderItem, OrderSource, OrderStatus
 from app.repositories.user_repository import UserRepository
 from app.schemas.user import PermissionGrant, UserCreate
 from app.services.allegro_sync import ImportAlreadyRunning
@@ -89,7 +90,7 @@ def teardown_module():
 def setup_function():
     db = TestingSessionLocal()
     try:
-        for model in (CatalogListing, CatalogImage, CatalogItem, AppSetting):
+        for model in (BillingEntry, OrderItem, Order, CatalogListing, CatalogImage, CatalogItem, AppSetting):
             db.query(model).delete()
         db.commit()
     finally:
@@ -494,3 +495,220 @@ def test_an_offer_without_a_price_goes_last_whichever_way_the_list_is_sorted():
 
     assert names(client.get("/api/v1/catalog/items?sort=price")) == ["B", "C", "A"]
     assert names(client.get("/api/v1/catalog/items?sort=price&descending=true")) == ["C", "B", "A"]
+
+
+# --- what each offer sold -----------------------------------------------------------------
+
+
+def days_ago(days):
+    return datetime.now(UTC) - timedelta(days=days)
+
+
+def sold(offer_id, quantity, price, days=2, source=OrderSource.ALLEGRO, fee=None, delivery=None, **fields):
+    """An order of one item of the offer, with the commission booked for it (and, when given, a
+    delivery fee); returns the order's marketplace id."""
+    db = TestingSessionLocal()
+    try:
+        external_id = f"form-{uuid.uuid4()}"
+        order = Order(
+            external_id=external_id,
+            source=source,
+            status=fields.pop("status", OrderStatus.CONFIRMED),
+            customer_email="buyer@example.com",
+            total_amount=Decimal(price) * quantity,
+            currency="PLN",
+            ordered_at=days_ago(days),
+            **fields,
+        )
+        order.items.append(
+            OrderItem(position=0, name="Item", quantity=quantity, unit_price=Decimal(price), offer_id=offer_id)
+        )
+        db.add(order)
+        for amount, type_id, name in ((fee, "SUC", "Prowizja"), (delivery, "DXP", "Dostawa")):
+            if amount is not None:
+                db.add(
+                    BillingEntry(
+                        source=source,
+                        external_id=str(uuid.uuid4()),
+                        occurred_at=days_ago(days),
+                        type_id=type_id,
+                        type_name=name,
+                        amount=-Decimal(amount),
+                        currency="PLN",
+                        order_external_id=external_id,
+                        offer_id=offer_id if type_id == "SUC" else None,
+                    )
+                )
+        db.commit()
+        return external_id
+    finally:
+        db.close()
+
+
+def only_item(**params):
+    response = client.get("/api/v1/catalog/items", params=params)
+    assert response.status_code == 200, response.text
+    return response.json()["items"][0]
+
+
+def test_an_offer_shows_what_it_sold_and_what_is_left_after_the_fees():
+    add_item("7001")
+    sold("7001", 2, "50.00", fee="23.00")
+    sold("7001", 1, "50.00", fee="11.50")
+
+    sales = only_item()["sales_allegro"]
+
+    assert sales == {"quantity": 3, "orders": 2, "sales": "150.00", "fees": "34.50", "net": "115.50"}
+
+
+def test_allegro_and_erli_are_told_apart_even_under_the_same_number():
+    add_item("7001", erli={"external_id": "7001"})
+    sold("7001", 2, "50.00", fee="23.00")
+    sold("7001", 5, "45.00", source=OrderSource.ERLI, fee="22.50")
+
+    item = only_item()
+
+    assert (item["sales_allegro"]["quantity"], item["sales_allegro"]["net"]) == (2, "77.00")
+    assert (item["sales_erli"]["quantity"], item["sales_erli"]["net"]) == (5, "202.50")
+
+
+def test_erli_sales_are_found_by_the_erli_products_own_id():
+    add_item("7001", erli={"external_id": "erli-77"})
+    sold("erli-77", 3, "40.00", source=OrderSource.ERLI, fee="12.00")
+    # another Erli product is not this offer's
+    sold("someone-else", 9, "40.00", source=OrderSource.ERLI, fee="12.00")
+
+    assert only_item()["sales_erli"]["quantity"] == 3
+
+
+def test_without_an_erli_product_there_are_no_erli_sales_to_show():
+    add_item("7001")
+    sold("7001", 1, "50.00", source=OrderSource.ERLI)
+
+    assert only_item()["sales_erli"] is None
+
+
+def test_an_offer_that_sold_nothing_says_zero_not_nothing():
+    add_item("7001", erli={})
+
+    item = only_item()
+
+    zero = {"quantity": 0, "orders": 0, "sales": "0.00", "fees": "0.00", "net": "0.00"}
+    assert item["sales_allegro"] == zero and item["sales_erli"] == zero
+
+
+def test_the_subscription_and_the_marketplace_taking_its_fees_are_not_shared_out():
+    add_item("7001")
+    sold("7001", 1, "100.00", fee="23.00")
+    db = TestingSessionLocal()
+    for amount, type_id, settlement in (("199.00", "SB2", False), ("500.00", "PAD", True)):
+        db.add(
+            BillingEntry(
+                source=OrderSource.ALLEGRO,
+                external_id=str(uuid.uuid4()),
+                occurred_at=days_ago(1),
+                type_id=type_id,
+                type_name="x",
+                amount=-Decimal(amount),
+                currency="PLN",
+                order_external_id=None,
+                is_settlement=settlement,
+            )
+        )
+    db.commit()
+    db.close()
+
+    sales = only_item()["sales_allegro"]
+
+    assert (sales["fees"], sales["net"]) == ("23.00", "77.00")
+
+
+def test_the_delivery_the_buyer_paid_for_offsets_the_delivery_fee():
+    add_item("7001")
+    sold("7001", 1, "100.00", fee="23.00", delivery="12.00", delivery_cost=Decimal("12.00"))
+
+    # the 12 the carrier took was paid by the buyer: only the commission is the offer's
+    assert only_item()["sales_allegro"]["fees"] == "23.00"
+
+
+def test_a_delivery_fee_beyond_what_the_buyer_paid_is_the_offers():
+    add_item("7001")
+    sold("7001", 1, "100.00", fee="23.00", delivery="12.00", delivery_cost=Decimal("5.00"))
+
+    assert only_item()["sales_allegro"]["fees"] == "30.00"
+
+
+def test_cancelled_orders_do_not_count():
+    add_item("7001")
+    sold("7001", 1, "50.00", fee="5.00")
+    sold("7001", 4, "50.00", fee="5.00", status=OrderStatus.CANCELLED)
+    sold("7001", 4, "50.00", fee="5.00", marketplace_cancelled_at=days_ago(1))
+
+    assert only_item()["sales_allegro"]["quantity"] == 1
+
+
+def test_the_period_is_the_last_thirty_days_unless_another_is_asked_for():
+    add_item("7001")
+    sold("7001", 1, "50.00", days=5)
+    sold("7001", 10, "50.00", days=40)
+    sold("7001", 100, "50.00", days=200)
+
+    assert only_item()["sales_allegro"]["quantity"] == 1
+    assert only_item(sales_days=90)["sales_allegro"]["quantity"] == 11
+    assert only_item(sales_days=0)["sales_allegro"]["quantity"] == 111
+
+
+def test_the_list_says_which_day_the_sales_start_from():
+    add_item("7001")
+
+    body = client.get("/api/v1/catalog/items", params={"sales_days": 7}).json()
+    everything = client.get("/api/v1/catalog/items", params={"sales_days": 0}).json()
+
+    # seven days ending today, in the business timezone: today and the six days before it
+    assert body["sales_from"] is not None
+    assert (datetime.fromisoformat(body["sales_from"]).date() - (datetime.now(UTC) - timedelta(days=6)).date()).days in (-1, 0, 1)
+    assert everything["sales_from"] is None
+    assert client.get("/api/v1/catalog/items", params={"sales_days": -1}).status_code == 422
+    assert client.get("/api/v1/catalog/items", params={"sales_days": 9999}).status_code == 422
+
+
+def test_the_list_can_be_ordered_by_pieces_sold_both_marketplaces_together():
+    add_item("1", name="A", erli={"external_id": "e1"})
+    add_item("2", name="B")
+    add_item("3", name="C")
+    sold("1", 2, "10.00")
+    sold("e1", 5, "10.00", source=OrderSource.ERLI)
+    sold("2", 4, "10.00")
+
+    assert names(client.get("/api/v1/catalog/items?sort=sold&descending=true")) == ["A", "B", "C"]
+    assert names(client.get("/api/v1/catalog/items?sort=sold")) == ["C", "B", "A"]
+
+
+def test_the_list_can_be_ordered_by_what_is_left_after_the_fees():
+    add_item("1", name="A")
+    add_item("2", name="B")
+    # B sold fewer pieces but kept more of them
+    sold("1", 10, "10.00", fee="60.00")
+    sold("2", 2, "100.00", fee="20.00")
+
+    assert names(client.get("/api/v1/catalog/items?sort=net&descending=true")) == ["B", "A"]
+    assert names(client.get("/api/v1/catalog/items?sort=sold&descending=true")) == ["A", "B"]
+
+
+def test_ordering_by_sales_is_still_paged_and_filtered():
+    for n in range(5):
+        add_item(str(n), name=f"Offer {n}", sku=None if n == 4 else f"S{n}")
+        sold(str(n), n + 1, "10.00")
+
+    page = client.get("/api/v1/catalog/items?sort=sold&descending=true&limit=2&offset=1").json()
+    assert page["total"] == 5
+    assert [item["name"] for item in page["items"]] == ["Offer 3", "Offer 2"]
+    assert names(client.get("/api/v1/catalog/items?sort=sold&descending=true&flag=no_sku")) == ["Offer 4"]
+
+
+def test_the_sales_need_the_same_permission_as_the_list():
+    add_item("7001")
+    sold("7001", 1, "50.00")
+
+    assert viewer.get("/api/v1/catalog/items").json()["items"][0]["sales_allegro"]["quantity"] == 1
+    assert stranger.get("/api/v1/catalog/items").status_code == 403

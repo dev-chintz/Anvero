@@ -474,3 +474,73 @@
   color: var(--color-muted);
   font-size: 0.8rem;
 }
+
+/* ---- What an offer sold: pieces on each marketplace, and what is left after the fees ---- */
+.catalog-sold-line {
+  display: inline-flex;
+  gap: 0.75rem;
+}
+
+.catalog-sold-channel {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.catalog-sold-channel b,
+.catalog-net-main {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
+/* a loss is a minus sign as well as a colour */
+.catalog-net-main.is-loss {
+  color: var(--tone-red-fg);
+}
+
+.catalog-filters-label {
+  align-self: center;
+  margin-right: 0.15rem;
+}
+
+.catalog-footnote-sales {
+  max-width: 60rem;
+}
+
+.catalog-detail-sales {
+  grid-column: 1 / -1;
+  overflow-x: auto;
+}
+
+.catalog-sales-table {
+  width: auto;
+  background: transparent;
+  font-size: 0.85rem;
+}
+
+.catalog-sales-table :is(th, td) {
+  padding: 0.3rem 1.1rem 0.3rem 0;
+  border-bottom: 1px solid var(--color-divider);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.catalog-sales-table thead th {
+  background: none;
+}
+
+.catalog-sales-table :is(th:first-child, td:first-child) {
+  text-align: left;
+}
+
+.catalog-sales-table tbody th {
+  font-weight: 600;
+}
+
+.catalog-sales-table tbody tr:last-child :is(th, td) {
+  border-bottom: none;
+}
+
+.catalog-sales-table td[colspan] {
+  text-align: left;
+}

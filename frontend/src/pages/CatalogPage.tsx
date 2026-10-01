@@ -7,6 +7,7 @@ import {
   type CatalogCategoryNode,
   type CatalogFlag,
   type CatalogItem,
+  type ChannelSales,
   type CatalogProgress,
   type CatalogSort,
   type CatalogStatusFilter,
@@ -24,7 +25,12 @@ const STATUSES: CatalogStatusFilter[] = ["current", "active", "inactive", "gone"
 const FLAGS: CatalogFlag[] = ["no_image", "no_sku", "not_on_erli", "category_differs"];
 // the flags that mean something only once Erli is connected
 const ERLI_FLAGS = new Set<CatalogFlag>(["not_on_erli", "category_differs"]);
-const SORTS: CatalogSort[] = ["name", "price", "stock"];
+const SORTS: CatalogSort[] = ["name", "price", "stock", "sold", "net"];
+// the columns that start from the largest, since it is the best sellers that are looked for
+const DESCENDING_FIRST = new Set<CatalogSort>(["sold", "net"]);
+// the periods the sales can be shown for: the last so many days, 0 being everything held
+const PERIODS = [30, 90, 0] as const;
+const DEFAULT_PERIOD = 30;
 const DEFAULT_LIMIT = 50;
 // how long after the last key the search starts
 const SEARCH_DELAY_MS = 300;
@@ -115,6 +121,15 @@ function ancestors(nodes: CatalogCategoryNode[], id: string): string[] | null {
   return null;
 }
 
+const number = (value: string | number) => Number(value) || 0;
+
+/** The offer's sales on both marketplaces added: pieces, sales, fees and what is left. */
+function together(item: CatalogItem) {
+  const channels: ChannelSales[] = [item.sales_allegro, ...(item.sales_erli ? [item.sales_erli] : [])];
+  const sum = (pick: (c: ChannelSales) => string | number) => channels.reduce((total, c) => total + number(pick(c)), 0);
+  return { quantity: sum((c) => c.quantity), sales: sum((c) => c.sales), fees: sum((c) => c.fees), net: sum((c) => c.net) };
+}
+
 function stockTone(stock: number | null): string {
   if (stock === null) return "";
   if (stock <= 0) return "catalog-chip-red";
@@ -182,7 +197,7 @@ function CategoryTree({ nodes, selected, expanded, onSelect, onToggle, depth = 0
  * addresses on Allegro and the copies kept on this server, and the category in both marketplaces.
  */
 export function CatalogPage() {
-  const { t, formatDateTime, formatMoney } = useTranslation();
+  const { t, formatDateTime, formatMoney, formatNumber, formatDate } = useTranslation();
   const canSync = usePermission("orders", "manage");
   const [searchParams, setSearchParams] = useSearchParams();
 
@@ -195,6 +210,8 @@ export function CatalogPage() {
   const sortParam = searchParams.get("sort");
   const sort = SORTS.find((s) => s === sortParam) ?? "name";
   const descending = searchParams.get("desc") === "true";
+  const periodParam = searchParams.get("sales");
+  const salesDays = periodParam === "all" ? 0 : PERIODS.find((p) => String(p) === periodParam && p !== 0) ?? DEFAULT_PERIOD;
   const limit = Number(searchParams.get("limit")) || DEFAULT_LIMIT;
   const skip = Number(searchParams.get("skip")) || 0;
 
@@ -230,7 +247,7 @@ export function CatalogPage() {
     setSearchParams(next);
   };
 
-  const [list, setList] = useState<{ items: CatalogItem[]; total: number } | null>(null);
+  const [list, setList] = useState<{ items: CatalogItem[]; total: number; sales_from: string | null } | null>(null);
   const [tree, setTree] = useState<CatalogCategories | null>(null);
   const [summary, setSummary] = useState<CatalogSummary | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -261,7 +278,7 @@ export function CatalogPage() {
     let cancelled = false;
     setError(null);
     catalogApi
-      .list({ q: query.trim() || undefined, category: category ?? undefined, status, flag, sort, descending, limit, offset: skip })
+      .list({ q: query.trim() || undefined, category: category ?? undefined, status, flag, sort, descending, salesDays, limit, offset: skip })
       .then((next) => {
         if (!cancelled) setList(next);
       })
@@ -271,7 +288,7 @@ export function CatalogPage() {
     return () => {
       cancelled = true;
     };
-  }, [t, query, category, status, flag, sort, descending, limit, skip, reloadKey]);
+  }, [t, query, category, status, flag, sort, descending, salesDays, limit, skip, reloadKey]);
 
   // the path to the chosen category is open, so it is seen where it sits
   useEffect(() => {
@@ -373,7 +390,7 @@ export function CatalogPage() {
     choose(
       column === sort
         ? { desc: descending ? undefined : "true" }
-        : { sort: column === "name" ? undefined : column, desc: undefined },
+        : { sort: column === "name" ? undefined : column, desc: DESCENDING_FIRST.has(column) ? "true" : undefined },
     );
   const sortHead = (column: CatalogSort, label: string) => (
     <th scope="col" aria-sort={sort === column ? (descending ? "descending" : "ascending") : "none"}>
@@ -387,7 +404,11 @@ export function CatalogPage() {
   const stockText = (stock: number | null) => (stock === null ? "—" : t("catalog.stock.pieces", { count: stock }));
   const offerStatusLabel = (item: CatalogItem) =>
     item.gone ? t("catalog.offerStatus.gone") : t(`catalog.offerStatus.${item.status}` as "catalog.offerStatus.ACTIVE");
-  const colCount = erliConnected ? 5 : 4;
+  const colCount = erliConnected ? 7 : 6;
+  const periodName = (days: number) => (days === 0 ? t("catalog.period.all") : t("catalog.period.days", { days }));
+  const pieces = (count: number) => t("catalog.stock.pieces", { count });
+  const percent = (part: number, whole: number) =>
+    whole > 0 ? `${formatNumber(Math.round((part / whole) * 100))}%` : "—";
   const last = summary?.last_sync;
 
   return (
@@ -491,6 +512,20 @@ export function CatalogPage() {
                   </button>
                 ))}
               </div>
+              <div className="catalog-filters" role="group" aria-label={t("catalog.period.label")}>
+                <span className="label-caps catalog-filters-label">{t("catalog.period.label")}</span>
+                {PERIODS.map((days) => (
+                  <button
+                    key={days}
+                    type="button"
+                    className={salesDays === days ? "is-on" : undefined}
+                    aria-pressed={salesDays === days}
+                    onClick={() => choose({ sales: days === DEFAULT_PERIOD ? undefined : days === 0 ? "all" : String(days) })}
+                  >
+                    {periodName(days)}
+                  </button>
+                ))}
+              </div>
               <div className="catalog-filters" role="group" aria-label={t("catalog.flagFilter")}>
                 {FLAGS.filter((f) => erliConnected || !ERLI_FLAGS.has(f)).map((f) => (
                   <button
@@ -525,6 +560,8 @@ export function CatalogPage() {
                       {sortHead("name", t("catalog.col.offer"))}
                       {sortHead("price", t("catalog.col.price"))}
                       {sortHead("stock", t("catalog.col.stock"))}
+                      {sortHead("sold", t("catalog.col.sold"))}
+                      {sortHead("net", t("catalog.col.net"))}
                       {erliConnected && <th scope="col">{t("catalog.col.erli")}</th>}
                       <th scope="col" className="sr-only">
                         {t("catalog.detail.pictures")}
@@ -562,6 +599,8 @@ export function CatalogPage() {
                             <td>
                               <span className={`catalog-chip ${stockTone(item.stock)}`.trim()}>{stockText(item.stock)}</span>
                             </td>
+                            <SoldCell item={item} erliConnected={erliConnected} pieces={pieces} />
+                            <NetCell item={item} formatMoney={formatMoney} percent={percent} perPiece={(amount) => t("catalog.net.perPiece", { amount })} />
                             {erliConnected && (
                               <td>
                                 {item.erli ? (
@@ -595,7 +634,7 @@ export function CatalogPage() {
                           {open && (
                             <tr className="catalog-detail-row">
                               <td colSpan={colCount}>
-                                <ItemDetail item={item} erliConnected={erliConnected} formatMoney={formatMoney} stockText={stockText} />
+                                <ItemDetail item={item} erliConnected={erliConnected} formatMoney={formatMoney} stockText={stockText} formatNumber={formatNumber} period={salesDays === 0 ? t("catalog.period.allHeld") : periodName(salesDays)} />
                               </td>
                             </tr>
                           )}
@@ -617,6 +656,19 @@ export function CatalogPage() {
               />
             )}
 
+            <p className="catalog-footnote catalog-footnote-sales">
+              <span>
+                {t("catalog.sales.note", {
+                  period:
+                    salesDays === 0
+                      ? t("catalog.period.allHeld")
+                      : list?.sales_from
+                        ? t("catalog.period.since", { date: formatDate(list.sales_from) })
+                        : periodName(salesDays),
+                })}
+              </span>
+            </p>
+
             <p className="catalog-footnote">
               {summary && summary.images_total > 0 && (
                 <span>{t("catalog.picturesKept", { local: summary.images_local, total: summary.images_total })}</span>
@@ -630,19 +682,145 @@ export function CatalogPage() {
   );
 }
 
+interface SoldCellProps {
+  item: CatalogItem;
+  erliConnected: boolean;
+  pieces: (count: number) => string;
+}
+
+/** Pieces sold in the period, on each marketplace: the letter of the marketplace and its figure. */
+function SoldCell({ item, erliConnected, pieces }: SoldCellProps) {
+  const { t } = useTranslation();
+  const all = together(item);
+  const channels = [
+    { key: "allegro", mark: "A", className: "source-allegro", sales: item.sales_allegro },
+    ...(erliConnected ? [{ key: "erli", mark: "E", className: "source-erli", sales: item.sales_erli }] : []),
+  ];
+  return (
+    <td className="catalog-sold">
+      {all.quantity === 0 ? (
+        <span className="order-muted">0</span>
+      ) : (
+        <span className="catalog-sold-line">
+          {channels.map(({ key, mark, className, sales }) => (
+            <span key={key} className="catalog-sold-channel" title={key === "allegro" ? "Allegro" : "Erli"}>
+              <span className={`source-mark ${className}`}>{mark}</span>
+              <b>{sales ? sales.quantity : "—"}</b>
+            </span>
+          ))}
+        </span>
+      )}
+      {all.quantity > 0 && channels.length > 1 && <span className="cell-sub">{t("catalog.sold.total", { total: pieces(all.quantity) })}</span>}
+    </td>
+  );
+}
+
+interface NetCellProps {
+  item: CatalogItem;
+  formatMoney: (amount: string | number, currency: string) => string;
+  percent: (part: number, whole: number) => string;
+  perPiece: (amount: string) => string;
+}
+
+/** What is left of what sold after the marketplaces' fees: on a piece, and in all with its share of the sales. */
+function NetCell({ item, formatMoney, percent, perPiece }: NetCellProps) {
+  const all = together(item);
+  const currency = item.currency ?? "PLN";
+  if (all.quantity === 0) {
+    return (
+      <td className="catalog-net">
+        <span className="order-muted">—</span>
+      </td>
+    );
+  }
+  const loss = all.net < 0;
+  return (
+    <td className="catalog-net">
+      <span className={`catalog-net-main${loss ? " is-loss" : ""}`}>{perPiece(formatMoney((all.net / all.quantity).toFixed(2), currency))}</span>
+      <span className="cell-sub">
+        {formatMoney(all.net.toFixed(2), currency)} · {percent(all.net, all.sales)}
+      </span>
+    </td>
+  );
+}
+
 interface ItemDetailProps {
   item: CatalogItem;
   erliConnected: boolean;
   formatMoney: (amount: string | number, currency: string) => string;
   stockText: (stock: number | null) => string;
+  formatNumber: (value: number, options?: Intl.NumberFormatOptions) => string;
+  /** The period the sales are of, in words. */
+  period: string;
+}
+
+/** What an offer sold on each marketplace in the period, and what was left of it. */
+function SalesTable({ item, erliConnected, formatMoney, formatNumber, period }: ItemDetailProps) {
+  const { t } = useTranslation();
+  const currency = item.currency ?? "PLN";
+  const rows = [
+    { key: "allegro", name: "Allegro", sales: item.sales_allegro },
+    ...(erliConnected ? [{ key: "erli", name: "Erli", sales: item.sales_erli }] : []),
+  ];
+  const money = (amount: number) => formatMoney(amount.toFixed(2), currency);
+  const share = (net: number, sales: number) => (sales > 0 ? `${formatNumber(Math.round((net / sales) * 100))}%` : "—");
+  return (
+    <section className="catalog-detail-block catalog-detail-sales">
+      <h3 className="label-caps">{t("catalog.detail.sales", { period })}</h3>
+      <table className="catalog-sales-table">
+        <thead>
+          <tr>
+            <th scope="col" />
+            <th scope="col">{t("catalog.sales.pieces")}</th>
+            <th scope="col">{t("catalog.sales.orders")}</th>
+            <th scope="col">{t("catalog.sales.revenue")}</th>
+            <th scope="col">{t("catalog.sales.fees")}</th>
+            <th scope="col">{t("catalog.sales.net")}</th>
+            <th scope="col">{t("catalog.sales.perPiece")}</th>
+            <th scope="col">{t("catalog.sales.margin")}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map(({ key, name, sales }) => {
+            const net = sales ? number(sales.net) : 0;
+            const revenue = sales ? number(sales.sales) : 0;
+            return (
+              <tr key={key}>
+                <th scope="row">
+                  <span className={`source-mark source-${key}`}>{name.charAt(0)}</span> {name}
+                </th>
+                {sales ? (
+                  <>
+                    <td>{sales.quantity}</td>
+                    <td>{sales.orders}</td>
+                    <td>{money(revenue)}</td>
+                    <td>{money(number(sales.fees))}</td>
+                    <td className={net < 0 ? "catalog-net-main is-loss" : "catalog-net-main"}>{money(net)}</td>
+                    <td>{sales.quantity > 0 ? money(net / sales.quantity) : "—"}</td>
+                    <td>{share(net, revenue)}</td>
+                  </>
+                ) : (
+                  <td colSpan={7} className="order-muted">
+                    {t("catalog.detail.notOnErli")}
+                  </td>
+                )}
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </section>
+  );
 }
 
 /** What a row opens to: every picture, and the offer beside its Erli product. */
-function ItemDetail({ item, erliConnected, formatMoney, stockText }: ItemDetailProps) {
+function ItemDetail(props: ItemDetailProps) {
+  const { item, erliConnected, formatMoney, stockText } = props;
   const { t } = useTranslation();
   const { erli } = item;
   return (
     <div className="catalog-detail">
+      <SalesTable {...props} />
       <section className="catalog-detail-block catalog-detail-pictures">
         <h3 className="label-caps">{t("catalog.detail.pictures")}</h3>
         {item.images.length === 0 ? (

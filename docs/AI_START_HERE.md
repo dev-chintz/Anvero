@@ -86,7 +86,7 @@ breakdown; the short version:
   history.
 - Allegro adapter, import script, an import endpoint and a button, one
   import at a time.
-- 1299 backend and 659 frontend tests passing.
+- 1314 backend and 671 frontend tests passing.
 - The order opens as a page of its own with back and next/previous arrows, the
   list shows each order's items, the menu shows what waits, and a new interface
   language is a dictionary file and one line (`DECISIONS.md`, 2026-09-24).

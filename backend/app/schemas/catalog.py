@@ -2,6 +2,7 @@
 
 import uuid
 from dataclasses import dataclass, field
+from datetime import date
 from decimal import Decimal
 from enum import Enum
 
@@ -90,6 +91,9 @@ class CatalogSort(str, Enum):
     NAME = "name"
     PRICE = "price"
     STOCK = "stock"
+    # pieces sold, both marketplaces together, and what is left of them after the fees
+    SOLD = "sold"
+    NET = "net"
 
 
 class CategoryStep(BaseModel):
@@ -117,6 +121,20 @@ class CatalogListingRead(BaseModel):
     category_match: str
 
 
+class ChannelSalesRead(BaseModel):
+    """What an offer sold on one marketplace in the period asked for."""
+
+    quantity: int
+    orders: int
+    # what the buyers paid for the goods (their price times the pieces, delivery not counted)
+    sales: Decimal
+    # the marketplace's fees for those orders that fall to the offer: commission, and the delivery
+    # fee less what the buyer paid for delivery; never the subscription
+    fees: Decimal
+    # sales less fees, before what the goods cost, which Anvero does not hold
+    net: Decimal
+
+
 class CatalogItemRead(BaseModel):
     id: uuid.UUID
     offer_id: str
@@ -135,11 +153,17 @@ class CatalogItemRead(BaseModel):
     images: list[CatalogImageRead]
     # the same product on Erli, when it was found there
     erli: CatalogListingRead | None
+    # what it sold in the period the list was asked for, on each marketplace; Erli's is null while no
+    # Erli product is tied to the offer
+    sales_allegro: ChannelSalesRead
+    sales_erli: ChannelSalesRead | None
 
 
 class CatalogItemList(BaseModel):
     items: list[CatalogItemRead]
     total: int
+    # the first day of the period the sales are of; null for everything held
+    sales_from: date | None
 
 
 class CatalogCategoryNode(BaseModel):

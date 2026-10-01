@@ -1,10 +1,15 @@
 """The assortment: the seller's Allegro offers, their pictures, and how they stand on Erli
 (docs/CATALOG.md). Read only: nothing here changes an offer on a marketplace."""
 
+from datetime import date, datetime, timedelta
+from decimal import Decimal
+from zoneinfo import ZoneInfo
+
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 
+from app.core.config import settings
 from app.core.permissions import require_permission
 from app.core.rate_limit import limiter
 from app.db.session import get_db
@@ -26,11 +31,13 @@ from app.schemas.catalog import (
     CatalogSummary,
     CatalogSyncStarted,
     CategoryStep,
+    ChannelSalesRead,
 )
 from app.services import erli_settings
 from app.services.allegro_sync import ImportAlreadyRunning
 from app.services.catalog import catalog_progress, read_note, start_catalog_sync
 from app.services.catalog_images import MEDIA_TYPES, ImageStore
+from app.services.finance import FinanceService, OfferSales
 
 # Seen with the orders' permission: whoever works the orders works from the assortment's pictures
 # and stock too (DECISIONS.md, 2026-10-01).
@@ -48,13 +55,32 @@ def _local_url(file_name: str | None) -> str | None:
     return f"/api/v1/catalog/images/{file_name}" if file_name else None
 
 
-def _read(item: CatalogItem) -> CatalogItemRead:
+ZERO = Decimal("0.00")
+
+
+def _channel(sales: OfferSales | None) -> ChannelSalesRead:
+    if sales is None:
+        return ChannelSalesRead(quantity=0, orders=0, sales=ZERO, fees=ZERO, net=ZERO)
+    return ChannelSalesRead(
+        quantity=sales.quantity, orders=len(sales.orders), sales=sales.sales, fees=sales.fees, net=sales.net
+    )
+
+
+def _period(sales_days: int) -> tuple[date | None, date]:
+    """The first and last day of the sales asked for: the last `sales_days` days up to today in the
+    business timezone, or, for 0, everything held (the first is then None)."""
+    today = datetime.now(ZoneInfo(settings.business_timezone)).date()
+    return (today - timedelta(days=sales_days - 1) if sales_days else None), today
+
+
+def _read(item: CatalogItem, sales: dict[tuple[OrderSource, str], OfferSales]) -> CatalogItemRead:
     images = [
         CatalogImageRead(position=image.position, url=image.url, local_url=_local_url(image.file_name))
         for image in item.images
     ]
     listing = next((entry for entry in item.listings if entry.source is OrderSource.ERLI), None)
     cover = images[0] if images else None
+    on_erli = sales.get((OrderSource.ERLI, listing.external_id)) if listing else None
     return CatalogItemRead(
         id=item.id,
         offer_id=item.offer_id,
@@ -84,6 +110,8 @@ def _read(item: CatalogItem) -> CatalogItemRead:
             if listing
             else None
         ),
+        sales_allegro=_channel(sales.get((OrderSource.ALLEGRO, item.offer_id))),
+        sales_erli=_channel(on_erli) if listing else None,
     )
 
 
@@ -95,16 +123,31 @@ def list_items(
     flag: CatalogFlag | None = None,
     sort: CatalogSort = CatalogSort.NAME,
     descending: bool = False,
+    sales_days: int = Query(default=30, ge=0, le=3650),
     limit: int = Query(default=50, ge=1, le=200),
     offset: int = Query(default=0, ge=0),
     db: Session = Depends(get_db),
 ):
     """Offers, by name unless asked otherwise. `category` is a category id at any depth: the
-    offers in it and everything below it."""
-    rows, total = CatalogRepository(db).list_items(
-        q, category, status_filter, flag, sort, descending, limit, offset
-    )
-    return CatalogItemList(items=[_read(row) for row in rows], total=total)
+    offers in it and everything below it. `sales_days` is the period of the sales shown with each
+    offer, the last so many days (0: everything held)."""
+    date_from, date_to = _period(sales_days)
+    sales = FinanceService(db).offer_sales(date_from or date(2000, 1, 1), date_to)
+    repository = CatalogRepository(db)
+    if sort in (CatalogSort.SOLD, CatalogSort.NET):
+        # worked out from the orders, so the database cannot order by it: every match is read,
+        # ordered here and then paged
+        every = repository.all_items(q, category, status_filter, flag)
+        reads = [_read(row, sales) for row in every]
+
+        def key(read: CatalogItemRead):
+            channels = [read.sales_allegro] + ([read.sales_erli] if read.sales_erli else [])
+            return sum(c.quantity for c in channels) if sort is CatalogSort.SOLD else sum((c.net for c in channels), ZERO)
+
+        reads.sort(key=key, reverse=descending)
+        return CatalogItemList(items=reads[offset : offset + limit], total=len(reads), sales_from=date_from)
+    rows, total = repository.list_items(q, category, status_filter, flag, sort, descending, limit, offset)
+    return CatalogItemList(items=[_read(row, sales) for row in rows], total=total, sales_from=date_from)
 
 
 @router.get("/categories", response_model=CatalogCategories)

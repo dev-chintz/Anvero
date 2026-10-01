@@ -13,6 +13,10 @@ All significant changes to the Anvero project.
   opens to every picture and to the same product on Erli, with the category in both marketplaces. Pictures
   are downloaded to the NAS and kept beside their address on Allegro. Read only. See `docs/CATALOG.md` and
   `docs/DECISIONS.md`.
+- Each offer in the list shows what it sold in the last 30 / 90 days or since the start (pieces on Allegro and on
+  Erli apart) and what is left after the marketplaces' fees, on a piece, in all and as a share of the sales; the
+  list can be ordered by either. The subscription is not counted, nor what the goods cost to make (Anvero does not
+  hold it). The same figures as the Finance page.
 - The read runs in the background with a progress bar (the step, "done of total", the time it has taken),
   instead of one request that ended in a `504`; the rest of a first read's pictures are fetched a quarter
   of an hour later instead of hours.

@@ -90,6 +90,21 @@ class ProductMoney:
     orders: set = field(default_factory=set)
 
 
+@dataclass
+class OfferSales:
+    """One offer's sales on one marketplace in a period."""
+
+    quantity: int = 0
+    sales: Decimal = ZERO
+    fees: Decimal = ZERO
+    orders: set = field(default_factory=set)
+
+    @property
+    def net(self) -> Decimal:
+        """What is left of the sales after the fees of its orders: before what the goods cost."""
+        return self.sales - self.fees
+
+
 class FinanceService:
     def __init__(self, db: Session, currency: str = "PLN"):
         self.db = db
@@ -282,6 +297,71 @@ class FinanceService:
             for order in orders
         ]
 
+    @staticmethod
+    def _item_money(
+        order: Order, items: list, entries: list[BillingEntry]
+    ) -> tuple[list[Decimal], list[Decimal]]:
+        """What each item of an order sold for, and its share of the order's fees, in the items' order.
+
+        The rules of `products` below; kept apart so the assortment's per-offer figures are the
+        Finance page's own."""
+        values = [item.unit_price * item.quantity for item in items]
+        shares = [ZERO for _ in items]
+        delivery_fee_total = ZERO
+        for entry in entries:
+            fee = -entry.amount
+            if fee_kind(entry.type_id, entry.type_name) == "delivery":
+                delivery_fee_total += fee
+            matching = [
+                i
+                for i, item in enumerate(items)
+                if entry.offer_id and entry.offer_id in (item.offer_id, item.external_id)
+            ]
+            targets = matching or list(range(len(items)))
+            base = sum((values[i] for i in targets), ZERO)
+            for i in targets:
+                part = fee * values[i] / base if base else fee / len(targets)
+                shares[i] += part
+        credit = min(order.delivery_cost or ZERO, delivery_fee_total) if delivery_fee_total > 0 else ZERO
+        if credit:
+            base = sum(values, ZERO)
+            for i in range(len(items)):
+                part = credit * values[i] / base if base else credit / len(items)
+                shares[i] -= part
+        return values, shares
+
+    def offer_sales(self, date_from: date, date_to: date) -> dict[tuple[OrderSource, str], "OfferSales"]:
+        """What each offer sold in the period, by marketplace: pieces, sales, and the fees of its
+        orders that fall to it, kept per `(source, offer_id)` as `order_items.offer_id` holds it.
+
+        The same orders and the same sharing of fees as `products`, so an offer's figures agree with
+        the Finance page's. Only fees that name an order are counted: the subscription, which names
+        none, is not shared out over the products.
+        """
+        orders = self._orders_sold(date_from, date_to, with_items=True)
+        entries_by_order: dict[tuple[OrderSource, str], list[BillingEntry]] = {}
+        for entry in self._fee_entries(orders):
+            entries_by_order.setdefault((entry.source, entry.order_external_id), []).append(entry)
+
+        offers: dict[tuple[OrderSource, str], OfferSales] = {}
+        for order in orders:
+            items = list(order.items)
+            if not items:
+                continue
+            values, shares = self._item_money(order, items, entries_by_order.get((order.source, order.external_id), []))
+            for item, value, share in zip(items, values, shares):
+                if not item.offer_id:
+                    continue
+                offer = offers.setdefault((order.source, item.offer_id), OfferSales())
+                offer.quantity += item.quantity
+                offer.sales += value
+                offer.fees += share
+                offer.orders.add(order.id)
+        for offer in offers.values():
+            offer.sales = offer.sales.quantize(ZERO)
+            offer.fees = offer.fees.quantize(ZERO)
+        return offers
+
     def products(self, date_from: date, date_to: date) -> list[ProductMoney]:
         """What each product sold in the period and what its fees came to.
 
@@ -308,29 +388,7 @@ class FinanceService:
             items = list(order.items)
             if not items:
                 continue
-            values = [item.unit_price * item.quantity for item in items]
-            shares = [ZERO for _ in items]
-            delivery_fee_total = ZERO
-            for entry in entries_by_order.get((order.source, order.external_id), []):
-                fee = -entry.amount
-                if fee_kind(entry.type_id, entry.type_name) == "delivery":
-                    delivery_fee_total += fee
-                matching = [
-                    i
-                    for i, item in enumerate(items)
-                    if entry.offer_id and entry.offer_id in (item.offer_id, item.external_id)
-                ]
-                targets = matching or list(range(len(items)))
-                base = sum((values[i] for i in targets), ZERO)
-                for i in targets:
-                    part = fee * values[i] / base if base else fee / len(targets)
-                    shares[i] += part
-            credit = min(order.delivery_cost or ZERO, delivery_fee_total) if delivery_fee_total > 0 else ZERO
-            if credit:
-                base = sum(values, ZERO)
-                for i in range(len(items)):
-                    part = credit * values[i] / base if base else credit / len(items)
-                    shares[i] -= part
+            values, shares = self._item_money(order, items, entries_by_order.get((order.source, order.external_id), []))
             for item, value, share in zip(items, values, shares):
                 key = f"sku:{item.sku}" if item.sku else f"offer:{item.offer_id}" if item.offer_id else f"name:{item.name}"
                 product = products.get(key)

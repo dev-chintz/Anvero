@@ -46,7 +46,7 @@ folder, and one was restored from that copy into a scratch database as a test.
   remains the no-setup default for a fresh clone)
 - Health endpoint and first order model — done
 - Minimal order list interface — done
-- Automated tests for core flows — done (1299 backend, 659 frontend passing
+- Automated tests for core flows — done (1314 backend, 671 frontend passing
   across the suite as of 2026-10-01)
 
 ---
@@ -100,7 +100,7 @@ re-imported. Production needs its own application and authorization; see
 
 ## Not yet verified
 
-The assortment (2026-10-01, `CATALOG.md`): built from Allegro's and Erli's published descriptions, tested against fakes (125 backend and 34 frontend tests), and seen in a browser on a scratch database with made-up offers and pictures, in both looks and modes; the backend tests ran on SQLite only (the main machine's PostgreSQL run of the suite is still to do); never read from the real services. To check on the first sync (the button on the page, on a machine with the real Allegro connection, after `alembic upgrade head`): that the application has the scope `allegro:api:sale:offers:read` (a refusal is shown on the page); that the offers and their pictures arrive and the pictures are stored; how many of Erli's products are tied to an offer and by what (`EXTERNAL_REFERENCE`, `EXTERNAL_ID`, `SKU`) or not at all, and whether the "different category" ones are real differences. How long a first read takes is not known (the first attempt, as one request, outlasted the proxy's 300 seconds; it now runs in the background with a progress bar, seen in a browser with a made-up state, never over a real read). On the NAS the backend still needs the mounted folder for the pictures (`DEPLOYMENT.md`, "The assortment's pictures").
+The assortment (2026-10-01, `CATALOG.md`): built from Allegro's and Erli's published descriptions, tested against fakes (140 backend and 46 frontend tests), and seen in a browser on a scratch database with made-up offers and pictures, in both looks and modes; the backend tests ran on SQLite only (the main machine's PostgreSQL run of the suite is still to do); never read from the real services. To check on the first sync (the button on the page, on a machine with the real Allegro connection, after `alembic upgrade head`): that the application has the scope `allegro:api:sale:offers:read` (a refusal is shown on the page); that the offers and their pictures arrive and the pictures are stored; how many of Erli's products are tied to an offer and by what (`EXTERNAL_REFERENCE`, `EXTERNAL_ID`, `SKU`) or not at all, and whether the "different category" ones are real differences. What each offer sold and what is left after the fees (2026-10-01) is the Finance page's arithmetic, tested, and seen in a browser on made-up orders (the figures checked by hand); not yet compared with the real orders: pick one product and check its pieces and its fees against the order page and Finance. An Erli offer shows Erli sales only once the Erli product is tied to it. How long a first read takes is not known (the first attempt, as one request, outlasted the proxy's 300 seconds; it now runs in the background with a progress bar, seen in a browser with a made-up state, never over a real read). On the NAS the backend still needs the mounted folder for the pictures (`DEPLOYMENT.md`, "The assortment's pictures").
 
 The non-invoiced record's reports, exports and screen (2026-10-01, stages 4 and
 5 of `NON_INVOICED_SALES.md`): tested, and seen in a browser on a scratch

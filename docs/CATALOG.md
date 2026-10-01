@@ -91,13 +91,39 @@ mockups of 2026-10-01 (variant A):
 - a search by name, SKU or offer number; status as pills (all, active, inactive, ended) and quick filters
   for what is missing (no picture, no SKU, and, once Erli is connected, not on Erli and another category
   on Erli), each with its count;
-- the list sorted by name, price or stock; the thumbnail grows on hover as it does in the order list; stock
+- the list sorted by name, price, stock, pieces sold or what is left; the thumbnail grows on hover as it does in the order list; stock
   as a chip (red at 0, amber to 3, green above);
+- **what it sold, in a period** (the last 30 days, 90 days or everything held, chosen above the list): the
+  pieces on Allegro and on Erli apart (the marketplace's letter and its figure, and the two added), and **what
+  is left** after the marketplaces' fees: on a piece, in all, and as a share of the sales; a row opens to the
+  same per marketplace, with the fees (see "What it earns" below);
 - a row opens to every picture (the copy on the NAS where there is one, always a link to Allegro), the offer's
   number linking to Allegro, and the Erli product beside it with both category paths and the verdict.
 
 What is shown is kept in the address (`status`, `flag`, `category`, `sort`, `desc`, `skip`, `limit`), so going
 back restores it; the search is not.
+
+## What it earns
+
+The list shows, for each offer, what it sold and what is left of it after the marketplaces' fees. It is the
+Finance page's own arithmetic (`FinanceService.offer_sales`, which shares `_item_money` with the products table
+of `/finance/products`), so the two agree:
+
+- **Sales** is what the buyers paid for the goods, price times pieces, in the orders placed in the period
+  (not deleted, not cancelled on either side), per marketplace. An Allegro offer's orders are the items with its
+  `offer_id`; an Erli product's those whose `offer_id` is the product's `external_id` (the tie of
+  `catalog_listings`), so the Erli figures need an Erli product tied to the offer.
+- **Fees** are the billing entries that name the order: the commission, and the delivery fee less what the buyer
+  paid for delivery; one naming the offer goes to it, one naming none is shared by the items' value. **The
+  subscription is not counted**, as asked: it names no order, so it is in no product's share; nor is any
+  other charge the marketplace books on the account alone, and the marketplace taking its fees out of the proceeds
+  is not a fee.
+- **Earned** is sales less fees. It is **not a margin over what the goods cost**: Anvero holds no purchase or
+  making cost (`ROADMAP.md`: "Missing: purchase price, margin"), so it is what is left to pay for the goods and
+  the work. A cost per product would turn it into one.
+- The period is the last 30 days by default, 90, or everything held (Allegro's fees are held from 30 August,
+  Erli's from its first import). Fees of an order booked after the last read are not in yet, so a very recent
+  sale can look better than it will.
 
 ## Pictures and who may see them
 

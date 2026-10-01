@@ -133,6 +133,18 @@ class CatalogRepository:
         ).all()
         return rows, total
 
+    def all_items(
+        self, q: str | None, category_id: str | None, status: CatalogStatusFilter, flag: CatalogFlag | None
+    ) -> Sequence[CatalogItem]:
+        """Every offer that matches, by name: for a sort the database cannot do (by what an offer
+        sold, which is worked out from the orders)."""
+        stmt = self._filtered(q, category_id, status, flag)
+        return self.db.scalars(
+            stmt.options(selectinload(CatalogItem.images), selectinload(CatalogItem.listings)).order_by(
+                func.lower(CatalogItem.name), CatalogItem.id
+            )
+        ).all()
+
     def count(self, *conditions) -> int:
         return self.db.scalar(select(func.count()).select_from(CatalogItem).where(CatalogItem.source == ALLEGRO, *conditions)) or 0
 

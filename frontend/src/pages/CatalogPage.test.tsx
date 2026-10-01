@@ -42,6 +42,8 @@ function item(overrides: Partial<CatalogItem> = {}): CatalogItem {
       { position: 1, url: "https://a.allegroimg.com/2", local_url: null },
     ],
     erli: null,
+    sales_allegro: { quantity: 0, orders: 0, sales: "0.00", fees: "0.00", net: "0.00" },
+    sales_erli: null,
     ...overrides,
   };
 }
@@ -122,7 +124,7 @@ const lastListCall = () => {
 describe("CatalogPage", () => {
   beforeEach(() => {
     permission.manage = true;
-    vi.mocked(catalogApi.list).mockResolvedValue({ items: [item()], total: 1 });
+    vi.mocked(catalogApi.list).mockResolvedValue({ items: [item()], total: 1, sales_from: null });
     vi.mocked(catalogApi.categories).mockResolvedValue(TREE);
     vi.mocked(catalogApi.summary).mockResolvedValue(summary());
     vi.mocked(catalogApi.progress).mockResolvedValue({ running: false, phase: null, done: 0, total: null, started_at: null });
@@ -145,7 +147,7 @@ describe("CatalogPage", () => {
   it("shows an offer without a picture or a SKU as such", async () => {
     vi.mocked(catalogApi.list).mockResolvedValue({
       items: [item({ sku: null, thumbnail_url: null, images: [], category_path: [], stock: 0 })],
-      total: 1,
+      total: 1, sales_from: null
     });
     renderPage();
 
@@ -159,7 +161,7 @@ describe("CatalogPage", () => {
   it("tells the stock apart by colour as well as by number", async () => {
     vi.mocked(catalogApi.list).mockResolvedValue({
       items: [item({ id: "a", name: "A", stock: 2 }), item({ id: "b", name: "B", stock: 40 }), item({ id: "c", name: "C", stock: null })],
-      total: 3,
+      total: 3, sales_from: null
     });
     renderPage();
 
@@ -171,7 +173,7 @@ describe("CatalogPage", () => {
   it("marks an offer that is not active or has ended", async () => {
     vi.mocked(catalogApi.list).mockResolvedValue({
       items: [item({ id: "a", name: "A", status: "INACTIVE" }), item({ id: "b", name: "B", gone: true })],
-      total: 2,
+      total: 2, sales_from: null
     });
     renderPage();
 
@@ -200,7 +202,7 @@ describe("CatalogPage", () => {
   });
 
   it("says an offer has no pictures", async () => {
-    vi.mocked(catalogApi.list).mockResolvedValue({ items: [item({ images: [], thumbnail_url: null })], total: 1 });
+    vi.mocked(catalogApi.list).mockResolvedValue({ items: [item({ images: [], thumbnail_url: null })], total: 1, sales_from: null });
     renderPage();
     fireEvent.click(await screen.findByRole("button", { name: /Kubek ceramiczny/ }));
 
@@ -242,7 +244,7 @@ describe("CatalogPage", () => {
     it("shows how the product stands on Erli and flags another category", async () => {
       vi.mocked(catalogApi.list).mockResolvedValue({
         items: [item({ erli }), item({ id: "item-2", name: "Talerz", erli: null })],
-        total: 2,
+        total: 2, sales_from: null
       });
       renderPage();
 
@@ -253,7 +255,7 @@ describe("CatalogPage", () => {
     });
 
     it("sets the category in both marketplaces side by side when a row is opened", async () => {
-      vi.mocked(catalogApi.list).mockResolvedValue({ items: [item({ erli })], total: 1 });
+      vi.mocked(catalogApi.list).mockResolvedValue({ items: [item({ erli })], total: 1, sales_from: null });
       renderPage();
       fireEvent.click(await screen.findByRole("button", { name: /Kubek ceramiczny/ }));
 
@@ -270,7 +272,8 @@ describe("CatalogPage", () => {
       renderPage();
       fireEvent.click(await screen.findByRole("button", { name: /Kubek ceramiczny/ }));
 
-      expect(screen.getByText(/Nie znaleziono produktu|No Erli product was found/)).toBeInTheDocument();
+      // in the Erli block, and in the table of sales
+      expect(screen.getAllByText(/Nie znaleziono produktu|No Erli product was found/)).toHaveLength(2);
     });
 
     it("offers the filters that need Erli, with their counts", async () => {
@@ -391,7 +394,7 @@ describe("CatalogPage", () => {
   });
 
   it("pages through a long list", async () => {
-    vi.mocked(catalogApi.list).mockResolvedValue({ items: [item()], total: 120 });
+    vi.mocked(catalogApi.list).mockResolvedValue({ items: [item()], total: 120, sales_from: null });
     renderPage();
     await screen.findByText("Kubek ceramiczny");
 
@@ -401,7 +404,7 @@ describe("CatalogPage", () => {
   });
 
   it("says nothing matches, and that nothing has been read yet", async () => {
-    vi.mocked(catalogApi.list).mockResolvedValue({ items: [], total: 0 });
+    vi.mocked(catalogApi.list).mockResolvedValue({ items: [], total: 0, sales_from: null });
     vi.mocked(catalogApi.summary).mockResolvedValue(summary({ total: 0, last_sync: null }));
     renderPage();
 
@@ -410,7 +413,7 @@ describe("CatalogPage", () => {
   });
 
   it("says no offer matches when a filter is on", async () => {
-    vi.mocked(catalogApi.list).mockResolvedValue({ items: [], total: 0 });
+    vi.mocked(catalogApi.list).mockResolvedValue({ items: [], total: 0, sales_from: null });
     renderPage("/catalog?flag=no_sku");
 
     expect(await screen.findByText(/Żadna oferta nie pasuje|No offers match/)).toBeInTheDocument();
@@ -450,6 +453,181 @@ describe("CatalogPage", () => {
     renderPage();
 
     expect(await screen.findByText(/5 (z|of) 8/)).toBeInTheDocument();
+  });
+
+  describe("what the offers sold", () => {
+    const channel = (quantity: number, sales: string, fees: string, net: string, orders = quantity) => ({ quantity, orders, sales, fees, net });
+    // 31 pieces on Allegro and 12 on Erli: 43 in all, 2,150.00 sold, 480.00 of fees, 1,670.00 left
+    const sellers = () =>
+      item({
+        sales_allegro: channel(31, "1550.00", "350.00", "1200.00"),
+        sales_erli: channel(12, "600.00", "130.00", "470.00"),
+        erli: {
+          source: "ERLI",
+          external_id: "erli-1",
+          matched_by: "SKU",
+          price: "50.00",
+          currency: "PLN",
+          stock: 3,
+          status: "ACTIVE",
+          category_path: [],
+          category_match: "UNKNOWN",
+        },
+      });
+
+    beforeEach(() => {
+      vi.mocked(catalogApi.summary).mockResolvedValue(summary({ erli_connected: true }));
+    });
+
+    it("shows the pieces sold on Allegro and on Erli apart, and together", async () => {
+      vi.mocked(catalogApi.list).mockResolvedValue({ items: [sellers()], total: 1, sales_from: "2026-09-02" });
+      renderPage();
+
+      const row = (await screen.findByText("Kubek ceramiczny")).closest("tr")!;
+      const sold = row.querySelector(".catalog-sold") as HTMLElement;
+      const channels = sold.querySelectorAll(".catalog-sold-channel");
+      expect(channels[0]).toHaveTextContent("A31");
+      expect(channels[1]).toHaveTextContent("E12");
+      expect(sold).toHaveTextContent(/razem 43 szt\.|43 pcs in all/);
+    });
+
+    it("shows what is left after the fees on a piece, in all, and as a share of the sales", async () => {
+      vi.mocked(catalogApi.list).mockResolvedValue({ items: [sellers()], total: 1, sales_from: null });
+      renderPage();
+
+      const row = (await screen.findByText("Kubek ceramiczny")).closest("tr")!;
+      const earned = row.querySelector(".catalog-net") as HTMLElement;
+      // 1,670.00 over 43 pieces is 38.84 a piece, and 78% of the 2,150.00 sold
+      expect(earned).toHaveTextContent(/38,84|38\.84/);
+      expect(earned).toHaveTextContent(/1\s?670,00|1,670\.00/);
+      expect(earned).toHaveTextContent("78%");
+    });
+
+    it("says an offer that sold nothing sold nothing", async () => {
+      renderPage();
+
+      const row = (await screen.findByText("Kubek ceramiczny")).closest("tr")!;
+      expect(row.querySelector(".catalog-sold")).toHaveTextContent("0");
+      expect(row.querySelector(".catalog-net")).toHaveTextContent("—");
+    });
+
+    it("marks an offer that loses money on each piece", async () => {
+      vi.mocked(catalogApi.list).mockResolvedValue({
+        items: [item({ sales_allegro: channel(2, "20.00", "26.00", "-6.00") })],
+        total: 1,
+        sales_from: null,
+      });
+      renderPage();
+
+      const row = (await screen.findByText("Kubek ceramiczny")).closest("tr")!;
+      expect(row.querySelector(".catalog-net-main")).toHaveClass("is-loss");
+    });
+
+    it("shows only Allegro's sales until Erli is connected", async () => {
+      vi.mocked(catalogApi.summary).mockResolvedValue(summary({ erli_connected: false }));
+      vi.mocked(catalogApi.list).mockResolvedValue({
+        items: [item({ sales_allegro: channel(5, "100.00", "20.00", "80.00") })],
+        total: 1,
+        sales_from: null,
+      });
+      renderPage();
+
+      const row = (await screen.findByText("Kubek ceramiczny")).closest("tr")!;
+      const sold = row.querySelector(".catalog-sold") as HTMLElement;
+      expect(sold.querySelectorAll(".catalog-sold-channel")).toHaveLength(1);
+      expect(sold).not.toHaveTextContent(/razem|in all/);
+    });
+
+    it("shows a dash for the Erli side of an offer with no Erli product", async () => {
+      vi.mocked(catalogApi.list).mockResolvedValue({
+        items: [item({ sales_allegro: channel(5, "100.00", "20.00", "80.00"), sales_erli: null })],
+        total: 1,
+        sales_from: null,
+      });
+      renderPage();
+
+      const row = (await screen.findByText("Kubek ceramiczny")).closest("tr")!;
+      expect(row.querySelectorAll(".catalog-sold-channel")[1]).toHaveTextContent("E—");
+    });
+
+    it("opens to a table of the sales on each marketplace with the fees and what is left", async () => {
+      vi.mocked(catalogApi.list).mockResolvedValue({ items: [sellers()], total: 1, sales_from: null });
+      renderPage();
+      fireEvent.click(await screen.findByRole("button", { name: /Kubek ceramiczny/ }));
+
+      const table = document.querySelector(".catalog-sales-table") as HTMLElement;
+      const [allegro, erli] = within(table).getAllByRole("row").slice(1);
+      expect(allegro).toHaveTextContent("Allegro");
+      expect(allegro).toHaveTextContent("31");
+      expect(allegro).toHaveTextContent(/1\s?550,00|1,550\.00/);
+      expect(allegro).toHaveTextContent(/350,00|350\.00/);
+      expect(allegro).toHaveTextContent(/1\s?200,00|1,200\.00/);
+      expect(allegro).toHaveTextContent("77%");
+      expect(erli).toHaveTextContent("Erli");
+      expect(erli).toHaveTextContent(/470,00|470\.00/);
+      expect(erli).toHaveTextContent("78%");
+    });
+
+    it("says in the table when no Erli product is tied to the offer", async () => {
+      vi.mocked(catalogApi.list).mockResolvedValue({ items: [item()], total: 1, sales_from: null });
+      renderPage();
+      fireEvent.click(await screen.findByRole("button", { name: /Kubek ceramiczny/ }));
+
+      const table = document.querySelector(".catalog-sales-table") as HTMLElement;
+      expect(within(table).getByText(/Nie znaleziono produktu|No Erli product was found/)).toBeInTheDocument();
+    });
+
+    it("asks for the last thirty days, and for another period when it is chosen", async () => {
+      renderPage();
+      await screen.findByText("Kubek ceramiczny");
+      expect(lastListCall()).toMatchObject({ salesDays: 30 });
+      expect(screen.getByRole("button", { name: /30 dni|30 days/ })).toHaveAttribute("aria-pressed", "true");
+
+      fireEvent.click(screen.getByRole("button", { name: /90 dni|90 days/ }));
+      await waitFor(() => expect(lastListCall()).toMatchObject({ salesDays: 90 }));
+      expect(screen.getByTestId("location")).toHaveTextContent("sales=90");
+
+      fireEvent.click(screen.getByRole("button", { name: /Od początku|From the start/ }));
+      await waitFor(() => expect(lastListCall()).toMatchObject({ salesDays: 0 }));
+      expect(screen.getByTestId("location")).toHaveTextContent("sales=all");
+
+      // the first is the default, which leaves the address alone
+      fireEvent.click(screen.getByRole("button", { name: /30 dni|30 days/ }));
+      await waitFor(() => expect(lastListCall()).toMatchObject({ salesDays: 30 }));
+      expect(screen.getByTestId("location")).not.toHaveTextContent("sales");
+    });
+
+    it("reads the period from the address, and ignores one it does not know", async () => {
+      renderPage("/catalog?sales=90");
+      await waitFor(() => expect(lastListCall()).toMatchObject({ salesDays: 90 }));
+
+      vi.mocked(catalogApi.list).mockClear();
+      renderPage("/catalog?sales=7");
+      await waitFor(() => expect(lastListCall()).toMatchObject({ salesDays: 30 }));
+    });
+
+    it("says in words what the sales are of, and what they leave out", async () => {
+      vi.mocked(catalogApi.list).mockResolvedValue({ items: [item()], total: 1, sales_from: "2026-09-02" });
+      renderPage();
+
+      const note = await screen.findByText(/abonamentu|subscription/);
+      expect(note).toHaveTextContent(/od 02\.09\.2026|since 02\/09\/2026|since 2\/9\/2026|od 2\.09\.2026/);
+      expect(note).toHaveTextContent(/kosztu wytworzenia|what the goods cost to make/);
+    });
+
+    it("sorts by pieces sold and by what is left, the largest first", async () => {
+      renderPage();
+      await screen.findByText("Kubek ceramiczny");
+
+      fireEvent.click(within(screen.getByRole("columnheader", { name: /Sprzedano|Sold/ })).getByRole("button"));
+      await waitFor(() => expect(lastListCall()).toMatchObject({ sort: "sold", descending: true }));
+
+      fireEvent.click(within(screen.getByRole("columnheader", { name: /Sprzedano|Sold/ })).getByRole("button"));
+      await waitFor(() => expect(lastListCall()).toMatchObject({ sort: "sold", descending: false }));
+
+      fireEvent.click(within(screen.getByRole("columnheader", { name: /Zarobek|Earned/ })).getByRole("button"));
+      await waitFor(() => expect(lastListCall()).toMatchObject({ sort: "net", descending: true }));
+    });
   });
 
   describe("reading from Allegro", () => {

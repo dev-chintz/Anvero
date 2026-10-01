@@ -1010,7 +1010,7 @@ export const afterSalesApi = {
 
 export type CatalogStatusFilter = "current" | "active" | "inactive" | "gone";
 export type CatalogFlag = "no_image" | "no_sku" | "not_on_erli" | "category_differs";
-export type CatalogSort = "name" | "price" | "stock";
+export type CatalogSort = "name" | "price" | "stock" | "sold" | "net";
 /** Whether an Erli product sits in the same category as its Allegro offer. */
 export type CategoryMatch = "SAME" | "DIFFERENT" | "UNKNOWN";
 
@@ -1043,6 +1043,18 @@ export interface CatalogListing {
   category_match: CategoryMatch;
 }
 
+/** What an offer sold on one marketplace in the period asked for. */
+export interface ChannelSales {
+  quantity: number;
+  orders: number;
+  /** What the buyers paid for the goods, delivery not counted. */
+  sales: string;
+  /** The marketplace's fees for those orders that fall to the offer; never the subscription. */
+  fees: string;
+  /** Sales less fees, before what the goods cost, which Anvero does not hold. */
+  net: string;
+}
+
 export interface CatalogItem {
   id: string;
   offer_id: string;
@@ -1061,11 +1073,16 @@ export interface CatalogItem {
   thumbnail_url: string | null;
   images: CatalogImage[];
   erli: CatalogListing | null;
+  sales_allegro: ChannelSales;
+  /** Null while no Erli product is tied to the offer. */
+  sales_erli: ChannelSales | null;
 }
 
 export interface CatalogItemList {
   items: CatalogItem[];
   total: number;
+  /** The first day of the period the sales are of; null for everything held. */
+  sales_from: string | null;
 }
 
 export interface CatalogCategoryNode {
@@ -1132,6 +1149,8 @@ export interface CatalogListParams {
   flag?: CatalogFlag;
   sort?: CatalogSort;
   descending?: boolean;
+  /** The sales shown are of the last so many days; 0 is everything held. */
+  salesDays?: number;
   limit?: number;
   offset?: number;
 }
@@ -1145,6 +1164,7 @@ export const catalogApi = {
     if (params.flag) query.set("flag", params.flag);
     if (params.sort) query.set("sort", params.sort);
     if (params.descending) query.set("descending", "true");
+    if (params.salesDays !== undefined) query.set("sales_days", String(params.salesDays));
     if (params.limit !== undefined) query.set("limit", String(params.limit));
     if (params.offset !== undefined) query.set("offset", String(params.offset));
     const queryString = query.toString();

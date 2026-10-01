@@ -253,7 +253,8 @@ returns) or cannot be reached.
 ## The assortment: `/api/v1/catalog`
 
 Read only (`CATALOG.md`). An offer is `{"id", "offer_id", "name", "sku", "price", "currency", "stock",
-"status", "gone", "category_path", "allegro_url", "thumbnail_url", "images", "erli"}`:
+"status", "gone", "category_path", "allegro_url", "thumbnail_url", "images", "erli", "sales_allegro",
+"sales_erli"}`:
 
 - `status` is Allegro's publication status (`ACTIVE`, `INACTIVE`, `ACTIVATING`); `gone` is true for an offer
   Allegro no longer lists (ended or deleted), which is kept but is not part of the assortment.
@@ -267,12 +268,29 @@ Read only (`CATALOG.md`). An offer is `{"id", "offer_id", "name", "sku", "price"
   `EXTERNAL_REFERENCE`, `EXTERNAL_ID` or `SKU`, `status` `ACTIVE`, `INACTIVE` or `ARCHIVED`, `category_match`
   `SAME`, `DIFFERENT` or `UNKNOWN` (Erli's category's leaf named like the offer's, or not, or one side has none).
 
-`GET /catalog/items?q&category&status&flag&sort&descending&limit&offset` returns `{"items": [...], "total": n}`.
+- `sales_allegro` and `sales_erli` are what the offer sold in the period asked for (`sales_days`), each
+  `{"quantity", "orders", "sales", "fees", "net"}`: pieces, orders, what the buyers paid for the goods
+  (price times pieces, delivery not counted), the marketplace's fees for those orders that fall to the offer,
+  and `net` = `sales` less `fees`. They are the Finance page's own figures (`GET /finance/products`): the same
+  orders (placed in the period, not deleted, not cancelled, in PLN) and the same sharing of fees, so a fee
+  naming the offer goes to it and one naming none (delivery) is shared by value, the delivery fee being
+  offset by what the buyer paid for delivery. Only fees that name an order count: the subscription is not
+  among them, nor anything else the marketplace books on the account alone. `net` is before what the goods
+  cost to make, which Anvero does not hold. The Erli figures are those of the Erli product tied to the offer
+  (its `external_id` as `order_items.offer_id` holds it for Erli): `sales_erli` is null while none is. An
+  offer that sold nothing has zeros, not nulls.
+
+`GET /catalog/items?q&category&status&flag&sort&descending&sales_days&limit&offset` returns `{"items": [...],
+"total": n, "sales_from": "YYYY-MM-DD" | null}`.
 `q` finds a name, SKU or offer number (case ignored, `%` and `_` taken literally); `category` is a category
 id at any depth and finds the offers in it and everything below; `status` is `current` (the default: every
 offer Allegro still lists), `active`, `inactive` (listed but not active) or `gone`; `flag` is one of
 `no_image`, `no_sku`, `not_on_erli`, `category_differs`; `sort` is `name` (the default, case ignored),
-`price` or `stock`, `descending` turns it round; `limit` 1 to 200 (default 50).
+`price`, `stock`, `sold` (pieces on both marketplaces together) or `net` (what is left, both together),
+`descending` turns it round; `sales_days` is the period the sales are of, the last so many days up to today in
+the business timezone (default 30, 0 to 3650; 0 is everything held), and `sales_from` is its first day (null for
+0); `limit` 1 to 200 (default 50). Ordering by `sold` or `net` is done after reading every match, since it is
+worked out from the orders; the paging is then of that order.
 
 `GET /catalog/categories` returns `{"tree": [{"id", "name", "count", "children": [...]}], "uncategorized": n}`
 for the offers Allegro still lists; a node's `count` includes everything below it.
