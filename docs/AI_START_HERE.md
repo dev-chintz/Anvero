@@ -26,6 +26,7 @@ Read the following files in order:
 12. GDPR.md (before storing, showing or exporting anything about a buyer)
 13. NON_INVOICED_SALES.md (before touching the non-invoiced sales record: the law, the design, what was found)
 14. CATALOG.md (before touching the assortment: where it is read from, how pictures are kept, how Erli is tied to Allegro)
+15. GUIDE.md (before adding, removing or renaming a page, or changing what one shows: the Help page's guide describes every page and a test fails when one is missing from it)
 
 ---
 
@@ -59,6 +60,8 @@ read succeeded: 0 open issues, 10 closed issues, 10 customer returns).
 
 **Assortment (2026-10-01):** "Asortyment" in the menu (`/catalog`) lists every offer in the Allegro account with its pictures, a category tree beside a compact list, and for each offer the same product on Erli with the category in both. Read only. Pictures are downloaded to the NAS (`CATALOG_IMAGES_DIR`, a mounted folder: `DEPLOYMENT.md`) and kept beside their address on Allegro. Built from the marketplaces' published descriptions and never run against the real Allegro or Erli: see `PROJECT_STATUS.md`, "Not yet verified", and `CATALOG.md`.
 
+**Help (2026-10-01):** "Pomoc", last in the menu (`/help`), has a guide to every part of the application, in Polish and English, with screenshots of an invented shop made by `tools/guide/make.ps1`, and a GDPR (RODO) tab with the data controller's details (entered by an administrator in Settings), a draft notice to buyers, a draft register of processing activities and the team's steps for a request or a breach. Adding a page means adding its section to the guide: a test fails otherwise (`GUIDE.md`, `GDPR.md`). Not yet seen behind the owner's login, and the notice and register are drafts no lawyer has read: see `PROJECT_STATUS.md`, "Not yet verified".
+
 **NAS deployment (2026-09-27):** done. Running at `http://NAS_ADDRESS:8081`
 (not 8080 - taken on this NAS), backend reaching the database over a joined
 Docker network by container name rather than the NAS's LAN address. See
@@ -86,7 +89,8 @@ breakdown; the short version:
   history.
 - Allegro adapter, import script, an import endpoint and a button, one
   import at a time.
-- 1335 backend and 686 frontend tests passing.
+- 1352 backend and 764 frontend tests passing (one more backend test fails on
+  SQLite on a machine not in UTC: `PROJECT_STATUS.md`, "Not yet verified").
 - The order opens as a page of its own with back and next/previous arrows, the
   list shows each order's items, the menu shows what waits, and a new interface
   language is a dictionary file and one line (`DECISIONS.md`, 2026-09-24).

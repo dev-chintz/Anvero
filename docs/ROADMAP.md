@@ -572,9 +572,15 @@ what is held, the periods and how a request is answered are described.
 5. **Who looked at what** - decided: reads are not logged; exports with personal columns are.
 6. **Write it down** - done: `GDPR.md`.
 
-**Still for the owner, outside the code:** the register of processing activities, the privacy notice on each
-marketplace, data processing agreements where needed, the breach procedure (UODO within 72 hours), who has access to
-the NAS and the VPN, setting `SECRETS_KEY` on the NAS (`GDPR.md`, "For the owner, outside the code").
+**Drafted 2026-10-01:** Help → RODO holds a draft of the register of processing activities, of the privacy notice
+for buyers and of the breach steps, built from the controller's details and the real retention periods
+(`GDPR.md`, "The GDPR tab"). They are drafts: the owner enters the controller's details in Settings and has a lawyer
+read them.
+
+**Still for the owner, outside the code:** entering the controller's details, having the register and the notice read
+by a lawyer and putting the notice on each marketplace, data processing agreements where needed, the breach procedure
+(UODO within 72 hours), who has access to the NAS and the VPN, setting `SECRETS_KEY` on the NAS (`GDPR.md`, "For the
+owner, outside the code").
 
 ## A competitor to learn from: Ritevo (mapped 2026-09-27)
 

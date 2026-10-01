@@ -34,6 +34,11 @@ Repository: <https://github.com/dev-chintz/Anvero>
 
 # Completed
 
+- Help (2026-10-01): a guide to every page in Polish and English with screenshots of
+  an invented shop (`tools/guide/make.ps1`), and a GDPR tab with the controller's
+  details, a draft notice to buyers and register of processing activities, and the
+  team's steps for a request or a breach; not yet seen behind the owner's login
+  (`GUIDE.md`, `GDPR.md`)
 - The assortment (2026-10-01): "Asortyment" page with the Allegro offers, their pictures (kept on the NAS and as
   addresses on Allegro) and the same products on Erli with the category in both; read only; never run against the real
   Allegro or Erli (`CATALOG.md`)
@@ -65,8 +70,9 @@ Repository: <https://github.com/dev-chintz/Anvero>
   scope). Full detail in `DECISIONS.md` and `CHANGELOG.md`.
 - Order page (2026-09-29): status picker in the header, payment folded,
   Allegro Smart badge (`DECISIONS.md`)
-- 1335 backend tests and 686 frontend tests (Vitest + React Testing Library)
-  passing
+- 1352 backend tests and 764 frontend tests (Vitest + React Testing Library)
+  passing (one more backend test fails on SQLite on a machine not in UTC:
+  `PROJECT_STATUS.md`)
 
 ---
 

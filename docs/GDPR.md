@@ -149,18 +149,64 @@ written to the application log with the period, the column keys, the row count
 and the user's id (`API.md`). Revisit this if accounts outside the business are
 ever given access.
 
+## The GDPR tab
+
+Help → RODO (`/help?tab=gdpr`; `frontend/src/pages/help/GdprTab.tsx`, text in
+`frontend/src/guide/gdpr.ts`; added 2026-10-01) puts this document in front of the
+team and drafts the two texts the owner has to produce. Any logged-in account may
+open it. It opens with the warning that it describes what the application does and
+gives drafts to check, and is not legal advice (`DECISIONS.md`, "The in-app guide and
+the GDPR tab").
+
+- **The controller.** Who the data controller is: name, address, tax id, an e-mail for
+  data matters, a phone, and how to reach a data protection officer if one was
+  appointed. An administrator enters it in Settings (the card at the foot of the
+  Settings page); it is one row of `app_settings` (`API.md`, "GDPR"; `DATABASE.md`).
+  The tab says which of name, address and e-mail are still missing, and shows an
+  administrator where to fill them in. The texts below show a visible
+  `[uzupełnij: ...]` gap where a detail is missing, never a blank.
+- **The notice to buyers** (art. 13 and 14), ready to paste into a shop's description
+  on Allegro or Erli, or a sheet in the parcel: "Kopiuj tekst" copies it as plain text
+  with the lists as dashes. It is built from the controller and from the retention
+  periods, which the backend gives as the erasure uses them (`app/services/retention.py`),
+  so it cannot name a period the application does not apply. It says the marketplace is
+  a controller in its own right (the data comes from there, so art. 14 applies as well
+  as art. 13).
+- **The register of processing activities** (art. 30(1)): a row for each of orders and
+  shipping, tax and accounting records, buyers' messages, returns, claims and disputes,
+  the record of what was sent to marketplaces and carriers, user accounts, and backups,
+  each with its purpose and legal basis, the people and the data concerned, recipients,
+  transfers and retention. It prints on its own.
+- **For the team**: what is held and for how long (the table at the top of this
+  document, with the periods in force), who the data goes to, the steps for answering a
+  request with the scripts to run (`export_person.py`, `anonymize_person.py`), what to do
+  after a breach (the supervisory authority within 72 hours, art. 33; the people
+  concerned when the risk is high, art. 34), the security measures, and "Do ustalenia z
+  prawnikiem", the list below of what only the owner can settle.
+
+The notice and the register are in Polish whatever language the interface is in: they
+are for Polish buyers and the Polish authority. The team's part is in both languages.
+The text is code and follows this document by hand; its tests hold it to what the code
+does (the periods, the script names, the 72 hours and the month), not to the law.
+What the tab cannot know, it lists as the owner's to settle (below).
+
 ## For the owner, outside the code
 
 - The register of processing activities (art. 30), with the legal bases above:
-  the contract (art. 6(1)(b)) and the tax duty (art. 6(1)(c)).
+  the contract (art. 6(1)(b)) and the tax duty (art. 6(1)(c)). A draft is in Help →
+  RODO, to be checked; whether the accountant is a controller or a processor, and the
+  basis for the backup copy leaving the EEA, are marked there for a lawyer.
 - The information given to buyers (art. 13/14): the shop's privacy notice on
   each marketplace names the owner, the purposes, the periods above and the
   recipients, and that an erasure request leaves the tax records (a company
-  invoice, the non-invoiced sales record) until their period is over.
+  invoice, the non-invoiced sales record) until their period is over. A draft is
+  in Help → RODO; putting it on each marketplace is the owner's.
 - Data processing agreements where one is needed (the accountant, if they act
   on the owner's behalf; Google for the backup copy); the carriers and
   marketplaces act as controllers under their own terms.
 - A procedure for a breach: the supervisory authority (UODO) within 72 hours of
-  learning of it, the buyers too when the risk is high.
+  learning of it, the buyers too when the risk is high. The steps are in Help →
+  RODO; the register of breaches (art. 33(5)) and of requests is kept outside
+  Anvero, and Anvero stores neither.
 - Who has access to the NAS, its backup folder, the VPN and the password
   manager, and removing it when someone leaves.

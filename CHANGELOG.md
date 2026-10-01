@@ -6,6 +6,19 @@ All significant changes to the Anvero project.
 
 ## 2026-10-01
 
+### ❓ Help: the guide and the GDPR tab
+
+- New "Pomoc" page, last in the menu, open to every logged-in account. The guide describes each part of the
+  application in Polish and English: what it is for, where things are, what can be done, a screenshot of an
+  invented shop and a link to open it, with a "where do I find" table and a glossary. Tests hold it to the
+  application's pages, menu and Settings tabs. See `docs/GUIDE.md`.
+- The GDPR tab: who the data controller is (entered by an administrator in Settings), the notice to buyers
+  (art. 13 and 14, copied as plain text) and the register of processing activities (art. 30, printable), both in
+  Polish and built from the periods the erasure really uses, and for the team what is held, how to answer a
+  request, what to do after a breach and the security measures, with what is left for a lawyer. Not legal advice.
+  New `GET /gdpr/overview` and `PUT /gdpr/controller`. See `docs/GDPR.md`, `docs/API.md` and `docs/DECISIONS.md`.
+- `tools/guide/make.ps1` makes the screenshots from a scratch database with made-up data.
+
 ### 🗂️ The assortment
 
 - New "Asortyment" page: every offer in the Allegro account with its price, stock, SKU, category and

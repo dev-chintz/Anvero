@@ -46,8 +46,9 @@ folder, and one was restored from that copy into a scratch database as a test.
   remains the no-setup default for a fresh clone)
 - Health endpoint and first order model — done
 - Minimal order list interface — done
-- Automated tests for core flows — done (1335 backend, 686 frontend passing
-  across the suite as of 2026-10-01)
+- Automated tests for core flows — done (1352 backend, 764 frontend passing
+  across the suite as of 2026-10-01, the backend on SQLite, where one more
+  fails on a machine not in UTC: see "Not yet verified")
 
 ---
 
@@ -99,6 +100,26 @@ re-imported. Production needs its own application and authorization; see
 ---
 
 ## Not yet verified
+
+The Help page (2026-10-01, `GUIDE.md`, `GDPR.md`): the guide, the GDPR tab, the
+controller card in Settings and `GET /gdpr/overview` and `PUT /gdpr/controller` are
+tested (the endpoints against the permission rules, the guide against the application's
+routes, menu and Settings tabs, the notice and the register against the retention
+periods), and the Help page was drawn by headless Chrome on a scratch database for
+the screenshots of 2026-10-01 (its GDPR tab among them, with a made-up controller). It
+has not been opened behind the owner's login, the controller card has not been used in
+a browser, and no controller's details have been entered on the NAS, so there the
+notice still shows its `[uzupełnij: ...]` gaps. `tools/guide/make.ps1` was not run
+again when the branch was merged: the screenshots are as made on 2026-10-01, and
+nobody has yet compared the guide's sentences with the live screens. The notice to
+buyers and the register are drafts no lawyer has seen (the tab lists what is theirs to
+settle). No migration (`gdpr_controller` is a row of `app_settings`).
+
+A known failure, found 2026-10-01 on a machine in UTC+2 on SQLite and not on this
+branch's code: `tests/services/test_catalog.py::test_the_first_sync_keeps_every_offer_with_its_category_and_pictures`
+reads `last_seen_at` back without its zone and `.astimezone(UTC)` takes it for local
+time (10:00 for 12:00 UTC). Not run on PostgreSQL or on a machine in UTC; the order import
+test that did the same was fixed with `_as_utc` on 2026-09-24.
 
 The assortment (2026-10-01, `CATALOG.md`): built from Allegro's and Erli's published descriptions, tested against fakes (161 backend and 61 frontend tests), and seen in a browser on a scratch database with made-up offers and pictures, in both looks and modes; the backend tests ran on SQLite only (the main machine's PostgreSQL run of the suite is still to do); never read from the real services. To check on the first sync (the button on the page, on a machine with the real Allegro connection, after `alembic upgrade head`): that the application has the scope `allegro:api:sale:offers:read` (a refusal is shown on the page); that the offers and their pictures arrive and the pictures are stored; how many of Erli's products are tied to an offer and by what (`EXTERNAL_REFERENCE`, `EXTERNAL_ID`, `SKU`) or not at all, and whether the "different category" ones are real differences. The cost of making a piece and the margin (2026-10-01): tested (backend and page), and used in a browser on a scratch
 database (a cost typed in, kept, the margin worked out again, an invalid one refused, Enter going on to the next
@@ -498,4 +519,4 @@ PostgreSQL 17, SQLite (no-setup default for a fresh clone)
 
 ## Last Update
 
-2026-09-30
+2026-10-01

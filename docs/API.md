@@ -31,6 +31,8 @@ are days in the business timezone, `BUSINESS_TIMEZONE`, default
 | `GET` | `/api/v1/users` | every account (administrator only) |
 | `POST` | `/api/v1/users` | create an account (administrator only) |
 | `PATCH` | `/api/v1/users/{id}` | change an account's role, active state, password or permissions (administrator only) |
+| `GET` | `/api/v1/gdpr/overview` | who the data controller is and the retention periods, for the Help page's GDPR tab; any logged-in account |
+| `PUT` | `/api/v1/gdpr/controller` | save who the data controller is; a field left blank is cleared (administrator only) |
 | `GET` | `/api/v1/settings/safe-mode` | whether safe mode is on, and who last switched it |
 | `PUT` | `/api/v1/settings/safe-mode` | switch safe mode on or off |
 | `GET` | `/api/v1/marketplace-writes` | what Anvero sent to a marketplace, or held back in safe mode |
@@ -136,6 +138,10 @@ grant: only `role == "admin"` may call it, checked by a separate dependency
 (`app/core/permissions.py`, `require_admin`). `PATCH /users/{id}` refuses
 `409` a change that would leave no active admin account (demoting or
 deactivating the last one).
+
+The GDPR endpoints (`/gdpr/*`) need no area grant either: reading is for any
+logged-in account, saving only for `role == "admin"`, by the same `require_admin`
+(see "GDPR" below).
 
 Every request reads the account again, so a deactivated account's token is
 refused at once, and a changed role or set of grants applies to the very next
@@ -1194,6 +1200,40 @@ that one entry. An unknown order id returns 404.
 `changed_by` is the email of the user who made the change. It is `null` for
 changes recorded before logins existed, and for a user whose account has been
 deleted.
+
+## GDPR: `GET /api/v1/gdpr/overview` and `PUT /api/v1/gdpr/controller`
+
+What the Help page's GDPR tab needs (`GDPR.md`, "The GDPR tab"): who the data
+controller is, so the notice to buyers and the register of processing activities can
+name them, and the periods the application erases by. Any logged-in account may read
+it (the notice is for the whole team to find); only an administrator may save the
+controller (`403` for anyone else, `401` without a login). No area grant is involved.
+
+```json
+{"controller": {"name": "Manufaktura sp. z o.o.", "tax_id": "0000000000", "address": "ul. Lipowa 1, 00-000 Miasto",
+                "email": "rodo@example.com", "phone": null, "dpo_contact": null, "updated_at": "...Z"},
+ "retention": {"orders_years": 5, "contacts_years": 2}}
+```
+
+`controller` is as the owner entered it. Every field is null until then, `updated_at`
+too; `name`, `address` and `email` are what the notice cannot do without (the page says
+which are missing), the rest is optional. `dpo_contact` is how to reach the data
+protection officer, null when none was appointed. `retention` is read from the code that
+erases (`app/services/retention.py`), not typed in, so the notice always names the
+periods the application applies: `orders_years` for orders, their addresses and the
+non-invoiced record, counted from the year the tax was due; `contacts_years` for
+messages, claims and what was sent to a marketplace.
+
+`PUT` takes the six fields, each optional, and replaces what was saved: a field left
+out, empty or only spaces is cleared (null), and the spaces in a text are tidied to
+single ones. Longer than 200 characters (`name`, `email`, `dpo_contact`), 300 (`address`),
+32 (`tax_id`) or 40 (`phone`), or an `email` that has no `@`, has a space or begins or
+ends with the `@`, is refused `422`. It answers `200` with the saved controller. The log
+records that an account saved it, not what it saved.
+
+It is one row of `app_settings`, the key `gdpr_controller` (`DATABASE.md`). A saved value
+that cannot be read is shown as none, with a warning in the log, rather than failing the
+page.
 
 ## Updates: `GET` and `POST /api/v1/admin/updates`
 

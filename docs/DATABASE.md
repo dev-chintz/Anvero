@@ -435,6 +435,13 @@ by order, because the list is.
 `app_settings` also holds `shipping_sender` and `shipping_default_package`,
 each a JSON object (`API.md`, "Labels through Wysyłam z Allegro").
 
+`app_settings` also holds `gdpr_controller`: who the data controller is, one JSON
+object with `name`, `tax_id`, `address`, `email`, `phone` and `dpo_contact` (each
+text or null). There is no row until an administrator first saves it, and none of
+it is secret, so it is not encrypted. The application has one owner, who is the
+controller, so one row is enough and no table or migration was added
+(`API.md`, "GDPR"; `GDPR.md`, "The GDPR tab").
+
 `integration_settings` holds the application's own credentials when they were
 entered in Integrations, and are then used instead of the `ALLEGRO_*` variables:
 `provider` (primary key), `client_id`, `client_secret` (never returned by the
