@@ -20,6 +20,7 @@ import { LabelsPage } from './pages/LabelsPage';
 import { AfterSalesPage } from './pages/AfterSalesPage';
 import { FinancePage } from './pages/FinancePage';
 import { NonInvoicedPage } from './pages/NonInvoicedPage';
+import { HelpPage } from './pages/HelpPage';
 import { useSidebarOpen } from './hooks/useSidebarOpen';
 import { useTranslation } from './i18n';
 import './App.css';
@@ -157,6 +158,7 @@ export default function App() {
                 <Route path="/inbox" element={<InboxPage />} />
                 <Route path="/finance" element={<FinancePage />} />
                 <Route path="/sales-report" element={<NonInvoicedPage />} />
+                <Route path="/help" element={<HelpPage />} />
                 <Route path="/integrations" element={<IntegrationsRedirect />} />
                 <Route
                   path="/settings"

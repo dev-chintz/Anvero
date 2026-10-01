@@ -1204,6 +1204,35 @@ export const catalogApi = {
   },
 };
 
+// ---- GDPR: who the data controller is, and how long what is held is kept ----
+
+export interface GdprController {
+  name: string | null;
+  tax_id: string | null;
+  address: string | null;
+  email: string | null;
+  phone: string | null;
+  /** How to reach the data protection officer; null when none was appointed. */
+  dpo_contact: string | null;
+  updated_at: string | null;
+}
+
+export interface GdprOverview {
+  controller: GdprController;
+  retention: { orders_years: number; contacts_years: number };
+}
+
+export const gdprApi = {
+  overview(): Promise<GdprOverview> {
+    return request<GdprOverview>("/gdpr/overview");
+  },
+
+  /** Save who the data controller is (an administrator only); a blank field is cleared. */
+  saveController(details: Partial<Omit<GdprController, "updated_at">>): Promise<GdprController> {
+    return request<GdprController>("/gdpr/controller", { method: "PUT", body: JSON.stringify(details) });
+  },
+};
+
 // ---- Finance: a period's sales, what the marketplaces took, and what is left ----
 // Amounts are decimal strings, as the backend sends them; fees are positive (what was taken).
 

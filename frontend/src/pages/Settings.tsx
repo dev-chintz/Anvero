@@ -1,5 +1,6 @@
 import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
+import { ControllerSettings } from '../components/ControllerSettings';
 import { SafeModeSettings } from '../components/SafeModeSettings';
 import { SettingRow } from '../components/SettingRow';
 import { useAppHealth } from '../hooks/useAppHealth';
@@ -176,6 +177,7 @@ export const Settings: React.FC<SettingsProps> = ({ isDarkMode, onThemeToggle, l
           </div>
         </SettingRow>
       </section>
+      {isAdmin && <ControllerSettings />}
 
       </div>
       )}

@@ -127,6 +127,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onToggle }) => {
       dot: healthLevel,
       hint: healthLevel ? t('nav.badge.settings') : undefined,
     },
+    { path: '/help', label: t('nav.help'), icon: '❓' },
   ];
   const navItems = allNavItems.filter((item) => !item.area || hasPermission(user, item.area));
 
