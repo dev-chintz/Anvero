@@ -22,6 +22,10 @@
     total. A doc with no marked line, or a marked line without both numbers,
     is an error: the count would otherwise go stale without a word.
 
+    The docs say "passing", so a suite that does not exit 0 (a failed test, an
+    error, an error vitest reports after green tests) stops the script before
+    any doc is touched, and the counts are never recorded from a red run.
+
 .EXAMPLE
     .\scripts\sync-test-counts.ps1
 #>
@@ -51,11 +55,18 @@ try {
     # this script even on a passing run (e.g. npm's own update notice) -
     # stdout/stderr are both already visible without redirecting either
     $backendOutput = ConvertTo-PlainText (& ".\.venv\Scripts\python.exe" -m pytest -q | Out-String)
+    $backendExit = $LASTEXITCODE
 }
 finally {
     Pop-Location
 }
 Write-Host $backendOutput
+# the docs say "passing", so a run with a failure or an error is not recorded:
+# pytest's "N passed" is printed beside "M failed" and would be taken for good
+if ($backendExit -ne 0) {
+    Write-Host "[ERROR] The backend tests did not all pass (pytest exited with $backendExit); nothing was changed." -ForegroundColor Red
+    exit 1
+}
 if ($backendOutput -notmatch "(\d+) passed") {
     Write-Host "[ERROR] Could not find a passing count in the backend output; nothing was changed." -ForegroundColor Red
     exit 1
@@ -66,11 +77,17 @@ Write-Host "Running frontend tests ..." -ForegroundColor Cyan
 Push-Location (Join-Path $root "frontend")
 try {
     $frontendOutput = ConvertTo-PlainText (& npm.cmd run test | Out-String)
+    $frontendExit = $LASTEXITCODE
 }
 finally {
     Pop-Location
 }
 Write-Host $frontendOutput
+# vitest also exits non-zero for an error raised outside any test, with every test green
+if ($frontendExit -ne 0) {
+    Write-Host "[ERROR] The frontend tests did not all pass (vitest exited with $frontendExit); nothing was changed." -ForegroundColor Red
+    exit 1
+}
 if ($frontendOutput -notmatch "Tests\s+(\d+) passed") {
     Write-Host "[ERROR] Could not find a passing count in the frontend output; nothing was changed." -ForegroundColor Red
     exit 1

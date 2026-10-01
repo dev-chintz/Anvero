@@ -26,6 +26,9 @@ All significant changes to the Anvero project.
   marked `<!-- sync-tests -->` in each, and reports a doc with no marked line instead of leaving its count stale.
 - A catalog test failed on SQLite on a machine whose time zone is not UTC (it read a zoneless timestamp as local
   time); it now normalises with `_as_utc`, as the order import test did.
+- `sync-test-counts.ps1` recorded the counts of a red run as "passing" (pytest prints "N passed" beside "M failed"):
+  it now stops, changing nothing, when either suite does not exit 0. The `sync_test_counts` MCP tool said it took
+  under a minute and gave up after 180 seconds, when the two suites take about six; it now says so and waits 900.
 
 ### 🗂️ The assortment
 

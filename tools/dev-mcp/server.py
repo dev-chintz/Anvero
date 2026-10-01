@@ -122,11 +122,18 @@ def sync_test_counts() -> str:
     `<!-- sync-tests -->` in `docs/PROJECT_STATUS.md`, `docs/AI_START_HERE.md`
     and `docs/AI_HANDOFF.md`, leaving the rest of each sentence (and any other
     count in the file) as its author wrote it; a doc with no marked line is
-    an error. Nothing is committed; review the
-    diff afterwards. Runs `scripts/sync-test-counts.ps1`. Takes under a
-    minute.
+    an error, and so is a suite that does not pass: nothing is recorded from
+    a red run. Nothing is committed; review the diff afterwards. Runs
+    `scripts/sync-test-counts.ps1`.
+
+    Slow: the two suites take about three minutes each (about six in all on
+    the main machine), and the call blocks until both are done, so the
+    client must allow it that long.
     """
-    return _run_powershell_script("sync-test-counts.ps1", timeout=180)
+    # twice the six minutes measured on 2026-10-01, for a slower machine or a
+    # suite that has grown; timing out kills powershell.exe, not necessarily
+    # the test run it started
+    return _run_powershell_script("sync-test-counts.ps1", timeout=900)
 
 
 if __name__ == "__main__":

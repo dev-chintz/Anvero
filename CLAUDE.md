@@ -94,7 +94,8 @@ whichever side a commit touches.
   `AI_HANDOFF.md` (see "Before ending a session"); review the diff before
   committing. It rewrites only the line marked `<!-- sync-tests -->` in each
   of the three: keep the marker, and both numbers on that line, when rewording
-  it (a doc without the marker makes the script fail).
+  it (a doc without the marker makes the script fail). It changes nothing when
+  a suite does not pass. The two suites take about six minutes together.
 - Both of the above are also callable as MCP tools (`restart_backend`,
   `sync_test_counts`) via `tools/dev-mcp/` — see its README note above and
   `server.py`'s docstring. One caveat found while building it: a server
