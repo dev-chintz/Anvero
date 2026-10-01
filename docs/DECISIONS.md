@@ -2348,3 +2348,17 @@ row's override note is erased with the buyer, as it may name them. Not yet run o
 **Rationale:** The owner decides what to make and what to promote from what each product leaves, not from its price, and wants Allegro and Erli seen apart since their fees differ. Reusing the Finance page's arithmetic gives one answer to "what did this product leave" wherever it is asked.
 
 **Consequences:** Every list request reads the orders of the period with their items and fees (the Finance products table's cost), however few offers the page shows, because the figures are shared out per order. The delivery fee is in "Earned" as in Finance, so a product shipped by a costly courier shows lower than its commission alone suggests. Not yet seen on the real orders (`PROJECT_STATUS.md`).
+
+## 2026-10-01 — The margin of an offer: the cost of making a piece is the owner's input
+
+**Decision (owner: "do the real margin"):** Each offer in the assortment has a **cost of making one piece**, typed by the owner into a field in its row of the list. The margin shown is what the marketplaces leave (sales less their fees, 2026-10-01 "What each offer sold and earned") less that cost times the pieces sold. The first time something in Anvero is written by the owner on a catalogue row: three columns on `catalog_items` (`unit_cost`, `cost_updated_at`, `cost_updated_by_user_id`, migration `e8c3b7f1a926`), `PUT /catalog/items/{id}/cost` (needs `orders` at `manage`), a filter and a count of the offers without a cost.
+
+- **One cost per offer, not per marketplace**: the same piece is made once; Allegro's and Erli's sales both bear it.
+- **The cost now, for the whole period**: no history of a cost is kept; changing it changes the past periods' margin. A history (a cost from a date) was not asked for and would be the way if the cost changes a lot.
+- **Until entered, the margin is before cost, and says so** (the chip "przed kosztem"), rather than showing nothing: what the marketplaces leave is still the useful number while the costs are being typed in.
+- **No VAT is taken out**: the business is not a VAT payer (`NON_INVOICED_SALES.md`, "Taxation"), so the sales are the income. Were it to become one, the sales would need their VAT taken out first.
+- **Entering a range is quick**: Enter keeps the value and moves to the next offer's field; the row's figures are worked out again in place (the list is not read again, so nothing jumps), and "Bez kosztu" lists what is left to do.
+
+**Rationale:** The owner decides what to make and promote from what each product really leaves; only they know what making one costs, and Anvero cannot read it from a marketplace.
+
+**Consequences:** The margin is as good as the costs entered. A cost entered once is wrong for the pieces sold before a price of materials changed. `GET /catalog/items` now returns `unit_cost` and, per marketplace, `cost` and `margin`; ordering by `net` became ordering by `margin`. A machine updated past this commit needs `alembic upgrade head`.

@@ -24,9 +24,21 @@
 
 .catalog-layout {
   display: grid;
-  grid-template-columns: 15rem minmax(0, 1fr);
+  grid-template-columns: 13.5rem minmax(0, 1fr);
   gap: 1rem;
   align-items: start;
+}
+
+/* below this the tree would leave the list too little room: it goes above it */
+@media (max-width: 1200px) {
+  .catalog-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .catalog-categories.card {
+    position: static;
+    max-height: 14rem;
+  }
 }
 
 .catalog-main {
@@ -488,13 +500,13 @@
 }
 
 .catalog-sold-channel b,
-.catalog-net-main {
+.catalog-margin-main {
   font-variant-numeric: tabular-nums;
   font-weight: 600;
 }
 
 /* a loss is a minus sign as well as a colour */
-.catalog-net-main.is-loss {
+.catalog-margin-main.is-loss {
   color: var(--tone-red-fg);
 }
 
@@ -543,4 +555,49 @@
 
 .catalog-sales-table td[colspan] {
   text-align: left;
+}
+
+/* ---- The cost of making a piece: a field in the list, typed in and kept as it is left ---- */
+.catalog-cost-field {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.3rem;
+}
+
+.catalog-cost-input {
+  width: 5rem;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.catalog-cost-input[aria-invalid="true"] {
+  border-color: var(--color-error);
+}
+
+.catalog-cost-unit {
+  color: var(--color-muted);
+  font-size: 0.75rem;
+}
+
+.catalog-cost .cell-sub.is-invalid {
+  color: var(--color-error);
+}
+
+.catalog-margin .catalog-chip {
+  margin-left: 0.4rem;
+}
+
+/* the chip that says "before cost" goes under the figures rather than widen the column */
+.catalog-margin {
+  white-space: normal;
+}
+
+/* the offer's name keeps room to read in, so the other columns cannot squeeze it into a tall, thin row;
+   when the window is too narrow for all of them the card scrolls sideways instead */
+.catalog-table :is(thead th, tbody td):first-child {
+  min-width: 14rem;
+}
+
+.catalog-detail-row > td:first-child {
+  min-width: 0;
 }

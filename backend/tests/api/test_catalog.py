@@ -558,7 +558,7 @@ def test_an_offer_shows_what_it_sold_and_what_is_left_after_the_fees():
 
     sales = only_item()["sales_allegro"]
 
-    assert sales == {"quantity": 3, "orders": 2, "sales": "150.00", "fees": "34.50", "net": "115.50"}
+    assert sales == {"quantity": 3, "orders": 2, "sales": "150.00", "fees": "34.50", "net": "115.50", "cost": None, "margin": "115.50"}
 
 
 def test_allegro_and_erli_are_told_apart_even_under_the_same_number():
@@ -593,7 +593,7 @@ def test_an_offer_that_sold_nothing_says_zero_not_nothing():
 
     item = only_item()
 
-    zero = {"quantity": 0, "orders": 0, "sales": "0.00", "fees": "0.00", "net": "0.00"}
+    zero = {"quantity": 0, "orders": 0, "sales": "0.00", "fees": "0.00", "net": "0.00", "cost": None, "margin": "0.00"}
     assert item["sales_allegro"] == zero and item["sales_erli"] == zero
 
 
@@ -691,7 +691,7 @@ def test_the_list_can_be_ordered_by_what_is_left_after_the_fees():
     sold("1", 10, "10.00", fee="60.00")
     sold("2", 2, "100.00", fee="20.00")
 
-    assert names(client.get("/api/v1/catalog/items?sort=net&descending=true")) == ["B", "A"]
+    assert names(client.get("/api/v1/catalog/items?sort=margin&descending=true")) == ["B", "A"]
     assert names(client.get("/api/v1/catalog/items?sort=sold&descending=true")) == ["A", "B"]
 
 
@@ -712,3 +712,169 @@ def test_the_sales_need_the_same_permission_as_the_list():
 
     assert viewer.get("/api/v1/catalog/items").json()["items"][0]["sales_allegro"]["quantity"] == 1
     assert stranger.get("/api/v1/catalog/items").status_code == 403
+
+
+# --- what making a piece costs, and the margin ----------------------------------------------
+
+
+def put_cost(item_id, value, who=None):
+    return (who or client).put(f"/api/v1/catalog/items/{item_id}/cost", json={"unit_cost": value})
+
+
+def item_id_of(offer_id):
+    db = TestingSessionLocal()
+    try:
+        return str(db.query(CatalogItem).filter_by(offer_id=offer_id).one().id)
+    finally:
+        db.close()
+
+
+def test_with_no_cost_entered_the_margin_is_what_the_marketplaces_leave():
+    add_item("7001")
+    sold("7001", 2, "50.00", fee="23.00")
+
+    item = only_item()
+
+    assert item["unit_cost"] is None and item["cost_updated_at"] is None
+    assert item["sales_allegro"]["cost"] is None
+    assert item["sales_allegro"]["margin"] == item["sales_allegro"]["net"] == "77.00"
+
+
+def test_the_cost_of_making_a_piece_is_taken_off_every_piece_sold():
+    add_item("7001", unit_cost=Decimal("12.50"))
+    sold("7001", 2, "50.00", fee="23.00")
+    sold("7001", 1, "50.00", fee="11.50")
+
+    sales = only_item()["sales_allegro"]
+
+    # 150.00 sold, 34.50 of fees: 115.50 left, 3 pieces at 12.50 = 37.50: a margin of 78.00
+    assert sales == {
+        "quantity": 3,
+        "orders": 2,
+        "sales": "150.00",
+        "fees": "34.50",
+        "net": "115.50",
+        "cost": "37.50",
+        "margin": "78.00",
+    }
+
+
+def test_the_same_cost_applies_to_the_pieces_sold_on_erli():
+    add_item("7001", unit_cost=Decimal("10.00"), erli={"external_id": "e7001"})
+    sold("7001", 2, "50.00", fee="23.00")
+    sold("e7001", 5, "45.00", source=OrderSource.ERLI, fee="22.50")
+
+    item = only_item()
+
+    assert (item["sales_allegro"]["cost"], item["sales_allegro"]["margin"]) == ("20.00", "57.00")
+    assert (item["sales_erli"]["cost"], item["sales_erli"]["margin"]) == ("50.00", "152.50")
+
+
+def test_an_offer_that_sold_nothing_has_a_zero_cost_when_it_has_a_cost():
+    add_item("7001", unit_cost=Decimal("12.50"))
+
+    sales = only_item()["sales_allegro"]
+
+    assert (sales["quantity"], sales["cost"], sales["margin"]) == (0, "0.00", "0.00")
+
+
+def test_a_cost_is_a_loss_when_the_piece_costs_more_than_it_leaves():
+    add_item("7001", unit_cost=Decimal("60.00"))
+    sold("7001", 1, "100.00", fee="23.00")
+
+    assert only_item()["sales_allegro"]["margin"] == "17.00"
+    add_item("7002", name="Z", unit_cost=Decimal("90.00"))
+    sold("7002", 1, "100.00", fee="23.00")
+    assert client.get("/api/v1/catalog/items?q=Z&sort=name").json()["items"][0]["sales_allegro"]["margin"] == "-13.00"
+
+
+def test_the_owner_enters_a_cost_and_it_is_kept_with_who_and_when():
+    add_item("7001")
+    identifier = item_id_of("7001")
+
+    response = put_cost(identifier, "12.50")
+
+    assert response.status_code == 200
+    body = response.json()
+    assert (body["id"], body["unit_cost"]) == (identifier, "12.50")
+    assert body["cost_updated_at"] is not None
+    assert only_item()["unit_cost"] == "12.50"
+    db = TestingSessionLocal()
+    try:
+        row = db.query(CatalogItem).filter_by(offer_id="7001").one()
+        assert row.cost_updated_by_user_id is not None
+    finally:
+        db.close()
+
+
+def test_a_cost_can_be_changed_and_taken_away():
+    add_item("7001", unit_cost=Decimal("12.50"))
+    identifier = item_id_of("7001")
+
+    assert put_cost(identifier, "15.00").json()["unit_cost"] == "15.00"
+    gone = put_cost(identifier, None)
+
+    assert gone.status_code == 200
+    assert gone.json() == {"id": identifier, "unit_cost": None, "cost_updated_at": None}
+    assert only_item()["unit_cost"] is None
+
+
+def test_a_cost_of_nothing_is_a_cost_not_an_absence():
+    add_item("7001")
+
+    assert put_cost(item_id_of("7001"), "0").json()["unit_cost"] == "0.00"
+    assert only_item()["sales_allegro"]["cost"] == "0.00"
+
+
+@pytest.mark.parametrize("value", ["-1", "-0.01", "12.345", "1000000.01", "abc", "NaN", "Infinity"])
+def test_a_cost_that_cannot_be_one_is_refused(value):
+    add_item("7001")
+
+    assert put_cost(item_id_of("7001"), value).status_code == 422
+    assert only_item()["unit_cost"] is None
+
+
+def test_a_cost_for_an_offer_that_is_not_there_is_not_found():
+    assert put_cost(str(uuid.uuid4()), "1.00").status_code == 404
+    assert put_cost("not-an-id", "1.00").status_code == 422
+
+
+def test_only_someone_who_manages_the_orders_may_enter_a_cost():
+    add_item("7001")
+    identifier = item_id_of("7001")
+
+    assert put_cost(identifier, "1.00", who=viewer).status_code == 403
+    assert put_cost(identifier, "1.00", who=stranger).status_code == 403
+    assert put_cost(identifier, "1.00", who=anonymous).status_code == 401
+    assert only_item()["unit_cost"] is None
+
+
+def test_the_offers_without_a_cost_can_be_found_and_counted():
+    add_item("1", name="With", unit_cost=Decimal("5.00"))
+    add_item("2", name="Without")
+    add_item("3", name="Gone without", gone=True)
+
+    assert names(client.get("/api/v1/catalog/items?flag=no_cost")) == ["Without"]
+    assert client.get("/api/v1/catalog/summary").json()["no_cost"] == 1
+
+
+def test_the_list_can_be_ordered_by_margin_after_the_cost():
+    add_item("1", name="A", unit_cost=Decimal("1.00"))
+    add_item("2", name="B", unit_cost=Decimal("9.00"))
+    add_item("3", name="C")
+    # the same sales: what the cost takes off settles the order
+    for offer in ("1", "2", "3"):
+        sold(offer, 2, "50.00", fee="10.00")
+
+    # A: 90 - 2 = 88, B: 90 - 18 = 72, C: no cost, 90
+    assert names(client.get("/api/v1/catalog/items?sort=margin&descending=true")) == ["C", "A", "B"]
+    assert names(client.get("/api/v1/catalog/items?sort=margin")) == ["B", "A", "C"]
+
+
+def test_the_cost_is_in_the_period_not_of_it():
+    add_item("7001", unit_cost=Decimal("10.00"))
+    sold("7001", 1, "50.00", days=5)
+    sold("7001", 4, "50.00", days=60)
+
+    assert only_item()["sales_allegro"]["cost"] == "10.00"
+    assert only_item(sales_days=0)["sales_allegro"]["cost"] == "50.00"

@@ -776,3 +776,27 @@ def test_a_failed_read_waits_the_whole_interval_whatever_was_left(session):
     write_note(session, error="Allegro offers: 503", images_pending=700, ago=60)
 
     assert not sync_is_due(session)
+
+
+# --- the owner's cost is not the marketplace's to change ----------------------------------------
+
+
+def test_a_sync_never_touches_the_cost_the_owner_entered(session, store):
+    allegro = FakeAllegro([offer("1")])
+    service(session, store, allegro).sync(NOW)
+    item = items(session)["1"]
+    item.unit_cost = Decimal("12.50")
+    item.cost_updated_at = NOW
+    session.commit()
+
+    # the offer changes on Allegro, goes, and comes back
+    allegro.offers = [offer("1", name="Renamed", price=Decimal("99.00"), stock=0)]
+    service(session, store, allegro).sync(NOW + timedelta(hours=6))
+    allegro.offers = []
+    service(session, store, allegro).sync(NOW + timedelta(hours=12))
+    allegro.offers = [offer("1")]
+    service(session, store, allegro).sync(NOW + timedelta(hours=18))
+
+    kept = items(session)["1"]
+    assert kept.unit_cost == Decimal("12.50")
+    assert kept.cost_updated_at is not None

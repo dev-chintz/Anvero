@@ -227,7 +227,9 @@ holds it), `name`, `sku` (Allegro's external id; indexed), `price`, `currency`, 
 `{"id", "name"}` from the top, the leaf last) and `category_ids` (the same ids as `|1|23|456|`, indexed, so
 "everything under 23" is one `LIKE` on any database), `last_seen_at`, `gone_at` (indexed; set when a sync no
 longer finds the offer, cleared if it comes back; the row and its pictures are kept), `created_at`,
-`updated_at`. Never edited in Anvero.
+`updated_at`. Read from Allegro and never edited in Anvero, apart from three columns that are the owner's own
+(added by `e8c3b7f1a926`; a sync never writes them): `unit_cost` (what making one piece costs, `NUMERIC(12,2)`,
+null until entered), `cost_updated_at` and `cost_updated_by_user_id` (`SET NULL` with the account).
 
 `catalog_images`: one picture of an offer, `item_id` (`CASCADE`), `position` (the offer's order; unique with
 `item_id`; the first is the cover), `url` (the address on Allegro, always kept), and the copy on this

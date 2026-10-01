@@ -1,7 +1,8 @@
 """The assortment: the seller's Allegro offers, their pictures, and how they stand on Erli
 (docs/CATALOG.md). Read only: nothing here changes an offer on a marketplace."""
 
-from datetime import date, datetime, timedelta
+import uuid
+from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
 from zoneinfo import ZoneInfo
 
@@ -12,14 +13,18 @@ from sqlalchemy.orm import Session
 from app.core.config import settings
 from app.core.permissions import require_permission
 from app.core.rate_limit import limiter
+from app.core.security import get_current_user
 from app.db.session import get_db
 from app.integrations.base import IntegrationNotConfigured
 from app.models.catalog import CatalogItem
 from app.models.order import OrderSource
+from app.models.user import User
 from app.models.user_permission import PermissionArea, PermissionLevel
 from app.repositories.catalog_repository import CatalogRepository
 from app.schemas.catalog import (
     CatalogCategories,
+    CatalogCostRead,
+    CatalogCostWrite,
     CatalogFlag,
     CatalogImageRead,
     CatalogItemList,
@@ -58,11 +63,20 @@ def _local_url(file_name: str | None) -> str | None:
 ZERO = Decimal("0.00")
 
 
-def _channel(sales: OfferSales | None) -> ChannelSalesRead:
+def _channel(sales: OfferSales | None, unit_cost: Decimal | None) -> ChannelSalesRead:
+    """One marketplace's sales of an offer, with the cost of the pieces when the offer has a cost."""
     if sales is None:
-        return ChannelSalesRead(quantity=0, orders=0, sales=ZERO, fees=ZERO, net=ZERO)
+        zero_cost = ZERO if unit_cost is not None else None
+        return ChannelSalesRead(quantity=0, orders=0, sales=ZERO, fees=ZERO, net=ZERO, cost=zero_cost, margin=ZERO)
+    cost = (unit_cost * sales.quantity).quantize(ZERO) if unit_cost is not None else None
     return ChannelSalesRead(
-        quantity=sales.quantity, orders=len(sales.orders), sales=sales.sales, fees=sales.fees, net=sales.net
+        quantity=sales.quantity,
+        orders=len(sales.orders),
+        sales=sales.sales,
+        fees=sales.fees,
+        net=sales.net,
+        cost=cost,
+        margin=sales.net - (cost or ZERO),
     )
 
 
@@ -110,8 +124,10 @@ def _read(item: CatalogItem, sales: dict[tuple[OrderSource, str], OfferSales]) -
             if listing
             else None
         ),
-        sales_allegro=_channel(sales.get((OrderSource.ALLEGRO, item.offer_id))),
-        sales_erli=_channel(on_erli) if listing else None,
+        unit_cost=item.unit_cost,
+        cost_updated_at=item.cost_updated_at,
+        sales_allegro=_channel(sales.get((OrderSource.ALLEGRO, item.offer_id)), item.unit_cost),
+        sales_erli=_channel(on_erli, item.unit_cost) if listing else None,
     )
 
 
@@ -134,7 +150,7 @@ def list_items(
     date_from, date_to = _period(sales_days)
     sales = FinanceService(db).offer_sales(date_from or date(2000, 1, 1), date_to)
     repository = CatalogRepository(db)
-    if sort in (CatalogSort.SOLD, CatalogSort.NET):
+    if sort in (CatalogSort.SOLD, CatalogSort.MARGIN):
         # worked out from the orders, so the database cannot order by it: every match is read,
         # ordered here and then paged
         every = repository.all_items(q, category, status_filter, flag)
@@ -142,12 +158,35 @@ def list_items(
 
         def key(read: CatalogItemRead):
             channels = [read.sales_allegro] + ([read.sales_erli] if read.sales_erli else [])
-            return sum(c.quantity for c in channels) if sort is CatalogSort.SOLD else sum((c.net for c in channels), ZERO)
+            return sum(c.quantity for c in channels) if sort is CatalogSort.SOLD else sum((c.margin for c in channels), ZERO)
 
         reads.sort(key=key, reverse=descending)
         return CatalogItemList(items=reads[offset : offset + limit], total=len(reads), sales_from=date_from)
     rows, total = repository.list_items(q, category, status_filter, flag, sort, descending, limit, offset)
     return CatalogItemList(items=[_read(row, sales) for row in rows], total=total, sales_from=date_from)
+
+
+@router.put(
+    "/items/{item_id}/cost",
+    response_model=CatalogCostRead,
+    dependencies=[require_permission(PermissionArea.ORDERS, PermissionLevel.MANAGE)],
+)
+def set_cost(
+    item_id: uuid.UUID,
+    body: CatalogCostWrite,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Say what making one piece of the offer costs (or take the cost away with null). The margin of
+    the offer is worked out from it; a sync never changes it."""
+    item = db.get(CatalogItem, item_id)
+    if item is None:
+        raise HTTPException(status_code=404, detail="Offer not found")
+    item.unit_cost = body.unit_cost
+    item.cost_updated_at = datetime.now(UTC) if body.unit_cost is not None else None
+    item.cost_updated_by_user_id = current_user.id if body.unit_cost is not None else None
+    db.commit()
+    return CatalogCostRead(id=item.id, unit_cost=item.unit_cost, cost_updated_at=item.cost_updated_at)
 
 
 @router.get("/categories", response_model=CatalogCategories)

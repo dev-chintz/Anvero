@@ -22,12 +22,12 @@ import { useTranslation } from "../i18n";
 import "../styles/CatalogPage.css";
 
 const STATUSES: CatalogStatusFilter[] = ["current", "active", "inactive", "gone"];
-const FLAGS: CatalogFlag[] = ["no_image", "no_sku", "not_on_erli", "category_differs"];
+const FLAGS: CatalogFlag[] = ["no_image", "no_sku", "no_cost", "not_on_erli", "category_differs"];
 // the flags that mean something only once Erli is connected
 const ERLI_FLAGS = new Set<CatalogFlag>(["not_on_erli", "category_differs"]);
-const SORTS: CatalogSort[] = ["name", "price", "stock", "sold", "net"];
+const SORTS: CatalogSort[] = ["name", "price", "stock", "sold", "margin"];
 // the columns that start from the largest, since it is the best sellers that are looked for
-const DESCENDING_FIRST = new Set<CatalogSort>(["sold", "net"]);
+const DESCENDING_FIRST = new Set<CatalogSort>(["sold", "margin"]);
 // the periods the sales can be shown for: the last so many days, 0 being everything held
 const PERIODS = [30, 90, 0] as const;
 const DEFAULT_PERIOD = 30;
@@ -126,8 +126,31 @@ const number = (value: string | number) => Number(value) || 0;
 /** The offer's sales on both marketplaces added: pieces, sales, fees and what is left. */
 function together(item: CatalogItem) {
   const channels: ChannelSales[] = [item.sales_allegro, ...(item.sales_erli ? [item.sales_erli] : [])];
-  const sum = (pick: (c: ChannelSales) => string | number) => channels.reduce((total, c) => total + number(pick(c)), 0);
-  return { quantity: sum((c) => c.quantity), sales: sum((c) => c.sales), fees: sum((c) => c.fees), net: sum((c) => c.net) };
+  const sum = (pick: (c: ChannelSales) => string | number | null) => channels.reduce((total, c) => total + number(pick(c) ?? 0), 0);
+  return {
+    quantity: sum((c) => c.quantity),
+    sales: sum((c) => c.sales),
+    fees: sum((c) => c.fees),
+    net: sum((c) => c.net),
+    cost: sum((c) => c.cost),
+    margin: sum((c) => c.margin),
+  };
+}
+
+/** The offer with a new cost of making a piece, its channels' costs and margins worked out again. */
+function withCost(row: CatalogItem, unitCost: string | null, at: string | null): CatalogItem {
+  const apply = (c: ChannelSales): ChannelSales => {
+    const cost = unitCost === null ? null : (number(unitCost) * c.quantity).toFixed(2);
+    return { ...c, cost, margin: (number(c.net) - number(cost ?? 0)).toFixed(2) };
+  };
+  return { ...row, unit_cost: unitCost, cost_updated_at: at, sales_allegro: apply(row.sales_allegro), sales_erli: row.sales_erli ? apply(row.sales_erli) : null };
+}
+
+/** What was typed for a cost, as an amount ("12.50"): null for nothing, undefined for what is not an amount. */
+function parseCost(text: string): string | null | undefined {
+  const cleaned = text.trim().replace(/\s/g, "").replace(",", ".");
+  if (cleaned === "") return null;
+  return /^\d{1,9}(\.\d{1,2})?$/.test(cleaned) ? Number(cleaned).toFixed(2) : undefined;
 }
 
 function stockTone(stock: number | null): string {
@@ -381,6 +404,25 @@ export function CatalogPage() {
     }
   };
 
+  // the cost is saved and the row's figures are worked out again in place, so the list neither jumps nor
+  // loses the field the owner is typing in; only the count of offers without a cost is asked for again
+  const saveCost = async (item: CatalogItem, value: string | null): Promise<boolean> => {
+    try {
+      const saved = await catalogApi.setCost(item.id, value);
+      setList((current) =>
+        current ? { ...current, items: current.items.map((row) => (row.id === saved.id ? withCost(row, saved.unit_cost, saved.cost_updated_at) : row)) } : current,
+      );
+      catalogApi
+        .summary()
+        .then(setSummary)
+        .catch(() => undefined);
+      return true;
+    } catch (err) {
+      setNote({ text: err instanceof ApiError ? err.message : t("catalog.cost.saveFailed"), error: true });
+      return false;
+    }
+  };
+
   const erliConnected = summary?.erli_connected ?? false;
   const statusCount = (s: CatalogStatusFilter): number | null =>
     summary ? { current: summary.total, active: summary.active, inactive: summary.inactive, gone: summary.gone }[s] : null;
@@ -404,7 +446,7 @@ export function CatalogPage() {
   const stockText = (stock: number | null) => (stock === null ? "—" : t("catalog.stock.pieces", { count: stock }));
   const offerStatusLabel = (item: CatalogItem) =>
     item.gone ? t("catalog.offerStatus.gone") : t(`catalog.offerStatus.${item.status}` as "catalog.offerStatus.ACTIVE");
-  const colCount = erliConnected ? 7 : 6;
+  const colCount = erliConnected ? 8 : 7;
   const periodName = (days: number) => (days === 0 ? t("catalog.period.all") : t("catalog.period.days", { days }));
   const pieces = (count: number) => t("catalog.stock.pieces", { count });
   const percent = (part: number, whole: number) =>
@@ -561,7 +603,8 @@ export function CatalogPage() {
                       {sortHead("price", t("catalog.col.price"))}
                       {sortHead("stock", t("catalog.col.stock"))}
                       {sortHead("sold", t("catalog.col.sold"))}
-                      {sortHead("net", t("catalog.col.net"))}
+                      <th scope="col">{t("catalog.col.cost")}</th>
+                      {sortHead("margin", t("catalog.col.margin"))}
                       {erliConnected && <th scope="col">{t("catalog.col.erli")}</th>}
                       <th scope="col" className="sr-only">
                         {t("catalog.detail.pictures")}
@@ -600,7 +643,8 @@ export function CatalogPage() {
                               <span className={`catalog-chip ${stockTone(item.stock)}`.trim()}>{stockText(item.stock)}</span>
                             </td>
                             <SoldCell item={item} erliConnected={erliConnected} pieces={pieces} />
-                            <NetCell item={item} formatMoney={formatMoney} percent={percent} perPiece={(amount) => t("catalog.net.perPiece", { amount })} />
+                            <CostCell item={item} canEdit={canSync} onSave={saveCost} formatMoney={formatMoney} />
+                            <MarginCell item={item} formatMoney={formatMoney} percent={percent} perPiece={(amount) => t("catalog.margin.perPiece", { amount })} />
                             {erliConnected && (
                               <td>
                                 {item.erli ? (
@@ -611,12 +655,14 @@ export function CatalogPage() {
                                     <span>
                                       {item.erli.status ? t(`catalog.erli.status.${item.erli.status}` as "catalog.erli.status.ACTIVE") : "—"}
                                     </span>
-                                    {item.erli.category_match === "DIFFERENT" && (
-                                      <span className="catalog-chip catalog-chip-amber">{t("catalog.erli.differs")}</span>
-                                    )}
                                   </span>
                                 ) : (
                                   <span className="order-muted">{t("catalog.erli.absent")}</span>
+                                )}
+                                {item.erli?.category_match === "DIFFERENT" && (
+                                  <span className="cell-sub">
+                                    <span className="catalog-chip catalog-chip-amber">{t("catalog.erli.differs")}</span>
+                                  </span>
                                 )}
                               </td>
                             )}
@@ -715,30 +761,112 @@ function SoldCell({ item, erliConnected, pieces }: SoldCellProps) {
   );
 }
 
-interface NetCellProps {
+interface CostCellProps {
+  item: CatalogItem;
+  /** Someone who may enter costs gets a field; everyone else the figure. */
+  canEdit: boolean;
+  onSave: (item: CatalogItem, value: string | null) => Promise<boolean>;
+  formatMoney: (amount: string | number, currency: string) => string;
+}
+
+/** What making one piece costs: a field to type it in (Enter keeps it and goes to the next offer's), or the figure. */
+function CostCell({ item, canEdit, onSave, formatMoney }: CostCellProps) {
+  const { t, formatNumber } = useTranslation();
+  const currency = item.currency ?? "PLN";
+  const shown = item.unit_cost === null ? "" : formatNumber(Number(item.unit_cost), { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const [draft, setDraft] = useState(shown);
+  const [invalid, setInvalid] = useState(false);
+  const [saving, setSaving] = useState(false);
+  useEffect(() => setDraft(shown), [shown]);
+
+  if (!canEdit) {
+    return <td className="catalog-cost">{item.unit_cost === null ? <span className="order-muted">—</span> : formatMoney(item.unit_cost, currency)}</td>;
+  }
+
+  /** Keeps what was typed when it is a new amount; false when it could not be kept. */
+  const commit = async (): Promise<boolean> => {
+    const value = parseCost(draft);
+    if (value === undefined) {
+      setInvalid(true);
+      return false;
+    }
+    setInvalid(false);
+    if (value === null ? item.unit_cost === null : item.unit_cost !== null && Number(item.unit_cost) === Number(value)) return true;
+    setSaving(true);
+    const kept = await onSave(item, value);
+    setSaving(false);
+    return kept;
+  };
+
+  const goToNext = (from: HTMLInputElement) => {
+    const fields = Array.from(document.querySelectorAll<HTMLInputElement>(".catalog-cost-input"));
+    fields[fields.indexOf(from) + 1]?.focus();
+  };
+
+  return (
+    <td className="catalog-cost">
+      <span className="catalog-cost-field">
+        <input
+          type="text"
+          inputMode="decimal"
+          className="catalog-cost-input"
+          value={draft}
+          placeholder="—"
+          maxLength={13}
+          aria-label={t("catalog.cost.label", { name: item.name })}
+          aria-invalid={invalid}
+          title={invalid ? t("catalog.cost.invalid") : undefined}
+          readOnly={saving}
+          onChange={(event) => setDraft(event.target.value)}
+          onBlur={() => void commit()}
+          onKeyDown={(event) => {
+            const field = event.currentTarget;
+            if (event.key === "Enter") {
+              event.preventDefault();
+              void commit().then((kept) => kept && goToNext(field));
+            } else if (event.key === "Escape") {
+              setDraft(shown);
+              setInvalid(false);
+            }
+          }}
+        />
+      </span>
+      {invalid && (
+        <span role="alert" className="cell-sub is-invalid">
+          {t("catalog.cost.invalid")}
+        </span>
+      )}
+    </td>
+  );
+}
+
+interface MarginCellProps {
   item: CatalogItem;
   formatMoney: (amount: string | number, currency: string) => string;
   percent: (part: number, whole: number) => string;
   perPiece: (amount: string) => string;
 }
 
-/** What is left of what sold after the marketplaces' fees: on a piece, and in all with its share of the sales. */
-function NetCell({ item, formatMoney, percent, perPiece }: NetCellProps) {
+/** What is left of what sold after the marketplaces' fees and the cost of making the pieces: on a piece, and in
+ * all with its share of the sales. With no cost entered it is only after the fees, and says so. */
+function MarginCell({ item, formatMoney, percent, perPiece }: MarginCellProps) {
+  const { t } = useTranslation();
   const all = together(item);
   const currency = item.currency ?? "PLN";
   if (all.quantity === 0) {
     return (
-      <td className="catalog-net">
+      <td className="catalog-margin">
         <span className="order-muted">—</span>
       </td>
     );
   }
-  const loss = all.net < 0;
+  const loss = all.margin < 0;
   return (
-    <td className="catalog-net">
-      <span className={`catalog-net-main${loss ? " is-loss" : ""}`}>{perPiece(formatMoney((all.net / all.quantity).toFixed(2), currency))}</span>
+    <td className="catalog-margin">
+      <span className={`catalog-margin-main${loss ? " is-loss" : ""}`}>{perPiece(formatMoney((all.margin / all.quantity).toFixed(2), currency))}</span>
       <span className="cell-sub">
-        {formatMoney(all.net.toFixed(2), currency)} · {percent(all.net, all.sales)}
+        {formatMoney(all.margin.toFixed(2), currency)} · {percent(all.margin, all.sales)}
+        {item.unit_cost === null && <span className="catalog-chip catalog-chip-amber">{t("catalog.margin.beforeCost")}</span>}
       </span>
     </td>
   );
@@ -776,13 +904,16 @@ function SalesTable({ item, erliConnected, formatMoney, formatNumber, period }: 
             <th scope="col">{t("catalog.sales.revenue")}</th>
             <th scope="col">{t("catalog.sales.fees")}</th>
             <th scope="col">{t("catalog.sales.net")}</th>
-            <th scope="col">{t("catalog.sales.perPiece")}</th>
+            <th scope="col">{t("catalog.sales.cost")}</th>
             <th scope="col">{t("catalog.sales.margin")}</th>
+            <th scope="col">{t("catalog.sales.perPiece")}</th>
+            <th scope="col">{t("catalog.sales.share")}</th>
           </tr>
         </thead>
         <tbody>
           {rows.map(({ key, name, sales }) => {
             const net = sales ? number(sales.net) : 0;
+            const margin = sales ? number(sales.margin) : 0;
             const revenue = sales ? number(sales.sales) : 0;
             return (
               <tr key={key}>
@@ -795,12 +926,14 @@ function SalesTable({ item, erliConnected, formatMoney, formatNumber, period }: 
                     <td>{sales.orders}</td>
                     <td>{money(revenue)}</td>
                     <td>{money(number(sales.fees))}</td>
-                    <td className={net < 0 ? "catalog-net-main is-loss" : "catalog-net-main"}>{money(net)}</td>
-                    <td>{sales.quantity > 0 ? money(net / sales.quantity) : "—"}</td>
-                    <td>{share(net, revenue)}</td>
+                    <td>{money(net)}</td>
+                    <td>{sales.cost === null ? "—" : money(number(sales.cost))}</td>
+                    <td className={margin < 0 ? "catalog-margin-main is-loss" : "catalog-margin-main"}>{money(margin)}</td>
+                    <td>{sales.quantity > 0 ? money(margin / sales.quantity) : "—"}</td>
+                    <td>{share(margin, revenue)}</td>
                   </>
                 ) : (
-                  <td colSpan={7} className="order-muted">
+                  <td colSpan={9} className="order-muted">
                     {t("catalog.detail.notOnErli")}
                   </td>
                 )}

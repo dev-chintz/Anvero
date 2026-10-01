@@ -13,6 +13,9 @@ All significant changes to the Anvero project.
   opens to every picture and to the same product on Erli, with the category in both marketplaces. Pictures
   are downloaded to the NAS and kept beside their address on Allegro. Read only. See `docs/CATALOG.md` and
   `docs/DECISIONS.md`.
+- The margin is real: the owner types what making one piece of an offer costs into a field of its row (Enter keeps it
+  and goes to the next), and the margin is what the marketplaces leave less that cost times the pieces sold, for the
+  period chosen. Until a cost is entered the figure is before cost and says so; a filter finds the offers without one.
 - Each offer in the list shows what it sold in the last 30 / 90 days or since the start (pieces on Allegro and on
   Erli apart) and what is left after the marketplaces' fees, on a piece, in all and as a share of the sales; the
   list can be ordered by either. The subscription is not counted, nor what the goods cost to make (Anvero does not

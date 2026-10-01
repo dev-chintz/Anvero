@@ -82,6 +82,7 @@ are days in the business timezone, `BUSINESS_TIMEZONE`, default
 | `GET` | `/api/v1/catalog/items` | the assortment: the Allegro offers with their pictures and their Erli product; filters, search, sort, paging |
 | `GET` | `/api/v1/catalog/categories` | the category tree of the offers, with counts |
 | `GET` | `/api/v1/catalog/summary` | what the page's filters count, the pictures kept, whether Erli is connected, how the last sync went |
+| `PUT` | `/api/v1/catalog/items/{id}/cost` | say what making one piece of an offer costs (or take the cost away); needs `orders` at `manage` |
 | `POST` | `/api/v1/catalog/sync` | start reading the offers from Allegro (and Erli's products) in the background and answer at once (`202`); rate limited to 6 per minute per IP |
 | `GET` | `/api/v1/catalog/progress` | whether a read is running, which step it is at and how far, whoever started it |
 | `GET` | `/api/v1/catalog/images/{name}` | a stored picture; the one endpoint served without a login |
@@ -253,8 +254,8 @@ returns) or cannot be reached.
 ## The assortment: `/api/v1/catalog`
 
 Read only (`CATALOG.md`). An offer is `{"id", "offer_id", "name", "sku", "price", "currency", "stock",
-"status", "gone", "category_path", "allegro_url", "thumbnail_url", "images", "erli", "sales_allegro",
-"sales_erli"}`:
+"status", "gone", "category_path", "allegro_url", "thumbnail_url", "images", "erli", "unit_cost",
+"cost_updated_at", "sales_allegro", "sales_erli"}`:
 
 - `status` is Allegro's publication status (`ACTIVE`, `INACTIVE`, `ACTIVATING`); `gone` is true for an offer
   Allegro no longer lists (ended or deleted), which is kept but is not part of the assortment.
@@ -268,15 +269,19 @@ Read only (`CATALOG.md`). An offer is `{"id", "offer_id", "name", "sku", "price"
   `EXTERNAL_REFERENCE`, `EXTERNAL_ID` or `SKU`, `status` `ACTIVE`, `INACTIVE` or `ARCHIVED`, `category_match`
   `SAME`, `DIFFERENT` or `UNKNOWN` (Erli's category's leaf named like the offer's, or not, or one side has none).
 
+- `unit_cost` is what making one piece costs, as the owner entered it (`PUT /catalog/items/{id}/cost`); null
+  until entered. A sync never changes it. `cost_updated_at` is when.
 - `sales_allegro` and `sales_erli` are what the offer sold in the period asked for (`sales_days`), each
-  `{"quantity", "orders", "sales", "fees", "net"}`: pieces, orders, what the buyers paid for the goods
-  (price times pieces, delivery not counted), the marketplace's fees for those orders that fall to the offer,
-  and `net` = `sales` less `fees`. They are the Finance page's own figures (`GET /finance/products`): the same
+  `{"quantity", "orders", "sales", "fees", "net", "cost", "margin"}`: pieces, orders, what the buyers paid for
+  the goods (price times pieces, delivery not counted), the marketplace's fees for those orders that fall to the
+  offer, `net` = `sales` less `fees`, `cost` = `unit_cost` times the pieces (null while `unit_cost` is), and
+  `margin` = `net` less `cost`: **the margin**. While no cost is entered `margin` is `net` alone, which the
+  page marks "before cost"; an offer with a cost that sold nothing has `cost` 0.00. They are the Finance page's own figures (`GET /finance/products`): the same
   orders (placed in the period, not deleted, not cancelled, in PLN) and the same sharing of fees, so a fee
   naming the offer goes to it and one naming none (delivery) is shared by value, the delivery fee being
   offset by what the buyer paid for delivery. Only fees that name an order count: the subscription is not
-  among them, nor anything else the marketplace books on the account alone. `net` is before what the goods
-  cost to make, which Anvero does not hold. The Erli figures are those of the Erli product tied to the offer
+  among them, nor anything else the marketplace books on the account alone. The cost is the offer's cost
+  as it is now, applied to every piece sold in the period. The Erli figures are those of the Erli product tied to the offer
   (its `external_id` as `order_items.offer_id` holds it for Erli): `sales_erli` is null while none is. An
   offer that sold nothing has zeros, not nulls.
 
@@ -285,8 +290,8 @@ Read only (`CATALOG.md`). An offer is `{"id", "offer_id", "name", "sku", "price"
 `q` finds a name, SKU or offer number (case ignored, `%` and `_` taken literally); `category` is a category
 id at any depth and finds the offers in it and everything below; `status` is `current` (the default: every
 offer Allegro still lists), `active`, `inactive` (listed but not active) or `gone`; `flag` is one of
-`no_image`, `no_sku`, `not_on_erli`, `category_differs`; `sort` is `name` (the default, case ignored),
-`price`, `stock`, `sold` (pieces on both marketplaces together) or `net` (what is left, both together),
+`no_image`, `no_sku`, `no_cost`, `not_on_erli`, `category_differs`; `sort` is `name` (the default, case ignored),
+`price`, `stock`, `sold` (pieces on both marketplaces together) or `margin` (both together),
 `descending` turns it round; `sales_days` is the period the sales are of, the last so many days up to today in
 the business timezone (default 30, 0 to 3650; 0 is everything held), and `sales_from` is its first day (null for
 0); `limit` 1 to 200 (default 50). Ordering by `sold` or `net` is done after reading every match, since it is
@@ -296,13 +301,19 @@ worked out from the orders; the paging is then of that order.
 for the offers Allegro still lists; a node's `count` includes everything below it.
 
 `GET /catalog/summary` returns `{"total", "active", "inactive", "gone", "no_image", "no_sku", "not_on_erli",
-"category_differs", "images_total", "images_local", "erli_unmatched", "erli_connected", "last_sync"}`.
+"category_differs", "no_cost", "images_total", "images_local", "erli_unmatched", "erli_connected",
+"last_sync"}`; `no_cost` is the offers with no cost of making entered.
 The counts of the flags are of the offers still listed; the pictures counted are theirs too. `last_sync` is
 `{"at", "error", "items", "added", "gone", "images_downloaded", "images_pending", "erli_error",
 "erli_matched", "erli_unmatched"}` or null before the first sync: how the last one ended (`error` the reason
 when it failed; the figures null in a note written before they were kept, and the Erli ones null when Erli
 was not read). `images_pending` is the pictures still without a copy; `erli_unmatched` is Erli's products
 that matched no offer.
+
+`PUT /catalog/items/{id}/cost` takes `{"unit_cost": "12.50"}` (a decimal of at most two places, 0 to 1,000,000)
+or `{"unit_cost": null}` to take the cost away, and returns `{"id", "unit_cost", "cost_updated_at"}`. `404` for an
+unknown offer, `422` for a negative amount, more than two decimals, or what is not a number. Who changed it, and
+when, is kept (`catalog_items.cost_updated_by_user_id`).
 
 `GET /catalog/progress` returns `{"running", "phase", "done", "total", "started_at"}`. `phase` is `listing`
 (the list of offers; `total` null, `done` the offers listed so far), `details` (each offer's pictures and

@@ -15,7 +15,8 @@ against the real Allegro or Erli (`PROJECT_STATUS.md`, "Not yet verified").
   same.
 
 Not built, on purpose, until the owner asks: changing a price or a stock, publishing or ending an offer,
-a product catalogue of Anvero's own, purchase prices and margins. Anything that writes goes through
+a product catalogue of Anvero's own. (The one thing written in Anvero is the owner's cost of making a piece, which
+nothing sends anywhere.) Anything that writes goes through
 `MarketplaceWriter` (safe mode), as every marketplace write does.
 
 ## Where the data comes from
@@ -93,6 +94,7 @@ mockups of 2026-10-01 (variant A):
   on Erli), each with its count;
 - the list sorted by name, price, stock, pieces sold or what is left; the thumbnail grows on hover as it does in the order list; stock
   as a chip (red at 0, amber to 3, green above);
+- **the cost of making a piece**, typed into the row, and **the margin** it gives;
 - **what it sold, in a period** (the last 30 days, 90 days or everything held, chosen above the list): the
   pieces on Allegro and on Erli apart (the marketplace's letter and its figure, and the two added), and **what
   is left** after the marketplaces' fees: on a piece, in all, and as a share of the sales; a row opens to the
@@ -118,9 +120,18 @@ of `/finance/products`), so the two agree:
   subscription is not counted**, as asked: it names no order, so it is in no product's share; nor is any
   other charge the marketplace books on the account alone, and the marketplace taking its fees out of the proceeds
   is not a fee.
-- **Earned** is sales less fees. It is **not a margin over what the goods cost**: Anvero holds no purchase or
-  making cost (`ROADMAP.md`: "Missing: purchase price, margin"), so it is what is left to pay for the goods and
-  the work. A cost per product would turn it into one.
+- **Margin** is sales less fees less the cost of making the pieces sold. The cost is the owner's own input:
+  what making **one piece** of the offer costs, in PLN, typed into the "Koszt / szt." field of its row (Enter keeps it
+  and goes to the next offer's field, so a whole range can be entered down the list; Escape lets go of what was
+  typed; emptying the field takes the cost away). It is one number per offer, for the pieces sold on Allegro and on
+  Erli alike, and a sync never touches it. The business is not a VAT payer (`NON_INVOICED_SALES.md`), so the sales
+  are the income and no VAT is taken out of them.
+  - The cost used is the one entered **now**, for every piece sold in the period: change it and the past
+    periods change with it. Anvero keeps no history of a cost.
+  - **Until a cost is entered**, an offer's margin is what the marketplaces leave (sales less fees) and the cell
+    carries the chip "przed kosztem"; the filter "Bez kosztu" finds the offers without one and says how many there are.
+  - What goes into the cost (materials, packaging, labour, the courier if it is not charged to the buyer) is for the
+    owner to decide; Anvero only multiplies.
 - The period is the last 30 days by default, 90, or everything held (Allegro's fees are held from 30 August,
   Erli's from its first import). Fees of an order booked after the last read are not in yet, so a very recent
   sale can look better than it will.

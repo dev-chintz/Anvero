@@ -8,7 +8,7 @@ vi.mock("../api/client", async () => {
   const actual = await vi.importActual<typeof import("../api/client")>("../api/client");
   return {
     ...actual,
-    catalogApi: { list: vi.fn(), categories: vi.fn(), summary: vi.fn(), sync: vi.fn(), progress: vi.fn() },
+    catalogApi: { list: vi.fn(), categories: vi.fn(), summary: vi.fn(), sync: vi.fn(), progress: vi.fn(), setCost: vi.fn() },
   };
 });
 
@@ -42,7 +42,9 @@ function item(overrides: Partial<CatalogItem> = {}): CatalogItem {
       { position: 1, url: "https://a.allegroimg.com/2", local_url: null },
     ],
     erli: null,
-    sales_allegro: { quantity: 0, orders: 0, sales: "0.00", fees: "0.00", net: "0.00" },
+    unit_cost: null,
+    cost_updated_at: null,
+    sales_allegro: { quantity: 0, orders: 0, sales: "0.00", fees: "0.00", net: "0.00", cost: null, margin: "0.00" },
     sales_erli: null,
     ...overrides,
   };
@@ -93,6 +95,7 @@ function summary(overrides: Partial<CatalogSummary> = {}): CatalogSummary {
     no_sku: 2,
     not_on_erli: 3,
     category_differs: 1,
+    no_cost: 3,
     images_total: 8,
     images_local: 5,
     erli_unmatched: null,
@@ -456,7 +459,7 @@ describe("CatalogPage", () => {
   });
 
   describe("what the offers sold", () => {
-    const channel = (quantity: number, sales: string, fees: string, net: string, orders = quantity) => ({ quantity, orders, sales, fees, net });
+    const channel = (quantity: number, sales: string, fees: string, net: string, orders = quantity) => ({ quantity, orders, sales, fees, net, cost: null, margin: net });
     // 31 pieces on Allegro and 12 on Erli: 43 in all, 2,150.00 sold, 480.00 of fees, 1,670.00 left
     const sellers = () =>
       item({
@@ -496,7 +499,7 @@ describe("CatalogPage", () => {
       renderPage();
 
       const row = (await screen.findByText("Kubek ceramiczny")).closest("tr")!;
-      const earned = row.querySelector(".catalog-net") as HTMLElement;
+      const earned = row.querySelector(".catalog-margin") as HTMLElement;
       // 1,670.00 over 43 pieces is 38.84 a piece, and 78% of the 2,150.00 sold
       expect(earned).toHaveTextContent(/38,84|38\.84/);
       expect(earned).toHaveTextContent(/1\s?670,00|1,670\.00/);
@@ -508,7 +511,7 @@ describe("CatalogPage", () => {
 
       const row = (await screen.findByText("Kubek ceramiczny")).closest("tr")!;
       expect(row.querySelector(".catalog-sold")).toHaveTextContent("0");
-      expect(row.querySelector(".catalog-net")).toHaveTextContent("—");
+      expect(row.querySelector(".catalog-margin")).toHaveTextContent("—");
     });
 
     it("marks an offer that loses money on each piece", async () => {
@@ -520,7 +523,7 @@ describe("CatalogPage", () => {
       renderPage();
 
       const row = (await screen.findByText("Kubek ceramiczny")).closest("tr")!;
-      expect(row.querySelector(".catalog-net-main")).toHaveClass("is-loss");
+      expect(row.querySelector(".catalog-margin-main")).toHaveClass("is-loss");
     });
 
     it("shows only Allegro's sales until Erli is connected", async () => {
@@ -612,7 +615,7 @@ describe("CatalogPage", () => {
 
       const note = await screen.findByText(/abonamentu|subscription/);
       expect(note).toHaveTextContent(/od 02\.09\.2026|since 02\/09\/2026|since 2\/9\/2026|od 2\.09\.2026/);
-      expect(note).toHaveTextContent(/kosztu wytworzenia|what the goods cost to make/);
+      expect(note).toHaveTextContent(/koszcie wytworzenia|cost of making/);
     });
 
     it("sorts by pieces sold and by what is left, the largest first", async () => {
@@ -625,8 +628,228 @@ describe("CatalogPage", () => {
       fireEvent.click(within(screen.getByRole("columnheader", { name: /Sprzedano|Sold/ })).getByRole("button"));
       await waitFor(() => expect(lastListCall()).toMatchObject({ sort: "sold", descending: false }));
 
-      fireEvent.click(within(screen.getByRole("columnheader", { name: /Zarobek|Earned/ })).getByRole("button"));
-      await waitFor(() => expect(lastListCall()).toMatchObject({ sort: "net", descending: true }));
+      fireEvent.click(within(screen.getByRole("columnheader", { name: /Marża|Margin/ })).getByRole("button"));
+      await waitFor(() => expect(lastListCall()).toMatchObject({ sort: "margin", descending: true }));
+    });
+  });
+
+  describe("the cost of making a piece, and the margin", () => {
+    const costed = (unitCost: string | null, overrides: Partial<CatalogItem> = {}) =>
+      item({
+        unit_cost: unitCost,
+        sales_allegro: {
+          quantity: 10,
+          orders: 4,
+          sales: "500.00",
+          fees: "115.00",
+          net: "385.00",
+          cost: unitCost === null ? null : (Number(unitCost) * 10).toFixed(2),
+          margin: unitCost === null ? "385.00" : (385 - Number(unitCost) * 10).toFixed(2),
+        },
+        ...overrides,
+      });
+    const field = (name = /Kubek ceramiczny/) => screen.getByRole("textbox", { name: new RegExp(`(Koszt wytworzenia jednej sztuki|Cost of making one piece of) ${name.source}`) });
+
+    it("shows the cost that was entered, in a field", async () => {
+      vi.mocked(catalogApi.list).mockResolvedValue({ items: [costed("12.50")], total: 1, sales_from: null });
+      renderPage();
+
+      expect(await screen.findByDisplayValue(/12[.,]50/)).toBe(field());
+    });
+
+    it("keeps a cost typed in when the field is left, and works the margin out at once without asking for the list again", async () => {
+      vi.mocked(catalogApi.list).mockResolvedValue({ items: [costed(null)], total: 1, sales_from: null });
+      vi.mocked(catalogApi.setCost).mockResolvedValue({ id: "item-1", unit_cost: "12.50", cost_updated_at: "2026-10-01T10:00:00Z" });
+      renderPage();
+      const row = (await screen.findByText("Kubek ceramiczny")).closest("tr")!;
+      // before a cost: what the marketplaces leave, and it says so
+      expect(within(row).getByText(/przed kosztem|before cost/)).toBeInTheDocument();
+      const listCalls = vi.mocked(catalogApi.list).mock.calls.length;
+
+      fireEvent.change(field(), { target: { value: "12,50" } });
+      fireEvent.blur(field());
+
+      await waitFor(() => expect(catalogApi.setCost).toHaveBeenCalledWith("item-1", "12.50"));
+      // 385.00 left of the sales less 10 pieces at 12.50 is 260.00: 26.00 a piece and 52% of the 500.00 sold
+      await waitFor(() => expect(row.querySelector(".catalog-margin")).toHaveTextContent(/26,00|26\.00/));
+      expect(row.querySelector(".catalog-margin")).toHaveTextContent(/260,00|260\.00/);
+      expect(row.querySelector(".catalog-margin")).toHaveTextContent("52%");
+      expect(within(row).queryByText(/przed kosztem|before cost/)).toBeNull();
+      expect(vi.mocked(catalogApi.list).mock.calls.length).toBe(listCalls);
+      // and the count of offers without a cost is asked for again
+      await waitFor(() => expect(vi.mocked(catalogApi.summary).mock.calls.length).toBeGreaterThan(1));
+    });
+
+    it("asks for nothing when the field is left as it was", async () => {
+      vi.mocked(catalogApi.list).mockResolvedValue({ items: [costed("12.50")], total: 1, sales_from: null });
+      renderPage();
+      await screen.findByDisplayValue(/12[.,]50/);
+
+      fireEvent.focus(field());
+      fireEvent.blur(field());
+      // written another way, it is the same amount
+      fireEvent.change(field(), { target: { value: "12.5" } });
+      fireEvent.blur(field());
+
+      expect(catalogApi.setCost).not.toHaveBeenCalled();
+    });
+
+    it("takes a cost away when the field is emptied", async () => {
+      vi.mocked(catalogApi.list).mockResolvedValue({ items: [costed("12.50")], total: 1, sales_from: null });
+      vi.mocked(catalogApi.setCost).mockResolvedValue({ id: "item-1", unit_cost: null, cost_updated_at: null });
+      renderPage();
+      await screen.findByDisplayValue(/12[.,]50/);
+
+      fireEvent.change(field(), { target: { value: "  " } });
+      fireEvent.blur(field());
+
+      await waitFor(() => expect(catalogApi.setCost).toHaveBeenCalledWith("item-1", null));
+      await waitFor(() => expect(document.querySelector(".catalog-margin")).toHaveTextContent(/przed kosztem|before cost/));
+    });
+
+    it("does not send what is not an amount, and says so", async () => {
+      vi.mocked(catalogApi.list).mockResolvedValue({ items: [costed(null)], total: 1, sales_from: null });
+      renderPage();
+      await screen.findByText("Kubek ceramiczny");
+
+      for (const bad of ["abc", "-5", "12.345", "1e3"]) {
+        fireEvent.change(field(), { target: { value: bad } });
+        fireEvent.blur(field());
+        expect(await screen.findByRole("alert")).toHaveTextContent(/Podaj kwotę|Enter an amount/);
+        expect(field()).toHaveAttribute("aria-invalid", "true");
+      }
+      expect(catalogApi.setCost).not.toHaveBeenCalled();
+
+      // a good one clears the complaint
+      vi.mocked(catalogApi.setCost).mockResolvedValue({ id: "item-1", unit_cost: "3.00", cost_updated_at: "2026-10-01T10:00:00Z" });
+      fireEvent.change(field(), { target: { value: "3" } });
+      fireEvent.blur(field());
+      await waitFor(() => expect(catalogApi.setCost).toHaveBeenCalledWith("item-1", "3.00"));
+      await waitFor(() => expect(field()).toHaveAttribute("aria-invalid", "false"));
+    });
+
+    it("lets go of what was typed on Escape", async () => {
+      vi.mocked(catalogApi.list).mockResolvedValue({ items: [costed("12.50")], total: 1, sales_from: null });
+      renderPage();
+      await screen.findByDisplayValue(/12[.,]50/);
+
+      fireEvent.change(field(), { target: { value: "99" } });
+      fireEvent.keyDown(field(), { key: "Escape" });
+
+      expect((field() as HTMLInputElement).value).toMatch(/12[.,]50/);
+    });
+
+    it("keeps the cost on Enter and goes to the next offer's field", async () => {
+      vi.mocked(catalogApi.list).mockResolvedValue({
+        items: [costed(null), costed(null, { id: "item-2", offer_id: "7002", name: "Talerz" })],
+        total: 2,
+        sales_from: null,
+      });
+      vi.mocked(catalogApi.setCost).mockResolvedValue({ id: "item-1", unit_cost: "8.00", cost_updated_at: "2026-10-01T10:00:00Z" });
+      renderPage();
+      await screen.findByText("Kubek ceramiczny");
+
+      fireEvent.change(field(), { target: { value: "8" } });
+      fireEvent.keyDown(field(), { key: "Enter" });
+
+      await waitFor(() => expect(catalogApi.setCost).toHaveBeenCalledWith("item-1", "8.00"));
+      await waitFor(() => expect(field(/Talerz/)).toHaveFocus());
+    });
+
+    it("does not go on to the next field when the cost could not be kept", async () => {
+      vi.mocked(catalogApi.list).mockResolvedValue({
+        items: [costed(null), costed(null, { id: "item-2", offer_id: "7002", name: "Talerz" })],
+        total: 2,
+        sales_from: null,
+      });
+      renderPage();
+      await screen.findByText("Kubek ceramiczny");
+      field().focus();
+
+      fireEvent.change(field(), { target: { value: "oops" } });
+      fireEvent.keyDown(field(), { key: "Enter" });
+
+      expect(await screen.findByRole("alert")).toBeInTheDocument();
+      expect(field(/Talerz/)).not.toHaveFocus();
+    });
+
+    it("says when the cost could not be saved, and leaves what was typed", async () => {
+      vi.mocked(catalogApi.list).mockResolvedValue({ items: [costed(null)], total: 1, sales_from: null });
+      vi.mocked(catalogApi.setCost).mockRejectedValue(new ApiError(403, "Missing 'manage' permission for 'orders'"));
+      renderPage();
+      await screen.findByText("Kubek ceramiczny");
+
+      fireEvent.change(field(), { target: { value: "7" } });
+      fireEvent.blur(field());
+
+      expect(await screen.findByRole("alert")).toHaveTextContent("Missing 'manage' permission");
+      expect(field()).toHaveValue("7");
+    });
+
+    it("shows the cost as a figure, not a field, to someone who may only look", async () => {
+      permission.manage = false;
+      vi.mocked(catalogApi.list).mockResolvedValue({ items: [costed("12.50")], total: 1, sales_from: null });
+      renderPage();
+
+      const row = (await screen.findByText("Kubek ceramiczny")).closest("tr")!;
+      expect(within(row).queryByRole("textbox")).toBeNull();
+      expect(row.querySelector(".catalog-cost")).toHaveTextContent(/12,50|12\.50/);
+    });
+
+    it("shows the margin of an offer that loses money on each piece as a loss", async () => {
+      vi.mocked(catalogApi.list).mockResolvedValue({ items: [costed("60.00")], total: 1, sales_from: null });
+      renderPage();
+
+      const row = (await screen.findByText("Kubek ceramiczny")).closest("tr")!;
+      // 385.00 less 600.00 of costs: -215.00
+      expect(row.querySelector(".catalog-margin-main")).toHaveClass("is-loss");
+      expect(row.querySelector(".catalog-margin")).toHaveTextContent(/-215|−215/);
+    });
+
+    it("sets the cost and the margin out in the table of an opened row", async () => {
+      vi.mocked(catalogApi.list).mockResolvedValue({ items: [costed("12.50")], total: 1, sales_from: null });
+      renderPage();
+      fireEvent.click(await screen.findByRole("button", { name: /Pokaż szczegóły|Show details/ }));
+
+      const table = document.querySelector(".catalog-sales-table") as HTMLElement;
+      const allegro = within(table).getAllByRole("row")[1];
+      // 500.00 sold, 115.00 of fees: 385.00 after fees, 125.00 of costs: 260.00, 26.00 a piece, 52%
+      expect(allegro).toHaveTextContent(/115,00|115\.00/);
+      expect(allegro).toHaveTextContent(/385,00|385\.00/);
+      expect(allegro).toHaveTextContent(/125,00|125\.00/);
+      expect(allegro).toHaveTextContent(/260,00|260\.00/);
+      expect(allegro).toHaveTextContent("52%");
+    });
+
+    it("shows a dash for the cost in the table when none is entered", async () => {
+      vi.mocked(catalogApi.list).mockResolvedValue({ items: [costed(null)], total: 1, sales_from: null });
+      renderPage();
+      fireEvent.click(await screen.findByRole("button", { name: /Pokaż szczegóły|Show details/ }));
+
+      const table = document.querySelector(".catalog-sales-table") as HTMLElement;
+      const cells = within(within(table).getAllByRole("row")[1]).getAllByRole("cell");
+      // pieces, orders, sales, fees, after fees, cost, margin, per piece, share
+      expect(cells[5]).toHaveTextContent("—");
+      expect(cells[6]).toHaveTextContent(/385,00|385\.00/);
+    });
+
+    it("finds the offers with no cost, and counts them", async () => {
+      vi.mocked(catalogApi.summary).mockResolvedValue(summary({ no_cost: 7 }));
+      renderPage();
+
+      const pill = await screen.findByRole("button", { name: /Bez kosztu|No cost/ });
+      expect(pill).toHaveTextContent("7");
+      fireEvent.click(pill);
+      await waitFor(() => expect(lastListCall()).toMatchObject({ flag: "no_cost" }));
+    });
+
+    it("sorts by margin, the largest first", async () => {
+      renderPage();
+      await screen.findByText("Kubek ceramiczny");
+
+      fireEvent.click(within(screen.getByRole("columnheader", { name: /Marża|Margin/ })).getByRole("button"));
+
+      await waitFor(() => expect(lastListCall()).toMatchObject({ sort: "margin", descending: true }));
     });
   });
 

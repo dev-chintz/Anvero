@@ -1009,8 +1009,8 @@ export const afterSalesApi = {
 // ---- The assortment: the Allegro offers, their pictures, and how they stand on Erli ----
 
 export type CatalogStatusFilter = "current" | "active" | "inactive" | "gone";
-export type CatalogFlag = "no_image" | "no_sku" | "not_on_erli" | "category_differs";
-export type CatalogSort = "name" | "price" | "stock" | "sold" | "net";
+export type CatalogFlag = "no_image" | "no_sku" | "no_cost" | "not_on_erli" | "category_differs";
+export type CatalogSort = "name" | "price" | "stock" | "sold" | "margin";
 /** Whether an Erli product sits in the same category as its Allegro offer. */
 export type CategoryMatch = "SAME" | "DIFFERENT" | "UNKNOWN";
 
@@ -1051,8 +1051,12 @@ export interface ChannelSales {
   sales: string;
   /** The marketplace's fees for those orders that fall to the offer; never the subscription. */
   fees: string;
-  /** Sales less fees, before what the goods cost, which Anvero does not hold. */
+  /** Sales less fees: what the marketplaces leave, before what the goods cost. */
   net: string;
+  /** What the pieces cost to make (the offer's cost times the pieces); null while no cost is entered. */
+  cost: string | null;
+  /** `net` less `cost`: the margin. Without a cost entered it is `net` alone, which the page marks. */
+  margin: string;
 }
 
 export interface CatalogItem {
@@ -1073,6 +1077,9 @@ export interface CatalogItem {
   thumbnail_url: string | null;
   images: CatalogImage[];
   erli: CatalogListing | null;
+  /** What making one piece costs, as the owner entered it; null until entered. */
+  unit_cost: string | null;
+  cost_updated_at: string | null;
   sales_allegro: ChannelSales;
   /** Null while no Erli product is tied to the offer. */
   sales_erli: ChannelSales | null;
@@ -1135,6 +1142,8 @@ export interface CatalogSummary {
   no_sku: number;
   not_on_erli: number;
   category_differs: number;
+  /** Offers with no cost entered, so no margin yet. */
+  no_cost: number;
   images_total: number;
   images_local: number;
   erli_unmatched: number | null;
@@ -1183,6 +1192,11 @@ export const catalogApi = {
    * in the backend and answers at once: `progress` says how far it has got. */
   sync(): Promise<{ started: boolean }> {
     return request<{ started: boolean }>("/catalog/sync", { method: "POST" });
+  },
+
+  /** Say what making one piece of the offer costs ("12.50"), or null to take the cost away. */
+  setCost(id: string, unitCost: string | null): Promise<{ id: string; unit_cost: string | null; cost_updated_at: string | null }> {
+    return request(`/catalog/items/${id}/cost`, { method: "PUT", body: JSON.stringify({ unit_cost: unitCost }) });
   },
 
   progress(): Promise<CatalogProgress> {

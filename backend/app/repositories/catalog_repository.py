@@ -92,6 +92,8 @@ class CatalogRepository:
             stmt = stmt.where(~exists().where(CatalogImage.item_id == CatalogItem.id))
         elif flag is CatalogFlag.NO_SKU:
             stmt = stmt.where(CatalogItem.sku.is_(None))
+        elif flag is CatalogFlag.NO_COST:
+            stmt = stmt.where(CatalogItem.unit_cost.is_(None))
         elif flag is CatalogFlag.NOT_ON_ERLI:
             stmt = stmt.where(
                 ~exists().where(CatalogListing.item_id == CatalogItem.id, CatalogListing.source == ERLI)
@@ -169,6 +171,7 @@ class CatalogRepository:
             "no_image": self.count(current, no_image),
             "no_sku": self.count(current, CatalogItem.sku.is_(None)),
             "not_on_erli": self.count(current, ~on_erli),
+            "no_cost": self.count(current, CatalogItem.unit_cost.is_(None)),
             "category_differs": self.count(current, differs),
             "images_total": images_total,
             "images_local": images_local,

@@ -6,7 +6,7 @@ from datetime import date
 from decimal import Decimal
 from enum import Enum
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from app.schemas.types import UtcDateTime
 
@@ -76,6 +76,7 @@ class CatalogFlag(str, Enum):
     NO_IMAGE = "no_image"
     NO_SKU = "no_sku"
     NOT_ON_ERLI = "not_on_erli"
+    NO_COST = "no_cost"
     CATEGORY_DIFFERS = "category_differs"
 
 
@@ -91,9 +92,9 @@ class CatalogSort(str, Enum):
     NAME = "name"
     PRICE = "price"
     STOCK = "stock"
-    # pieces sold, both marketplaces together, and what is left of them after the fees
+    # pieces sold, both marketplaces together, and the margin on them
     SOLD = "sold"
-    NET = "net"
+    MARGIN = "margin"
 
 
 class CategoryStep(BaseModel):
@@ -131,8 +132,13 @@ class ChannelSalesRead(BaseModel):
     # the marketplace's fees for those orders that fall to the offer: commission, and the delivery
     # fee less what the buyer paid for delivery; never the subscription
     fees: Decimal
-    # sales less fees, before what the goods cost, which Anvero does not hold
+    # sales less fees: what the marketplaces leave, before what the goods cost
     net: Decimal
+    # what the pieces cost to make (the offer's unit cost times the pieces); null while no cost is entered
+    cost: Decimal | None
+    # net less cost: the margin. While no cost is entered it is `net` alone, which the page marks as
+    # "before cost"
+    margin: Decimal
 
 
 class CatalogItemRead(BaseModel):
@@ -153,6 +159,9 @@ class CatalogItemRead(BaseModel):
     images: list[CatalogImageRead]
     # the same product on Erli, when it was found there
     erli: CatalogListingRead | None
+    # what making a piece costs, as entered by the owner; null until entered
+    unit_cost: Decimal | None
+    cost_updated_at: UtcDateTime | None
     # what it sold in the period the list was asked for, on each marketplace; Erli's is null while no
     # Erli product is tied to the offer
     sales_allegro: ChannelSalesRead
@@ -208,6 +217,8 @@ class CatalogSummary(BaseModel):
     # offers with no Erli product found; only meaningful when Erli is connected
     not_on_erli: int
     category_differs: int
+    # offers with no cost of making entered, so no margin yet
+    no_cost: int
     images_total: int
     images_local: int
     # Erli products that matched no offer (read at the last sync)
@@ -226,6 +237,18 @@ class CatalogProgressRead(BaseModel):
     # null when it cannot be known beforehand (the list of offers, Erli's products)
     total: int | None
     started_at: UtcDateTime | None
+
+
+class CatalogCostWrite(BaseModel):
+    """What the owner says one piece costs to make; null takes the cost away."""
+
+    unit_cost: Decimal | None = Field(default=None, ge=0, le=Decimal(1000000), max_digits=12, decimal_places=2)
+
+
+class CatalogCostRead(BaseModel):
+    id: uuid.UUID
+    unit_cost: Decimal | None
+    cost_updated_at: UtcDateTime | None
 
 
 class CatalogSyncStarted(BaseModel):

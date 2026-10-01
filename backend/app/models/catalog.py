@@ -67,6 +67,13 @@ class CatalogItem(Base):
     category_path: Mapped[list[dict[str, str]]] = mapped_column(JSON, nullable=False, default=list)
     category_ids: Mapped[str] = mapped_column(String(512), nullable=False, default="", index=True)
 
+    # what making one piece costs, as the owner enters it: the one thing on this row that is theirs, not
+    # read from Allegro, so a sync never touches it. Null until entered; the margin then is only what is left
+    # after the marketplaces' fees. Applied to every piece sold in the period asked for, at the cost it has now.
+    unit_cost: Mapped[Decimal | None] = mapped_column(Numeric(12, 2))
+    cost_updated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    cost_updated_by_user_id: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
+
     # when a sync last found the offer on Allegro, and when one first found it gone (ended or
     # deleted there); a gone offer is kept, with its pictures, but is not part of the assortment
     last_seen_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
