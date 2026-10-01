@@ -107,16 +107,22 @@ query, or an `access_log` uses the default) and tried with `nginx:1-alpine` in c
 through the file to a stand-in backend, left none of them in the web container's log (its lines read `address [time]
 "GET /api/v1/orders?..." 200 bytes seconds`), while the backend received the client's own address and not the forged
 one. Also seen: with the backend unreachable, nginx's error log still carries the request and the upstream address with
-the full query, which no setting removes. **Not seen on the NAS:** the web container's log after the update (look at it
-once), and the address nginx sees there: on Docker Desktop for Windows every client looked like the network's gateway
-(`172.x.0.1`), and whether the NAS does the same is what the security log's address check settles (below). Nothing
-in CI runs `nginx -t`; run the command in `DEPLOYMENT.md` ("The log") before publishing a change to the file.
+the full query, which no setting removes. **Seen on the NAS, 2026-10-01** (after the update to `84f1cdf`): the web
+container's log reads `192.168.1.17 [01/Oct/2026:21:46:57 +0000] "GET /api/v1/orders?... HTTP/1.1" 401 30 0.003`, and a
+search phrase sent through it, with a referer and a user agent of its own, is nowhere in it (0 matches). Every client
+address in it is the real one (a computer on the LAN), not the network's gateway that Docker Desktop for Windows showed.
+Its error log, written while the backend restarted during the update (sixteen `502`s in 13 seconds), carries query
+strings in full, as expected. Nothing in CI runs `nginx -t`; run the command in `DEPLOYMENT.md` ("The log") before
+publishing a change to the file.
 
 The security log (2026-10-01, `GDPR.md`, "The security log"): tested through the API and the services (every
 event, that no e-mail or password reaches the log, that a line cannot be forged), and its line seen under the
-application's own logging setup. Not seen in the NAS's container log: in particular that the address in it is the
-client's and not the web container's (it rests on `--proxy-headers` and nginx's `X-Forwarded-For`). The
-container's log has no size limit there yet (`DEPLOYMENT.md`, "The log").
+application's own logging setup. **Seen on the NAS, 2026-10-01** (after the update to `84f1cdf`): a failed login from a
+computer on the LAN was logged as `login_failed reason=unknown_account ip=192.168.1.17`, that computer's own address
+(so `--proxy-headers` and nginx's `X-Forwarded-For` do reach the backend, and the login rate limit counts by client),
+and `docker inspect` shows the size limit (5 files of 10 MB) on `backend` and `web` (`DEPLOYMENT.md`, "The log"). Not
+seen there: a login through Tailscale (the address would be the machine's `100.x` one), a login that succeeds, an
+account change, and a rate-limit stop.
 
 The Help page (2026-10-01, `GUIDE.md`, `GDPR.md`): the guide, the GDPR tab, the
 controller card in Settings and `GET /gdpr/overview` and `PUT /gdpr/controller` are

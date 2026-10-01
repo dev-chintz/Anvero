@@ -7,6 +7,14 @@ services:
   backend:
     image: ghcr.io/dev-chintz/anvero-backend:latest
     restart: unless-stopped
+    # Docker keeps a container's log without a limit otherwise, and this one holds the
+    # numbers of operators' accounts and the addresses they came from (`DEPLOYMENT.md`,
+    # "The log"): the last 5 files of 10 MB
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
     environment:
       ENVIRONMENT: production
       DEBUG: "false"
@@ -52,6 +60,12 @@ services:
   web:
     image: ghcr.io/dev-chintz/anvero-web:latest
     restart: unless-stopped
+    # the same limit: nginx's access log holds the address of every request
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
     depends_on:
       - backend
     ports:

@@ -174,7 +174,9 @@ The backend and the web container write to their standard output, so their logs 
 containers' own: in Container Station the container's Logs, or `docker logs`. The security events
 are lines of the backend's log with `| security |` in them (logins, refused logins and why,
 requests stopped by a rate limit, accounts made or changed; `GDPR.md`, "The security log"), for
-example `docker logs <backend container> | grep "| security |"`.
+example `docker logs <backend container> 2>&1 | grep "| security |"`. The `2>&1` matters: the
+backend logs to stderr, which `docker logs` hands on separately, so without it the pipe gets
+nothing and grep filters nothing (the whole log scrolls past).
 
 **What each access log writes.** The backend's (uvicorn) and the web container's (nginx) both write
 the address a request came from and the path called, without what follows a `?`, and mark a dropped
@@ -187,11 +189,14 @@ brings this change does. One line nginx still writes in full is its error log, w
 reach the backend: it names the request as it came and the upstream address it tried, query
 included in both (seen 2026-10-01 with the backend stopped), and that cannot be configured away.
 
-**No size limit.** Docker keeps a container's log without a limit unless told otherwise, and
-these now hold operators' account numbers and the addresses they came from.
-**`deploy/docker-compose.yml` sets no limit**, so on the NAS there is none. To keep the last 50 MB
-of each and drop the rest, add to the `backend` **and the `web`** service in the NAS's own compose
-file and recreate the containers:
+**Size limit.** Docker keeps a container's log without a limit unless told otherwise, and these
+hold operators' account numbers and the addresses they came from. `deploy/docker-compose.yml`
+therefore gives `backend` and `web` the last 5 files of 10 MB each, and the NAS's own compose file
+has the same since 2026-10-01 (`docker inspect` on both containers shows
+`{"Type":"json-file","Config":{"max-file":"5","max-size":"10m"}}`). The NAS runs its own copy of the
+file, not the repository's, so a change to the template reaches it only when someone copies it
+there. For any other copy of the file (a new NAS), add to the `backend` **and the `web`** service
+and recreate the containers:
 
 ```yaml
     logging:
@@ -201,8 +206,8 @@ file and recreate the containers:
         max-file: "5"
 ```
 
-How long 50 MB lasts depends on what is written (an import makes the backend log a good deal); not
-yet set on the NAS, nor tried there.
+How long 50 MB of each lasts depends on what is written (an import makes the backend log a good
+deal); not yet measured.
 
 **Trying the nginx file.** `frontend/nginx.conf` is the one file whose mistake only nginx catches,
 and a mistake would stop the web container from starting. Before publishing a change to it, from

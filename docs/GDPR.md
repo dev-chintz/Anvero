@@ -172,9 +172,11 @@ their new value, never a password.
   does not exist that is whatever a stranger typed, a password typed into the wrong field
   included), a password, a buyer's data. Line breaks and control characters in a value are
   removed, so a request cannot forge a line.
-- **Where and for how long:** the backend's standard output, so the container's log, kept as
-  long as Docker keeps it, which is **without a limit** until the owner sets one on the NAS
-  (`DEPLOYMENT.md`, "The log"). Nothing in the application erases it.
+- **Where and for how long:** the backend's standard output, so the container's log. Docker
+  keeps the last 5 files of 10 MB of it (the limit in the compose file, on the NAS since
+  2026-10-01; `DEPLOYMENT.md`, "The log"), so a line lasts until about 50 MB of newer ones have
+  been written, which is a matter of weeks or months, not of a stated period. Nothing in the
+  application erases it.
 - **Basis:** the security of the application, art. 6(1)(f), as for the accounts in the register.
 - **Not logged:** a token that was refused (an expired one is every morning's), a request a
   permission refused, and what was read. See the paragraph above on reading.
@@ -240,5 +242,6 @@ What the tab cannot know, it lists as the owner's to settle (below).
   Anvero, and Anvero stores neither.
 - Who has access to the NAS, its backup folder, the VPN and the password
   manager, and removing it when someone leaves.
-- A limit on how long the container's log is kept, now that it holds the numbers of
-  operators' accounts and their addresses (`DEPLOYMENT.md`, "The log").
+- Deciding whether "until about 50 MB of newer lines" is a short enough time to keep the numbers
+  of operators' accounts and their addresses in the container's log, or whether the register
+  needs a stated period and a smaller limit (`DEPLOYMENT.md`, "The log").
