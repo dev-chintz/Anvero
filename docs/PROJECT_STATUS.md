@@ -46,7 +46,7 @@ folder, and one was restored from that copy into a scratch database as a test.
   remains the no-setup default for a fresh clone)
 - Health endpoint and first order model — done
 - Minimal order list interface — done
-- Automated tests for core flows — done (1353 backend, 764 frontend passing <!-- sync-tests -->
+- Automated tests for core flows — done (1373 backend, 764 frontend passing <!-- sync-tests -->
   across the suite as of 2026-10-01, the backend on SQLite)
 
 ---
@@ -99,6 +99,12 @@ re-imported. Production needs its own application and authorization; see
 ---
 
 ## Not yet verified
+
+The security log (2026-10-01, `GDPR.md`, "The security log"): tested through the API and the services (every
+event, that no e-mail or password reaches the log, that a line cannot be forged), and its line seen under the
+application's own logging setup. Not seen in the NAS's container log: in particular that the address in it is the
+client's and not the web container's (it rests on `--proxy-headers` and nginx's `X-Forwarded-For`). The
+container's log has no size limit there yet (`DEPLOYMENT.md`, "The log").
 
 The Help page (2026-10-01, `GUIDE.md`, `GDPR.md`): the guide, the GDPR tab, the
 controller card in Settings and `GET /gdpr/overview` and `PUT /gdpr/controller` are

@@ -149,6 +149,31 @@ written to the application log with the period, the column keys, the row count
 and the user's id (`API.md`). Revisit this if accounts outside the business are
 ever given access.
 
+## The security log
+
+Since 2026-10-01 (`DECISIONS.md`, "The security log") the backend writes one line to its
+log, on the logger `security`, for each of: a login that succeeded; a login refused, and why
+(an account that does not exist, a wrong password, a switched-off account: the answer to the
+person is the same for all three, the log is not); a request stopped by a rate limit, with the
+route; and an account made or changed, by an administrator or by one of the scripts run on the
+server (`create_user.py`, `reset_password.py`), what changed by name, a role and a state by
+their new value, never a password.
+
+- **What it holds about a person:** the *number* of an account, not the e-mail, and the address
+  the request came from (the one the rate limit counts by, which the web container's proxy sets;
+  uvicorn's access log already holds the address with every request). A change made by a script
+  says `actor=console`.
+- **What it never holds:** an e-mail or anything typed at the login form (for an account that
+  does not exist that is whatever a stranger typed, a password typed into the wrong field
+  included), a password, a buyer's data. Line breaks and control characters in a value are
+  removed, so a request cannot forge a line.
+- **Where and for how long:** the backend's standard output, so the container's log, kept as
+  long as Docker keeps it, which is **without a limit** until the owner sets one on the NAS
+  (`DEPLOYMENT.md`, "The log"). Nothing in the application erases it.
+- **Basis:** the security of the application, art. 6(1)(f), as for the accounts in the register.
+- **Not logged:** a token that was refused (an expired one is every morning's), a request a
+  permission refused, and what was read. See the paragraph above on reading.
+
 ## The GDPR tab
 
 Help → RODO (`/help?tab=gdpr`; `frontend/src/pages/help/GdprTab.tsx`, text in
@@ -210,3 +235,5 @@ What the tab cannot know, it lists as the owner's to settle (below).
   Anvero, and Anvero stores neither.
 - Who has access to the NAS, its backup folder, the VPN and the password
   manager, and removing it when someone leaves.
+- A limit on how long the container's log is kept, now that it holds the numbers of
+  operators' accounts and their addresses (`DEPLOYMENT.md`, "The log").

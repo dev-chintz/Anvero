@@ -34,6 +34,9 @@ Repository: <https://github.com/dev-chintz/Anvero>
 
 # Completed
 
+- The security log (2026-10-01): logins, refusals and their reasons, rate-limit stops and account changes written
+  to the container's log by account number and address, never by e-mail (`GDPR.md`, "The security log"); the
+  log's retention is not yet limited on the NAS (`DEPLOYMENT.md`, "The log")
 - Help (2026-10-01): a guide to every page in Polish and English with screenshots of
   an invented shop (`tools/guide/make.ps1`), and a GDPR tab with the controller's
   details, a draft notice to buyers and register of processing activities, and the
@@ -70,7 +73,7 @@ Repository: <https://github.com/dev-chintz/Anvero>
   scope). Full detail in `DECISIONS.md` and `CHANGELOG.md`.
 - Order page (2026-09-29): status picker in the header, payment folded,
   Allegro Smart badge (`DECISIONS.md`)
-- 1353 backend tests and 764 frontend tests (Vitest + React Testing Library) <!-- sync-tests -->
+- 1373 backend tests and 764 frontend tests (Vitest + React Testing Library) <!-- sync-tests -->
   passing
 
 ---

@@ -30,11 +30,15 @@ def list_users(db: Session = Depends(get_db)):
     return UserService(UserRepository(db)).list_users()
 
 
-@router.post("", response_model=UserRead, status_code=201, dependencies=[Depends(require_admin)])
-def create_user(data: UserCreate, db: Session = Depends(get_db)):
-    return UserService(UserRepository(db)).create_user(data)
+# The administrator is a parameter, not only a dependency, so the security log can say who made the
+# change (`actor`, app/core/security_log.py).
+@router.post("", response_model=UserRead, status_code=201)
+def create_user(data: UserCreate, db: Session = Depends(get_db), admin: "User" = Depends(require_admin)):
+    return UserService(UserRepository(db)).create_user(data, actor_id=admin.id)
 
 
-@router.patch("/{user_id}", response_model=UserRead, dependencies=[Depends(require_admin)])
-def update_user(user_id: int, data: UserUpdate, db: Session = Depends(get_db)):
-    return UserService(UserRepository(db)).update_user(user_id, data)
+@router.patch("/{user_id}", response_model=UserRead)
+def update_user(
+    user_id: int, data: UserUpdate, db: Session = Depends(get_db), admin: "User" = Depends(require_admin)
+):
+    return UserService(UserRepository(db)).update_user(user_id, data, actor_id=admin.id)

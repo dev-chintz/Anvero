@@ -206,10 +206,10 @@ export function registerRows(retention: Retention): RegisterRow[] {
       activity: "Konta użytkowników aplikacji",
       purpose: "Zarządzanie dostępem do aplikacji i jego zabezpieczenie (art. 6 ust. 1 lit. f RODO).",
       subjects: "Osoby pracujące w aplikacji (administrator i współpracownicy).",
-      data: "Adres e-mail, skrót hasła, rola i uprawnienia, informacja, kto zmienił status zamówienia.",
+      data: "Adres e-mail, skrót hasła, rola i uprawnienia, informacja, kto zmienił status zamówienia. W dzienniku bezpieczeństwa: numer konta i adres IP przy logowaniu oraz przy zmianach kont (bez adresu e-mail i bez hasła).",
       recipients: "Brak.",
       transfers: "Nie.",
-      retention: "Do usunięcia konta; historia zmian zamówień zostaje bez wskazania konta.",
+      retention: "Do usunięcia konta; historia zmian zamówień zostaje bez wskazania konta. Wpisy dziennika bezpieczeństwa: tak długo, jak serwer przechowuje logi kontenera (limit ustawia właściciel).",
     },
     {
       activity: "Kopie zapasowe",
@@ -302,7 +302,7 @@ export const gdprStaffPl: GdprStaffContent = {
     { data: "Zwroty, reklamacje, spory: login, e-mail, treść", where: "Zwroty i reklamacje", why: "Obsługa zgłoszenia (prawo konsumenckie)", kept: (r) => `${years(r.contacts_years)} od otwarcia, po zamknięciu` },
     { data: "To, co wysłano do marketplace'ów i InPost (odbiorca etykiety, treść odpowiedzi)", where: "Dziennik wysłanych zmian", why: "Dowód wykonania", kept: (r) => `${years(r.contacts_years)}, albo z zamówieniem` },
     { data: "Imię, nazwisko i adres kupującego w ewidencji bezrachunkowej", where: "Raport bezrachunkowy", why: "Ewidencja wymagana przepisami (obowiązek prawny)", kept: (r) => `${years(r.orders_years)}; nie jest usuwana na wniosek kupującego` },
-    { data: "E-mail i skrót hasła osób pracujących w aplikacji", where: "Użytkownicy", why: "Logowanie", kept: () => "dopóki istnieje konto" },
+    { data: "E-mail i skrót hasła osób pracujących w aplikacji; w dzienniku bezpieczeństwa numer konta i adres IP przy logowaniu i zmianach kont", where: "Użytkownicy; dziennik serwera", why: "Logowanie; bezpieczeństwo aplikacji", kept: () => "dopóki istnieje konto; wpisy dziennika tak długo, jak serwer trzyma logi kontenera" },
   ],
   recipientsIntro: "Komu dane trafiają. Przy każdym podmiocie zapisz, czy jest odrębnym administratorem, czy przetwarza dane na Twoje zlecenie (to drugie wymaga umowy powierzenia).",
   recipients: [
@@ -357,7 +357,7 @@ export const gdprStaffEn: GdprStaffContent = {
     { data: "Returns, claims, disputes: login, e-mail, text", where: "Returns and claims", why: "Handling the case (consumer law)", kept: (r) => `${r.contacts_years} years after it was opened, once closed` },
     { data: "What was sent to the marketplaces and InPost (a label's recipient, a reply's text)", where: "Log of changes sent", why: "A record of what was sent", kept: (r) => `${r.contacts_years} years, or with the order` },
     { data: "The buyer's name and address in the non-invoiced record", where: "Sales report", why: "The record the law requires (legal duty)", kept: (r) => `${r.orders_years} years; not erased on the buyer's request` },
-    { data: "E-mail and password hash of the people working in the application", where: "Users", why: "Logging in", kept: () => "while the account exists" },
+    { data: "E-mail and password hash of the people working in the application; in the security log the account number and IP address of a login or an account change", where: "Users; the server's log", why: "Logging in; security of the application", kept: () => "while the account exists; log lines as long as the server keeps the container's log" },
   ],
   recipientsIntro: "Who the data goes to. For each, note whether it is a controller in its own right or processes the data on your behalf (the second needs a processing agreement).",
   recipients: [

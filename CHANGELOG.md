@@ -19,6 +19,15 @@ All significant changes to the Anvero project.
   New `GET /gdpr/overview` and `PUT /gdpr/controller`. See `docs/GDPR.md`, `docs/API.md` and `docs/DECISIONS.md`.
 - `tools/guide/make.ps1` makes the screenshots from a scratch database with made-up data.
 
+### 🔒 The security log
+
+- Logins (succeeded, or refused with the reason: no such account, wrong password, switched off), requests stopped
+  by a rate limit, and accounts made or changed (by an administrator or by a script on the server) are written to
+  the log on the logger `security`, by account number and address, never by e-mail or password. Brought over from
+  an old branch, rewritten for the roles, the token version and the rule that a person's data is not copied into a
+  log. The container's log has no limit on the NAS yet: see `docs/DEPLOYMENT.md`, "The log". See
+  `docs/GDPR.md`, "The security log" and `docs/DECISIONS.md`.
+
 ### 📝 Allegro's automatic refund after 7 days
 
 - Noted in `docs/INTEGRATIONS.md` ("Returns and claims") and `docs/DECISIONS.md`, not built: since 2026-09-01

@@ -1,5 +1,6 @@
 from fastapi import HTTPException, status
 
+from app.core import security_log
 from app.core.security import hash_password
 from app.models.user import ADMIN_ROLE, User
 from app.repositories.user_repository import UserRepository
@@ -13,7 +14,9 @@ class UserService:
     def list_users(self) -> list[User]:
         return self.repository.list_all()
 
-    def create_user(self, data: UserCreate) -> User:
+    def create_user(self, data: UserCreate, actor_id: int | None = None) -> User:
+        """`actor_id` is the administrator making the account, for the security log; none means a
+        script on the server (scripts/create_user.py)."""
         existing_user = self.repository.get_by_email(data.email)
         if existing_user:
             raise HTTPException(
@@ -30,9 +33,12 @@ class UserService:
         # an admin can do everything already; stored grants would be dead weight
         if data.role != ADMIN_ROLE and data.permissions:
             self.repository.replace_permissions(user, data.permissions)
+        security_log.record(
+            security_log.ACCOUNT_CREATED, actor=security_log.actor(actor_id), user=user.id, role=user.role
+        )
         return user
 
-    def update_user(self, user_id: int, data: UserUpdate) -> User:
+    def update_user(self, user_id: int, data: UserUpdate, actor_id: int | None = None) -> User:
         user = self.repository.get_by_id(user_id)
         if user is None:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
@@ -46,6 +52,7 @@ class UserService:
                 detail="At least one active administrator account must remain",
             )
 
+        previous_role, previous_active = user.role, user.is_active
         if data.role is not None:
             user.role = data.role
         if data.is_active is not None:
@@ -60,9 +67,31 @@ class UserService:
             # an admin can do everything already; stored grants would be dead weight
             self.repository.replace_permissions(user, [] if user.role == ADMIN_ROLE else data.permissions)
 
+        # what changed, by name; the password never, and the role and state by their new value, since
+        # becoming an administrator and being switched off are what the log is read for
+        changed = [
+            name
+            for name, did in (
+                ("role", user.role != previous_role),
+                ("active", user.is_active != previous_active),
+                ("password", data.password is not None),
+                ("permissions", data.permissions is not None),
+            )
+            if did
+        ]
+        if changed:
+            security_log.record(
+                security_log.ACCOUNT_CHANGED,
+                actor=security_log.actor(actor_id),
+                user=user.id,
+                changes=",".join(changed),
+                role=user.role if "role" in changed else None,
+                active=str(user.is_active).lower() if "active" in changed else None,
+            )
+
         return user
 
-    def set_password(self, email: str, password: str) -> User:
+    def set_password(self, email: str, password: str, actor_id: int | None = None) -> User:
         user = self.repository.get_by_email(email)
         if user is None:
             raise HTTPException(
@@ -73,7 +102,11 @@ class UserService:
         user.hashed_password = hash_password(password)
         # whoever was logged in with the old password is logged out
         user.token_version += 1
-        return self.repository.save(user)
+        user = self.repository.save(user)
+        security_log.record(
+            security_log.ACCOUNT_CHANGED, actor=security_log.actor(actor_id), user=user.id, changes="password"
+        )
+        return user
 
     def get_user_by_email(self, email: str) -> User | None:
         return self.repository.get_by_email(email)

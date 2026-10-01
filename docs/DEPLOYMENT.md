@@ -168,6 +168,30 @@ the `backend` container and run, for example,
 `python scripts/create_user.py you@example.com` or
 `python scripts/reset_password.py you@example.com`.
 
+## The log
+
+The backend writes to its standard output, so the log is the `backend` container's: in
+Container Station the container's Logs, or `docker logs`. The security events are lines with
+`| security |` in them (logins, refused logins and why, requests stopped by a rate limit,
+accounts made or changed; `GDPR.md`, "The security log"), for example
+`docker logs <backend container> | grep "| security |"`.
+
+Docker keeps a container's log without a limit unless told otherwise, and this one now holds the
+numbers of operators' accounts and the addresses they came from. **`deploy/docker-compose.yml`
+sets no limit**, so on the NAS there is none. To keep the last 50 MB and drop the rest, add to the
+`backend` service in the NAS's own compose file and recreate the container:
+
+```yaml
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+```
+
+How long 50 MB lasts depends on what the backend writes (an import logs a good deal); not yet set
+on the NAS, nor tried there.
+
 ## Limits
 
 - Plain HTTP. On the home network and through Tailscale that is acceptable

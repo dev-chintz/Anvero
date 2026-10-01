@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, Request
+from slowapi.util import get_remote_address
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
@@ -26,4 +27,6 @@ def login(request: Request, body: LoginRequest, db: Session = Depends(get_db)):
     return service.login(
         email=body.email,
         password=body.password,
+        # the address the rate limit counts by, so the log and the limit agree on who it was
+        client_ip=get_remote_address(request),
     )

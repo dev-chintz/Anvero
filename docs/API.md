@@ -110,7 +110,9 @@ in that browser.
 
 A wrong password, an unknown email and a deactivated account all return the
 same `401 {"detail": "Invalid credentials"}`, taking comparable time, so the
-response does not reveal which emails have accounts.
+response does not reveal which emails have accounts. The security log (`GDPR.md`, "The
+security log") does tell the three apart, and records every login and every `429`, by
+account number and address, never by e-mail.
 
 ## Users, roles and permissions
 
