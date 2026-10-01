@@ -14,15 +14,15 @@ from app.core.config import settings
 from app.core.security import create_access_token
 from app.db.base import Base
 from app.db.session import get_db
-from app.integrations.base import IntegrationNotConfigured, IntegrationUnavailable
+from app.integrations.base import IntegrationNotConfigured
 from app.main import app
 from app.models.catalog import CatalogImage, CatalogItem, CatalogListing
 from app.models.marketplace_write import AppSetting
 from app.models.order import OrderSource
 from app.repositories.user_repository import UserRepository
-from app.schemas.catalog import CatalogSyncResult
 from app.schemas.user import PermissionGrant, UserCreate
 from app.services.allegro_sync import ImportAlreadyRunning
+from app.services.catalog import catalog_progress
 from app.services.user_service import UserService
 
 client = TestClient(app)
@@ -373,29 +373,16 @@ def test_the_summary_carries_the_note_of_the_last_sync():
 # --- the button ------------------------------------------------------------------------
 
 
-def test_the_button_reads_the_offers_and_says_how_it_went(monkeypatch):
-    monkeypatch.setattr(
-        catalog_endpoint,
-        "run_catalog_sync",
-        lambda db: CatalogSyncResult(items=214, added=3, gone=1, images_downloaded=40, images_pending=10, erli_products=200, erli_matched=190, erli_unmatched=10),
-    )
+def test_the_button_starts_the_read_and_answers_at_once(monkeypatch):
+    started = []
+    monkeypatch.setattr(catalog_endpoint, "start_catalog_sync", lambda db: started.append(True))
 
     response = client.post("/api/v1/catalog/sync")
 
-    assert response.status_code == 200
-    assert response.json() == {
-        "items": 214,
-        "added": 3,
-        "gone": 1,
-        "images_downloaded": 40,
-        "images_failed": 0,
-        "images_pending": 10,
-        "erli_products": 200,
-        "erli_matched": 190,
-        "erli_unmatched": 10,
-        "erli_error": None,
-        "details_failed": 0,
-    }
+    # accepted, not done: a first read takes minutes, longer than a request may wait
+    assert response.status_code == 202
+    assert response.json() == {"started": True}
+    assert started == [True]
 
 
 @pytest.mark.parametrize(
@@ -403,25 +390,70 @@ def test_the_button_reads_the_offers_and_says_how_it_went(monkeypatch):
     [
         (ImportAlreadyRunning(), 409),
         (IntegrationNotConfigured("none"), 409),
-        (IntegrationUnavailable("Allegro offers: 503"), 502),
     ],
 )
 def test_the_button_says_why_it_could_not(monkeypatch, error, status):
     def refuse(db):
         raise error
 
-    monkeypatch.setattr(catalog_endpoint, "run_catalog_sync", refuse)
+    monkeypatch.setattr(catalog_endpoint, "start_catalog_sync", refuse)
 
     assert client.post("/api/v1/catalog/sync").status_code == status
 
 
-def test_the_buttons_refusal_names_the_marketplaces_words(monkeypatch):
+def test_the_buttons_refusal_says_what_is_in_the_way(monkeypatch):
     def refuse(db):
-        raise IntegrationUnavailable("Allegro offers: 503")
+        raise ImportAlreadyRunning
 
-    monkeypatch.setattr(catalog_endpoint, "run_catalog_sync", refuse)
+    monkeypatch.setattr(catalog_endpoint, "start_catalog_sync", refuse)
 
-    assert client.post("/api/v1/catalog/sync").json()["detail"] == "Allegro offers: 503"
+    assert "already running" in client.post("/api/v1/catalog/sync").json()["detail"]
+
+
+# --- the progress -----------------------------------------------------------------------
+
+
+@pytest.fixture
+def progress():
+    catalog_progress.end()
+    yield catalog_progress
+    catalog_progress.end()
+
+
+def test_the_progress_says_nothing_is_running_when_nothing_is(progress):
+    assert client.get("/api/v1/catalog/progress").json() == {
+        "running": False,
+        "phase": None,
+        "done": 0,
+        "total": None,
+        "started_at": None,
+    }
+
+
+def test_the_progress_says_where_the_read_has_got_to(progress):
+    progress.begin()
+    progress.enter("images", total=400)
+    progress.tick(120)
+
+    body = viewer.get("/api/v1/catalog/progress").json()
+
+    assert (body["running"], body["phase"], body["done"], body["total"]) == (True, "images", 120, 400)
+    assert body["started_at"].endswith("Z") or "+00:00" in body["started_at"]
+
+
+def test_a_phase_with_no_known_total_says_so(progress):
+    progress.begin()
+    progress.enter("listing")
+    progress.tick(37)
+
+    body = client.get("/api/v1/catalog/progress").json()
+
+    assert (body["phase"], body["done"], body["total"]) == ("listing", 37, None)
+
+
+def test_the_progress_needs_a_login_and_the_orders_area(progress):
+    assert anonymous.get("/api/v1/catalog/progress").status_code == 401
+    assert stranger.get("/api/v1/catalog/progress").status_code == 403
 
 
 # --- the pictures ----------------------------------------------------------------------

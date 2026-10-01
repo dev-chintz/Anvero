@@ -44,9 +44,21 @@ leaves the assortment but not the history.
 
 Run by the button on the page ("Pobierz z Allegro", needs `orders` at `manage`) and by the backend by
 itself: the schedule looks at it as often as it looks at the imports, but reads only when
-`CATALOG_SYNC_HOURS` (default 6) have passed since the last read, failed or not. It shares the import lock,
-because it uses the same rotating Allegro token: while it runs, an order import waits for the next turn,
-and a click on the import button is answered `409`.
+`CATALOG_SYNC_HOURS` (default 6) have passed since the last read, failed or not, or a quarter of an hour
+after a read that left pictures to download (so the rest of a first read is not waited for for hours). It shares
+the import lock, because it uses the same rotating Allegro token: while it runs, an order import waits for the
+next turn, and a click on the import button is answered `409`.
+
+**In the background, with a progress bar.** The button starts the read in a thread of the backend and
+answers at once: a first read takes several minutes (one request per offer, then hundreds of pictures), longer
+than the web container's proxy waits (300 seconds), and a request that waits for it ends in a `504` while the
+read goes on unseen. The page shows a card with the step (the list of offers, each offer's pictures and
+category, the downloads, Erli's products), a bar with "done of total" where the total is known and a bar that
+moves where it is not, and how long it has been running. It asks `GET /catalog/progress` every two seconds, so
+it shows a read the schedule started, or one begun before the page was opened, as well; every ten seconds the
+offers stored so far are shown in the list (they are committed in batches of 50), and when it ends the list, the
+counts and the tree are read again and the page says what was done and how many pictures are left. The
+progress is in the memory of the backend running the read: the NAS has one.
 
 1. **The offers.** The whole list is read before anything is stored, so a list that breaks halfway never
    makes the offers after the break look gone. Each offer is added or updated; one not listed any more is

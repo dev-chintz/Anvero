@@ -13,6 +13,9 @@ All significant changes to the Anvero project.
   opens to every picture and to the same product on Erli, with the category in both marketplaces. Pictures
   are downloaded to the NAS and kept beside their address on Allegro. Read only. See `docs/CATALOG.md` and
   `docs/DECISIONS.md`.
+- The read runs in the background with a progress bar (the step, "done of total", the time it has taken),
+  instead of one request that ended in a `504`; the rest of a first read's pictures are fetched a quarter
+  of an hour later instead of hours.
 
 ### 🧾 The non-invoiced sales record
 

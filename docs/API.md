@@ -82,7 +82,8 @@ are days in the business timezone, `BUSINESS_TIMEZONE`, default
 | `GET` | `/api/v1/catalog/items` | the assortment: the Allegro offers with their pictures and their Erli product; filters, search, sort, paging |
 | `GET` | `/api/v1/catalog/categories` | the category tree of the offers, with counts |
 | `GET` | `/api/v1/catalog/summary` | what the page's filters count, the pictures kept, whether Erli is connected, how the last sync went |
-| `POST` | `/api/v1/catalog/sync` | read the offers from Allegro (and Erli's products) now; rate limited to 6 per minute per IP |
+| `POST` | `/api/v1/catalog/sync` | start reading the offers from Allegro (and Erli's products) in the background and answer at once (`202`); rate limited to 6 per minute per IP |
+| `GET` | `/api/v1/catalog/progress` | whether a read is running, which step it is at and how far, whoever started it |
 | `GET` | `/api/v1/catalog/images/{name}` | a stored picture; the one endpoint served without a login |
 | `POST` | `/api/v1/integrations/allegro/messages/sync` | read new and changed Message Center threads; rate limited to 6 per minute per IP |
 | `GET` | `/api/v1/messages/threads` | the unified inbox: threads across every source, newest activity first |
@@ -279,17 +280,27 @@ for the offers Allegro still lists; a node's `count` includes everything below i
 `GET /catalog/summary` returns `{"total", "active", "inactive", "gone", "no_image", "no_sku", "not_on_erli",
 "category_differs", "images_total", "images_local", "erli_unmatched", "erli_connected", "last_sync"}`.
 The counts of the flags are of the offers still listed; the pictures counted are theirs too. `last_sync` is
-`{"at", "error", "items", "erli_error", "erli_unmatched"}` or null before the first sync; `erli_unmatched`
-is Erli's products that matched no offer at that sync.
+`{"at", "error", "items", "added", "gone", "images_downloaded", "images_pending", "erli_error",
+"erli_matched", "erli_unmatched"}` or null before the first sync: how the last one ended (`error` the reason
+when it failed; the figures null in a note written before they were kept, and the Erli ones null when Erli
+was not read). `images_pending` is the pictures still without a copy; `erli_unmatched` is Erli's products
+that matched no offer.
 
-`POST /catalog/sync` reads every offer that is not ended, their pictures' addresses and categories, downloads
-the pictures still without a copy (at most `CATALOG_IMAGES_PER_RUN` a time), and, when an Erli key is set, ties
-Erli's products to the offers. It returns `{"items", "added", "gone", "images_downloaded", "images_failed",
-"images_pending", "erli_products", "erli_matched", "erli_unmatched", "erli_error", "details_failed"}`
-(`erli_products` null when Erli is not connected; `erli_error` the reason when it could not be read, with
-Allegro's part still done). It takes the lock the order import takes: `409` while an import or another sync
-runs, and when Allegro is not configured; `502` when Allegro refuses (the application may lack
-`allegro:api:sale:offers:read`) or cannot be reached.
+`GET /catalog/progress` returns `{"running", "phase", "done", "total", "started_at"}`. `phase` is `listing`
+(the list of offers; `total` null, `done` the offers listed so far), `details` (each offer's pictures and
+category; `total` the offers), `images` (the downloads; `total` the pictures this run will fetch) or `erli`
+(Erli's products; `total` null); null before the first step. Kept in the memory of the backend that runs the
+read, so it says nothing of a read another backend runs; when nothing runs it is `{"running": false,
+"phase": null, "done": 0, "total": null, "started_at": null}`.
+
+`POST /catalog/sync` starts, in the backend and without waiting, a read of every offer that is not ended, their
+pictures' addresses and categories, then the download of the pictures still without a copy (at most
+`CATALOG_IMAGES_PER_RUN` a time) and, when an Erli key is set, the tying of Erli's products to the offers. It
+answers `202 {"started": true}` at once, since a first read takes minutes, longer than the proxy waits (300
+seconds); `GET /catalog/progress` says how far it has got and `last_sync` of `GET /catalog/summary` how it ended,
+a failure included (Allegro refusing, the application lacking `allegro:api:sale:offers:read`, being unreachable).
+It takes the lock the order import takes: `409` while an import or another sync runs, and when Allegro is not
+configured.
 
 `GET /catalog/images/{name}` serves a stored picture without a login (an `<img>` cannot send one). The name is
 `<64 hex characters>.<jpg|png|webp|gif>`, the hash of the bytes, so the answer never changes and is cached for

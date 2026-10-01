@@ -2,13 +2,13 @@ import { fireEvent, render, screen, waitFor, within } from "@testing-library/rea
 import { MemoryRouter, useLocation } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { CatalogPage } from "./CatalogPage";
-import type { CatalogCategories, CatalogItem, CatalogSummary } from "../api/client";
+import type { CatalogCategories, CatalogItem, CatalogSummary, CatalogSyncNote } from "../api/client";
 
 vi.mock("../api/client", async () => {
   const actual = await vi.importActual<typeof import("../api/client")>("../api/client");
   return {
     ...actual,
-    catalogApi: { list: vi.fn(), categories: vi.fn(), summary: vi.fn(), sync: vi.fn() },
+    catalogApi: { list: vi.fn(), categories: vi.fn(), summary: vi.fn(), sync: vi.fn(), progress: vi.fn() },
   };
 });
 
@@ -68,6 +68,19 @@ const TREE: CatalogCategories = {
   uncategorized: 1,
 };
 
+const NOTE: CatalogSyncNote = {
+  at: "2026-10-01T10:00:00Z",
+  error: null,
+  items: null,
+  added: null,
+  gone: null,
+  images_downloaded: null,
+  images_pending: null,
+  erli_error: null,
+  erli_matched: null,
+  erli_unmatched: null,
+};
+
 function summary(overrides: Partial<CatalogSummary> = {}): CatalogSummary {
   return {
     total: 4,
@@ -82,7 +95,7 @@ function summary(overrides: Partial<CatalogSummary> = {}): CatalogSummary {
     images_local: 5,
     erli_unmatched: null,
     erli_connected: false,
-    last_sync: { at: "2026-10-01T10:00:00Z", error: null, items: 4, erli_error: null, erli_unmatched: null },
+    last_sync: { ...NOTE, items: 4 },
     ...overrides,
   };
 }
@@ -112,6 +125,7 @@ describe("CatalogPage", () => {
     vi.mocked(catalogApi.list).mockResolvedValue({ items: [item()], total: 1 });
     vi.mocked(catalogApi.categories).mockResolvedValue(TREE);
     vi.mocked(catalogApi.summary).mockResolvedValue(summary());
+    vi.mocked(catalogApi.progress).mockResolvedValue({ running: false, phase: null, done: 0, total: null, started_at: null });
   });
 
   afterEach(() => vi.clearAllMocks());
@@ -412,7 +426,7 @@ describe("CatalogPage", () => {
   it("says how the last read went, and what failed", async () => {
     vi.mocked(catalogApi.summary).mockResolvedValue(
       summary({
-        last_sync: { at: "2026-10-01T10:00:00Z", error: "Allegro offers: 503", items: null, erli_error: null, erli_unmatched: null },
+        last_sync: { ...NOTE, error: "Allegro offers: 503", items: null },
       }),
     );
     renderPage();
@@ -423,7 +437,7 @@ describe("CatalogPage", () => {
   it("says Erli could not be read without hiding the offers", async () => {
     vi.mocked(catalogApi.summary).mockResolvedValue(
       summary({
-        last_sync: { at: "2026-10-01T10:00:00Z", error: null, items: 4, erli_error: "Erli product search: 503", erli_unmatched: null },
+        last_sync: { ...NOTE, items: 4, erli_error: "Erli product search: 503" },
       }),
     );
     renderPage();
@@ -439,41 +453,117 @@ describe("CatalogPage", () => {
   });
 
   describe("reading from Allegro", () => {
-    it("reads the offers, says how it went and asks for the list again", async () => {
-      vi.mocked(catalogApi.sync).mockResolvedValue({
-        items: 214,
-        added: 3,
-        gone: 1,
-        images_downloaded: 40,
-        images_failed: 0,
-        images_pending: 10,
-        erli_products: 200,
-        erli_matched: 190,
-        erli_unmatched: 10,
-        erli_error: null,
-        details_failed: 0,
-      });
-      renderPage();
-      await screen.findByText("Kubek ceramiczny");
-      const before = vi.mocked(catalogApi.list).mock.calls.length;
+    const idle = { running: false, phase: null, done: 0, total: null, started_at: null } as const;
+    const running = (phase: "listing" | "details" | "images" | "erli", done: number, total: number | null) => ({
+      running: true,
+      phase,
+      done,
+      total,
+      started_at: new Date(Date.now() - 65_000).toISOString(),
+    });
+    const sync = () => screen.getByRole("button", { name: /Pobierz z Allegro|Pobieranie|Read from Allegro|Reading/ });
 
-      fireEvent.click(screen.getByRole("button", { name: /Pobierz z Allegro|Read from Allegro/ }));
-
-      expect(await screen.findByRole("status")).toHaveTextContent(/214/);
-      expect(screen.getByRole("status")).toHaveTextContent(/190/);
-      await waitFor(() => expect(vi.mocked(catalogApi.list).mock.calls.length).toBeGreaterThan(before));
-      expect(catalogApi.summary).toHaveBeenCalledTimes(2);
+    beforeEach(() => {
+      vi.mocked(catalogApi.progress).mockResolvedValue(idle);
     });
 
-    it("says why it could not", async () => {
+    it("starts the read, shows a bar at once, follows it and says what it did when it ends", async () => {
+      vi.mocked(catalogApi.sync).mockResolvedValue({ started: true });
+      renderPage();
+      await screen.findByText("Kubek ceramiczny");
+      const listCalls = vi.mocked(catalogApi.list).mock.calls.length;
+
+      // the first look after the click finds it running, though nothing has been asked yet
+      vi.mocked(catalogApi.progress).mockResolvedValueOnce(running("images", 120, 400)).mockResolvedValue(idle);
+      vi.mocked(catalogApi.summary).mockResolvedValue(
+        summary({
+          last_sync: {
+            at: "2026-10-01T10:00:00Z",
+            error: null,
+            items: 214,
+            added: 214,
+            gone: 0,
+            images_downloaded: 400,
+            images_pending: 700,
+            erli_error: null,
+            erli_matched: 190,
+            erli_unmatched: 10,
+          },
+        }),
+      );
+      fireEvent.click(sync());
+
+      const bar = await screen.findByRole("progressbar");
+      expect(bar).toBeInTheDocument();
+      expect(screen.getByText(/Uruchamianie|Starting/)).toBeInTheDocument();
+      expect(sync()).toBeDisabled();
+
+      // then the backend is asked, and the bar shows how far it has got
+      await waitFor(() => expect(screen.getByRole("progressbar")).toHaveAttribute("aria-valuenow", "120"), { timeout: 4000 });
+      expect(screen.getByRole("progressbar")).toHaveAttribute("aria-valuemax", "400");
+      expect(screen.getByText(/120 (z|of) 400/)).toBeInTheDocument();
+      expect(screen.getByText(/Pobieranie zdjęć|Downloading pictures/)).toBeInTheDocument();
+      expect(screen.getByText(/1:0\d/)).toBeInTheDocument();
+
+      // when it ends the bar goes, and the page says what was done and what is left
+      const status = await screen.findByText(/214 (ofert|offers)/, {}, { timeout: 5000 });
+      expect(screen.queryByRole("progressbar")).toBeNull();
+      expect(status).toHaveTextContent(/190/);
+      expect(status).toHaveTextContent(/700/);
+      await waitFor(() => expect(vi.mocked(catalogApi.list).mock.calls.length).toBeGreaterThan(listCalls));
+      expect(catalogApi.sync).toHaveBeenCalledTimes(1);
+      await waitFor(() => expect(sync()).toBeEnabled());
+    }, 15000);
+
+    it("shows a read that was already going on when the page was opened", async () => {
+      vi.mocked(catalogApi.progress).mockResolvedValue(running("details", 37, 214));
+      renderPage();
+
+      const bar = await screen.findByRole("progressbar");
+      expect(bar).toHaveAttribute("aria-valuenow", "37");
+      expect(screen.getByText(/37 (z|of) 214/)).toBeInTheDocument();
+      expect(screen.getByText(/zdjęć i kategorii|pictures and category/)).toBeInTheDocument();
+      // started by someone else, so the button is not offered as if it could be pressed again
+      expect(sync()).toBeDisabled();
+      expect(catalogApi.sync).not.toHaveBeenCalled();
+    });
+
+    it("shows a step whose total cannot be known as a bar that moves, with what has been read so far", async () => {
+      vi.mocked(catalogApi.progress).mockResolvedValue(running("listing", 100, null));
+      renderPage();
+
+      const bar = await screen.findByRole("progressbar");
+      expect(bar).toHaveClass("is-indeterminate");
+      expect(bar).not.toHaveAttribute("aria-valuenow");
+      expect(screen.getByText(/dotąd: 100|100 so far/)).toBeInTheDocument();
+      expect(screen.getByText(/listy ofert|list of offers/)).toBeInTheDocument();
+    });
+
+    it("says it goes on in the background", async () => {
+      vi.mocked(catalogApi.progress).mockResolvedValue(running("images", 1, 2));
+      renderPage();
+
+      expect(await screen.findByText(/w tle|in the background/)).toBeInTheDocument();
+    });
+
+    it("shows no bar when nothing is running", async () => {
+      renderPage();
+      await screen.findByText("Kubek ceramiczny");
+
+      expect(screen.queryByRole("progressbar")).toBeNull();
+      expect(sync()).toBeEnabled();
+    });
+
+    it("says why it could not start, and shows no bar", async () => {
       vi.mocked(catalogApi.sync).mockRejectedValue(new ApiError(409, "An Allegro import or sync is already running"));
       renderPage();
       await screen.findByText("Kubek ceramiczny");
 
-      fireEvent.click(screen.getByRole("button", { name: /Pobierz z Allegro|Read from Allegro/ }));
+      fireEvent.click(sync());
 
       expect(await screen.findByRole("alert")).toHaveTextContent("already running");
-      expect(screen.getByRole("button", { name: /Pobierz z Allegro|Read from Allegro/ })).toBeEnabled();
+      expect(screen.queryByRole("progressbar")).toBeNull();
+      expect(sync()).toBeEnabled();
     });
 
     it("is not offered to someone who may only look", async () => {

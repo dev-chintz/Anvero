@@ -401,3 +401,76 @@
     max-height: 16rem;
   }
 }
+
+/* ---- A read in progress: the step, a bar and the time it has taken ---- */
+.catalog-progress.card {
+  padding-bottom: 0.9rem;
+}
+
+.catalog-progress-time {
+  font-size: 0.8rem;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
+.catalog-progress-line {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 0.45rem;
+}
+
+.catalog-progress-phase {
+  font-weight: 600;
+}
+
+.catalog-progress-count {
+  color: var(--color-muted-strong);
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
+.catalog-progress-bar {
+  height: 10px;
+  overflow: hidden;
+  background: var(--color-surface-alt);
+  border-radius: 999px;
+}
+
+.catalog-progress-bar i {
+  display: block;
+  height: 100%;
+  background: var(--color-accent);
+  border-radius: 999px;
+  transition: width 0.4s;
+}
+
+/* when the total cannot be known, a block runs along the bar so it is seen that something is happening */
+.catalog-progress-bar.is-indeterminate i {
+  width: 30%;
+  animation: catalog-progress-run 1.3s ease-in-out infinite;
+}
+
+@keyframes catalog-progress-run {
+  from {
+    transform: translateX(-100%);
+  }
+
+  to {
+    transform: translateX(340%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .catalog-progress-bar.is-indeterminate i {
+    width: 100%;
+    animation: none;
+  }
+}
+
+.catalog-progress-hint {
+  margin: 0.55rem 0 0;
+  color: var(--color-muted);
+  font-size: 0.8rem;
+}

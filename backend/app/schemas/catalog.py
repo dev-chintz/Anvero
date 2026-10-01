@@ -162,8 +162,15 @@ class CatalogSyncNote(BaseModel):
     at: UtcDateTime
     error: str | None = None
     items: int | None = None
+    # what it did, for the message after the progress bar; null in a note written before they were kept
+    added: int | None = None
+    gone: int | None = None
+    images_downloaded: int | None = None
+    # pictures still without a copy: the next run goes on with them
+    images_pending: int | None = None
     erli_error: str | None = None
-    # Erli products that matched no offer; null when Erli was not read
+    # Erli products tied to an offer, and left over; null when Erli was not read
+    erli_matched: int | None = None
     erli_unmatched: int | None = None
 
 
@@ -183,6 +190,22 @@ class CatalogSummary(BaseModel):
     erli_unmatched: int | None
     erli_connected: bool
     last_sync: CatalogSyncNote | None
+
+
+class CatalogProgressRead(BaseModel):
+    """Where the sync that is running has got to."""
+
+    running: bool
+    # listing, details, images or erli; null before the first step
+    phase: str | None
+    done: int
+    # null when it cannot be known beforehand (the list of offers, Erli's products)
+    total: int | None
+    started_at: UtcDateTime | None
+
+
+class CatalogSyncStarted(BaseModel):
+    started: bool = True
 
 
 class CatalogSyncRead(BaseModel):

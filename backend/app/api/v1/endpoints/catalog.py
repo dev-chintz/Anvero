@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 from app.core.permissions import require_permission
 from app.core.rate_limit import limiter
 from app.db.session import get_db
-from app.integrations.base import IntegrationError, IntegrationNotConfigured
+from app.integrations.base import IntegrationNotConfigured
 from app.models.catalog import CatalogItem
 from app.models.order import OrderSource
 from app.models.user_permission import PermissionArea, PermissionLevel
@@ -20,15 +20,16 @@ from app.schemas.catalog import (
     CatalogItemList,
     CatalogItemRead,
     CatalogListingRead,
+    CatalogProgressRead,
     CatalogSort,
     CatalogStatusFilter,
     CatalogSummary,
-    CatalogSyncRead,
+    CatalogSyncStarted,
     CategoryStep,
 )
 from app.services import erli_settings
 from app.services.allegro_sync import ImportAlreadyRunning
-from app.services.catalog import read_note, run_catalog_sync
+from app.services.catalog import catalog_progress, read_note, start_catalog_sync
 from app.services.catalog_images import MEDIA_TYPES, ImageStore
 
 # Seen with the orders' permission: whoever works the orders works from the assortment's pictures
@@ -122,40 +123,41 @@ def summary(db: Session = Depends(get_db)):
     )
 
 
+@router.get("/progress", response_model=CatalogProgressRead)
+def progress():
+    """Where the sync that is running has got to, whoever started it (the button or the schedule)."""
+    return CatalogProgressRead(
+        running=catalog_progress.running,
+        phase=catalog_progress.phase,
+        done=catalog_progress.done,
+        total=catalog_progress.total,
+        started_at=catalog_progress.started_at,
+    )
+
+
 @router.post(
     "/sync",
-    response_model=CatalogSyncRead,
+    response_model=CatalogSyncStarted,
+    status_code=status.HTTP_202_ACCEPTED,
     dependencies=[require_permission(PermissionArea.ORDERS, PermissionLevel.MANAGE)],
 )
 @limiter.limit("6/minute")
 def sync(request: Request, db: Session = Depends(get_db)):
-    """Read the offers from Allegro now (and check Erli's products against them).
+    """Start reading the offers from Allegro (and checking Erli's products against them) and return
+    at once: it takes minutes. `GET /catalog/progress` says how far it has got, `GET /catalog/summary`
+    how it ended.
 
     Shares the import lock with an order import, since both use the same rotating token.
     """
     try:
-        result = run_catalog_sync(db)
+        start_catalog_sync(db)
     except ImportAlreadyRunning as exc:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT, detail="An Allegro import or sync is already running"
         ) from exc
     except IntegrationNotConfigured as exc:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Allegro is not configured") from exc
-    except IntegrationError as exc:
-        raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=str(exc)) from exc
-    return CatalogSyncRead(
-        items=result.items,
-        added=result.added,
-        gone=result.gone,
-        images_downloaded=result.images_downloaded,
-        images_failed=result.images_failed,
-        images_pending=result.images_pending,
-        erli_products=result.erli_products,
-        erli_matched=result.erli_matched,
-        erli_unmatched=result.erli_unmatched,
-        erli_error=result.erli_error,
-        details_failed=result.details_failed,
-    )
+    return CatalogSyncStarted()
 
 
 @public_router.get("/images/{file_name}", include_in_schema=True)

@@ -13,7 +13,9 @@ held before. It shares the import lock, since it uses the same rotating Allegro 
 
 import json
 import logging
-from datetime import UTC, datetime
+import threading
+from dataclasses import dataclass
+from datetime import UTC, datetime, timedelta
 
 from sqlalchemy.orm import Session
 
@@ -57,8 +59,54 @@ logger = logging.getLogger(__name__)
 NOTE_KEY = "catalog_sync"
 # a download that failed is kept as a short reason; the table cell it lands in is 255 wide
 _MAX_ERROR = 255
-# the pictures are committed in batches, so a sync cut short keeps what it fetched
+# the pictures, and the offers, are committed in batches, so a sync cut short keeps what it did
 _IMAGE_BATCH = 50
+_OFFER_BATCH = 50
+# a sync that left pictures to fetch is asked for again this soon, not after `catalog_sync_hours`
+PENDING_PICTURES_RETRY = timedelta(minutes=15)
+
+
+@dataclass
+class CatalogProgress:
+    """Where the sync that is running has got to, for the page's progress bar.
+
+    Kept in memory, like the schedule's state: the sync runs in one process, so only that process can
+    say. `phase` is `listing` (the offers' list, `total` unknown), `details` (each offer's pictures and
+    category), `images` (the downloads) or `erli` (the products, `total` unknown). `done` counts within
+    the phase. Written by the sync's thread and read by requests; single attribute writes, so no lock.
+    """
+
+    running: bool = False
+    phase: str | None = None
+    done: int = 0
+    total: int | None = None
+    started_at: datetime | None = None
+
+    def begin(self) -> None:
+        self.running = True
+        self.phase = None
+        self.done = 0
+        self.total = None
+        self.started_at = datetime.now(UTC)
+
+    def enter(self, phase: str, total: int | None = None) -> None:
+        self.phase = phase
+        self.done = 0
+        self.total = total
+
+    def tick(self, done: int) -> None:
+        self.done = done
+
+    def end(self) -> None:
+        self.running = False
+        self.phase = None
+        self.done = 0
+        self.total = None
+        self.started_at = None
+
+
+# the one sync there can be at a time (they share the import lock)
+catalog_progress = CatalogProgress()
 
 
 def _name_key(name: str) -> str:
@@ -83,7 +131,9 @@ class CatalogSyncService:
         allegro: AllegroCatalogAdapter,
         erli: ErliCatalogAdapter | None = None,
         images: ImageStore | None = None,
+        progress: CatalogProgress | None = None,
     ):
+        self.progress = progress if progress is not None else catalog_progress
         self.repository = repository
         self.db = repository.db
         self.allegro = allegro
@@ -115,11 +165,16 @@ class CatalogSyncService:
     def _sync_offers(self, now: datetime, result: CatalogSyncResult) -> dict[str, CatalogItem]:
         # the whole list is read before anything is stored: a list that fails halfway must not
         # make the offers after the break look gone
-        offers = list(self.allegro.iter_offers())
+        self.progress.enter("listing")
+        offers: list[OfferSnapshot] = []
+        for listed in self.allegro.iter_offers():
+            offers.append(listed)
+            self.progress.tick(len(offers))
         known = self.repository.items_by_offer()
         seen: set[str] = set()
 
-        for offer in offers:
+        self.progress.enter("details", total=len(offers))
+        for index, offer in enumerate(offers, start=1):
             seen.add(offer.offer_id)
             item = known.get(offer.offer_id)
             if item is None:
@@ -128,6 +183,9 @@ class CatalogSyncService:
                 known[offer.offer_id] = item
                 result.added += 1
             self._apply_offer(item, offer, now, result)
+            self.progress.tick(index)
+            if index % _OFFER_BATCH == 0:
+                self.db.commit()
 
         for offer_id, item in known.items():
             if offer_id not in seen and item.gone_at is None:
@@ -207,7 +265,9 @@ class CatalogSyncService:
 
         pending = list(self.repository.pending_images())
         budget = pending[: settings.catalog_images_per_run]
+        self.progress.enter("images", total=len(budget))
         for count, image in enumerate(budget, start=1):
+            self.progress.tick(count - 1)
             try:
                 stored = self.images.download(image.url)
             except ImageRejected as exc:
@@ -235,8 +295,12 @@ class CatalogSyncService:
 
     def _sync_erli(self, items: dict[str, CatalogItem], now: datetime, result: CatalogSyncResult) -> None:
         assert self.erli is not None
+        self.progress.enter("erli")
         try:
-            products = list(self.erli.iter_products())
+            products: list[ErliProductSnapshot] = []
+            for product in self.erli.iter_products():
+                products.append(product)
+                self.progress.tick(len(products))
         except IntegrationError as exc:
             # the listings it kept last time stand, and Allegro's part stays good
             logger.warning("Assortment: Erli unreadable: %s", exc)
@@ -344,12 +408,9 @@ def _write_note(db: Session, note: CatalogSyncNote) -> None:
     db.commit()
 
 
-def run_catalog_sync(db: Session) -> CatalogSyncResult:
-    """Run one sync and note how it ended, sharing the import lock so it never races a token
-    refresh. Raises ImportAlreadyRunning without waiting if an import or another sync is under way;
-    an error of the sync's own is noted and raised again."""
-    if not import_lock.acquire(blocking=False):
-        raise ImportAlreadyRunning
+def _sync_and_note(db: Session) -> CatalogSyncResult:
+    """The sync itself, with the lock already held by the caller: noted when it ends, either way."""
+    catalog_progress.begin()
     try:
         service = build_catalog_sync_service(db)
         try:
@@ -368,24 +429,77 @@ def run_catalog_sync(db: Session) -> CatalogSyncResult:
             CatalogSyncNote(
                 at=datetime.now(UTC),
                 items=result.items,
+                added=result.added,
+                gone=result.gone,
+                images_downloaded=result.images_downloaded,
+                images_pending=result.images_pending,
                 erli_error=result.erli_error,
+                erli_matched=result.erli_matched if result.erli_products is not None else None,
                 erli_unmatched=result.erli_unmatched if result.erli_products is not None else None,
             ),
         )
         return result
     finally:
+        catalog_progress.end()
+
+
+def run_catalog_sync(db: Session) -> CatalogSyncResult:
+    """Run one sync and wait for it, sharing the import lock so it never races a token refresh.
+    Raises ImportAlreadyRunning without waiting if an import or another sync is under way; an error
+    of the sync's own is noted and raised again. What the schedule uses."""
+    if not import_lock.acquire(blocking=False):
+        raise ImportAlreadyRunning
+    try:
+        return _sync_and_note(db)
+    finally:
         import_lock.release()
+
+
+def start_catalog_sync(db: Session) -> None:
+    """Start one sync in the background and return at once, what the page's button uses: a first
+    sync takes minutes, longer than a request may wait (the proxy gives up after 300 seconds).
+
+    Raises ImportAlreadyRunning without waiting if an import or another sync is under way, and
+    IntegrationNotConfigured when there is no Allegro account to read. How it goes is shown by
+    `catalog_progress` while it runs and noted when it ends."""
+    if not import_lock.acquire(blocking=False):
+        raise ImportAlreadyRunning
+    try:
+        if not build_allegro_client(db).is_configured:
+            raise IntegrationNotConfigured("Allegro is not configured")
+    except BaseException:
+        import_lock.release()
+        raise
+    # running from now, so the page's first look finds it so
+    catalog_progress.begin()
+
+    def work() -> None:
+        own = SessionLocal()
+        try:
+            _sync_and_note(own)
+        except Exception:
+            # the reason is noted for the page; the log keeps the trace
+            logger.exception("Assortment sync failed")
+        finally:
+            own.close()
+            import_lock.release()
+
+    threading.Thread(target=work, name="catalog-sync", daemon=True).start()
 
 
 def sync_is_due(db: Session, now: datetime | None = None) -> bool:
     """Whether the schedule should read the assortment now: never read, or last read longer ago
-    than `catalog_sync_hours`. A failed run counts as a run, so a broken connection is not
-    hammered every fifteen minutes."""
+    than `catalog_sync_hours`, or, when the last read left pictures to download, a quarter of an
+    hour ago. A failed run counts as a run, so a broken connection is not hammered every fifteen
+    minutes."""
     note = read_note(db)
     if note is None:
         return True
     now = now or datetime.now(UTC)
-    return (now - note.at).total_seconds() >= settings.catalog_sync_hours * 3600
+    wait = timedelta(hours=settings.catalog_sync_hours)
+    if note.error is None and note.images_pending:
+        wait = min(wait, PENDING_PICTURES_RETRY)
+    return now - note.at >= wait
 
 
 def _scheduled_catalog_run() -> None:

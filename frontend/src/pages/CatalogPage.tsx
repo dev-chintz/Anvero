@@ -1,4 +1,4 @@
-import { Fragment, useCallback, useEffect, useState } from "react";
+import { Fragment, useCallback, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import {
   ApiError,
@@ -7,9 +7,11 @@ import {
   type CatalogCategoryNode,
   type CatalogFlag,
   type CatalogItem,
+  type CatalogProgress,
   type CatalogSort,
   type CatalogStatusFilter,
   type CatalogSummary,
+  type CatalogSyncNote,
   type CategoryStep,
 } from "../api/client";
 import { ItemThumb } from "../components/ItemThumb";
@@ -26,6 +28,78 @@ const SORTS: CatalogSort[] = ["name", "price", "stock"];
 const DEFAULT_LIMIT = 50;
 // how long after the last key the search starts
 const SEARCH_DELAY_MS = 300;
+// how often a running read is asked how far it has got, and how many of those asks the list is read
+// again after, so offers appear as they are stored
+const PROGRESS_POLL_MS = 2000;
+const LIST_REFRESH_EVERY = 5;
+
+/** "2:05", from a number of seconds. */
+function clock(seconds: number): string {
+  const whole = Math.max(0, Math.floor(seconds));
+  return `${Math.floor(whole / 60)}:${String(whole % 60).padStart(2, "0")}`;
+}
+
+/** What a finished read did, in one line, or null when there is nothing to say (it failed: the page
+ * says so on its own, or it was written before the figures were kept). */
+function resultText(sync: CatalogSyncNote | null | undefined, t: ReturnType<typeof useTranslation>["t"]): string | null {
+  if (!sync || sync.error || sync.items === null) return null;
+  const parts = [
+    t("catalog.synced", {
+      items: sync.items,
+      added: sync.added ?? 0,
+      gone: sync.gone ?? 0,
+      images: sync.images_downloaded ?? 0,
+    }),
+  ];
+  if (sync.erli_matched !== null && sync.erli_unmatched !== null) {
+    parts.push(t("catalog.syncedErli", { matched: sync.erli_matched, unmatched: sync.erli_unmatched }));
+  }
+  if (sync.images_pending) parts.push(t("catalog.syncedPending", { pending: sync.images_pending }));
+  return parts.join(" ");
+}
+
+interface ProgressCardProps {
+  progress: CatalogProgress;
+  now: number;
+}
+
+/** A read in progress: the step, how far it has got as a bar and as numbers, and for how long. */
+function ProgressCard({ progress, now }: ProgressCardProps) {
+  const { t } = useTranslation();
+  const known = progress.total !== null && progress.total > 0;
+  const percent = known ? Math.min(100, Math.round((progress.done / progress.total!) * 100)) : 0;
+  const started = progress.started_at ? new Date(progress.started_at).getTime() : null;
+  const label = t(`catalog.progress.phase.${progress.phase ?? "starting"}` as "catalog.progress.phase.starting");
+  return (
+    <section className="card tone-teal catalog-progress" aria-label={t("catalog.progress.title")}>
+      <div className="card-head">
+        <h2>{t("catalog.progress.title")}</h2>
+        {started !== null && <span className="catalog-progress-time">{t("catalog.progress.elapsed", { time: clock((now - started) / 1000) })}</span>}
+      </div>
+      <div className="catalog-progress-line">
+        <span className="catalog-progress-phase">{label}</span>
+        <span className="catalog-progress-count">
+          {progress.phase === null
+            ? ""
+            : known
+              ? t("catalog.progress.count", { done: progress.done, total: progress.total! })
+              : t("catalog.progress.countOnly", { done: progress.done })}
+        </span>
+      </div>
+      <div
+        className={`catalog-progress-bar${known ? "" : " is-indeterminate"}`}
+        role="progressbar"
+        aria-label={label}
+        aria-valuemin={0}
+        aria-valuemax={known ? progress.total! : undefined}
+        aria-valuenow={known ? progress.done : undefined}
+      >
+        <i style={known ? { width: `${percent}%` } : undefined} />
+      </div>
+      <p className="catalog-progress-hint">{t("catalog.progress.hint")}</p>
+    </section>
+  );
+}
 
 function pathText(path: CategoryStep[]): string {
   return path.map((step) => step.name).join(" › ");
@@ -160,7 +234,10 @@ export function CatalogPage() {
   const [tree, setTree] = useState<CatalogCategories | null>(null);
   const [summary, setSummary] = useState<CatalogSummary | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [syncing, setSyncing] = useState(false);
+  // the read starting (the request is out), and the read going on in the backend, whoever started it
+  const [starting, setStarting] = useState(false);
+  const [progress, setProgress] = useState<CatalogProgress | null>(null);
+  const [now, setNow] = useState(() => Date.now());
   const [note, setNote] = useState<{ text: string; error: boolean } | null>(null);
   const [opened, setOpened] = useState<Set<string>>(new Set());
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
@@ -210,32 +287,80 @@ export function CatalogPage() {
     return next;
   };
 
+  // a read already going on (one the schedule started, or one from before this page was opened) is seen at once
+  useEffect(() => {
+    let cancelled = false;
+    catalogApi
+      .progress()
+      .then((next) => {
+        if (!cancelled) setProgress(next);
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // while it goes on it is asked how far it has got, and the offers stored so far are shown
+  const running = progress?.running === true;
+  useEffect(() => {
+    if (!running) return;
+    let cancelled = false;
+    let asked = 0;
+    const timer = setInterval(() => {
+      asked += 1;
+      catalogApi
+        .progress()
+        .then((next) => {
+          if (cancelled) return;
+          setNow(Date.now());
+          setProgress(next);
+          if (next.running && asked % LIST_REFRESH_EVERY === 0) {
+            loadSides();
+            setReloadKey((key) => key + 1);
+          }
+        })
+        .catch(() => undefined);
+    }, PROGRESS_POLL_MS);
+    return () => {
+      cancelled = true;
+      clearInterval(timer);
+    };
+  }, [running, loadSides]);
+
+  // when it ends: the list, the counts and the tree are read again, and what it did is said
+  const wasRunning = useRef(false);
+  useEffect(() => {
+    if (wasRunning.current && !running) {
+      catalogApi
+        .summary()
+        .then((next) => {
+          setSummary(next);
+          const text = resultText(next.last_sync, t);
+          if (text) setNote({ text, error: false });
+        })
+        .catch(() => undefined);
+      catalogApi
+        .categories()
+        .then(setTree)
+        .catch(() => undefined);
+      setReloadKey((key) => key + 1);
+    }
+    wasRunning.current = running;
+  }, [running, t]);
+
   const sync = async () => {
-    setSyncing(true);
+    setStarting(true);
     setNote(null);
     try {
-      const result = await catalogApi.sync();
-      const text = [
-        t("catalog.synced", {
-          items: result.items,
-          added: result.added,
-          gone: result.gone,
-          images: result.images_downloaded,
-          pending: result.images_pending,
-        }),
-        result.erli_products !== null
-          ? t("catalog.syncedErli", { matched: result.erli_matched, unmatched: result.erli_unmatched })
-          : "",
-      ]
-        .filter(Boolean)
-        .join(" ");
-      setNote({ text, error: false });
-      loadSides();
-      setReloadKey((key) => key + 1);
+      await catalogApi.sync();
+      // running from now: the backend answered after it had begun
+      setNow(Date.now());
+      setProgress({ running: true, phase: null, done: 0, total: null, started_at: new Date().toISOString() });
     } catch (err) {
       setNote({ text: err instanceof ApiError ? err.message : t("catalog.syncFailed"), error: true });
     } finally {
-      setSyncing(false);
+      setStarting(false);
     }
   };
 
@@ -273,13 +398,14 @@ export function CatalogPage() {
           <p className="subtitle">{t("catalog.subtitle")}</p>
         </div>
         {canSync && (
-          <button type="button" className="catalog-sync" onClick={sync} disabled={syncing}>
-            {syncing ? t("catalog.syncing") : t("catalog.sync")}
+          <button type="button" className="catalog-sync" onClick={sync} disabled={starting || running}>
+            {starting || running ? t("catalog.syncing") : t("catalog.sync")}
           </button>
         )}
       </header>
 
       <div className="catalog-body">
+        {progress?.running && <ProgressCard progress={progress} now={now} />}
         {note && (
           <p role={note.error ? "alert" : "status"} className={note.error ? "error-message" : "catalog-note"}>
             {note.text}

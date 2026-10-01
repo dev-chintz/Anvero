@@ -1085,8 +1085,28 @@ export interface CatalogSyncNote {
   at: string;
   error: string | null;
   items: number | null;
+  /** What it did; null in a note written before they were kept. */
+  added: number | null;
+  gone: number | null;
+  images_downloaded: number | null;
+  /** Pictures still without a copy: the next read goes on with them. */
+  images_pending: number | null;
   erli_error: string | null;
+  erli_matched: number | null;
   erli_unmatched: number | null;
+}
+
+/** The step a running read is at. */
+export type CatalogPhase = "listing" | "details" | "images" | "erli";
+
+/** Where the read that is running has got to, whoever started it. */
+export interface CatalogProgress {
+  running: boolean;
+  phase: CatalogPhase | null;
+  done: number;
+  /** Null when it cannot be known beforehand (the list of offers, Erli's products). */
+  total: number | null;
+  started_at: string | null;
 }
 
 export interface CatalogSummary {
@@ -1103,20 +1123,6 @@ export interface CatalogSummary {
   erli_unmatched: number | null;
   erli_connected: boolean;
   last_sync: CatalogSyncNote | null;
-}
-
-export interface CatalogSyncResult {
-  items: number;
-  added: number;
-  gone: number;
-  images_downloaded: number;
-  images_failed: number;
-  images_pending: number;
-  erli_products: number | null;
-  erli_matched: number;
-  erli_unmatched: number;
-  erli_error: string | null;
-  details_failed: number;
 }
 
 export interface CatalogListParams {
@@ -1153,9 +1159,14 @@ export const catalogApi = {
     return request<CatalogSummary>("/catalog/summary");
   },
 
-  /** Read the offers from Allegro now, and check Erli's products against them. */
-  sync(): Promise<CatalogSyncResult> {
-    return request<CatalogSyncResult>("/catalog/sync", { method: "POST" });
+  /** Start reading the offers from Allegro (and checking Erli's products against them). It goes on
+   * in the backend and answers at once: `progress` says how far it has got. */
+  sync(): Promise<{ started: boolean }> {
+    return request<{ started: boolean }>("/catalog/sync", { method: "POST" });
+  },
+
+  progress(): Promise<CatalogProgress> {
+    return request<CatalogProgress>("/catalog/progress");
   },
 };
 

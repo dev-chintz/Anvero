@@ -7,7 +7,11 @@ import httpx2
 import pytest
 
 from app.core.config import settings
-from app.integrations.base import IntegrationAuthError, IntegrationUnavailable
+from app.integrations.base import (
+    IntegrationAuthError,
+    IntegrationNotConfigured,
+    IntegrationUnavailable,
+)
 from app.models.catalog import CatalogItem
 from app.models.order import OrderSource
 from app.repositories.catalog_repository import CatalogRepository
@@ -566,3 +570,209 @@ def test_a_failed_run_also_waits_before_the_next(session, wired):
         run_catalog_sync(session)
 
     assert not sync_is_due(session, datetime.now(UTC) + timedelta(hours=1))
+
+
+# --- the progress ---------------------------------------------------------------------
+
+
+class RecordedProgress(catalog_service.CatalogProgress):
+    """A progress that remembers each phase it entered and how far it got in it."""
+
+    def __init__(self):
+        super().__init__()
+        self.entered: list[tuple[str, int | None]] = []
+        self.reached: dict[str, int] = {}
+
+    def enter(self, phase, total=None):
+        super().enter(phase, total)
+        self.entered.append((phase, total))
+
+    def tick(self, done):
+        super().tick(done)
+        if self.phase is not None:
+            self.reached[self.phase] = done
+
+
+def test_the_sync_reports_each_phase_and_how_far_it_has_got(session, store):
+    progress = RecordedProgress()
+    allegro = FakeAllegro([offer("1"), offer("2"), offer("3")], images={"1": (pic(1), pic(2)), "2": (pic(3),), "3": ()})
+    erli = FakeErli([product("1"), product("2")])
+
+    CatalogSyncService(CatalogRepository(session), allegro, erli, store, progress).sync(NOW)
+
+    # the list is not known beforehand, the offers are, then the pictures to fetch, then Erli's products
+    assert progress.entered == [("listing", None), ("details", 3), ("images", 3), ("erli", None)]
+    assert progress.reached == {"listing": 3, "details": 3, "images": 2, "erli": 2}
+
+
+def test_without_erli_there_is_no_erli_phase(session, store):
+    progress = RecordedProgress()
+
+    CatalogSyncService(CatalogRepository(session), FakeAllegro([offer("1")]), None, store, progress).sync(NOW)
+
+    assert [phase for phase, _ in progress.entered] == ["listing", "details", "images"]
+
+
+def test_the_progress_has_a_start_and_an_end():
+    progress = catalog_service.CatalogProgress()
+    assert (progress.running, progress.started_at) == (False, None)
+
+    progress.begin()
+    progress.enter("details", total=10)
+    progress.tick(4)
+    assert (progress.running, progress.phase, progress.done, progress.total) == (True, "details", 4, 10)
+    assert progress.started_at is not None
+
+    progress.end()
+    assert (progress.running, progress.phase) == (False, None)
+
+
+def test_the_offers_already_read_are_kept_when_the_sync_breaks_later(session, store, monkeypatch):
+    monkeypatch.setattr(catalog_service, "_OFFER_BATCH", 2)
+    allegro = FakeAllegro([offer(str(n)) for n in range(5)], images={"4": IntegrationAuthError("denied")})
+
+    with pytest.raises(IntegrationAuthError):
+        service(session, store, allegro).sync(NOW)
+
+    # the first four were committed in batches of two before the fifth failed
+    session.rollback()
+    assert len(items(session)) == 4
+
+
+# --- starting it in the background ------------------------------------------------------
+
+
+@pytest.fixture
+def background(session, store, monkeypatch):
+    """The sync wired to fakes and to the test database, as the thread of `start_catalog_sync` sees it."""
+    allegro, erli = FakeAllegro([offer("1")]), FakeErli([product("1")])
+    monkeypatch.setattr(
+        catalog_service,
+        "build_catalog_sync_service",
+        lambda db: CatalogSyncService(CatalogRepository(db), allegro, erli, store, catalog_service.catalog_progress),
+    )
+    monkeypatch.setattr(catalog_service, "build_allegro_client", lambda db: type("Client", (), {"is_configured": True})())
+    monkeypatch.setattr(catalog_service, "SessionLocal", lambda: session)
+    catalog_service.catalog_progress.end()
+    yield allegro, erli
+    catalog_service.catalog_progress.end()
+
+
+def wait_until_done():
+    import time
+
+    deadline = time.monotonic() + 10
+    while time.monotonic() < deadline:
+        if not catalog_service.catalog_progress.running and not import_lock.locked():
+            return
+        time.sleep(0.02)
+    raise AssertionError("the background sync did not finish")
+
+
+def test_starting_returns_at_once_with_the_sync_running_and_noted_when_it_ends(session, background):
+    catalog_service.start_catalog_sync(session)
+
+    wait_until_done()
+    note = catalog_service.read_note(session)
+    assert (note.items, note.added, note.error) == (1, 1, None)
+    assert (note.images_downloaded, note.images_pending, note.erli_matched, note.erli_unmatched) == (1, 0, 1, 0)
+    assert len(items(session)) == 1
+
+
+def test_it_is_running_from_the_moment_it_is_started(session, background):
+    # held in the thread's way so the first look can be taken before it does anything
+    import threading
+
+    gate = threading.Event()
+    allegro, _ = background
+    original = allegro.iter_offers
+
+    def slow():
+        gate.wait(5)
+        yield from original()
+
+    allegro.iter_offers = slow
+    catalog_service.start_catalog_sync(session)
+    try:
+        assert catalog_service.catalog_progress.running
+        assert import_lock.locked()
+        # and nothing else may start meanwhile
+        with pytest.raises(ImportAlreadyRunning):
+            catalog_service.start_catalog_sync(session)
+    finally:
+        gate.set()
+    wait_until_done()
+    assert not import_lock.locked()
+
+
+def test_starting_while_an_import_runs_is_refused_and_leaves_no_progress(session, background):
+    assert import_lock.acquire(blocking=False)
+    try:
+        with pytest.raises(ImportAlreadyRunning):
+            catalog_service.start_catalog_sync(session)
+        assert not catalog_service.catalog_progress.running
+    finally:
+        import_lock.release()
+
+
+def test_starting_without_an_allegro_account_is_refused_and_lets_the_lock_go(session, background, monkeypatch):
+    monkeypatch.setattr(catalog_service, "build_allegro_client", lambda db: type("Client", (), {"is_configured": False})())
+
+    with pytest.raises(IntegrationNotConfigured):
+        catalog_service.start_catalog_sync(session)
+
+    assert not import_lock.locked() and not catalog_service.catalog_progress.running
+
+
+def test_a_background_sync_that_fails_notes_why_and_lets_the_lock_go(session, background):
+    allegro, _ = background
+    allegro.offers = [offer("1"), offer("2")]
+    allegro.list_error = IntegrationUnavailable("Allegro offers: 503")
+
+    catalog_service.start_catalog_sync(session)
+    wait_until_done()
+
+    session.rollback()
+    note = catalog_service.read_note(session)
+    assert note.error == "Allegro offers: 503" and note.items is None
+    assert not import_lock.locked() and not catalog_service.catalog_progress.running
+
+
+def test_a_run_that_waits_for_its_result_also_leaves_a_note_with_what_it_did(session, background):
+    run_catalog_sync(session)
+
+    note = catalog_service.read_note(session)
+    assert (note.items, note.added, note.gone) == (1, 1, 0)
+    assert not catalog_service.catalog_progress.running
+
+
+# --- coming back for the pictures left ------------------------------------------------------
+
+
+def write_note(session, **fields):
+    note = catalog_service.CatalogSyncNote(at=datetime.now(UTC) - timedelta(minutes=fields.pop("ago", 0)), **fields)
+    catalog_service._write_note(session, note)
+
+
+def test_pictures_left_to_fetch_bring_the_next_read_forward(session):
+    write_note(session, items=200, images_pending=700, ago=20)
+
+    assert sync_is_due(session)
+
+
+def test_but_not_before_a_quarter_of_an_hour_has_passed(session):
+    write_note(session, items=200, images_pending=700, ago=5)
+
+    assert not sync_is_due(session)
+
+
+def test_nothing_left_to_fetch_waits_the_whole_interval(session):
+    write_note(session, items=200, images_pending=0, ago=60)
+
+    assert not sync_is_due(session)
+
+
+def test_a_failed_read_waits_the_whole_interval_whatever_was_left(session):
+    write_note(session, error="Allegro offers: 503", images_pending=700, ago=60)
+
+    assert not sync_is_due(session)
