@@ -37,6 +37,12 @@ All significant changes to the Anvero project.
 
 - The tiles' titles were cut off at the top by the card's edge (their padding is 0, the shared title
   band pulls out by a card's padding): fixed.
+
+### 📏 Spacing in Settings
+
+- The Integrations tab (the strip, the tiles, the chosen one's card) and the Updates tab (the update card, the
+  history card) had no gap between their blocks: they now have one, as the other tabs do. All views checked
+  for cut-off titles and touching blocks, on a desktop and a phone width.
 - The summary as one card with "check again", the three tiles in one row with their schedules in
   view, the events as dense rows. Designed in Claude Design. See `docs/DECISIONS.md`.
 

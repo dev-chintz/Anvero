@@ -178,6 +178,13 @@
 }
 
 /* ---- Integrations: a strip for the update interval, then a tile for each in its own colour ---- */
+/* the strip, the tiles and the chosen one's card are three things one under another, one gap apart */
+.integrations-page {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+}
+
 .schedule-strip.card {
   padding: 0.6rem 1rem;
   background: var(--tone-blue-bg);
@@ -660,6 +667,13 @@
 }
 
 /* ---- Updates: one card that says in its head whether an update waits ---- */
+/* the update card and the history card one under the other, one gap apart */
+.updates-settings {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+}
+
 .update-card.card,
 .update-history-card.card {
   padding: 0;
