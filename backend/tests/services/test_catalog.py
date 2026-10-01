@@ -16,6 +16,7 @@ from app.models.catalog import CatalogItem
 from app.models.order import OrderSource
 from app.repositories.catalog_repository import CatalogRepository
 from app.schemas.catalog import ErliProductSnapshot, OfferSnapshot
+from app.schemas.types import _as_utc
 from app.services import catalog as catalog_service
 from app.services.allegro_sync import ImportAlreadyRunning, import_lock
 from app.services.catalog import (
@@ -150,7 +151,8 @@ def test_the_first_sync_keeps_every_offer_with_its_category_and_pictures(session
     assert first.category_ids == "|1|20|300|"
     assert [image.url for image in first.images] == [pic(1), pic(2)]
     assert kept["2"].category_path == [] and kept["2"].category_ids == ""
-    assert first.gone_at is None and first.last_seen_at.astimezone(UTC) == NOW
+    # SQLite hands the timestamp back without its zone; _as_utc reads such a value as UTC, as it was stored
+    assert first.gone_at is None and _as_utc(first.last_seen_at) == NOW
 
 
 def test_a_later_sync_updates_the_offer_and_adds_no_second_row(session, store):
