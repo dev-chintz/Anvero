@@ -77,11 +77,6 @@ are days in the business timezone, `BUSINESS_TIMEZONE`, default
 | `GET` | `/api/v1/finance/summary` | a period's sales, marketplace fees by kind and by channel, beside the period before, and the check against what the marketplace took from proceeds |
 | `GET` | `/api/v1/finance/orders` | the orders placed in a period, each with every fee booked for it, by kind |
 | `GET` | `/api/v1/finance/products` | each product sold in a period with its share of its orders' fees |
-| `GET` | `/api/v1/sales-report/orders` | Anvero's own orders in a period, classified for the non-invoiced sales report |
-| `GET` | `/api/v1/sales-report/orders/export` | the same, as a CSV file, with the columns and order chosen |
-| `GET` | `/api/v1/sales-report/columns` | every export column available, and the default set |
-| `PUT` | `/api/v1/sales-report/orders/{source}/{order_external_id}/override` | an operator's manual include/exclude decision on one order |
-| `DELETE` | `/api/v1/sales-report/orders/{source}/{order_external_id}/override` | back to the automatic decision |
 | `GET` | `/api/v1/orders/{id}/after-sales` | the cases on one order, open or not, newest first |
 | `POST` | `/api/v1/integrations/allegro/after-sales/sync` | read returns, claims and disputes from Allegro; rate limited to 6 per minute per IP |
 | `POST` | `/api/v1/integrations/allegro/messages/sync` | read new and changed Message Center threads; rate limited to 6 per minute per IP |
@@ -126,7 +121,7 @@ Every endpoint below `/api/v1` except `/health`, `/`, `/auth/login` and
 | `messages` | `GET /messages/threads*` | `PATCH .../aside`, `POST .../reply`, `POST /integrations/allegro/messages/sync` |
 | `after_sales` | `GET /after-sales*`, `GET /orders/{id}/after-sales` | `POST /integrations/allegro/after-sales/sync` |
 | `labels` | `GET` on shipping settings, labels, InPost status and shipments, printing a PDF | buying, cancelling or refreshing a label, ordering or refreshing a pickup, the InPost settings and shipments, `PUT /settings/shipping` |
-| `finance` | `GET /finance/*`, `GET /sales-report/*` | `PUT/DELETE` a sales-report override |
+| `finance` | `GET /finance/*`, `GET /non-invoiced/*` | `POST /non-invoiced/reports`, `PUT/DELETE` a decision on a ledger row |
 | `integrations` | `GET` on the Allegro/Erli/InPost status, the schedule, safe mode and marketplace-writes log, `GET /status` | the Allegro/Erli settings, connect and import, the schedule, `PUT /settings/safe-mode` |
 
 Account management (`GET/POST /users`, `PATCH /users/{id}`) needs no area
@@ -1009,69 +1004,6 @@ same rows in the same order.
 category on a sale; `DELETE` takes it back (`{"ok": true}`). Refused (`422`) on a correction, a locked row,
 a company's sale, or with `TO_REVIEW`; an unknown row is `404`. The sale's corrections follow it at
 once.
-
-## Non-invoiced sales report: `GET /api/v1/sales-report/orders`, `/export`, `PUT`/`DELETE .../override`
-
-Ported from a standalone tool (`DECISIONS.md`, "Non-invoiced sales report, ported"): classifies
-Anvero's own imported orders for accounting, without a CSV upload (that path is not built).
-`date_from`/`date_to` as Finance's (at most 366 days), plus an optional `source`.
-
-Only the ported tool's **approved** business decisions are applied, in this order; everything else
-is `MANUAL_REVIEW` rather than guessed:
-
-- A complete company invoice (name, street, postal code, city, country and tax id all present on
-  the order's invoice address) excludes it as `COMPANY` (`INV-001`). Never open to an override.
-- An order whose `marketplace_status_label` is `CANCELLED` or `SUSPENDED` and that was never paid
-  in full excludes as `OUT_OF_SCOPE` (`SEL-001`).
-- An order paid in full, in PLN, shipped (Anvero's own status `SHIPPED` or `DELIVERED`), with no
-  invoice or only a named personal one (a name present, never a company name or tax id) qualifies
-  as `RETAIL`, included on its own (`PAY-001`).
-
-```json
-{"date_from": "2026-06-01", "date_to": "2026-06-30",
- "summary": {"total": 128, "retail": 96, "company": 14, "out_of_scope": 6, "manual_review": 12},
- "items": [{"order_id": "...", "order_label": "AN-000231", "source": "ALLEGRO", "order_external_id": "...",
-   "ordered_at": "...Z", "buyer_login": "kasia91", "amount": "122.95", "currency": "PLN",
-   "category": "RETAIL", "included": true, "reason": "...", "rule_id": "PAY-001",
-   "overridden": false, "override_note": null}]}
-```
-
-`buyer_login` is the only personal data the row carries, never a name, address or phone
-(`docs/GDPR.md`); on an anonymized order it is null.
-
-`PUT .../override` (`{"included": true, "note": "..."}`) records an operator's manual decision,
-kept by marketplace and its own order id so it survives a re-import; `DELETE` removes it. An
-override cannot reach a row `INV-001` excluded: the row's `category` and `rule_id` stay the
-automatic ones even after an override, only `included` and `overridden` change.
-
-`/export?format=csv` (only `csv` today; another value is `422`) is a UTF-8 file with a BOM, a
-value that would open as a spreadsheet formula (`=`, `+`, `@`, a leading `-`) prefixed with `'`,
-amounts with a comma decimal separator (`62,69`, matching the accountant's own earlier report,
-`DECISIONS.md`, "Export columns, chosen by the owner"). It takes `columns`, comma-separated keys
-in order (an unknown key is `422`); without it, the default is `lp,ordered_at,customer_name,
-amount_paid` — a running number, the order's date, the buyer's name and the amount actually paid.
-
-## `GET /api/v1/sales-report/columns`
-
-Every column the export can be built from, and the default set, for the column picker:
-
-```json
-{"default": ["lp", "ordered_at", "customer_name", "amount_paid"],
- "items": [{"key": "order_label", "label": "Numer zamówienia"}, {"key": "customer_name", "label": "Imię i nazwisko"}, "..."]}
-```
-
-Labels are in Polish only, not localized with the interface: the report is for Polish accounting
-(NIP, faktura) regardless of the operator's chosen language. `lp` is not itself an order field (a
-running number the export gives each row) and is always first; every other key reads from the
-order, including ones the on-screen table does not show and `SalesReportRow` does not carry
-(`customer_name`, `customer_email`, `customer_phone`, `invoice_company_name`, `invoice_tax_id`,
-`invoice_address`, `amount_total`) — resolved only when actually exporting, never in `GET .../orders`.
-
-An export holding any column that names or reaches a person (`customer_login`,
-`customer_name`, `customer_email`, `customer_phone`, `invoice_company_name`,
-`invoice_tax_id`, `invoice_address`) is written to the application log with the
-period, the column keys, the row count and the user's id, never a value from the
-file (`docs/GDPR.md`, "Who looked at what").
 
 ## `GET /api/v1/orders/{id}/buyer-orders`
 

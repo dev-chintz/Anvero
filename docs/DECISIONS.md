@@ -2302,3 +2302,12 @@ row's override note is erased with the buyer, as it may name them. Not yet run o
 
 **Consequences:** The page opens on the previous month. Anyone with Finance may read and export; deciding a sale and handing over need Finance at `manage`. The old report's page is no longer reachable from the menu and goes in stage 8.
 
+
+## 2026-10-01 — The old sales report removed
+
+**Decision (owner: "do the missing stages"):** The report ported on 2026-09-27 is removed (`NON_INVOICED_SALES.md`, stage 8): its page, `/sales-report/*`, its services, schemas and tests, and `sales_report_overrides`, dropped by migration `c6e1a9d4f028`. The menu entry and the `/sales-report` address stay and open the non-invoiced record. The export column picker (`ExportColumnsDialog`) now takes its columns, groups and formats from its caller only, and its texts are its own (`exportColumns.*`); the page's layout stylesheet (`SalesReportPage.css`) stays, since the record's page is drawn with it.
+
+**Rationale:** The record does everything the report did, and what poz. 41 asks that the report could not (the payment operator, the buyer's name and address, a range that stays as handed over). The table held no rows, so no decision was lost; the September comparison (stage 6) found nothing the old report got right that the record does not.
+
+**Consequences:** A machine updated past `c6e1a9d4f028` has no `sales_report_overrides`; going back below it recreates the table empty. Decisions on sales are made on the ledger's rows, with a written reason.
+

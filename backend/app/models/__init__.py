@@ -31,7 +31,6 @@ from app.models.non_invoiced import (
     ProductSetting,
 )
 from app.models.production_check import ProductionCheck
-from app.models.sales_report import SalesReportOverride
 from app.models.shipping_label import LabelStatus, ShippingLabel
 from app.models.user import User
 from app.models.user_permission import PermissionArea, PermissionLevel, UserPermission
@@ -76,7 +75,6 @@ __all__ = [
     "PickupStatus",
     "ProductSetting",
     "ProductionCheck",
-    "SalesReportOverride",
     "ShippingLabel",
     "User",
     "UserPermission",

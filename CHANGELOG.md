@@ -6,6 +6,15 @@ All significant changes to the Anvero project.
 
 ## 2026-10-01
 
+### 🧾 The non-invoiced sales record
+
+- "Raport bezrachunkowy" is now the record poz. 41 requires, on its own ledger: Erli's sales judged
+  by the same rules as Allegro's, reports for any range with CSV, Excel and PDF exports and the
+  columns chosen, handing a report over to the accountant (which locks it), the VAT limit, and a
+  page with what waits for a decision first. September compared with the old report, every
+  difference explained. The old report and `sales_report_overrides` are removed. See
+  `docs/NON_INVOICED_SALES.md` and `docs/DECISIONS.md`.
+
 ### 🔐 Users, updates and the login page
 
 - Users: role, state and permissions as segmented choices, all in view. Updates: one card that says

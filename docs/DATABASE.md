@@ -21,7 +21,7 @@ The model will be deployed via migrations after framework selection, but a commo
 Migrations currently create `users`, `user_permissions`, `orders`, `order_items`,
 `order_addresses`, `order_shipments`, `billing_entries`,
 `order_status_history`, `integration_credentials`, `message_threads`,
-`messages`, `after_sales_cases`, `payouts`, `sales_report_overrides`, `order_item_packing`,
+`messages`, `after_sales_cases`, `payouts`, `order_item_packing`,
 `app_updates`, `order_payments`, `payment_operations`, `product_settings` and
 `non_invoiced_ledger`.
 `integration` and `customer` are still targets.
@@ -216,13 +216,8 @@ delete). Cleared whenever the order's `status` reaches `SHIPPED`, `DELIVERED` or
 (`OrderRepository.update_status`) - the one chokepoint both a manual status change and an
 import's own auto-follow go through. Never sent to a marketplace.
 
-`sales_report_overrides` (added by `a2f4c8e1b937`): an operator's manual include/exclude decision
-on one order for the non-invoiced sales report (`API.md`, "Non-invoiced sales report, ported"),
-kept by `(source, order_external_id)` (unique together), like `billing_entries` - so it survives a
-re-import and, once a CSV-upload path exists, reaches a row read from a file the same way.
-`included` (boolean), `note` (nullable), `created_by_user_id` (nullable, `SET NULL` on delete).
-Never holds a row for an order a complete company invoice already excludes: that decision is not
-open to an override (`DECISIONS.md`).
+`sales_report_overrides` (added by `a2f4c8e1b937`) was dropped by `c6e1a9d4f028` (2026-10-01,
+empty), with the report it served (`NON_INVOICED_SALES.md`, stage 8).
 
 `message_threads` and `messages`: one buyer-seller conversation each, and its
 messages, read from a marketplace's Message Center (plan B2, `INTEGRATIONS.md`,

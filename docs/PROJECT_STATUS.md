@@ -46,8 +46,8 @@ folder, and one was restored from that copy into a scratch database as a test.
   remains the no-setup default for a fresh clone)
 - Health endpoint and first order model — done
 - Minimal order list interface — done
-- Automated tests for core flows — done (1161 backend, 622 frontend passing
-  across the suite as of 2026-09-30)
+- Automated tests for core flows — done (1174 backend, 625 frontend passing
+  across the suite as of 2026-10-01)
 
 ---
 
@@ -126,9 +126,6 @@ owner's login), nor a parcel created from it since the change.
 
 The settings page (2026-09-30): tested, its new pieces seen on the real
 stylesheets, the page itself not yet opened in a browser (the owner's login).
-
-The sales report page's layout (2026-09-30): tested, not yet opened in a
-browser (the owner's login), nor an override made from the new in-row panel.
 
 Payment trace for the non-invoiced sales record (2026-09-30, stage 1 of
 `NON_INVOICED_SALES.md`): first run on the real account 2026-09-30, the NAS on
@@ -289,12 +286,10 @@ Billing entries (fees, `INTEGRATIONS.md`, "Fees") have been read from the owner'
 
 Buyer messages (plan B2, `INTEGRATIONS.md`, "Buyer messages") made their first real call on 2026-09-24, to production Allegro, and were answered `422 Incorrect limit or offset`: the page size was 100 where the Message Center allows 20. Fixed (`MESSAGING_PAGE_SIZE`), and the specification, fetched that day from `developer.allegro.pl/swagger.yaml`, confirmed the sort order, the scope name and the message shape, and gave a message's direction as a field (`author.isInterlocutor`). Since 2026-09-25 it runs successfully against the owner's real account on the usual schedule (see "Not yet verified" above), so the retry after the fix did succeed. Still unseen: a reply, and the link of a thread to its order, which the public thread schema does not carry (`INTEGRATIONS.md`). Safe mode has been on throughout, so nothing has reached a real buyer. Erli is not read: no messaging endpoint was found in its public API.
 
-The non-invoiced sales report (`DECISIONS.md`, "Non-invoiced sales report, ported" and "PAY-001
-approved") was opened in the browser against the owner's real September orders on 2026-09-27: 185
-orders, counts moving in the panel as the manual override was set and cleared, and the CSV export
-downloading with a `200`. Not checked against real data by an accountant, and no automated
-end-to-end (browser) test exists yet. Excel and PDF export still answer `422`, and there is no
-CSV-upload path yet for orders outside Anvero.
+The non-invoiced sales report ported on 2026-09-27 (`DECISIONS.md`, "Non-invoiced sales report,
+ported") was opened in the browser against the owner's real September orders that day. It was
+removed on 2026-10-01, replaced by the non-invoiced sales record (`NON_INVOICED_SALES.md`), whose
+state is under "Not yet verified" above.
 
 One backend test failure was found while working on the above, unrelated to it: `tests/services/test_order_import_service.py::test_the_recorded_point_is_the_start_of_the_run_less_a_small_overlap` compared a naive and an aware datetime and only failed on SQLite; fixed on 2026-09-24 by normalising with `_as_utc` (636 pass on SQLite). A second, unrelated bug was found and fixed: `OrderRepository.list_buyer_orders` and `.list_in_queue_with_items`, added by plan A3, had a `-> list[Order]` return annotation evaluated *after* a method literally named `list` in the same class body, so Python resolved `list` to that method instead of the builtin and the whole backend failed to import (`TypeError: 'function' object is not subscriptable`) — moved both methods earlier in the file; no behaviour changed. Worth checking whether this broke every backend since plan A3 landed earlier the same day. The same mistake came back in `AfterSalesRepository.list` (a `list[...]` annotation after a method named `list`), which stopped the backend from starting on Python 3.13 while CI (3.14, deferred annotations) stayed green; fixed on 2026-09-24 with `from __future__ import annotations`. Any class with a method named after a builtin it also uses in annotations can do this: run the suite on 3.13 as well as 3.14.
 

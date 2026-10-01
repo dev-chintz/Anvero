@@ -42,7 +42,6 @@ from app.models.marketplace_write import AppSetting, MarketplaceWrite
 from app.models.message import MessageThread
 from app.models.non_invoiced import LedgerEntry
 from app.models.order import AddressType, Order, OrderAddress
-from app.models.sales_report import SalesReportOverride
 from app.models.shipping_label import ShippingLabel
 from app.repositories.non_invoiced_repository import NonInvoicedRepository
 
@@ -141,14 +140,6 @@ def anonymize_order(db: Session, order: Order, now: datetime, keep_invoice: bool
     for shipment in db.scalars(select(InpostShipment).where(InpostShipment.order_id == order.id)):
         shipment.error = None
         shipment.reference = None
-    override = db.scalar(
-        select(SalesReportOverride).where(
-            SalesReportOverride.source == order.source,
-            SalesReportOverride.order_external_id == order.external_id,
-        )
-    )
-    if override is not None:
-        override.note = None
     for write in db.scalars(
         select(MarketplaceWrite).where(
             MarketplaceWrite.order_id == order.id, MarketplaceWrite.anonymized_at.is_(None)

@@ -98,7 +98,7 @@ request, not the data): the register is the owner's, outside Anvero.
 - **InPost** (ShipX): a parcel locker shipment carries the recipient's name,
   e-mail and phone and the locker. **Wysyłam z Allegro** carriers: the
   recipient's name, address, e-mail and phone.
-- **The accountant**: the non-invoiced sales report's CSV, with whichever columns
+- **The accountant**: the non-invoiced sales record's exports (CSV, Excel or PDF), with whichever columns
   the owner chose (`DECISIONS.md`, "Export columns, chosen by the owner").
 - **Google Drive**: the encrypted off-site copy of the nightly dump
   (`DEVELOPMENT.md`).
@@ -144,7 +144,7 @@ Status changes, deletions, labels, couriers and marketplace writes record which
 account made them. Reading is not recorded, deliberately: with a handful of
 accounts on a private network, a log of every opened order would itself be one
 more copy of who bought what. What is recorded is the one way data leaves in
-bulk: a sales report export holding a column that names or reaches a person is
+bulk: a non-invoiced record export holding a column that names or reaches a person is
 written to the application log with the period, the column keys, the row count
 and the user's id (`API.md`). Revisit this if accounts outside the business are
 ever given access.

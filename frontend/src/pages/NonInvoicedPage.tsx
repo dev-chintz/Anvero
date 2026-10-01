@@ -313,7 +313,7 @@ export function NonInvoicedPage() {
               onClick={() => setExportFormat(format)}
               disabled={busy || !report || report.listed.length === 0}
             >
-              {t(`salesReport.export.${format}` as MessageKey)}
+              {t(`exportColumns.${format}`)}
             </button>
           ))}
           {canManage && report?.can_hand_over && (
@@ -327,11 +327,11 @@ export function NonInvoicedPage() {
       <div className="sales-report-filters">
         <span className="sales-report-period">
           <label>
-            {t('salesReport.period')}
+            {t('nonInvoiced.period')}
             <input
               type="date"
               value={from}
-              aria-label={t('salesReport.periodFrom')}
+              aria-label={t('nonInvoiced.periodFrom')}
               onChange={(e) => setPeriod((p) => ({ ...p, from: e.target.value }))}
             />
           </label>
@@ -339,7 +339,7 @@ export function NonInvoicedPage() {
           <input
             type="date"
             value={to}
-            aria-label={t('salesReport.periodTo')}
+            aria-label={t('nonInvoiced.periodTo')}
             onChange={(e) => setPeriod((p) => ({ ...p, to: e.target.value }))}
           />
           <button

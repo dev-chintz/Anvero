@@ -9,7 +9,6 @@ from app.models.after_sales import AfterSalesCase, CaseAction, CaseKind
 from app.models.marketplace_write import AppSetting, MarketplaceWrite, WriteOutcome
 from app.models.message import Message, MessageDirection, MessageThread
 from app.models.order import AddressType, Order, OrderAddress, OrderItem, OrderSource, OrderStatus
-from app.models.sales_report import SalesReportOverride
 from app.repositories.after_sales_repository import AfterSalesRepository
 from app.repositories.message_repository import MessageRepository
 from app.schemas.after_sales import SyncedCase
@@ -140,12 +139,6 @@ def test_contacts_are_kept_two_years():
 
 def test_an_old_order_loses_its_personal_data_and_keeps_its_figures(session):
     order = _order(session, "OLD", datetime(2020, 6, 1, tzinfo=UTC))
-    session.add(
-        SalesReportOverride(
-            source=OrderSource.ALLEGRO, order_external_id="OLD", included=True, note="Anna, osobiście"
-        )
-    )
-    session.commit()
 
     result = apply_retention(session, NOW)
 
@@ -166,7 +159,6 @@ def test_an_old_order_loses_its_personal_data_and_keeps_its_figures(session):
     assert order.order_number is not None
     assert [item.name for item in order.items] == ["Kubek"]
     assert order.pickup_point_id == "KRA010"
-    assert session.query(SalesReportOverride).one().note is None
 
 
 def test_an_order_inside_its_period_is_left_alone(session):

@@ -24,7 +24,7 @@ Read the following files in order:
 10. INTEGRATIONS.md
 11. STYLE_GUIDE.md (before writing any interface: the one look every page shares)
 12. GDPR.md (before storing, showing or exporting anything about a buyer)
-13. NON_INVOICED_SALES.md (before touching the non-invoiced sales report: its redesign)
+13. NON_INVOICED_SALES.md (before touching the non-invoiced sales record: the law, the design, what was found)
 
 ---
 
@@ -54,7 +54,7 @@ read succeeded: 0 open issues, 10 closed issues, 10 customer returns).
 
 **Shipping analysis (2026-09-25):** how the business ships and a proposed plan for labels (Allegro's InPost through Wysyłam z Allegro, Erli's own parcel API, printing from the NAS straight to the networked Xprinter) are in `ROADMAP.md`, "Shipping and labels: analysis and proposed plan". Not decided and not built; the owner will refine it. It found that the direct InPost path above would probably pay for Smart parcels from the InPost balance, so it should not be used for Allegro orders.
 
-**Non-invoiced sales report (2026-09-27):** a page, own menu entry, ported from a standalone tool the owner built earlier, classifies Anvero's own imported orders for accounting. Three rules decide a row (a complete company invoice excludes; a cancelled/suspended order never paid in full excludes; a paid, shipped, uninvoiced-or-personally-invoiced order qualifies as RETAIL - approved the same day the owner saw the ported tool's own code already relied on it); everything else is `MANUAL_REVIEW`, with an operator override and a CSV export. See `DECISIONS.md`, "Non-invoiced sales report, ported" and "PAY-001 approved". Opened in the browser against the owner's real orders. Excel/PDF export and reading an uploaded CSV are not built.
+**Non-invoiced sales record (2026-10-01):** "Raport bezrachunkowy" in the menu (`/sales-report`) is the record poz. 41 requires, built from `NON_INVOICED_SALES.md` in all eight stages: the import keeps the trace of every payment (Allegro's and Erli's), a classifier sorts each paid sale, and every import writes the ledger (`non_invoiced_ledger`); reports for any range, exported as CSV, Excel or PDF with the columns chosen, are handed over to the accountant, which locks their rows. The report ported on 2026-09-27 and its `sales_report_overrides` are gone. Not yet used for real: see `PROJECT_STATUS.md`, "Not yet verified", for what to check before September goes to the accountant.
 
 **NAS deployment (2026-09-27):** done. Running at `http://NAS_ADDRESS:8081`
 (not 8080 - taken on this NAS), backend reaching the database over a joined
@@ -83,7 +83,7 @@ breakdown; the short version:
   history.
 - Allegro adapter, import script, an import endpoint and a button, one
   import at a time.
-- 1161 backend and 622 frontend tests passing.
+- 1174 backend and 625 frontend tests passing.
 - The order opens as a page of its own with back and next/previous arrows, the
   list shows each order's items, the menu shows what waits, and a new interface
   language is a dictionary file and one line (`DECISIONS.md`, 2026-09-24).

@@ -62,7 +62,7 @@ Repository: <https://github.com/dev-chintz/Anvero>
   scope). Full detail in `DECISIONS.md` and `CHANGELOG.md`.
 - Order page (2026-09-29): status picker in the header, payment folded,
   Allegro Smart badge (`DECISIONS.md`)
-- 1161 backend tests and 622 frontend tests (Vitest + React Testing Library)
+- 1174 backend tests and 625 frontend tests (Vitest + React Testing Library)
   passing
 
 ---
@@ -164,15 +164,9 @@ side by side) next to today's, where below 1100px everything stacks into one
 column. Chosen and built (`DECISIONS.md`, 2026-09-30, "The finance page"),
 tested, not yet seen in a browser.
 
-The ninth screen, the **Raport bezrachunkowy** (sales report), is on
-https://claude.ai/artifact/ATH51aiZ3dF99ZizrSNT97: a proposal (CSV export by
-the title, Excel and PDF hidden until built; the period with "this month" and
-"previous" shortcuts and the source as pills; the four counts as tiles that
-filter the list; what needs review in its own amber card first, a row opening
-in place with its rule and the include/exclude buttons instead of a 340px side
-panel; the rest below; categories in Polish words instead of RETAIL/COMPANY)
-next to today's. Chosen and built (`DECISIONS.md`, 2026-09-30, "The sales
-report page"), tested, not yet seen in a browser.
+The ninth screen, the **Raport bezrachunkowy**, was drawn and built for the ported report
+(`DECISIONS.md`, 2026-09-30, "The sales report page"); its layout now carries the non-invoiced
+record's page (`NonInvoicedPage.tsx`), which replaced that report on 2026-10-01.
 
 The tenth and last screen, **Ustawienia** (settings), is on
 https://claude.ai/artifact/TSxRFceDAPU3vsT9LZg3DE: proposals for the General
@@ -232,16 +226,14 @@ variable"), then the Style choice in Settings with Papier's values
 (2026-09-30, "A second look, chosen in Settings"); Papier is not yet looked at
 behind the login.
 
-The **non-invoiced sales report** is to be rebuilt from `NON_INVOICED_SALES.md`
-(2026-09-30): a design with the accountant's answers (section 3) and a plan of
-work in eight stages (section 5). Stages 1 (the import keeping what traces an
-order's money), 2 (the classifier) and 3 (the ledger, written by every import;
-`non_invoiced_ledger`, `app/services/non_invoiced/ledger.py`) are built and
-first ran on the real data on the NAS on 2026-09-30, with line items' `tax`
-still unseen and the payout links unchecked (`PROJECT_STATUS.md`, "Not yet
-verified"); stage 4, the reports and exports with handing over
-(which sets `locked_at`), is next. The choices made in stage 3 are listed under
-it in section 5.
+The **non-invoiced sales record** (`NON_INVOICED_SALES.md`) is built in all eight stages
+(2026-09-30 to 2026-10-01): the payment trace on import (Allegro's and, from stage 7, Erli's), the
+classifier (rule set `poz41-2024/2`), the ledger written by every import, reports for any range
+with CSV, Excel and PDF exports and handing over (which locks the rows,
+`non_invoiced_reports`), the page at `/sales-report`, September compared with the old report
+(stage 6, every difference explained), and the old report removed with `sales_report_overrides`
+(migration `c6e1a9d4f028`). Nothing has been handed over for real yet; what the owner still has to
+check is in `PROJECT_STATUS.md`, "Not yet verified".
 
 The order page's round two (status in
 the header, payment folded, Smart badge) was seen by the owner in the browser

@@ -343,6 +343,9 @@ Each stage is committed and pushed on its own, with its tests, and the contracts
    until they are read; `INTEGRATIONS.md`, "Erli", "Payments".
 8. **The old report removed.** Its page, API and `sales_report_overrides` dropped, the docs brought
    up to date.
+   *Done 2026-10-01*: the page, `/sales-report/*`, its services and tests removed, and
+   `sales_report_overrides` (no rows) dropped by migration `c6e1a9d4f028`. The menu entry and
+   `/sales-report` stay and open the record; the export column picker is the record's alone.
 
 ## 6. The report built on 2026-09-27, and what this replaces
 

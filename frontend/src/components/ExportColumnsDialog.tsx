@@ -1,24 +1,10 @@
 import { Fragment, useEffect, useRef, useState } from 'react';
-import { ApiError, salesReportApi, type ExportColumn, type ExportColumnList } from '../api/client';
+import { ApiError, type ExportColumn, type ExportColumnList } from '../api/client';
 import { useTranslation } from '../i18n';
 import type { MessageKey } from '../i18n/messages';
 import '../styles/OrderNoteDialog.css';
 import '../styles/ExportColumnsDialog.css';
 
-
-// keys the mockup shows tagged "dane osobowe": more identifying than a login, a NIP or an amount
-const PERSONAL_DATA_KEYS = new Set(['customer_name', 'customer_email', 'customer_phone', 'invoice_address']);
-
-// how the picker groups the catalog's keys; a key the backend adds later falls through to "Inne"
-const GROUPS: { titleKey: MessageKey; keys: string[] }[] = [
-  { titleKey: 'salesReport.export.group.identification', keys: ['order_label', 'order_external_id', 'source'] },
-  {
-    titleKey: 'salesReport.export.group.buyer',
-    keys: ['customer_login', 'customer_email', 'customer_phone', 'invoice_company_name', 'invoice_tax_id', 'invoice_address'],
-  },
-  { titleKey: 'salesReport.export.group.money', keys: ['amount_total', 'currency'] },
-  { titleKey: 'salesReport.export.group.classification', keys: ['category', 'included', 'reason', 'rule_id'] },
-];
 
 export type ExportFormat = 'csv' | 'excel' | 'pdf';
 
@@ -30,14 +16,6 @@ export interface ExportColumnsConfig {
   storageKey: string;
   formats: ExportFormat[];
 }
-
-// the non-invoiced sales report's, kept while its page is
-const SALES_REPORT_CONFIG: ExportColumnsConfig = {
-  loadColumns: () => salesReportApi.columns(),
-  groups: GROUPS,
-  storageKey: 'salesReport',
-  formats: ['csv'],
-};
 
 function readRemembered(storageKey: string, fallback: string[]): string[] {
   try {
@@ -54,15 +32,15 @@ interface ExportColumnsDialogProps {
   initialFormat: ExportFormat;
   onExport: (format: ExportFormat, columns: string[]) => void;
   onClose: () => void;
-  config?: ExportColumnsConfig;
+  config: ExportColumnsConfig;
 }
 
 /**
- * Which columns go into the export, and in what order: the owner's own default (a running
- * number, the date, the buyer's name, the amount paid) plus every other field the order carries,
- * grouped, with a note on the ones that are more identifying than a login or an amount.
+ * Which columns go into the export, and in what order: the catalog's default (a running number
+ * first, always) plus every other column it offers, grouped as the config says, with the ones the
+ * catalog marks personal tagged as such.
  */
-export function ExportColumnsDialog({ initialFormat, onExport, onClose, config = SALES_REPORT_CONFIG }: ExportColumnsDialogProps) {
+export function ExportColumnsDialog({ initialFormat, onExport, onClose, config }: ExportColumnsDialogProps) {
   const { t } = useTranslation();
   const { loadColumns, groups, storageKey, formats } = config;
   const rememberedKey = `${storageKey}.exportColumns`;
@@ -96,10 +74,7 @@ export function ExportColumnsDialog({ initialFormat, onExport, onClose, config =
   }, [t, loadColumns, storageKey]);
 
   const label = (key: string) => catalog?.find((c) => c.key === key)?.label ?? key;
-  const personal = (key: string) => {
-    const column = catalog?.find((c) => c.key === key);
-    return column?.personal ?? PERSONAL_DATA_KEYS.has(key);
-  };
+  const personal = (key: string) => catalog?.find((c) => c.key === key)?.personal ?? false;
 
   const persist = (next: string[]) => {
     setSelected(next);
@@ -143,20 +118,20 @@ export function ExportColumnsDialog({ initialFormat, onExport, onClose, config =
         className="note-dialog export-columns-dialog"
         role="dialog"
         aria-modal="true"
-        aria-label={t('salesReport.export.dialogTitle')}
+        aria-label={t('exportColumns.title')}
         onClick={(event) => event.stopPropagation()}
       >
         <header className="note-dialog-header">
           <div>
-            <h2>{t('salesReport.export.dialogTitle')}</h2>
-            <p className="export-columns-subtitle">{t('salesReport.export.dialogSubtitle')}</p>
+            <h2>{t('exportColumns.title')}</h2>
+            <p className="export-columns-subtitle">{t('exportColumns.subtitle')}</p>
           </div>
           <button
             type="button"
             className="note-dialog-close"
             onClick={onClose}
             ref={closeButton}
-            aria-label={t('salesReport.detail.close')}
+            aria-label={t('exportColumns.close')}
           >
             ✕
           </button>
@@ -172,7 +147,7 @@ export function ExportColumnsDialog({ initialFormat, onExport, onClose, config =
           <>
             <div className="export-columns-preview">
               <span className="export-order-badge">1</span>
-              <span>{t('salesReport.export.lp')}</span>
+              <span>{t('exportColumns.lp')}</span>
               {selected.map((key, index) => (
                 <Fragment key={key}>
                   <span aria-hidden="true">→</span>
@@ -183,12 +158,12 @@ export function ExportColumnsDialog({ initialFormat, onExport, onClose, config =
             </div>
 
             <div className="note-dialog-body export-columns-body">
-              <div className="export-columns-group-label">{t('salesReport.export.group.default')}</div>
+              <div className="export-columns-group-label">{t('exportColumns.group.default')}</div>
               <div className="export-field-row is-locked">
-                <input type="checkbox" checked disabled aria-label={t('salesReport.export.lp')} />
+                <input type="checkbox" checked disabled aria-label={t('exportColumns.lp')} />
                 <span className="export-order-badge">1</span>
                 <span className="export-field-label">
-                  {t('salesReport.export.lp')} <span className="export-field-hint">— {t('salesReport.export.lpHint')}</span>
+                  {t('exportColumns.lp')} <span className="export-field-hint">— {t('exportColumns.lpHint')}</span>
                 </span>
               </div>
               {defaults.map((key) => (
@@ -210,32 +185,26 @@ export function ExportColumnsDialog({ initialFormat, onExport, onClose, config =
         <div className="export-columns-remember">
           <label>
             <input type="checkbox" checked={remember} onChange={(e) => onRememberChange(e.target.checked)} />
-            {t('salesReport.export.remember')}
+            {t('exportColumns.remember')}
           </label>
         </div>
 
         <footer className="note-dialog-footer export-columns-footer">
           <button type="button" onClick={onClose}>
-            {t('salesReport.export.cancel')}
+            {t('exportColumns.cancel')}
           </button>
           <div className="export-columns-formats">
-            {(['csv', 'excel', 'pdf'] as ExportFormat[]).map((format) =>
-              formats.includes(format) ? (
-                <button
-                  key={format}
-                  type="button"
-                  className={initialFormat === format ? 'is-primary' : ''}
-                  onClick={() => runExport(format)}
-                  disabled={!catalog}
-                >
-                  {t(`salesReport.export.${format}`)}
-                </button>
-              ) : (
-                <button key={format} type="button" disabled title={t('salesReport.export.notBuiltYet')}>
-                  {t(`salesReport.export.${format}`)}
-                </button>
-              ),
-            )}
+            {formats.map((format) => (
+              <button
+                key={format}
+                type="button"
+                className={initialFormat === format ? 'is-primary' : ''}
+                onClick={() => runExport(format)}
+                disabled={!catalog}
+              >
+                {t(`exportColumns.${format}`)}
+              </button>
+            ))}
           </div>
         </footer>
       </div>
@@ -267,18 +236,18 @@ function ColumnRow({
       {isChecked && <span className="export-order-badge">{position + 2}</span>}
       <span className="export-field-label">
         {label}
-        {personal && <span className="export-pii-tag">{t('salesReport.export.personalData')}</span>}
+        {personal && <span className="export-pii-tag">{t('exportColumns.personalData')}</span>}
       </span>
       {isChecked && (
         <span className="export-reorder">
-          <button type="button" onClick={() => onMove(fieldKey, -1)} disabled={position === 0} aria-label={t('salesReport.export.moveUp')}>
+          <button type="button" onClick={() => onMove(fieldKey, -1)} disabled={position === 0} aria-label={t('exportColumns.moveUp')}>
             ▲
           </button>
           <button
             type="button"
             onClick={() => onMove(fieldKey, 1)}
             disabled={position === selected.length - 1}
-            aria-label={t('salesReport.export.moveDown')}
+            aria-label={t('exportColumns.moveDown')}
           >
             ▼
           </button>

@@ -1,7 +1,8 @@
-/* The non-invoiced sales report for a monitor turned upright (DECISIONS.md, 2026-09-30, "The sales
-   report page"): the counts as tiles that filter, what waits for a decision in its own card first,
-   and a row that opens in place with its rule and buttons. Cards and tones are the shared ones
-   (theme.css, index.css); this file lays out what is specific to this page. */
+/* The layout of "Raport bezrachunkowy" (/sales-report) for a monitor turned upright, first drawn for
+   the report ported on 2026-09-27 (DECISIONS.md, 2026-09-30, "The sales report page") and kept by
+   the non-invoiced record's page that replaced it (NonInvoicedPage.tsx, with NonInvoicedPage.css):
+   the counts as tiles that filter, what waits for a decision in its own card first, and a row that
+   opens in place. Cards and tones are the shared ones (theme.css, index.css). */
 
 .sales-report-page {
   display: flex;
@@ -38,8 +39,7 @@
   gap: 0.6rem 1rem;
 }
 
-.sales-report-period,
-.sales-report-sources {
+.sales-report-period {
   display: inline-flex;
   flex-wrap: wrap;
   align-items: center;
@@ -58,8 +58,7 @@
   font-size: 0.85rem;
 }
 
-.sales-report-period button,
-.sales-report-sources button {
+.sales-report-period button {
   padding: 0.15rem 0.65rem;
   border: 1px solid var(--color-border);
   border-radius: 999px;
@@ -68,16 +67,14 @@
   font-size: 0.8rem;
 }
 
-.sales-report-period button[aria-pressed="true"],
-.sales-report-sources button[aria-pressed="true"] {
+.sales-report-period button[aria-pressed="true"] {
   background: var(--color-accent);
   border-color: var(--color-accent);
   color: #fff;
   font-weight: 600;
 }
 
-:root.dark .sales-report-period button[aria-pressed="true"],
-:root.dark .sales-report-sources button[aria-pressed="true"] {
+:root.dark .sales-report-period button[aria-pressed="true"] {
   color: #0b0b0b;
 }
 
