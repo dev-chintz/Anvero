@@ -390,6 +390,12 @@
   font-size: 0.95rem;
 }
 
+/* the tile has no padding of its own, so its title must not pull out of the card the way a padded
+   card's band does (theme.css: margin -1rem), or the card's edge cuts it off */
+.status-tile.card > .status-tile-title {
+  margin: 0;
+}
+
 .status-tile-summary {
   margin: 0;
   padding: 0.45rem 0.9rem;

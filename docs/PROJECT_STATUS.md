@@ -120,8 +120,9 @@ sales out of `TO_REVIEW`.
 The Users and Updates tabs (2026-10-01): tested, not yet opened in a browser
 (the owner's login), nor an account saved or an update installed since.
 
-The status tab (2026-10-01): tested, not yet opened in a browser (the owner's
-login).
+The status tab (2026-10-01): tested; seen in a browser on a scratch database on
+2026-10-01, which showed the tiles' titles cut off by the card's edge (fixed); not yet
+opened with the owner's login.
 
 The InPost lockers tab (2026-09-30): tested, not yet opened in a browser (the
 owner's login), nor a parcel created from it since the change.

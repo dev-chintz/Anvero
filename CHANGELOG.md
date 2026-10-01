@@ -35,6 +35,8 @@ All significant changes to the Anvero project.
 
 ### 🩺 The status tab
 
+- The tiles' titles were cut off at the top by the card's edge (their padding is 0, the shared title
+  band pulls out by a card's padding): fixed.
 - The summary as one card with "check again", the three tiles in one row with their schedules in
   view, the events as dense rows. Designed in Claude Design. See `docs/DECISIONS.md`.
 
