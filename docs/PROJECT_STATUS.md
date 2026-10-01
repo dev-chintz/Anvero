@@ -46,7 +46,7 @@ folder, and one was restored from that copy into a scratch database as a test.
   remains the no-setup default for a fresh clone)
 - Health endpoint and first order model — done
 - Minimal order list interface — done
-- Automated tests for core flows — done (1385 backend, 764 frontend passing <!-- sync-tests -->
+- Automated tests for core flows — done (1385 backend, 765 frontend passing <!-- sync-tests -->
   across the suite as of 2026-10-01, the backend on SQLite)
 
 ---
@@ -99,6 +99,13 @@ re-imported. Production needs its own application and authorization; see
 ---
 
 ## Not yet verified
+
+The assortment's categories as pills above the list (2026-10-02, `DECISIONS.md`): tested (`CatalogPage.test.tsx`: the
+drill-down, stepping back up, the way marked from an address, the chosen pill brought into view) and seen in headless
+Chrome on the guide's scratch database, with an invented tree of the owner's shape (five top categories, one with 32
+below it, some three levels deep), in both looks, in dark mode, at 1440 px and at a phone's width: the rows, the
+scrolling of a long one and a category entered from the address were looked at, and there was no error in the console.
+Not seen on the real catalog behind the owner's login (2897 offers), where the tree is Allegro's own and deeper.
 
 **Safe mode has been off since 2026-09-29 07:23 UTC** (`app_settings`, `safe_mode`, switched off by the owner's
 account), so Anvero has been writing to the real Allegro for days; several paragraphs below were written when it

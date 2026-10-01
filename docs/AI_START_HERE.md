@@ -61,7 +61,7 @@ read succeeded: 0 open issues, 10 closed issues, 10 customer returns).
 
 **Non-invoiced sales record (2026-10-01):** "Raport bezrachunkowy" in the menu (`/sales-report`) is the record poz. 41 requires, built from `NON_INVOICED_SALES.md` in all eight stages: the import keeps the trace of every payment (Allegro's and Erli's), a classifier sorts each paid sale, and every import writes the ledger (`non_invoiced_ledger`); reports for any range, exported as CSV, Excel or PDF with the columns chosen, are handed over to the accountant, which locks their rows. The report ported on 2026-09-27 and its `sales_report_overrides` are gone. Not yet used for real: see `PROJECT_STATUS.md`, "Not yet verified", for what to check before September goes to the accountant.
 
-**Assortment (2026-10-01):** "Asortyment" in the menu (`/catalog`) lists every offer in the Allegro account with its pictures, a category tree beside a compact list, and for each offer the same product on Erli with the category in both. Read only. Pictures are downloaded to the NAS (`CATALOG_IMAGES_DIR`, a mounted folder: `DEPLOYMENT.md`) and kept beside their address on Allegro. Built from the marketplaces' published descriptions and never run against the real Allegro or Erli: see `PROJECT_STATUS.md`, "Not yet verified", and `CATALOG.md`.
+**Assortment (2026-10-01):** "Asortyment" in the menu (`/catalog`) lists every offer in the Allegro account with its pictures, the categories as rows of pills above a compact list, and for each offer the same product on Erli with the category in both. Read only. Pictures are downloaded to the NAS (`CATALOG_IMAGES_DIR`, a mounted folder: `DEPLOYMENT.md`) and kept beside their address on Allegro. Built from the marketplaces' published descriptions and never run against the real Allegro or Erli: see `PROJECT_STATUS.md`, "Not yet verified", and `CATALOG.md`.
 
 **Help (2026-10-01):** "Pomoc", last in the menu (`/help`), has a guide to every part of the application, in Polish and English, with screenshots of an invented shop made by `tools/guide/make.ps1`, and a GDPR (RODO) tab with the data controller's details (entered by an administrator in Settings), a draft notice to buyers, a draft register of processing activities and the team's steps for a request or a breach. Adding a page means adding its section to the guide: a test fails otherwise (`GUIDE.md`, `GDPR.md`). Not yet seen behind the owner's login, and the notice and register are drafts no lawyer has read: see `PROJECT_STATUS.md`, "Not yet verified".
 
@@ -92,7 +92,7 @@ breakdown; the short version:
   history.
 - Allegro adapter, import script, an import endpoint and a button, one
   import at a time.
-- 1385 backend and 764 frontend tests passing. <!-- sync-tests -->
+- 1385 backend and 765 frontend tests passing. <!-- sync-tests -->
 - The order opens as a page of its own with back and next/previous arrows, the
   list shows each order's items, the menu shows what waits, and a new interface
   language is a dictionary file and one line (`DECISIONS.md`, 2026-09-24).

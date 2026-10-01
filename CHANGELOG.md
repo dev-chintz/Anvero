@@ -6,6 +6,15 @@ All significant changes to the Anvero project.
 
 ## 2026-10-02
 
+### 🗂️ The assortment's categories above the list
+
+- The category tree beside the list is gone: the categories are rows of pills in the toolbar, like the filters,
+  with a row of subcategories for each level of the way down to the chosen one. The list takes the whole width of
+  the page (1174 px at 1440, where the tree left about 942), so the Erli column no longer goes out of sight. A pill
+  chooses that category and everything under it; the chosen one again steps up a level. A row of many scrolls after
+  three lines, and a category named in the address is brought into view in it. The guide's text and screenshot of
+  the page follow. See `docs/CATALOG.md` and `docs/DECISIONS.md`.
+
 ### 📝 Safe mode has been off since 2026-09-29: what it sent
 
 - The docs said safe mode had been on throughout and nothing had been sent. It was switched off on 2026-09-29 07:23

@@ -134,7 +134,7 @@ export const guideEn: GuideContent = {
       image: "catalog",
       intro: "Every offer in the Allegro account, with its pictures, sales and margin, and how the same product stands on Erli. Read only: nothing here changes an offer on a marketplace.",
       parts: [
-        { name: "The category tree", text: "Allegro's categories with the number of offers; a click shows the offers in that category and everything under it." },
+        { name: "The categories", text: "A row of buttons above the list: Allegro's categories with the number of offers. A click chooses a category and shows the offers in it and everything under it, and a row of its subcategories appears below. Clicking the chosen one again goes up a level, and \"All categories\" lets go of the choice." },
         { name: "Search and filters", text: "By name, SKU or offer number; by status (active, inactive, ended); the sales period (30 days, 90 days, from the start); quick filters \"No picture\", \"No SKU\", \"No cost\", \"Not on Erli\" and \"Other category on Erli\"." },
         { name: "An offer's row", text: "Thumbnail, name, SKU and category, price, stock, pieces sold on Allegro and on Erli apart, the cost of making a piece, the margin and the status on Erli." },
         { name: "Margin", text: "Sales less Allegro's and Erli's fees for those orders less the cost of making the pieces sold, per piece, in all and as a share of the sales. The Allegro subscription is not counted. Until you enter a cost, the margin is \"before cost\"." },

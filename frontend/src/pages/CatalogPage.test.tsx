@@ -365,34 +365,76 @@ describe("CatalogPage", () => {
     expect(screen.getByRole("columnheader", { name: /Cena|Price/ })).toHaveAttribute("aria-sort", "descending");
   });
 
-  it("walks the category tree: open a branch, choose a category, and everything under it is asked for", async () => {
+  it("walks the categories: each choice opens the row of its subcategories, and everything under it is asked for", async () => {
     renderPage();
-    await screen.findByText("Dom i ogród");
+    const top = await screen.findByRole("group", { name: /^Kategorie$|^Categories$/ });
 
-    // only the top is open to begin with
-    expect(screen.queryByText("Kubki", { selector: ".catalog-tree-name span" })).toBeNull();
-    fireEvent.click(screen.getByRole("button", { name: /Pokaż podkategorie: Dom i ogród|Show subcategories of Dom i ogród/ }));
-    fireEvent.click(screen.getByRole("button", { name: /Pokaż podkategorie: Kuchnia|Show subcategories of Kuchnia/ }));
+    // only the top categories are shown to begin with
+    expect(within(top).getByRole("button", { name: /Dom i ogród/ })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Kuchnia/ })).toBeNull();
 
-    fireEvent.click(screen.getByText("Kubki", { selector: ".catalog-tree-name span" }));
+    fireEvent.click(within(top).getByRole("button", { name: /Dom i ogród/ }));
+    await waitFor(() => expect(lastListCall()).toMatchObject({ category: "1" }));
+    const kitchenRow = await screen.findByRole("group", { name: /Podkategorie: Dom i ogród|Subcategories of Dom i ogród/ });
+
+    fireEvent.click(within(kitchenRow).getByRole("button", { name: /Kuchnia/ }));
+    await waitFor(() => expect(lastListCall()).toMatchObject({ category: "20" }));
+    const cupsRow = await screen.findByRole("group", { name: /Podkategorie: Kuchnia|Subcategories of Kuchnia/ });
+
+    fireEvent.click(within(cupsRow).getByRole("button", { name: /Kubki/ }));
     await waitFor(() => expect(lastListCall()).toMatchObject({ category: "300" }));
     expect(screen.getByTestId("location")).toHaveTextContent("category=300");
+
+    // a category with nothing below it opens no further row
+    expect(screen.queryByRole("group", { name: /Podkategorie: Kubki|Subcategories of Kubki/ })).toBeNull();
+
+    // the chosen one again steps back up to the category above it
+    fireEvent.click(within(cupsRow).getByRole("button", { name: /Kubki/ }));
+    await waitFor(() => expect(lastListCall()).toMatchObject({ category: "20" }));
 
     // "all categories" lets go of it
     fireEvent.click(screen.getByRole("button", { name: /Wszystkie kategorie|All categories/ }));
     await waitFor(() => expect(lastListCall().category).toBeUndefined());
+    expect(screen.queryByRole("button", { name: /Kuchnia/ })).toBeNull();
   });
 
-  it("opens the way to a category named in the address", async () => {
+  it("shows the way to a category named in the address, and which one is chosen", async () => {
     renderPage("/catalog?category=300");
 
-    const chosen = await screen.findByText("Kubki", { selector: ".catalog-tree-name span" });
-    expect(chosen.closest(".catalog-tree-row")).toHaveClass("is-on");
+    const chosen = await screen.findByRole("button", { name: /Kubki/ });
+    expect(chosen).toHaveAttribute("aria-pressed", "true");
+    expect(chosen).toHaveClass("is-on");
+    // the categories above it are on the way, not chosen
+    for (const name of [/Dom i ogród/, /Kuchnia/]) {
+      const step = screen.getByRole("button", { name });
+      expect(step).toHaveClass("is-path");
+      expect(step).toHaveAttribute("aria-pressed", "false");
+    }
+    // and a sibling is neither
+    expect(screen.getByRole("button", { name: /Talerze/ })).not.toHaveClass("is-path");
+    expect(screen.getByRole("button", { name: /Wszystkie kategorie|All categories/ })).toHaveAttribute("aria-pressed", "false");
   });
 
-  it("counts the offers without a category", async () => {
+  it("brings the chosen category and the way to it into view in their rows, which scroll when long", async () => {
+    // jsdom has no scrollIntoView
+    const scrolled = vi.fn();
+    Element.prototype.scrollIntoView = scrolled;
+    try {
+      renderPage("/catalog?category=300");
+      await screen.findByRole("button", { name: /Kubki/ });
+
+      const brought = scrolled.mock.contexts.map((pill) => (pill as HTMLElement).textContent ?? "");
+      for (const name of ["Dom i ogród", "Kuchnia", "Kubki"]) expect(brought.some((text) => text.includes(name))).toBe(true);
+      expect(brought.some((text) => text.includes("Talerze"))).toBe(false);
+    } finally {
+      delete (Element.prototype as { scrollIntoView?: unknown }).scrollIntoView;
+    }
+  });
+
+  it("counts every category, and the offers without one", async () => {
     renderPage();
 
+    expect(await screen.findByRole("button", { name: /Dom i ogród/ })).toHaveTextContent("3");
     expect(await screen.findByText(/Bez kategorii|Without a category/)).toBeInTheDocument();
   });
 

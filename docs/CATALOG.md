@@ -85,10 +85,15 @@ a person can judge the "different" ones: two names for the same shelf are expect
 
 ## The page
 
-A compact list (two lines to a row, as the order list) with the category tree beside it, as decided from the
-mockups of 2026-10-01 (variant A):
+A compact list (two lines to a row, as the order list) across the whole width of the page, with the categories
+above it in the toolbar. Variant A of the mockups of 2026-10-01 had a tree beside the list; the owner had it moved
+above on 2026-10-02, because the tree took 232 px the list needed (`DECISIONS.md`):
 
-- the tree (Allegro's categories, with counts, a node holding everything below it);
+- **the categories**, as rows of pills like the filters below them: the top categories with their counts, and
+  under them, for the way down to the chosen one, one row of subcategories for each level. A pill chooses that
+  category and everything under it (a node holds everything below it) and opens its row; the chosen pill again
+  steps back up to the category above it; "all categories" lets go. A row of many keeps to three lines and
+  scrolls, with the chosen pill brought into view;
 - a search by name, SKU or offer number; status as pills (all, active, inactive, ended) and quick filters
   for what is missing (no picture, no SKU, and, once Erli is connected, not on Erli and another category
   on Erli), each with its count;

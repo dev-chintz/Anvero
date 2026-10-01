@@ -1,4 +1,4 @@
-/* The assortment: the category tree beside a compact list of offers, a row opening to its pictures and
+/* The assortment: the categories as rows of pills above a compact list of offers, a row opening to its pictures and
    its Erli product (CatalogPage.tsx; DECISIONS.md, 2026-10-01, "The assortment"). Only tokens: it must look
    right in both looks and both modes (docs/STYLE_GUIDE.md). */
 
@@ -22,25 +22,6 @@
   color: var(--color-muted);
 }
 
-.catalog-layout {
-  display: grid;
-  grid-template-columns: 13.5rem minmax(0, 1fr);
-  gap: 1rem;
-  align-items: start;
-}
-
-/* below this the tree would leave the list too little room: it goes above it */
-@media (max-width: 1200px) {
-  .catalog-layout {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  .catalog-categories.card {
-    position: static;
-    max-height: 14rem;
-  }
-}
-
 .catalog-main {
   display: flex;
   flex-direction: column;
@@ -52,108 +33,40 @@
   margin: 0;
 }
 
-/* ---- The tree of categories ---- */
-.catalog-categories.card {
-  position: sticky;
-  top: 1rem;
-  max-height: calc(100vh - 2rem);
-  overflow-y: auto;
-  padding-bottom: 0.6rem;
+/* ---- The categories: rows of pills in the toolbar, as the other filters are ---- */
+.catalog-categories {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
 }
 
-.catalog-tree {
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.catalog-tree .catalog-tree {
+/* each row under the first is one level further down; a category can have dozens of children, so it
+   keeps to three lines of pills (the fourth is out of sight, which says it scrolls) and the list stays
+   near the top. The top row is never cut: it holds the few categories everything else hangs from. */
+.catalog-categories .catalog-filters:not(:first-child) {
+  max-height: 7rem;
   padding-left: 1rem;
+  overflow-y: auto;
 }
 
-.catalog-tree-row,
-.catalog-tree-all,
-.catalog-uncategorized {
-  display: flex;
-  align-items: center;
-  gap: 0.15rem;
-  border-radius: 6px;
-}
-
-.catalog-tree-all,
-.catalog-tree-name {
-  flex: 1;
-  justify-content: space-between;
-  gap: 0.5rem;
-  min-width: 0;
-  padding: 0.3rem 0.45rem;
-  border: none;
-  border-radius: 6px;
-  background: none;
-  color: var(--color-text);
-  font-weight: 500;
-  text-align: left;
-  cursor: pointer;
-}
-
-.catalog-tree-all {
-  display: flex;
-  width: 100%;
-  margin-bottom: 0.2rem;
-}
-
-.catalog-tree-all:hover,
-.catalog-tree-name:hover {
-  background: var(--color-surface-alt);
-}
-
-.catalog-tree-name {
-  display: flex;
-}
-
-.catalog-tree-name > span:first-child {
-  overflow-wrap: anywhere;
-}
-
-.catalog-tree-row.is-on .catalog-tree-name,
-.catalog-tree-all.is-on {
-  background: var(--tone-teal-bg);
-  color: var(--tone-teal-fg);
-  font-weight: 700;
-}
-
-.catalog-tree-caret {
-  display: inline-flex;
-  flex: none;
-  align-items: center;
-  justify-content: center;
-  width: 1.25rem;
-  height: 1.5rem;
-  padding: 0;
-  border: none;
-  background: none;
+.catalog-subcategories-label {
+  align-self: center;
+  margin-right: 0.15rem;
   color: var(--color-muted);
-  cursor: pointer;
+  font-size: 0.85rem;
 }
 
-.catalog-tree-count {
-  flex: none;
-  color: var(--color-muted);
-  font-size: 0.75rem;
-  font-variant-numeric: tabular-nums;
-  font-weight: 400;
-}
-
-.catalog-tree-row.is-on .catalog-tree-count,
-.catalog-tree-all.is-on .catalog-tree-count {
-  color: inherit;
+/* a category on the way down to the chosen one, not the chosen one itself */
+.catalog-categories .catalog-filters button.is-path {
+  border-color: var(--color-accent);
+  font-weight: 600;
 }
 
 .catalog-uncategorized {
-  justify-content: space-between;
-  margin: 0.3rem 0 0;
-  padding: 0.3rem 0.45rem 0.3rem 1.7rem;
+  align-self: center;
+  margin-left: 0.4rem;
   color: var(--color-muted);
+  font-size: 0.85rem;
 }
 
 /* ---- The search and the quick filters, in one card ---- */
@@ -402,15 +315,6 @@
 @media (max-width: 768px) {
   .catalog-body {
     padding: 0.25rem 1rem 1rem;
-  }
-
-  .catalog-layout {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  .catalog-categories.card {
-    position: static;
-    max-height: 16rem;
   }
 }
 

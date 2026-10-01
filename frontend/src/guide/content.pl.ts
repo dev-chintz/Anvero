@@ -134,7 +134,7 @@ export const guidePl: GuideContent = {
       image: "catalog",
       intro: "Wszystkie oferty z konta Allegro, razem ze zdjęciami, sprzedażą i marżą, oraz informacja, jak ten sam produkt wygląda na Erli. Tylko do odczytu: nic stąd nie zmienia ofert na marketplace.",
       parts: [
-        { name: "Drzewo kategorii", text: "Kategorie z Allegro z liczbą ofert; kliknięcie pokazuje ofertę w tej kategorii i we wszystkich pod nią." },
+        { name: "Kategorie", text: "Rząd przycisków nad listą: kategorie z Allegro z liczbą ofert. Kliknięcie wybiera kategorię i pokazuje oferty w niej i we wszystkich pod nią, a pod spodem pojawia się rząd jej podkategorii. Ponowne kliknięcie wybranej wraca o poziom wyżej, a „Wszystkie kategorie” zdejmuje wybór." },
         { name: "Wyszukiwanie i filtry", text: "Po nazwie, SKU lub numerze oferty; status (aktywne, nieaktywne, zakończone); okres sprzedaży (30 dni, 90 dni, od początku); szybkie filtry „Brak zdjęcia”, „Bez SKU”, „Bez kosztu”, „Nie ma na Erli” i „Inna kategoria na Erli”." },
         { name: "Wiersz oferty", text: "Miniatura, nazwa, SKU i kategoria, cena, stan magazynowy, sprzedane sztuki osobno na Allegro i Erli, koszt wytworzenia sztuki, marża i status na Erli." },
         { name: "Marża", text: "Sprzedaż minus opłaty Allegro i Erli za te zamówienia minus koszt wytworzenia sprzedanych sztuk, na sztukę, łącznie i jako procent sprzedaży. Abonament Allegro nie jest wliczany. Dopóki nie wpiszesz kosztu, marża jest „przed kosztem”." },

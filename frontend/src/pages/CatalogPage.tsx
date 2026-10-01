@@ -160,62 +160,88 @@ function stockTone(stock: number | null): string {
   return "catalog-chip-green";
 }
 
-interface CategoryTreeProps {
+interface CategoryRowsProps {
   nodes: CatalogCategoryNode[];
   selected: string | null;
-  expanded: Set<string>;
-  onSelect: (id: string) => void;
-  onToggle: (id: string) => void;
-  depth?: number;
+  total: number | null;
+  uncategorized: number;
+  onSelect: (id: string | null) => void;
 }
 
-function CategoryTree({ nodes, selected, expanded, onSelect, onToggle, depth = 0 }: CategoryTreeProps) {
+/**
+ * The categories as rows of pills in the toolbar, as the other filters are, so the list has the page's
+ * whole width: the top categories, and under them one row of subcategories for each level of the way
+ * down to the chosen one. A pill chooses that category (and everything under it) and opens its row; the
+ * chosen pill again steps back up to the category above it, as a quick filter lets go when pressed again.
+ */
+function CategoryRows({ nodes, selected, total, uncategorized, onSelect }: CategoryRowsProps) {
   const { t } = useTranslation();
+  const root = useRef<HTMLDivElement>(null);
+  const path = (selected && ancestors(nodes, selected)) || [];
+
+  // a row with many pills scrolls: the chosen one, and the ones on the way to it, are brought into view in
+  // their rows, so a category named in the address is not left in the part that is out of sight
+  useEffect(() => {
+    root.current
+      ?.querySelectorAll<HTMLElement>("button.is-on, button.is-path")
+      .forEach((pill) => pill.scrollIntoView?.({ block: "nearest", inline: "nearest" }));
+  }, [selected, nodes]);
+
+  // the top categories, then the children of each category on the way down that has any
+  const rows: { parent: CatalogCategoryNode | null; pills: CatalogCategoryNode[] }[] = [{ parent: null, pills: nodes }];
+  let level = nodes;
+  for (const id of path) {
+    const node = level.find((candidate) => candidate.id === id);
+    if (!node) break;
+    if (node.children.length > 0) rows.push({ parent: node, pills: node.children });
+    level = node.children;
+  }
+
   return (
-    <ul className="catalog-tree" role={depth === 0 ? "tree" : "group"}>
-      {nodes.map((node) => {
-        const open = expanded.has(node.id);
-        const hasChildren = node.children.length > 0;
-        return (
-          <li key={node.id} role="treeitem" aria-expanded={hasChildren ? open : undefined} aria-selected={selected === node.id}>
-            <div className={`catalog-tree-row${selected === node.id ? " is-on" : ""}`}>
-              {hasChildren ? (
-                <button
-                  type="button"
-                  className="catalog-tree-caret"
-                  onClick={() => onToggle(node.id)}
-                  aria-label={t(open ? "catalog.categories.collapse" : "catalog.categories.expand", { name: node.name })}
-                >
-                  {open ? "▾" : "▸"}
-                </button>
-              ) : (
-                <span className="catalog-tree-caret" aria-hidden="true" />
-              )}
-              <button type="button" className="catalog-tree-name" onClick={() => onSelect(node.id)}>
-                <span>{node.name}</span>
-                <span className="catalog-tree-count">{node.count}</span>
+    <div className="catalog-categories" ref={root}>
+      {rows.map(({ parent, pills }) => (
+        <div
+          key={parent?.id ?? "top"}
+          className="catalog-filters"
+          role="group"
+          aria-label={parent ? t("catalog.categories.within", { name: parent.name }) : t("catalog.categories")}
+        >
+          {parent ? (
+            <span className="catalog-subcategories-label">{parent.name} ›</span>
+          ) : (
+            <>
+              <span className="label-caps catalog-filters-label">{t("catalog.categories")}</span>
+              <button type="button" className={selected ? undefined : "is-on"} aria-pressed={!selected} onClick={() => onSelect(null)}>
+                {t("catalog.categories.all")} {total !== null && <span className="catalog-filter-count">{total}</span>}
               </button>
-            </div>
-            {hasChildren && open && (
-              <CategoryTree
-                nodes={node.children}
-                selected={selected}
-                expanded={expanded}
-                onSelect={onSelect}
-                onToggle={onToggle}
-                depth={depth + 1}
-              />
-            )}
-          </li>
-        );
-      })}
-    </ul>
+            </>
+          )}
+          {pills.map((node) => (
+            <button
+              key={node.id}
+              type="button"
+              className={node.id === selected ? "is-on" : path.includes(node.id) ? "is-path" : undefined}
+              aria-pressed={node.id === selected}
+              onClick={() => onSelect(node.id === selected ? (parent?.id ?? null) : node.id)}
+            >
+              {node.name} <span className="catalog-filter-count">{node.count}</span>
+            </button>
+          ))}
+          {!parent && uncategorized > 0 && (
+            <span className="catalog-uncategorized">
+              {t("catalog.categories.none")}
+              <span className="catalog-filter-count">{uncategorized}</span>
+            </span>
+          )}
+        </div>
+      ))}
+    </div>
   );
 }
 
 /**
  * The assortment: every offer in the seller's Allegro account, with its pictures, and for each how
- * the same product stands on Erli. Read only. A compact list with the category tree beside it
+ * the same product stands on Erli. Read only. A compact list with the categories as rows of pills above it
  * (DECISIONS.md, 2026-10-01, "The assortment"); a row opens to show all its pictures, with their
  * addresses on Allegro and the copies kept on this server, and the category in both marketplaces.
  */
@@ -280,7 +306,6 @@ export function CatalogPage() {
   const [now, setNow] = useState(() => Date.now());
   const [note, setNote] = useState<{ text: string; error: boolean } | null>(null);
   const [opened, setOpened] = useState<Set<string>>(new Set());
-  const [expanded, setExpanded] = useState<Set<string>>(new Set());
   // raised after a read from Allegro, so the list asks again whatever its filters are
   const [reloadKey, setReloadKey] = useState(0);
 
@@ -312,13 +337,6 @@ export function CatalogPage() {
       cancelled = true;
     };
   }, [t, query, category, status, flag, sort, descending, salesDays, limit, skip, reloadKey]);
-
-  // the path to the chosen category is open, so it is seen where it sits
-  useEffect(() => {
-    if (!tree || !category) return;
-    const path = ancestors(tree.tree, category);
-    if (path) setExpanded((current) => new Set([...current, ...path.slice(0, -1)]));
-  }, [tree, category]);
 
   const toggle = (set: Set<string>, id: string) => {
     const next = new Set(set);
@@ -486,243 +504,223 @@ export function CatalogPage() {
           </p>
         )}
 
-        <div className="catalog-layout">
-          <aside className="card tone-blue catalog-categories" aria-label={t("catalog.categories")}>
-            <h2>{t("catalog.categories")}</h2>
-            <button
-              type="button"
-              className={`catalog-tree-all${category ? "" : " is-on"}`}
-              onClick={() => choose({ category: undefined })}
-            >
-              <span>{t("catalog.categories.all")}</span>
-              {summary && <span className="catalog-tree-count">{summary.total}</span>}
-            </button>
+        <section className="catalog-main">
+          <div className="card catalog-toolbar">
+            <div className="catalog-search">
+              <input
+                type="search"
+                value={typed}
+                onChange={(event) => setTyped(event.target.value)}
+                placeholder={t("catalog.search")}
+                aria-label={t("catalog.search")}
+                maxLength={100}
+              />
+              {typed && (
+                <button
+                  type="button"
+                  className="catalog-search-clear"
+                  onClick={() => {
+                    setTyped("");
+                    setQuery("");
+                  }}
+                  aria-label={t("catalog.searchClear")}
+                  title={t("catalog.searchClear")}
+                >
+                  ✕
+                </button>
+              )}
+            </div>
             {tree && (
-              <CategoryTree
+              <CategoryRows
                 nodes={tree.tree}
                 selected={category}
-                expanded={expanded}
-                onSelect={(id) => choose({ category: id })}
-                onToggle={(id) => setExpanded((current) => toggle(current, id))}
+                total={summary ? summary.total : null}
+                uncategorized={tree.uncategorized}
+                onSelect={(id) => choose({ category: id ?? undefined })}
               />
             )}
-            {tree && tree.uncategorized > 0 && (
-              <p className="catalog-uncategorized">
-                {t("catalog.categories.none")}
-                <span className="catalog-tree-count">{tree.uncategorized}</span>
-              </p>
-            )}
-          </aside>
-
-          <section className="catalog-main">
-            <div className="card catalog-toolbar">
-              <div className="catalog-search">
-                <input
-                  type="search"
-                  value={typed}
-                  onChange={(event) => setTyped(event.target.value)}
-                  placeholder={t("catalog.search")}
-                  aria-label={t("catalog.search")}
-                  maxLength={100}
-                />
-                {typed && (
-                  <button
-                    type="button"
-                    className="catalog-search-clear"
-                    onClick={() => {
-                      setTyped("");
-                      setQuery("");
-                    }}
-                    aria-label={t("catalog.searchClear")}
-                    title={t("catalog.searchClear")}
-                  >
-                    ✕
-                  </button>
-                )}
-              </div>
-              <div className="catalog-filters" role="group" aria-label={t("catalog.statusFilter")}>
-                {STATUSES.map((s) => (
-                  <button
-                    key={s}
-                    type="button"
-                    className={status === s ? "is-on" : undefined}
-                    aria-pressed={status === s}
-                    onClick={() => choose({ status: s === "current" ? undefined : s })}
-                  >
-                    {t(`catalog.status.${s}`)}{" "}
-                    {statusCount(s) !== null && <span className="catalog-filter-count">{statusCount(s)}</span>}
-                  </button>
-                ))}
-              </div>
-              <div className="catalog-filters" role="group" aria-label={t("catalog.period.label")}>
-                <span className="label-caps catalog-filters-label">{t("catalog.period.label")}</span>
-                {PERIODS.map((days) => (
-                  <button
-                    key={days}
-                    type="button"
-                    className={salesDays === days ? "is-on" : undefined}
-                    aria-pressed={salesDays === days}
-                    onClick={() => choose({ sales: days === DEFAULT_PERIOD ? undefined : days === 0 ? "all" : String(days) })}
-                  >
-                    {periodName(days)}
-                  </button>
-                ))}
-              </div>
-              <div className="catalog-filters" role="group" aria-label={t("catalog.flagFilter")}>
-                {FLAGS.filter((f) => erliConnected || !ERLI_FLAGS.has(f)).map((f) => (
-                  <button
-                    key={f}
-                    type="button"
-                    className={flag === f ? "is-on" : undefined}
-                    aria-pressed={flag === f}
-                    onClick={() => choose({ flag: flag === f ? undefined : f })}
-                  >
-                    {t(`catalog.flag.${f}`)}{" "}
-                    {flagCount(f) !== null && <span className="catalog-filter-count">{flagCount(f)}</span>}
-                  </button>
-                ))}
-              </div>
+            <div className="catalog-filters" role="group" aria-label={t("catalog.statusFilter")}>
+              {STATUSES.map((s) => (
+                <button
+                  key={s}
+                  type="button"
+                  className={status === s ? "is-on" : undefined}
+                  aria-pressed={status === s}
+                  onClick={() => choose({ status: s === "current" ? undefined : s })}
+                >
+                  {t(`catalog.status.${s}`)}{" "}
+                  {statusCount(s) !== null && <span className="catalog-filter-count">{statusCount(s)}</span>}
+                </button>
+              ))}
             </div>
+            <div className="catalog-filters" role="group" aria-label={t("catalog.period.label")}>
+              <span className="label-caps catalog-filters-label">{t("catalog.period.label")}</span>
+              {PERIODS.map((days) => (
+                <button
+                  key={days}
+                  type="button"
+                  className={salesDays === days ? "is-on" : undefined}
+                  aria-pressed={salesDays === days}
+                  onClick={() => choose({ sales: days === DEFAULT_PERIOD ? undefined : days === 0 ? "all" : String(days) })}
+                >
+                  {periodName(days)}
+                </button>
+              ))}
+            </div>
+            <div className="catalog-filters" role="group" aria-label={t("catalog.flagFilter")}>
+              {FLAGS.filter((f) => erliConnected || !ERLI_FLAGS.has(f)).map((f) => (
+                <button
+                  key={f}
+                  type="button"
+                  className={flag === f ? "is-on" : undefined}
+                  aria-pressed={flag === f}
+                  onClick={() => choose({ flag: flag === f ? undefined : f })}
+                >
+                  {t(`catalog.flag.${f}`)}{" "}
+                  {flagCount(f) !== null && <span className="catalog-filter-count">{flagCount(f)}</span>}
+                </button>
+              ))}
+            </div>
+          </div>
 
-            {error && (
-              <p role="alert" className="error-message">
-                {error}
-              </p>
-            )}
-            {!list && !error && <p role="status">{t("catalog.loading")}</p>}
-            {list && list.items.length === 0 && (
-              <p role="status">{summary && summary.total === 0 && !category && !query && !flag ? t("catalog.emptyNone") : t("catalog.empty")}</p>
-            )}
+          {error && (
+            <p role="alert" className="error-message">
+              {error}
+            </p>
+          )}
+          {!list && !error && <p role="status">{t("catalog.loading")}</p>}
+          {list && list.items.length === 0 && (
+            <p role="status">{summary && summary.total === 0 && !category && !query && !flag ? t("catalog.emptyNone") : t("catalog.empty")}</p>
+          )}
 
-            {list && list.items.length > 0 && (
-              <div className="table-wrapper">
-                <table className="catalog-table">
-                  <thead>
-                    <tr>
-                      {sortHead("name", t("catalog.col.offer"))}
-                      {sortHead("price", t("catalog.col.price"))}
-                      {sortHead("stock", t("catalog.col.stock"))}
-                      {sortHead("sold", t("catalog.col.sold"))}
-                      <th scope="col">{t("catalog.col.cost")}</th>
-                      {sortHead("margin", t("catalog.col.margin"))}
-                      {erliConnected && <th scope="col">{t("catalog.col.erli")}</th>}
-                      <th scope="col" className="sr-only">
-                        {t("catalog.detail.pictures")}
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {list.items.map((item) => {
-                      const open = opened.has(item.id);
-                      return (
-                        <Fragment key={item.id}>
-                          <tr className={open ? "is-open" : undefined}>
-                            <td>
-                              <div className="catalog-offer">
-                                {item.thumbnail_url ? (
-                                  <ItemThumb src={item.thumbnail_url} className="catalog-thumb" />
-                                ) : (
-                                  <div className="catalog-thumb" role="img" aria-label={t("catalog.noPicture")} />
-                                )}
-                                <div className="catalog-text">
-                                  <div className="catalog-name">
-                                    <span>{item.name}</span>
-                                    {(item.gone || item.status !== "ACTIVE") && (
-                                      <span className="catalog-chip catalog-chip-gray">{offerStatusLabel(item)}</span>
-                                    )}
-                                  </div>
-                                  <div className="cell-sub">
-                                    {item.sku ?? t("catalog.noSku")}
-                                    {item.category_path.length > 0 && ` · ${item.category_path[item.category_path.length - 1].name}`}
-                                  </div>
+          {list && list.items.length > 0 && (
+            <div className="table-wrapper">
+              <table className="catalog-table">
+                <thead>
+                  <tr>
+                    {sortHead("name", t("catalog.col.offer"))}
+                    {sortHead("price", t("catalog.col.price"))}
+                    {sortHead("stock", t("catalog.col.stock"))}
+                    {sortHead("sold", t("catalog.col.sold"))}
+                    <th scope="col">{t("catalog.col.cost")}</th>
+                    {sortHead("margin", t("catalog.col.margin"))}
+                    {erliConnected && <th scope="col">{t("catalog.col.erli")}</th>}
+                    <th scope="col" className="sr-only">
+                      {t("catalog.detail.pictures")}
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {list.items.map((item) => {
+                    const open = opened.has(item.id);
+                    return (
+                      <Fragment key={item.id}>
+                        <tr className={open ? "is-open" : undefined}>
+                          <td>
+                            <div className="catalog-offer">
+                              {item.thumbnail_url ? (
+                                <ItemThumb src={item.thumbnail_url} className="catalog-thumb" />
+                              ) : (
+                                <div className="catalog-thumb" role="img" aria-label={t("catalog.noPicture")} />
+                              )}
+                              <div className="catalog-text">
+                                <div className="catalog-name">
+                                  <span>{item.name}</span>
+                                  {(item.gone || item.status !== "ACTIVE") && (
+                                    <span className="catalog-chip catalog-chip-gray">{offerStatusLabel(item)}</span>
+                                  )}
+                                </div>
+                                <div className="cell-sub">
+                                  {item.sku ?? t("catalog.noSku")}
+                                  {item.category_path.length > 0 && ` · ${item.category_path[item.category_path.length - 1].name}`}
                                 </div>
                               </div>
-                            </td>
-                            <td className="catalog-price">{item.price !== null && item.currency ? formatMoney(item.price, item.currency) : "—"}</td>
+                            </div>
+                          </td>
+                          <td className="catalog-price">{item.price !== null && item.currency ? formatMoney(item.price, item.currency) : "—"}</td>
+                          <td>
+                            <span className={`catalog-chip ${stockTone(item.stock)}`.trim()}>{stockText(item.stock)}</span>
+                          </td>
+                          <SoldCell item={item} erliConnected={erliConnected} pieces={pieces} />
+                          <CostCell item={item} canEdit={canSync} onSave={saveCost} formatMoney={formatMoney} />
+                          <MarginCell item={item} formatMoney={formatMoney} percent={percent} perPiece={(amount) => t("catalog.margin.perPiece", { amount })} />
+                          {erliConnected && (
                             <td>
-                              <span className={`catalog-chip ${stockTone(item.stock)}`.trim()}>{stockText(item.stock)}</span>
+                              {item.erli ? (
+                                <span className="catalog-erli">
+                                  <span className="source-mark source-erli" title="Erli">
+                                    E
+                                  </span>
+                                  <span>
+                                    {item.erli.status ? t(`catalog.erli.status.${item.erli.status}` as "catalog.erli.status.ACTIVE") : "—"}
+                                  </span>
+                                </span>
+                              ) : (
+                                <span className="order-muted">{t("catalog.erli.absent")}</span>
+                              )}
+                              {item.erli?.category_match === "DIFFERENT" && (
+                                <span className="cell-sub">
+                                  <span className="catalog-chip catalog-chip-amber">{t("catalog.erli.differs")}</span>
+                                </span>
+                              )}
                             </td>
-                            <SoldCell item={item} erliConnected={erliConnected} pieces={pieces} />
-                            <CostCell item={item} canEdit={canSync} onSave={saveCost} formatMoney={formatMoney} />
-                            <MarginCell item={item} formatMoney={formatMoney} percent={percent} perPiece={(amount) => t("catalog.margin.perPiece", { amount })} />
-                            {erliConnected && (
-                              <td>
-                                {item.erli ? (
-                                  <span className="catalog-erli">
-                                    <span className="source-mark source-erli" title="Erli">
-                                      E
-                                    </span>
-                                    <span>
-                                      {item.erli.status ? t(`catalog.erli.status.${item.erli.status}` as "catalog.erli.status.ACTIVE") : "—"}
-                                    </span>
-                                  </span>
-                                ) : (
-                                  <span className="order-muted">{t("catalog.erli.absent")}</span>
-                                )}
-                                {item.erli?.category_match === "DIFFERENT" && (
-                                  <span className="cell-sub">
-                                    <span className="catalog-chip catalog-chip-amber">{t("catalog.erli.differs")}</span>
-                                  </span>
-                                )}
-                              </td>
-                            )}
-                            <td className="catalog-toggle">
-                              <button
-                                type="button"
-                                aria-expanded={open}
-                                aria-label={t(open ? "catalog.collapse" : "catalog.expand", { name: item.name })}
-                                onClick={() => setOpened((current) => toggle(current, item.id))}
-                              >
-                                {open ? "▾" : "▸"}
-                              </button>
+                          )}
+                          <td className="catalog-toggle">
+                            <button
+                              type="button"
+                              aria-expanded={open}
+                              aria-label={t(open ? "catalog.collapse" : "catalog.expand", { name: item.name })}
+                              onClick={() => setOpened((current) => toggle(current, item.id))}
+                            >
+                              {open ? "▾" : "▸"}
+                            </button>
+                          </td>
+                        </tr>
+                        {open && (
+                          <tr className="catalog-detail-row">
+                            <td colSpan={colCount}>
+                              <ItemDetail item={item} erliConnected={erliConnected} formatMoney={formatMoney} stockText={stockText} formatNumber={formatNumber} period={salesDays === 0 ? t("catalog.period.allHeld") : periodName(salesDays)} />
                             </td>
                           </tr>
-                          {open && (
-                            <tr className="catalog-detail-row">
-                              <td colSpan={colCount}>
-                                <ItemDetail item={item} erliConnected={erliConnected} formatMoney={formatMoney} stockText={stockText} formatNumber={formatNumber} period={salesDays === 0 ? t("catalog.period.allHeld") : periodName(salesDays)} />
-                              </td>
-                            </tr>
-                          )}
-                        </Fragment>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
+                        )}
+                      </Fragment>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          {list && list.total > 0 && (
+            <Pagination
+              skip={skip}
+              limit={limit}
+              count={list.total}
+              onPageChange={(next) => choose({ skip: next ? String(next) : undefined })}
+              onLimitChange={(next) => choose({ limit: next === DEFAULT_LIMIT ? undefined : String(next) })}
+            />
+          )}
+
+          <p className="catalog-footnote catalog-footnote-sales">
+            <span>
+              {t("catalog.sales.note", {
+                period:
+                  salesDays === 0
+                    ? t("catalog.period.allHeld")
+                    : list?.sales_from
+                      ? t("catalog.period.since", { date: formatDate(list.sales_from) })
+                      : periodName(salesDays),
+              })}
+            </span>
+          </p>
+
+          <p className="catalog-footnote">
+            {summary && summary.images_total > 0 && (
+              <span>{t("catalog.picturesKept", { local: summary.images_local, total: summary.images_total })}</span>
             )}
-
-            {list && list.total > 0 && (
-              <Pagination
-                skip={skip}
-                limit={limit}
-                count={list.total}
-                onPageChange={(next) => choose({ skip: next ? String(next) : undefined })}
-                onLimitChange={(next) => choose({ limit: next === DEFAULT_LIMIT ? undefined : String(next) })}
-              />
-            )}
-
-            <p className="catalog-footnote catalog-footnote-sales">
-              <span>
-                {t("catalog.sales.note", {
-                  period:
-                    salesDays === 0
-                      ? t("catalog.period.allHeld")
-                      : list?.sales_from
-                        ? t("catalog.period.since", { date: formatDate(list.sales_from) })
-                        : periodName(salesDays),
-                })}
-              </span>
-            </p>
-
-            <p className="catalog-footnote">
-              {summary && summary.images_total > 0 && (
-                <span>{t("catalog.picturesKept", { local: summary.images_local, total: summary.images_total })}</span>
-              )}
-              {last && <span>{t("catalog.lastSync", { when: formatDateTime(last.at) })}</span>}
-            </p>
-          </section>
-        </div>
+            {last && <span>{t("catalog.lastSync", { when: formatDateTime(last.at) })}</span>}
+          </p>
+        </section>
       </div>
     </div>
   );
