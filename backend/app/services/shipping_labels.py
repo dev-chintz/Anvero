@@ -305,16 +305,20 @@ class ShippingLabels:
             self._tell_the_buyer(order, label, user_id)
 
     def _tell_the_buyer(self, order: Order, label: ShippingLabel, user_id: int | None) -> None:
-        """Put the waybill on the order, which also sends it to Allegro.
+        """Put the waybill on the order in Anvero, and tell Allegro unless it already knows.
 
-        Whether Allegro links a Wysyłam z Allegro shipment to the order by
-        itself is unconfirmed; if it does, it may refuse this as a duplicate,
-        which is recorded and harmless.
+        Allegro links its own shipments (carrier ALLEGRO) to the order itself and
+        refuses a second registration of the number (`CarrierIdValidationException`:
+        "ALLEGRO tracking numbers are added automatically by Ship with Allegro"), as
+        it did for 15 of the first 16 real labels (`docs/INTEGRATIONS.md`). So such a
+        number is kept here only, which shows the order its parcel at once; the next
+        import finds Allegro's own entry for the same number and keeps that one. Any
+        other carrier's number is still sent: nothing has shown Allegro refusing those.
         """
         carrier = label.carrier_id if label.carrier_id in ALLEGRO_CARRIERS else "OTHER"
         name = None if carrier != "OTHER" else (label.carrier_id or "Wysyłam z Allegro")
         OrderWrites(self.db, self._client_factory).add_shipment(
-            order, carrier, name, label.waybill, user_id
+            order, carrier, name, label.waybill, user_id, to_marketplace=carrier != "ALLEGRO"
         )
 
     def cancel(

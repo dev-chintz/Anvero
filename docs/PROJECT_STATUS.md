@@ -46,7 +46,7 @@ folder, and one was restored from that copy into a scratch database as a test.
   remains the no-setup default for a fresh clone)
 - Health endpoint and first order model — done
 - Minimal order list interface — done
-- Automated tests for core flows — done (1382 backend, 764 frontend passing <!-- sync-tests -->
+- Automated tests for core flows — done (1385 backend, 764 frontend passing <!-- sync-tests -->
   across the suite as of 2026-10-01, the backend on SQLite)
 
 ---
@@ -111,10 +111,12 @@ Wysyłam z Allegro (2026-09-29 16:07 to 2026-10-01 17:00) and 4 tracking numbers
 Allegro accepts the status changes used so far as mapped. **15 tracking-number writes were refused**, in the same minutes as the
 label purchases, always with the same answer: `CarrierIdValidationException`, "Tracking number cannot be assigned
 to carrier ALLEGRO because ALLEGRO tracking numbers are added automatically by Ship with Allegro". So Allegro does
-link a Wysyłam z Allegro shipment to the order by itself, and the registration that `ShippingLabels._tell_the_buyer`
-makes after every label is redundant for them: it fails each time, is recorded as `FAILED` and changes nothing at
-Allegro (the number is already there). Whether a `FAILED` row shows anywhere as a problem (the status page, the
-order's writes) is not known. Not yet seen, because never attempted in either mode (`marketplace_writes` has no
+link a Wysyłam z Allegro shipment to the order by itself, so the registration that `ShippingLabels._tell_the_buyer`
+made after every label was redundant: it failed each time, was recorded as `FAILED` and changed nothing at Allegro
+(the number is already there). **Fixed 2026-10-02:** for carrier `ALLEGRO` the number is kept in Anvero only and no
+request is made, so no `shipment` row should follow the next label (not yet seen on a real label); another
+carrier's number is still sent, since nothing has shown it refused (no label has been bought on another carrier).
+Not yet seen, because never attempted in either mode (`marketplace_writes` has no
 row of the kind): a reply to a buyer, a courier pickup, a cancelled shipment. Whether the label PDFs printed
 as they should is not recorded anywhere that can be read.
 

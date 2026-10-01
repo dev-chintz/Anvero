@@ -534,8 +534,12 @@ order ("Label" card), after the sender is entered in Integrations, "Shipping":
    2026-10-01): `CarrierIdValidationException`, "Tracking number cannot be
    assigned to carrier ALLEGRO because ALLEGRO tracking numbers are added
    automatically by Ship with Allegro". The shipment is linked to the order by
-   Allegro itself, so the step is redundant; it is recorded as a `FAILED` write
-   and changes nothing (`PROJECT_STATUS.md`).
+   Allegro itself, so the step was redundant; it was recorded as a `FAILED`
+   write each time and changed nothing. **Since 2026-10-02 it is not made for
+   carrier `ALLEGRO`**: the number is kept in Anvero only (the order shows its
+   parcel at once, and the next import replaces it with Allegro's own entry for
+   the same carrier and number). Another carrier's number is still sent, since
+   nothing has shown Allegro refusing those (`PROJECT_STATUS.md`).
 5. `POST /shipment-management/label` with `pageSize: A6` returns the PDF.
    The Labels page sends several `shipmentIds` at once (at most 50, Anvero's
    own cap: the documentation names none) for one PDF of many labels.

@@ -14,7 +14,8 @@ All significant changes to the Anvero project.
   `docs/AI_START_HERE.md`, `docs/ROADMAP.md` and `CLAUDE.md`.
 - Found in it: Allegro adds the tracking number of a Wysyłam z Allegro shipment to the order itself, so the
   registration Anvero makes after each label is refused every time (15 of 16: `CarrierIdValidationException`,
-  recorded as a `FAILED` write, changing nothing). Not yet fixed.
+  recorded as a `FAILED` write, changing nothing). Fixed: for carrier `ALLEGRO` the number is now kept in Anvero
+  only and no request is made; another carrier's is still sent.
 
 ## 2026-10-01
 

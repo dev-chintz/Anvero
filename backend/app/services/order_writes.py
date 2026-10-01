@@ -109,14 +109,17 @@ class OrderWrites:
         carrier_name: str | None,
         waybill: str,
         user_id: int | None,
+        to_marketplace: bool = True,
     ) -> tuple[OrderShipment, WriteResult | None]:
         """Store a parcel typed in, and send its tracking number to Allegro.
 
         The parcel is kept in Anvero whatever happens to the sending; the
         import keeps a parcel Allegro does not list yet (see order_details).
+        `to_marketplace=False` keeps it in Anvero only, for a number Allegro
+        already has and would refuse a second time: no request, no write row.
         """
         shipment = self.repository.add_shipment(order, carrier_id, carrier_name, waybill)
-        if order.source is not OrderSource.ALLEGRO:
+        if order.source is not OrderSource.ALLEGRO or not to_marketplace:
             return shipment, None
 
         payload = {"checkoutFormId": order.external_id, "carrierId": carrier_id, "waybill": waybill}

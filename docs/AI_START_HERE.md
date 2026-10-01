@@ -45,8 +45,8 @@ A7, the application status page, is done. Stage A is complete apart from
 A4's first real run. B1, labels through "Wysyłam z
 Allegro", is built for one parcel per order, with printing many at once and
 ordering a courier on the Labels page, and in use for real since 2026-09-29
-(16 labels bought; Allegro adds their tracking numbers itself, so Anvero's own
-registration of them is refused every time, `PROJECT_STATUS.md`); cash on
+(16 labels bought; Allegro adds their tracking numbers itself, so Anvero no
+longer registers them there, `PROJECT_STATUS.md`); cash on
 delivery is not shipped, so B1 is complete in code. B2, buyer messages, is
 started: see below. B4, returns and claims, is started: a read-only queue
 with deadlines, an alert on the order and a dashboard reminder, built from
@@ -92,7 +92,7 @@ breakdown; the short version:
   history.
 - Allegro adapter, import script, an import endpoint and a button, one
   import at a time.
-- 1382 backend and 764 frontend tests passing. <!-- sync-tests -->
+- 1385 backend and 764 frontend tests passing. <!-- sync-tests -->
 - The order opens as a page of its own with back and next/previous arrows, the
   list shows each order's items, the menu shows what waits, and a new interface
   language is a dictionary file and one line (`DECISIONS.md`, 2026-09-24).

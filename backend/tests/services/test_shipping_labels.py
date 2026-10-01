@@ -7,7 +7,7 @@ import pytest
 
 from app.integrations.allegro.client import AllegroClient
 from app.integrations.base import IntegrationUnavailable
-from app.models.marketplace_write import WriteOutcome
+from app.models.marketplace_write import MarketplaceWrite, WriteOutcome
 from app.models.order import (
     AddressType,
     Order,
@@ -19,6 +19,7 @@ from app.models.order import (
 from app.models.shipping_label import LabelStatus
 from app.schemas.shipping import PackageSize, ShippingSender, ShippingSettings
 from app.services.marketplace_writes import set_safe_mode
+from app.services.order_writes import OrderWrites
 from app.services.shipping_labels import LabelRefused, ShippingLabels, shipment_input
 from app.services.shipping_settings import get_shipping_settings, save_shipping_settings
 
@@ -41,9 +42,12 @@ PACKAGE = PackageSize(
 class FakeAllegro:
     """Answers like Allegro's shipment-management API is documented to."""
 
-    def __init__(self, outcomes=("SUCCESS",), create_error=None, method_id="method-1", services=()):
+    def __init__(
+        self, outcomes=("SUCCESS",), create_error=None, method_id="method-1", services=(), carrier="INPOST"
+    ):
         self.outcomes = list(outcomes)
         self.services = list(services)
+        self.carrier = carrier
         self.create_error = create_error
         self.method_id = method_id
         self.created = []
@@ -72,7 +76,7 @@ class FakeAllegro:
         return {"status": "IN_PROGRESS"}
 
     def fetch_shipment(self, shipment_id):
-        return {"id": shipment_id, "carrier": "INPOST", "packages": [{"waybill": "WB123"}]}
+        return {"id": shipment_id, "carrier": self.carrier, "packages": [{"waybill": "WB123"}]}
 
     def cancel_shipment(self, command_id, shipment_id):
         self.cancelled.append(shipment_id)
@@ -194,6 +198,58 @@ def test_a_bought_label_has_its_waybill_and_the_order_gets_the_tracking(session,
     assert allegro.tracking == [("form-1", "INPOST", "WB123")]
     session.refresh(order)
     assert [s.waybill for s in order.shipments] == ["WB123"]
+
+
+def _shipment_writes(session, order):
+    """What was sent, or refused, as a tracking number on the order (not the label purchase)."""
+    return (
+        session.query(MarketplaceWrite)
+        .filter(MarketplaceWrite.order_id == order.id, MarketplaceWrite.action == "shipment")
+        .all()
+    )
+
+
+def test_a_label_on_allegros_own_carrier_is_not_registered_with_allegro_which_links_it_itself(session, ready):
+    # Allegro answered every such registration with CarrierIdValidationException ("ALLEGRO tracking
+    # numbers are added automatically by Ship with Allegro"): 15 of the first 16 real labels
+    allegro = FakeAllegro(carrier="ALLEGRO")
+    order = _order(session)
+
+    label, write = _labels(session, allegro).buy(order, PACKAGE, None)
+
+    assert write.outcome is WriteOutcome.SENT
+    assert label.status is LabelStatus.CREATED
+    assert (label.carrier_id, label.waybill) == ("ALLEGRO", "WB123")
+    assert allegro.tracking == []
+    assert _shipment_writes(session, order) == []
+    # the order still shows its parcel at once; the next import meets Allegro's own entry for it
+    session.refresh(order)
+    [parcel] = order.shipments
+    assert (parcel.carrier_id, parcel.waybill, parcel.added_in_anvero) == ("ALLEGRO", "WB123", True)
+
+
+def test_a_label_on_another_carrier_is_still_registered_with_allegro(session, ready):
+    allegro = FakeAllegro(carrier="DPD")
+    order = _order(session)
+
+    _labels(session, allegro).buy(order, PACKAGE, None)
+
+    assert allegro.tracking == [("form-1", "DPD", "WB123")]
+    assert [w.outcome for w in _shipment_writes(session, order)] == [WriteOutcome.SENT]
+
+
+def test_a_parcel_kept_in_anvero_only_sends_nothing_and_leaves_no_write(session, ready):
+    allegro = FakeAllegro()
+    order = _order(session)
+
+    parcel, write = OrderWrites(session, lambda: allegro).add_shipment(
+        order, "DPD", None, "W9", None, to_marketplace=False
+    )
+
+    assert write is None
+    assert allegro.tracking == []
+    assert _shipment_writes(session, order) == []
+    assert (parcel.waybill, parcel.added_in_anvero) == ("W9", True)
 
 
 # Allegro Paczkomaty InPost, as the delivery-services list shows it: once on Allegro's
