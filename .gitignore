@@ -44,3 +44,5 @@ Thumbs.db
 
 # Python cache
 *.egg-info/
+# Pictures downloaded for the assortment (backend/data/catalog_images)
+backend/data/

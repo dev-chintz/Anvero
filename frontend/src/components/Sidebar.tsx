@@ -96,6 +96,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onToggle }) => {
       badge: counts.toMake,
       hint: t('nav.badge.production', { count: counts.toMake ?? 0 }),
     },
+    { path: '/catalog', label: t('nav.catalog'), icon: '🗂️', area: 'orders' },
     { path: '/labels', label: t('nav.labels'), icon: '🏷️', area: 'labels' },
     {
       path: '/after-sales',

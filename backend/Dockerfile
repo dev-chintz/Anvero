@@ -22,6 +22,9 @@ ARG GIT_SHA=""
 ENV APP_COMMIT=$GIT_SHA
 
 RUN useradd --system --uid 1000 anvero
+# where the assortment's pictures go (a mounted folder on the NAS in practice,
+# docs/DEPLOYMENT.md); made here so a container without one still works
+RUN mkdir -p /app/data/catalog_images && chown -R anvero /app/data
 USER anvero
 
 EXPOSE 8000

@@ -144,6 +144,23 @@ copy in the password manager, redeploy, then run
 laptop's included, needs the same value; a backend without it cannot read the
 secrets, and a lost key means authorizing Allegro and entering the secrets again.
 
+## The assortment's pictures
+
+The assortment page keeps a copy of every offer's pictures on the NAS (`CATALOG.md`), under
+`/app/data/catalog_images` in the backend container (`CATALOG_IMAGES_DIR`). Without a mounted folder they
+live inside the container and are thrown away by every update from Settings, then downloaded again: it works,
+but it is a few thousand downloads for nothing. So, once:
+
+1. On the NAS, make a folder for them beside the application's other files (say `catalog-images`) and give it to
+   the backend's user, which is `1000`: `chown 1000 catalog-images` (File Station cannot set an owner; SSH can).
+2. In the application's `docker-compose.yml` on the NAS (not the copy in Git, which is a template), add under
+   the `backend` service the line `volumes: [ "./catalog-images:/app/data/catalog_images" ]` (the template in
+   `deploy/docker-compose.yml` shows where), then recreate the application.
+
+If the folder cannot be written the sync still reads the offers and says "The pictures folder is not writable"
+instead of failing; the pictures then show from Allegro's addresses. The folder is not in the database dump; a
+lost one is downloaded again by the next sync, which notices the missing files. Backing it up is optional.
+
 ## Creating a user or resetting a password
 
 The scripts are in the backend image. In Container Station open a terminal in

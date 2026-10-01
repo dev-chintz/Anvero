@@ -32,6 +32,22 @@ BILLING_PAGE_SIZE = 500
 PAYOUT_PAGE_SIZE = 200
 # and of the buyers' payments
 PAYMENT_PAGE_SIZE = 200
+# and of the products
+PRODUCT_PAGE_SIZE = 200
+# what the assortment reads of a product; the full product carries its whole description
+PRODUCT_FIELDS = [
+    "externalId",
+    "sku",
+    "name",
+    "price",
+    "stock",
+    "status",
+    "archived",
+    "currency",
+    "externalReferences",
+    "externalCategories",
+    "categories",
+]
 
 
 def erli_timestamp(value: datetime) -> str:
@@ -110,6 +126,28 @@ class ErliClient:
             if isinstance(url, str) and url:
                 return url
         return None
+
+    def search_products(
+        self, after: str | None = None, limit: int = PRODUCT_PAGE_SIZE
+    ) -> list[dict[str, Any]]:
+        """One page of the shop's products by `externalId`, ascending (`POST /products/_search`).
+
+        `after` is the last `externalId` of the previous page. Only the fields the assortment
+        shows are asked for: the full product carries its whole description.
+        """
+        if not 1 <= limit <= PRODUCT_PAGE_SIZE:
+            raise ValueError(f"limit must be between 1 and {PRODUCT_PAGE_SIZE}")
+        pagination: dict[str, Any] = {"sortField": "externalId", "order": "ASC", "limit": limit}
+        if after is not None:
+            pagination["after"] = after
+        payload = self._post(
+            "/products/_search",
+            {"pagination": pagination, "fields": PRODUCT_FIELDS},
+            "Erli product search",
+        )
+        if not isinstance(payload, list):
+            raise IntegrationUnavailable("Erli product search did not return a list")
+        return [product for product in payload if isinstance(product, dict)]
 
     def fetch_billing_types(self) -> list[dict[str, Any]]:
         """Erli's dictionary of billing entry types (GET /dictionaries/billingEntryTypes)."""

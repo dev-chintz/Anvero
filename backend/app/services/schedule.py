@@ -42,6 +42,7 @@ from app.services.allegro_sync import (
     run_import,
     schedule_state,
 )
+from app.services.catalog import _scheduled_catalog_run
 from app.services.message_sync import _scheduled_message_run, message_schedule_state
 
 logger = logging.getLogger(__name__)
@@ -60,6 +61,7 @@ LEASE_TTL = timedelta(minutes=2)
 CATCH_UP = timedelta(minutes=1)
 
 erli_schedule_state = ScheduleState()
+catalog_schedule_state = ScheduleState()
 
 
 def get_interval(db: Session) -> int:
@@ -188,6 +190,8 @@ def default_jobs() -> list[Job]:
         Job("allegro-orders", schedule_state, _scheduled_run, _import_last_at(allegro_settings.PROVIDER)),
         Job("erli-orders", erli_schedule_state, _scheduled_erli_run, _import_last_at(erli_import.PROVIDER)),
         Job("allegro-messages", message_schedule_state, _scheduled_message_run),
+        # looked at as often as the others, but reads only when `catalog_sync_hours` have passed
+        Job("catalog", catalog_schedule_state, _scheduled_catalog_run),
     ]
 
 

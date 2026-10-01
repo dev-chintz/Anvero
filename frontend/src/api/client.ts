@@ -1006,6 +1006,159 @@ export const afterSalesApi = {
   },
 };
 
+// ---- The assortment: the Allegro offers, their pictures, and how they stand on Erli ----
+
+export type CatalogStatusFilter = "current" | "active" | "inactive" | "gone";
+export type CatalogFlag = "no_image" | "no_sku" | "not_on_erli" | "category_differs";
+export type CatalogSort = "name" | "price" | "stock";
+/** Whether an Erli product sits in the same category as its Allegro offer. */
+export type CategoryMatch = "SAME" | "DIFFERENT" | "UNKNOWN";
+
+/** One step of the way to a category from the top of a marketplace's tree. */
+export interface CategoryStep {
+  id: string;
+  name: string;
+}
+
+export interface CatalogImage {
+  position: number;
+  /** The address on Allegro, always there. */
+  url: string;
+  /** The copy kept on this server; null until it has been downloaded. */
+  local_url: string | null;
+}
+
+/** The same product on Erli. */
+export interface CatalogListing {
+  source: string;
+  external_id: string;
+  /** How it was tied to the offer: EXTERNAL_REFERENCE, EXTERNAL_ID or SKU. */
+  matched_by: string;
+  price: string | null;
+  currency: string | null;
+  stock: number | null;
+  /** ACTIVE, INACTIVE or ARCHIVED. */
+  status: string | null;
+  category_path: CategoryStep[];
+  category_match: CategoryMatch;
+}
+
+export interface CatalogItem {
+  id: string;
+  offer_id: string;
+  name: string;
+  sku: string | null;
+  price: string | null;
+  currency: string | null;
+  stock: number | null;
+  /** Allegro's publication status: ACTIVE, INACTIVE or ACTIVATING. */
+  status: string;
+  /** Allegro no longer lists it. */
+  gone: boolean;
+  category_path: CategoryStep[];
+  allegro_url: string;
+  /** The cover for the list: the local copy when there is one, else Allegro's address. */
+  thumbnail_url: string | null;
+  images: CatalogImage[];
+  erli: CatalogListing | null;
+}
+
+export interface CatalogItemList {
+  items: CatalogItem[];
+  total: number;
+}
+
+export interface CatalogCategoryNode {
+  id: string;
+  name: string;
+  /** Offers in this category and everything under it. */
+  count: number;
+  children: CatalogCategoryNode[];
+}
+
+export interface CatalogCategories {
+  tree: CatalogCategoryNode[];
+  uncategorized: number;
+}
+
+export interface CatalogSyncNote {
+  at: string;
+  error: string | null;
+  items: number | null;
+  erli_error: string | null;
+  erli_unmatched: number | null;
+}
+
+export interface CatalogSummary {
+  total: number;
+  active: number;
+  inactive: number;
+  gone: number;
+  no_image: number;
+  no_sku: number;
+  not_on_erli: number;
+  category_differs: number;
+  images_total: number;
+  images_local: number;
+  erli_unmatched: number | null;
+  erli_connected: boolean;
+  last_sync: CatalogSyncNote | null;
+}
+
+export interface CatalogSyncResult {
+  items: number;
+  added: number;
+  gone: number;
+  images_downloaded: number;
+  images_failed: number;
+  images_pending: number;
+  erli_products: number | null;
+  erli_matched: number;
+  erli_unmatched: number;
+  erli_error: string | null;
+  details_failed: number;
+}
+
+export interface CatalogListParams {
+  q?: string;
+  category?: string;
+  status?: CatalogStatusFilter;
+  flag?: CatalogFlag;
+  sort?: CatalogSort;
+  descending?: boolean;
+  limit?: number;
+  offset?: number;
+}
+
+export const catalogApi = {
+  list(params: CatalogListParams = {}): Promise<CatalogItemList> {
+    const query = new URLSearchParams();
+    if (params.q) query.set("q", params.q);
+    if (params.category) query.set("category", params.category);
+    if (params.status) query.set("status", params.status);
+    if (params.flag) query.set("flag", params.flag);
+    if (params.sort) query.set("sort", params.sort);
+    if (params.descending) query.set("descending", "true");
+    if (params.limit !== undefined) query.set("limit", String(params.limit));
+    if (params.offset !== undefined) query.set("offset", String(params.offset));
+    const queryString = query.toString();
+    return request<CatalogItemList>(`/catalog/items${queryString ? `?${queryString}` : ""}`);
+  },
+
+  categories(): Promise<CatalogCategories> {
+    return request<CatalogCategories>("/catalog/categories");
+  },
+
+  summary(): Promise<CatalogSummary> {
+    return request<CatalogSummary>("/catalog/summary");
+  },
+
+  /** Read the offers from Allegro now, and check Erli's products against them. */
+  sync(): Promise<CatalogSyncResult> {
+    return request<CatalogSyncResult>("/catalog/sync", { method: "POST" });
+  },
+};
+
 // ---- Finance: a period's sales, what the marketplaces took, and what is left ----
 // Amounts are decimal strings, as the backend sends them; fees are positive (what was taken).
 

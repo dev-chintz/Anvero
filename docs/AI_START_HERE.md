@@ -25,6 +25,7 @@ Read the following files in order:
 11. STYLE_GUIDE.md (before writing any interface: the one look every page shares)
 12. GDPR.md (before storing, showing or exporting anything about a buyer)
 13. NON_INVOICED_SALES.md (before touching the non-invoiced sales record: the law, the design, what was found)
+14. CATALOG.md (before touching the assortment: where it is read from, how pictures are kept, how Erli is tied to Allegro)
 
 ---
 
@@ -56,6 +57,8 @@ read succeeded: 0 open issues, 10 closed issues, 10 customer returns).
 
 **Non-invoiced sales record (2026-10-01):** "Raport bezrachunkowy" in the menu (`/sales-report`) is the record poz. 41 requires, built from `NON_INVOICED_SALES.md` in all eight stages: the import keeps the trace of every payment (Allegro's and Erli's), a classifier sorts each paid sale, and every import writes the ledger (`non_invoiced_ledger`); reports for any range, exported as CSV, Excel or PDF with the columns chosen, are handed over to the accountant, which locks their rows. The report ported on 2026-09-27 and its `sales_report_overrides` are gone. Not yet used for real: see `PROJECT_STATUS.md`, "Not yet verified", for what to check before September goes to the accountant.
 
+**Assortment (2026-10-01):** "Asortyment" in the menu (`/catalog`) lists every offer in the Allegro account with its pictures, a category tree beside a compact list, and for each offer the same product on Erli with the category in both. Read only. Pictures are downloaded to the NAS (`CATALOG_IMAGES_DIR`, a mounted folder: `DEPLOYMENT.md`) and kept beside their address on Allegro. Built from the marketplaces' published descriptions and never run against the real Allegro or Erli: see `PROJECT_STATUS.md`, "Not yet verified", and `CATALOG.md`.
+
 **NAS deployment (2026-09-27):** done. Running at `http://NAS_ADDRESS:8081`
 (not 8080 - taken on this NAS), backend reaching the database over a joined
 Docker network by container name rather than the NAS's LAN address. See
@@ -83,7 +86,7 @@ breakdown; the short version:
   history.
 - Allegro adapter, import script, an import endpoint and a button, one
   import at a time.
-- 1174 backend and 625 frontend tests passing.
+- 1282 backend and 655 frontend tests passing.
 - The order opens as a page of its own with back and next/previous arrows, the
   list shows each order's items, the menu shows what waits, and a new interface
   language is a dictionary file and one line (`DECISIONS.md`, 2026-09-24).

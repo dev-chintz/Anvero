@@ -145,6 +145,22 @@ class Settings(BaseSettings):
     erli_api_url: str = Field(default="https://erli.pl/svc/shop-api")
     erli_initial_import_days: int = Field(default=7, ge=1, le=365)
 
+    # The assortment (docs/CATALOG.md): where the offers' pictures are kept, which Anvero
+    # downloads once from Allegro. Empty means backend/data/catalog_images; on the NAS it must
+    # be a mounted folder, or every update from Settings would throw the pictures away
+    # (docs/DEPLOYMENT.md).
+    catalog_images_dir: str = Field(default="")
+    # how often the backend reads the offers by itself (the manual button reads them at once);
+    # an offer's price and stock change slowly next to an order
+    catalog_sync_hours: int = Field(default=6, ge=1, le=168)
+    # how many pictures one sync downloads at most, so the first one, with a few thousand to
+    # fetch, is spread over several runs instead of holding the import lock for minutes
+    catalog_images_per_run: int = Field(default=400, ge=1, le=5000)
+
+    @property
+    def catalog_images_path(self) -> Path:
+        return Path(self.catalog_images_dir) if self.catalog_images_dir else BACKEND_DIR / "data" / "catalog_images"
+
     @field_validator("database_url")
     @classmethod
     def _anchor_sqlite_path(cls, value: str) -> str:

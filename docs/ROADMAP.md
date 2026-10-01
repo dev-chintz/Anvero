@@ -377,7 +377,7 @@ item is scoped when it is taken up.
 | Finance: period summary of fees, profitability by offer, what is left, ROAS | Fees per order only. **Missing:** period summary, purchase price, margin. ROAS is impossible (no Allegro Ads API; the same for AlleIntegrator) |
 | Returns, claims, disputes: queue with deadlines and actions | Queue, order alert and dashboard reminder (B4, read only). **Missing:** every action, and the automatic commission claim |
 | Regular customers, sales statistics | **Missing.** All the data is Anvero's own |
-| Offers (catalogue, templates, bundles, copying, import, AI generator, price rules) | Not built, by choice (D) |
+| Offers (catalogue, templates, bundles, copying, import, AI generator, price rules) | The catalogue is built, read only (2026-10-01, `CATALOG.md`: the Allegro offers with pictures kept on the NAS, and Erli checked against them). The rest is not built, by choice (D) |
 | Products and warehouse (stock by SKU, PZ/WZ, stocktaking, suppliers, reordering) | Not built, by choice: the goods are made to order |
 | Rules "condition → action" | **Missing** (C) |
 | Safe mode | Done, with a log of what was held back and a banner |

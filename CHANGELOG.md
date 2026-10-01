@@ -6,6 +6,14 @@ All significant changes to the Anvero project.
 
 ## 2026-10-01
 
+### 🗂️ The assortment
+
+- New "Asortyment" page: every offer in the Allegro account with its price, stock, SKU, category and
+  pictures, a category tree beside a compact list, search, filters for what is missing, and a row that
+  opens to every picture and to the same product on Erli, with the category in both marketplaces. Pictures
+  are downloaded to the NAS and kept beside their address on Allegro. Read only. See `docs/CATALOG.md` and
+  `docs/DECISIONS.md`.
+
 ### 🧾 The non-invoiced sales record
 
 - "Raport bezrachunkowy" is now the record poz. 41 requires, on its own ledger: Erli's sales judged

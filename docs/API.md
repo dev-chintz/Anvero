@@ -79,6 +79,11 @@ are days in the business timezone, `BUSINESS_TIMEZONE`, default
 | `GET` | `/api/v1/finance/products` | each product sold in a period with its share of its orders' fees |
 | `GET` | `/api/v1/orders/{id}/after-sales` | the cases on one order, open or not, newest first |
 | `POST` | `/api/v1/integrations/allegro/after-sales/sync` | read returns, claims and disputes from Allegro; rate limited to 6 per minute per IP |
+| `GET` | `/api/v1/catalog/items` | the assortment: the Allegro offers with their pictures and their Erli product; filters, search, sort, paging |
+| `GET` | `/api/v1/catalog/categories` | the category tree of the offers, with counts |
+| `GET` | `/api/v1/catalog/summary` | what the page's filters count, the pictures kept, whether Erli is connected, how the last sync went |
+| `POST` | `/api/v1/catalog/sync` | read the offers from Allegro (and Erli's products) now; rate limited to 6 per minute per IP |
+| `GET` | `/api/v1/catalog/images/{name}` | a stored picture; the one endpoint served without a login |
 | `POST` | `/api/v1/integrations/allegro/messages/sync` | read new and changed Message Center threads; rate limited to 6 per minute per IP |
 | `GET` | `/api/v1/messages/threads` | the unified inbox: threads across every source, newest activity first |
 | `GET` | `/api/v1/messages/threads/{id}` | one thread with its messages |
@@ -117,7 +122,7 @@ Every endpoint below `/api/v1` except `/health`, `/`, `/auth/login` and
 
 | Area | `view` | `manage` |
 | --- | --- | --- |
-| `orders` | `GET /orders*`, `GET /orders/{id}*` | `PATCH/DELETE/POST` on an order, its status, shipments, marks, note, packing and the production checks |
+| `orders` | `GET /orders*`, `GET /orders/{id}*`, `GET /catalog/*` (not the pictures) | `PATCH/DELETE/POST` on an order, its status, shipments, marks, note, packing and the production checks, `POST /catalog/sync` |
 | `messages` | `GET /messages/threads*` | `PATCH .../aside`, `POST .../reply`, `POST /integrations/allegro/messages/sync` |
 | `after_sales` | `GET /after-sales*`, `GET /orders/{id}/after-sales` | `POST /integrations/allegro/after-sales/sync` |
 | `labels` | `GET` on shipping settings, labels, InPost status and shipments, printing a PDF | buying, cancelling or refreshing a label, ordering or refreshing a pickup, the InPost settings and shipments, `PUT /settings/shipping` |
@@ -243,6 +248,52 @@ lock the order import takes: `409` while an import or another sync runs, and whe
 Allegro is not configured; `502` when Allegro refuses (the application may lack
 `allegro:api:disputes` for disputes and claims, or `allegro:api:orders:read` for
 returns) or cannot be reached.
+
+## The assortment: `/api/v1/catalog`
+
+Read only (`CATALOG.md`). An offer is `{"id", "offer_id", "name", "sku", "price", "currency", "stock",
+"status", "gone", "category_path", "allegro_url", "thumbnail_url", "images", "erli"}`:
+
+- `status` is Allegro's publication status (`ACTIVE`, `INACTIVE`, `ACTIVATING`); `gone` is true for an offer
+  Allegro no longer lists (ended or deleted), which is kept but is not part of the assortment.
+- `category_path` is the way from the top of Allegro's tree, `[{"id", "name"}, ...]`, the leaf last; empty
+  for an offer without a category.
+- `images` is `[{"position", "url", "local_url"}]` in the offer's order: `url` is the address on Allegro,
+  always there; `local_url` is the copy on this server (`/api/v1/catalog/images/<name>`), null until it has
+  been downloaded. `thumbnail_url` is the first picture's `local_url`, else its `url`, null without pictures.
+- `erli` is null when no Erli product was tied to the offer, else `{"source", "external_id", "matched_by",
+  "price", "currency", "stock", "status", "category_path", "category_match"}`: `matched_by` is
+  `EXTERNAL_REFERENCE`, `EXTERNAL_ID` or `SKU`, `status` `ACTIVE`, `INACTIVE` or `ARCHIVED`, `category_match`
+  `SAME`, `DIFFERENT` or `UNKNOWN` (Erli's category's leaf named like the offer's, or not, or one side has none).
+
+`GET /catalog/items?q&category&status&flag&sort&descending&limit&offset` returns `{"items": [...], "total": n}`.
+`q` finds a name, SKU or offer number (case ignored, `%` and `_` taken literally); `category` is a category
+id at any depth and finds the offers in it and everything below; `status` is `current` (the default: every
+offer Allegro still lists), `active`, `inactive` (listed but not active) or `gone`; `flag` is one of
+`no_image`, `no_sku`, `not_on_erli`, `category_differs`; `sort` is `name` (the default, case ignored),
+`price` or `stock`, `descending` turns it round; `limit` 1 to 200 (default 50).
+
+`GET /catalog/categories` returns `{"tree": [{"id", "name", "count", "children": [...]}], "uncategorized": n}`
+for the offers Allegro still lists; a node's `count` includes everything below it.
+
+`GET /catalog/summary` returns `{"total", "active", "inactive", "gone", "no_image", "no_sku", "not_on_erli",
+"category_differs", "images_total", "images_local", "erli_unmatched", "erli_connected", "last_sync"}`.
+The counts of the flags are of the offers still listed; the pictures counted are theirs too. `last_sync` is
+`{"at", "error", "items", "erli_error", "erli_unmatched"}` or null before the first sync; `erli_unmatched`
+is Erli's products that matched no offer at that sync.
+
+`POST /catalog/sync` reads every offer that is not ended, their pictures' addresses and categories, downloads
+the pictures still without a copy (at most `CATALOG_IMAGES_PER_RUN` a time), and, when an Erli key is set, ties
+Erli's products to the offers. It returns `{"items", "added", "gone", "images_downloaded", "images_failed",
+"images_pending", "erli_products", "erli_matched", "erli_unmatched", "erli_error", "details_failed"}`
+(`erli_products` null when Erli is not connected; `erli_error` the reason when it could not be read, with
+Allegro's part still done). It takes the lock the order import takes: `409` while an import or another sync
+runs, and when Allegro is not configured; `502` when Allegro refuses (the application may lack
+`allegro:api:sale:offers:read`) or cannot be reached.
+
+`GET /catalog/images/{name}` serves a stored picture without a login (an `<img>` cannot send one). The name is
+`<64 hex characters>.<jpg|png|webp|gif>`, the hash of the bytes, so the answer never changes and is cached for
+a year; any other name is `404`.
 
 ## Erli: `/api/v1/integrations/erli`
 

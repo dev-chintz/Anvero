@@ -758,6 +758,27 @@ claim (`POST /sale/issues/{id}/status`), rejecting a return
 (`POST /order/refund-claims`), refunds. All of them have legal or financial
 consequences and belong behind safe mode; the queue only shows what waits.
 
+### Assortment
+
+**Built 2026-10-01 from Allegro's published specification; never run against the real service.**
+`app/integrations/allegro/catalog.py`, for the assortment page (`CATALOG.md`):
+
+- `GET /sale/offers?publication.status=ACTIVE&publication.status=INACTIVE&publication.status=ACTIVATING&limit=100&offset=N`
+  (scope `allegro:api:sale:offers:read`) lists the offers, paged by `offset` until `totalCount`; ended offers
+  are left out, as there can be years of them. Read from each: `id`, `name`, `category.id`,
+  `primaryImage.url`, `sellingMode.price.amount` and `.currency`, `stock.available`, `publication.status`,
+  `external.id` (the seller's SKU).
+- `GET /sale/product-offers/{id}` is asked for each offer for `images`, a list of addresses (a list of
+  `{"url"}` objects is read too). One that cannot be read keeps the pictures the offer had, and a new one
+  gets the cover from the list.
+- `GET /sale/categories/{id}` gives `name` and `parent.id` (null at the top) and is followed up to the top
+  once per category per sync.
+
+To confirm on the first real sync: that the application has the offers scope (a `403` is shown on the page
+and means connecting the account again in Settings), that the list's `offset` reaches every offer, that
+`images` is what the product-offer answers, and the real addresses' hosts (the pictures are downloaded only
+from `allegroimg.com`, `allegro.pl`, `allegrosandbox.pl` and `erli.pl`).
+
 ## Erli
 
 **Built 2026-09-24 from Erli's published API description only**
@@ -883,6 +904,20 @@ moves, exactly as for Allegro.
 - `comment` is the buyer's message. `deliveryTracking.trackingNumber` and
   `vendor` become a shipment, its `status` the tracking code.
 - Erli's order has no dispatch deadline, so Erli orders are never "late".
+
+### Assortment
+
+**Built 2026-10-01 from Erli's published API description only; never seen on the real service.**
+`app/integrations/erli/catalog.py`: `POST /products/_search`, sorted by `externalId` ascending, 200 a page,
+each page starting `after` the previous page's last `externalId`, asking only for `externalId`, `sku`,
+`name`, `price` (grosze), `stock`, `status`, `archived`, `currency`, `externalReferences`,
+`externalCategories` and `categories`. A product is tied to the Allegro offer it names in
+`externalReferences` (`{"kind": "allegro", "id": ...}` or `"allegro:<id>"`), else to the offer whose id is its
+`externalId`, else to the offer with its SKU; the category is Erli's own (`categories`, the first chain), else
+the one the product came with (`externalCategories`, Allegro's first). To confirm on the first real sync: which
+of these Erli fills for a product copied from Allegro (how many land under `EXTERNAL_REFERENCE`, `EXTERNAL_ID`,
+`SKU` or nowhere decides how useful the tie is), that `after` with a string `externalId` pages correctly, and that
+`categories` is a list of chains as the description says.
 
 ### Parcels and labels
 

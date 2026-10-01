@@ -46,7 +46,7 @@ folder, and one was restored from that copy into a scratch database as a test.
   remains the no-setup default for a fresh clone)
 - Health endpoint and first order model — done
 - Minimal order list interface — done
-- Automated tests for core flows — done (1174 backend, 625 frontend passing
+- Automated tests for core flows — done (1282 backend, 655 frontend passing
   across the suite as of 2026-10-01)
 
 ---
@@ -99,6 +99,8 @@ re-imported. Production needs its own application and authorization; see
 ---
 
 ## Not yet verified
+
+The assortment (2026-10-01, `CATALOG.md`): built from Allegro's and Erli's published descriptions, tested against fakes (108 backend and 30 frontend tests), and seen in a browser on a scratch database with made-up offers and pictures, in both looks and modes; the backend tests ran on SQLite only (the main machine's PostgreSQL run of the suite is still to do); never read from the real services. To check on the first sync (the button on the page, on a machine with the real Allegro connection, after `alembic upgrade head`): that the application has the scope `allegro:api:sale:offers:read` (a refusal is shown on the page); that the offers and their pictures arrive and the pictures are stored; how many of Erli's products are tied to an offer and by what (`EXTERNAL_REFERENCE`, `EXTERNAL_ID`, `SKU`) or not at all, and whether the "different category" ones are real differences. On the NAS the backend still needs the mounted folder for the pictures (`DEPLOYMENT.md`, "The assortment's pictures").
 
 The non-invoiced record's reports, exports and screen (2026-10-01, stages 4 and
 5 of `NON_INVOICED_SALES.md`): tested, and seen in a browser on a scratch

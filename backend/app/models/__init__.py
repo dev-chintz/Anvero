@@ -1,5 +1,6 @@
 from app.models.after_sales import AfterSalesCase, CaseAction, CaseKind
 from app.models.app_update import AppUpdate
+from app.models.catalog import CatalogImage, CatalogItem, CatalogListing
 from app.models.courier_pickup import CourierPickup, PickupStatus
 from app.models.inpost_shipment import InpostShipment
 from app.models.integration import IntegrationCredential, IntegrationSettings
@@ -42,6 +43,9 @@ __all__ = [
     "AppUpdate",
     "BillingEntry",
     "CaseAction",
+    "CatalogImage",
+    "CatalogItem",
+    "CatalogListing",
     "CaseKind",
     "Counter",
     "CourierPickup",

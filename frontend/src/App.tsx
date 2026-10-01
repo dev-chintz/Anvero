@@ -13,6 +13,7 @@ import { Dashboard } from './pages/Dashboard';
 import { LoginPage } from './pages/LoginPage';
 import { OrdersPage } from './pages/OrdersPage';
 import { ProductionPage } from './pages/ProductionPage';
+import { CatalogPage } from './pages/CatalogPage';
 import { InboxPage } from './pages/InboxPage';
 import { Settings, type Look } from './pages/Settings';
 import { LabelsPage } from './pages/LabelsPage';
@@ -147,6 +148,7 @@ export default function App() {
                     live in its URL, so going back to it restores them */}
                 <Route path="/orders/:id" element={<OrderDetail />} />
                 <Route path="/production" element={<ProductionPage />} />
+                <Route path="/catalog" element={<CatalogPage />} />
                 <Route path="/labels" element={<LabelsPage />} />
                 <Route path="/after-sales" element={<AfterSalesPage />} />
                 {/* the status is a tab of Settings now; the old address still leads to it */}

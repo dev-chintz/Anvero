@@ -38,6 +38,11 @@ services:
       timeout: 5s
       retries: 3
       start_period: 40s
+    volumes:
+      # the assortment's pictures (docs/DEPLOYMENT.md, "The assortment's
+      # pictures"): a folder on the NAS owned by uid 1000, or every update from
+      # Settings throws the pictures away and they are downloaded again
+      - ./catalog-images:/app/data/catalog_images
     networks:
       - default
       # the database stack's network, so the container name above resolves;

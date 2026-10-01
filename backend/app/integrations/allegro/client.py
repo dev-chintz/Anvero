@@ -10,6 +10,7 @@ import logging
 import time
 from datetime import UTC, datetime
 from typing import Any
+from urllib.parse import quote
 
 import httpx2
 
@@ -36,6 +37,8 @@ TOKEN_EXPIRY_MARGIN_SECONDS = 60
 REQUEST_TIMEOUT_SECONDS = 30.0
 
 MAX_PAGE_SIZE = 100
+# Allegro's offers are listed in pages of up to 1000; 100 keeps one answer small
+OFFERS_PAGE_SIZE = 100
 # Allegro's maximum for one page of payment operations
 PAYMENT_OPERATIONS_PAGE_SIZE = 50
 
@@ -631,6 +634,41 @@ class AllegroClient:
         if not isinstance(offers, list):
             raise IntegrationUnavailable("Allegro offers is not a list")
         return [o for o in offers if isinstance(o, dict)]
+
+    def fetch_offers_page(
+        self,
+        offset: int = 0,
+        limit: int = OFFERS_PAGE_SIZE,
+        statuses: tuple[str, ...] = ("ACTIVE", "INACTIVE", "ACTIVATING"),
+    ) -> tuple[list[dict[str, Any]], int | None]:
+        """One page of the seller's offers, and how many there are in all (the assortment).
+
+        `GET /sale/offers` (scope `allegro:api:sale:offers:read`) with the publication
+        statuses asked for; ended offers are left out by default, since there can be years of
+        them. Each item carries `id`, `name`, `category.id`, `primaryImage`, `sellingMode.price`,
+        `stock.available`, `publication.status` and `external.id`. The list has only the first
+        picture; `fetch_product_offer` has them all.
+        """
+        if not 1 <= limit <= OFFERS_PAGE_SIZE:
+            raise ValueError(f"limit must be between 1 and {OFFERS_PAGE_SIZE}")
+        params = [("publication.status", status) for status in statuses]
+        params += [("limit", str(limit)), ("offset", str(offset))]
+        payload = self._get_object("/sale/offers", "offers", params=params)
+        offers = payload.get("offers", [])
+        if not isinstance(offers, list):
+            raise IntegrationUnavailable("Allegro offers is not a list")
+        total = payload.get("totalCount")
+        return [o for o in offers if isinstance(o, dict)], total if isinstance(total, int) else None
+
+    def fetch_product_offer(self, offer_id: str) -> dict[str, Any]:
+        """One offer in full (`GET /sale/product-offers/{offerId}`): its `images`, a list of
+        addresses, among much else. Raises when it cannot be read, so the caller says which."""
+        return self._get_object(f"/sale/product-offers/{quote(offer_id, safe='')}", "product offer")
+
+    def fetch_category(self, category_id: str) -> dict[str, Any]:
+        """One category of Allegro's tree (`GET /sale/categories/{categoryId}`): `name`, `leaf`
+        and `parent.id` (null at the top)."""
+        return self._get_object(f"/sale/categories/{quote(category_id, safe='')}", "category")
 
     def fetch_threads(
         self, limit: int = MESSAGING_PAGE_SIZE, offset: int = 0

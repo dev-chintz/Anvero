@@ -144,13 +144,13 @@
 }
 
 /* ---- Tabs: one look. Pills, the chosen one filled with the accent (as the queues above the order list) ---- */
-:is(.labels-tabs, .after-sales-tabs, .shipping-tabs, .inbox-filters, .settings-tabs, .finance-periods, .finance-tabs, .finance-sort) {
+:is(.labels-tabs, .after-sales-tabs, .shipping-tabs, .inbox-filters, .settings-tabs, .finance-periods, .finance-tabs, .finance-sort, .catalog-filters) {
   display: flex;
   flex-wrap: wrap;
   gap: 0.4rem;
 }
 
-:is(.labels-tabs, .after-sales-tabs, .shipping-tabs, .inbox-filters, .settings-tabs, .finance-periods, .finance-tabs, .finance-sort) button {
+:is(.labels-tabs, .after-sales-tabs, .shipping-tabs, .inbox-filters, .settings-tabs, .finance-periods, .finance-tabs, .finance-sort, .catalog-filters) button {
   padding: 0.35rem 0.9rem;
   background: var(--color-bg);
   border: 1px solid var(--color-border);
@@ -159,11 +159,11 @@
   font-weight: 500;
 }
 
-:is(.labels-tabs, .after-sales-tabs, .shipping-tabs, .inbox-filters, .settings-tabs, .finance-periods, .finance-tabs, .finance-sort) button:hover {
+:is(.labels-tabs, .after-sales-tabs, .shipping-tabs, .inbox-filters, .settings-tabs, .finance-periods, .finance-tabs, .finance-sort, .catalog-filters) button:hover {
   border-color: var(--color-accent);
 }
 
-:is(.labels-tabs, .after-sales-tabs, .shipping-tabs, .inbox-filters, .settings-tabs, .finance-periods, .finance-tabs, .finance-sort) button:is(.active, .is-on) {
+:is(.labels-tabs, .after-sales-tabs, .shipping-tabs, .inbox-filters, .settings-tabs, .finance-periods, .finance-tabs, .finance-sort, .catalog-filters) button:is(.active, .is-on) {
   background: var(--color-accent);
   border-color: var(--color-accent);
   color: var(--color-on-accent);

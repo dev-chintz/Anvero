@@ -34,6 +34,9 @@ Repository: <https://github.com/dev-chintz/Anvero>
 
 # Completed
 
+- The assortment (2026-10-01): "Asortyment" page with the Allegro offers, their pictures (kept on the NAS and as
+  addresses on Allegro) and the same products on Erli with the category in both; read only; never run against the real
+  Allegro or Erli (`CATALOG.md`)
 - Updates from Settings (2026-09-28): banner and Settings tab for a newer
   published version, installed by the `updater` container (`DEPLOYMENT.md`)
 - GDPR (2026-09-28): daily retention and anonymization, one buyer's export
@@ -62,7 +65,7 @@ Repository: <https://github.com/dev-chintz/Anvero>
   scope). Full detail in `DECISIONS.md` and `CHANGELOG.md`.
 - Order page (2026-09-29): status picker in the header, payment folded,
   Allegro Smart badge (`DECISIONS.md`)
-- 1174 backend tests and 625 frontend tests (Vitest + React Testing Library)
+- 1282 backend tests and 655 frontend tests (Vitest + React Testing Library)
   passing
 
 ---

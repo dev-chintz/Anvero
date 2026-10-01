@@ -1,0 +1,403 @@
+/* The assortment: the category tree beside a compact list of offers, a row opening to its pictures and
+   its Erli product (CatalogPage.tsx; DECISIONS.md, 2026-10-01, "The assortment"). Only tokens: it must look
+   right in both looks and both modes (docs/STYLE_GUIDE.md). */
+
+.catalog-page .page-header {
+  align-items: flex-end;
+}
+
+.catalog-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+  max-width: 1600px;
+  padding: 0.25rem 2rem 2rem;
+}
+
+.catalog-body > p {
+  margin: 0;
+}
+
+.catalog-note {
+  color: var(--color-muted);
+}
+
+.catalog-layout {
+  display: grid;
+  grid-template-columns: 15rem minmax(0, 1fr);
+  gap: 1rem;
+  align-items: start;
+}
+
+.catalog-main {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  min-width: 0;
+}
+
+.catalog-main > p {
+  margin: 0;
+}
+
+/* ---- The tree of categories ---- */
+.catalog-categories.card {
+  position: sticky;
+  top: 1rem;
+  max-height: calc(100vh - 2rem);
+  overflow-y: auto;
+  padding-bottom: 0.6rem;
+}
+
+.catalog-tree {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.catalog-tree .catalog-tree {
+  padding-left: 1rem;
+}
+
+.catalog-tree-row,
+.catalog-tree-all,
+.catalog-uncategorized {
+  display: flex;
+  align-items: center;
+  gap: 0.15rem;
+  border-radius: 6px;
+}
+
+.catalog-tree-all,
+.catalog-tree-name {
+  flex: 1;
+  justify-content: space-between;
+  gap: 0.5rem;
+  min-width: 0;
+  padding: 0.3rem 0.45rem;
+  border: none;
+  border-radius: 6px;
+  background: none;
+  color: var(--color-text);
+  font-weight: 500;
+  text-align: left;
+  cursor: pointer;
+}
+
+.catalog-tree-all {
+  display: flex;
+  width: 100%;
+  margin-bottom: 0.2rem;
+}
+
+.catalog-tree-all:hover,
+.catalog-tree-name:hover {
+  background: var(--color-surface-alt);
+}
+
+.catalog-tree-name {
+  display: flex;
+}
+
+.catalog-tree-name > span:first-child {
+  overflow-wrap: anywhere;
+}
+
+.catalog-tree-row.is-on .catalog-tree-name,
+.catalog-tree-all.is-on {
+  background: var(--tone-teal-bg);
+  color: var(--tone-teal-fg);
+  font-weight: 700;
+}
+
+.catalog-tree-caret {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 1.25rem;
+  height: 1.5rem;
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--color-muted);
+  cursor: pointer;
+}
+
+.catalog-tree-count {
+  flex: none;
+  color: var(--color-muted);
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+  font-weight: 400;
+}
+
+.catalog-tree-row.is-on .catalog-tree-count,
+.catalog-tree-all.is-on .catalog-tree-count {
+  color: inherit;
+}
+
+.catalog-uncategorized {
+  justify-content: space-between;
+  margin: 0.3rem 0 0;
+  padding: 0.3rem 0.45rem 0.3rem 1.7rem;
+  color: var(--color-muted);
+}
+
+/* ---- The search and the quick filters, in one card ---- */
+.catalog-toolbar.card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  padding: 0.75rem 0.9rem;
+}
+
+.catalog-search {
+  position: relative;
+  max-width: 34rem;
+}
+
+.catalog-search input {
+  width: 100%;
+  box-sizing: border-box;
+  padding-right: 2rem;
+  font: inherit;
+}
+
+.catalog-search-clear {
+  position: absolute;
+  top: 50%;
+  right: 0.4rem;
+  padding: 0.25rem 0.4rem;
+  transform: translateY(-50%);
+  border: none;
+  background: none;
+  color: var(--color-muted);
+  cursor: pointer;
+}
+
+.catalog-filter-count {
+  margin-left: 0.4rem;
+  font-variant-numeric: tabular-nums;
+  font-weight: 400;
+}
+
+/* ---- The list: two lines to a row ---- */
+.catalog-table td {
+  padding: 0.35rem 0.75rem;
+  vertical-align: middle;
+}
+
+.catalog-table tbody tr:last-child > td {
+  border-bottom: none;
+}
+
+.catalog-table tr.is-open > td {
+  border-bottom-color: transparent;
+}
+
+.catalog-offer {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  min-width: 0;
+}
+
+.catalog-thumb {
+  flex: none;
+  width: 40px;
+  height: 40px;
+  border-radius: 6px;
+  background: var(--color-surface-alt);
+  object-fit: cover;
+}
+
+.catalog-text {
+  min-width: 0;
+  white-space: normal;
+}
+
+.catalog-name {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.1rem 0.5rem;
+  font-weight: 600;
+}
+
+.catalog-table .cell-sub,
+.catalog-detail .cell-sub {
+  display: block;
+  color: var(--color-muted);
+  font-size: 0.75rem;
+  line-height: 1.25;
+}
+
+.catalog-price {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
+.catalog-sort {
+  padding: 0;
+  border: none;
+  background: none;
+  color: inherit;
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  cursor: pointer;
+}
+
+.catalog-erli {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.catalog-toggle {
+  width: 1%;
+  text-align: right;
+}
+
+.catalog-toggle button {
+  padding: 0.1rem 0.45rem;
+  border: none;
+  background: none;
+  color: var(--color-muted);
+  cursor: pointer;
+}
+
+/* a chip says it in words as well as in colour */
+.catalog-chip {
+  display: inline-block;
+  padding: 0.05rem 0.5rem;
+  border: 1px solid var(--color-divider);
+  border-radius: 999px;
+  background: var(--color-surface-alt);
+  color: var(--color-muted-strong);
+  font-size: 0.72rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.catalog-chip-green {
+  background: var(--tone-green-bg);
+  border-color: color-mix(in srgb, var(--tone-green-fg) 25%, var(--tone-green-bg));
+  color: var(--tone-green-fg);
+}
+
+.catalog-chip-amber {
+  background: var(--tone-amber-bg);
+  border-color: color-mix(in srgb, var(--tone-amber-fg) 25%, var(--tone-amber-bg));
+  color: var(--tone-amber-fg);
+}
+
+.catalog-chip-red {
+  background: var(--tone-red-bg);
+  border-color: color-mix(in srgb, var(--tone-red-fg) 25%, var(--tone-red-bg));
+  color: var(--tone-red-fg);
+}
+
+.catalog-detail dd .catalog-chip {
+  margin-left: 0.5rem;
+}
+
+/* ---- A row opened: the pictures, the offer, the Erli product ---- */
+.catalog-detail-row > td {
+  padding: 0;
+  background: var(--color-surface-alt);
+  white-space: normal;
+}
+
+.catalog-detail {
+  display: grid;
+  grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr) minmax(0, 1.1fr);
+  gap: 1.25rem;
+  padding: 0.75rem 1rem 1rem;
+}
+
+.catalog-detail-block h3 {
+  margin: 0 0 0.5rem;
+}
+
+.catalog-detail-block p {
+  margin: 0;
+}
+
+.catalog-detail dl {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: 0.4rem 0.9rem;
+  margin: 0;
+}
+
+.catalog-detail dt {
+  padding-top: 0.15rem;
+  color: var(--color-muted-strong);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.catalog-detail dd {
+  margin: 0;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.catalog-pictures {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.7rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.catalog-pictures li {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  width: 7rem;
+}
+
+.catalog-picture {
+  display: block;
+  width: 7rem;
+  height: 7rem;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-bg);
+  object-fit: cover;
+}
+
+.catalog-footnote {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 1.25rem;
+  color: var(--color-muted);
+  font-size: 0.8rem;
+}
+
+@media (max-width: 1100px) {
+  .catalog-detail {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .catalog-body {
+    padding: 0.25rem 1rem 1rem;
+  }
+
+  .catalog-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .catalog-categories.card {
+    position: static;
+    max-height: 16rem;
+  }
+}

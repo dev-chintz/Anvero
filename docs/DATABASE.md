@@ -22,8 +22,8 @@ Migrations currently create `users`, `user_permissions`, `orders`, `order_items`
 `order_addresses`, `order_shipments`, `billing_entries`,
 `order_status_history`, `integration_credentials`, `message_threads`,
 `messages`, `after_sales_cases`, `payouts`, `order_item_packing`,
-`app_updates`, `order_payments`, `payment_operations`, `product_settings` and
-`non_invoiced_ledger`.
+`app_updates`, `order_payments`, `payment_operations`, `product_settings`,
+`non_invoiced_ledger`, `catalog_items`, `catalog_images` and `catalog_listings`.
 `integration` and `customer` are still targets.
 
 `orders` deviates from the target shape while there are no integrations to
@@ -218,6 +218,32 @@ import's own auto-follow go through. Never sent to a marketplace.
 
 `sales_report_overrides` (added by `a2f4c8e1b937`) was dropped by `c6e1a9d4f028` (2026-10-01,
 empty), with the report it served (`NON_INVOICED_SALES.md`, stage 8).
+
+`catalog_items`, `catalog_images` and `catalog_listings` (added by `d5f2a8c1e947`): the assortment
+(`CATALOG.md`). Allegro is where the assortment lives, so `catalog_items` is one Allegro offer:
+`(source, offer_id)` unique together (`source` is always `ALLEGRO`; `offer_id` as `order_items.offer_id`
+holds it), `name`, `sku` (Allegro's external id; indexed), `price`, `currency`, `stock`, `status`
+(`ACTIVE`, `INACTIVE`, `ACTIVATING`), `category_id` (the leaf), `category_path` (JSON, a list of
+`{"id", "name"}` from the top, the leaf last) and `category_ids` (the same ids as `|1|23|456|`, indexed, so
+"everything under 23" is one `LIKE` on any database), `last_seen_at`, `gone_at` (indexed; set when a sync no
+longer finds the offer, cleared if it comes back; the row and its pictures are kept), `created_at`,
+`updated_at`. Never edited in Anvero.
+
+`catalog_images`: one picture of an offer, `item_id` (`CASCADE`), `position` (the offer's order; unique with
+`item_id`; the first is the cover), `url` (the address on Allegro, always kept), and the copy on this
+server: `file_name` (`<sha256 of the bytes>.<jpg|png|webp|gif>`, the file under `CATALOG_IMAGES_DIR`; null
+until downloaded; the same picture of two offers is one file), `content_type`, `byte_size`, `fetched_at`,
+`fetch_error` (why the last download failed; cleared by the next that succeeds). A changed address on
+Allegro clears the copy's columns.
+
+`catalog_listings`: the same product on Erli, `item_id` (`CASCADE`), `source` (`ERLI`; unique with `item_id`),
+`external_id` (Erli's `externalId`, as `order_items.offer_id` holds it for Erli), `matched_by`
+(`EXTERNAL_REFERENCE`, `EXTERNAL_ID` or `SKU`), `price`, `currency`, `stock`, `status` (`ACTIVE`, `INACTIVE`,
+`ARCHIVED`), `category_path` (Erli's own, as above), `category_match` (`SAME`, `DIFFERENT`, `UNKNOWN`),
+`seen_at`. Replaced by every sync that reads Erli; a product Erli no longer has loses its row.
+
+How the last sync went is the `catalog_sync` row of `app_settings` (JSON: `at`, `error`, `items`,
+`erli_error`, `erli_unmatched`).
 
 `message_threads` and `messages`: one buyer-seller conversation each, and its
 messages, read from a marketplace's Message Center (plan B2, `INTEGRATIONS.md`,

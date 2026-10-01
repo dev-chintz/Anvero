@@ -2311,3 +2311,19 @@ row's override note is erased with the buyer, as it may name them. Not yet run o
 
 **Consequences:** A machine updated past `c6e1a9d4f028` has no `sales_report_overrides`; going back below it recreates the table empty. Decisions on sales are made on the ledger's rows, with a written reason.
 
+## 2026-10-01 — The assortment
+
+**Decision (owner: the whole assortment that is in our Allegro offer, as a new menu entry, to begin with variant A, read only, categories from Allegro and from Erli where they differ):** "Asortyment" (`/catalog`) is a new page and `docs/CATALOG.md` its design.
+
+- **Allegro is the assortment; Erli is checked against it.** Erli's offers are copies of Allegro's, so the offers are read from Allegro only; Erli's products are read to say whether each offer is on Erli and whether the category is the same, and the page shows the category in both.
+- **Kept in three tables** (`catalog_items`, `catalog_images`, `catalog_listings`, migration `d5f2a8c1e947`), not read live from Allegro on every view: the page is fast, filters and counts are plain queries, and orders can later refer to a product. An offer Allegro stops listing is marked gone, not deleted.
+- **Pictures: Allegro's address and a copy on the NAS, both kept.** The copy is downloaded once and stored as its own hash (`<sha256>.<ext>`), so the same picture is one file and a changed one a new file; the page shows the copy and falls back to Allegro's address. A download takes only https addresses on Allegro's or Erli's own hosts, follows no redirect, accepts at most 15 MB, and takes the kind of picture from its bytes, not from what the server says.
+- **The pictures are served without a login** (`GET /catalog/images/{name}`), the one such endpoint besides `/health`: an `<img>` cannot send the bearer token, the name is the hash, the pictures are public on Allegro, and only names of that exact form are served. Everything else needs a login.
+- **Permission is the `orders` area**, not a new one: whoever works the orders works from the assortment's pictures and stock, and a new area would need a migration, a column in the Users tab and a decision on who has it. `POST /catalog/sync` needs `manage`.
+- **Read by the schedule at its own pace.** The job looks at the clock as often as the imports do but reads only every `CATALOG_SYNC_HOURS` (6); a failed run counts as a run. It shares the import lock, as any use of the rotating Allegro token must, so for the minute or so a sync takes (one request per offer for its pictures) an order import waits for the next turn.
+- **Erli is tied to the offer by, in order:** the Allegro offer the product names in `externalReferences`, its `externalId` being the offer's id, the same SKU (only when no two offers share it). The category compare is by the leaf's name, since the two trees share no ids.
+- **The page is variant A of the mockups:** a compact list (two lines to a row) with the category tree beside it, a row opening to all the pictures and the Erli product. Quick filters name what is missing (no picture, no SKU, not on Erli, another category on Erli).
+
+**Rationale:** The owner wants the full range in one place, with pictures that do not depend on Allegro's servers, and to see at a glance where Erli differs. Reading only keeps it safe: no write to a marketplace exists yet, and the first run on the real accounts shows what the two APIs really send.
+
+**Consequences:** Never run against the real Allegro or Erli (`PROJECT_STATUS.md`). The backend container needs a mounted folder for the pictures or an update from Settings throws them away (`DEPLOYMENT.md`, "The assortment's pictures"). The application may lack the scope `allegro:api:sale:offers:read`: the first sync then fails with a refusal the page shows, and the account is connected again in Settings. `.catalog-filters` joined the shared pill rule in `theme.css`.
