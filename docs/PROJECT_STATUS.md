@@ -100,6 +100,27 @@ re-imported. Production needs its own application and authorization; see
 
 ## Not yet verified
 
+**The assortment's first read on the real Allegro and Erli (2026-10-03, `CATALOG.md`).** Run on the NAS (`90fcafe`) with
+the pictures folder mounted. Seen: the scope `allegro:api:sale:offers:read` is carried; 2944 offers read (2951 later in
+the day, new ones arriving), all active, 2885 under "Kolekcje i sztuka"; Erli 2530 products tied to an offer, 68 without
+one (one offer seen tied "po takim samym SKU", with Allegro's price and stock); the categories as pills work on the
+real tree. The pictures arrive in runs of 400 (`CATALOG_IMAGES_PER_RUN`), the schedule starting the next about a
+quarter of an hour after the last ended (runs at 16:16, 16:42, 17:05, 17:26 UTC; about 22 minutes apart); no warning or
+error in the log. After 4 runs: 1194 files, 1.8 GB (about 1.5 MB each; files are named by hash, so a picture shared by
+offers is one file, which is why 1600 fetched pictures are fewer files), "pending" 19301 to 18137, 2000 of 19743
+stored by 19:49 CEST. The disk has 598 GB free, so some 20 to 30 GB is no concern. The mount needed `chown 1000
+catalog-images` again after Container Station's "Create again" deleted the folder (`DEPLOYMENT.md`). Not yet seen: the
+end of the download (at this pace some 16 hours from 19:50 CEST); that the 6 pictures by which "pending" fell short of
+400 in the last run (394, no new offers) are not failures; that the pictures survive an update from Settings (the
+button itself has still not been clicked, and `catalog-images` is mounted by its absolute path because the updater
+runs `docker compose` in its own container, which is reasoning, not seen); the thumbnails of an offer whose pictures
+were still waiting showed empty frames labelled "kopia na tym serwerze" (a copy on this server), not looked at again
+after the download; and the stock figures (555333, 45451 pieces on some offers), which may well be the owner's. **"Different
+category" on Erli is set on 2433 of 2530 tied offers**: the one offer looked at was a real difference (Decoupage
+under Allegro, Scrapbooking under Erli), but the two have their own trees, so the flag may be nearly always on and say
+little: the owner to say whether it should stay. Sales, costs and margin were not looked at (no cost entered, 0 sold
+in 30 days on the offers seen).
+
 The assortment's categories as pills above the list (2026-10-02, `DECISIONS.md`): tested (`CatalogPage.test.tsx`: the
 drill-down, stepping back up, the way marked from an address, the chosen pill brought into view) and seen in headless
 Chrome on the guide's scratch database, with an invented tree of the owner's shape (five top categories, one with 32
@@ -175,7 +196,7 @@ SQLite on that machine; not run on PostgreSQL.
 The assortment (2026-10-01, `CATALOG.md`): built from Allegro's and Erli's published descriptions, tested against fakes (161 backend and 61 frontend tests), and seen in a browser on a scratch database with made-up offers and pictures, in both looks and modes; the backend tests ran on SQLite only (the main machine's PostgreSQL run of the suite is still to do); never read from the real services. To check on the first sync (the button on the page, on a machine with the real Allegro connection, after `alembic upgrade head`): that the application has the scope `allegro:api:sale:offers:read` (a refusal is shown on the page); that the offers and their pictures arrive and the pictures are stored; how many of Erli's products are tied to an offer and by what (`EXTERNAL_REFERENCE`, `EXTERNAL_ID`, `SKU`) or not at all, and whether the "different category" ones are real differences. The cost of making a piece and the margin (2026-10-01): tested (backend and page), and used in a browser on a scratch
 database (a cost typed in, kept, the margin worked out again, an invalid one refused, Enter going on to the next
 field); the costs themselves are the owner's to enter, and the margin is only as good as they are. After pulling this, run
-`alembic upgrade head` (migration `e8c3b7f1a926`). What each offer sold and what is left after the fees (2026-10-01) is the Finance page's arithmetic, tested, and seen in a browser on made-up orders (the figures checked by hand); not yet compared with the real orders: pick one product and check its pieces and its fees against the order page and Finance. An Erli offer shows Erli sales only once the Erli product is tied to it. How long a first read takes is not known (the first attempt, as one request, outlasted the proxy's 300 seconds; it now runs in the background with a progress bar, seen in a browser with a made-up state, never over a real read). On the NAS the backend still needs the mounted folder for the pictures (`DEPLOYMENT.md`, "The assortment's pictures").
+`alembic upgrade head` (migration `e8c3b7f1a926`). What each offer sold and what is left after the fees (2026-10-01) is the Finance page's arithmetic, tested, and seen in a browser on made-up orders (the figures checked by hand); not yet compared with the real orders: pick one product and check its pieces and its fees against the order page and Finance. An Erli offer shows Erli sales only once the Erli product is tied to it. How long a first read takes is not known (the first attempt, as one request, outlasted the proxy's 300 seconds; it now runs in the background with a progress bar, seen in a browser with a made-up state, never over a real read). The mounted folder for the pictures is set up on the NAS since 2026-10-03 (`DEPLOYMENT.md`, "The assortment's pictures").
 
 The non-invoiced record's reports, exports and screen (2026-10-01, stages 4 and
 5 of `NON_INVOICED_SALES.md`): tested, and seen in a browser on a scratch

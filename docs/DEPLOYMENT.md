@@ -154,8 +154,21 @@ but it is a few thousand downloads for nothing. So, once:
 1. On the NAS, make a folder for them beside the application's other files (say `catalog-images`) and give it to
    the backend's user, which is `1000`: `chown 1000 catalog-images` (File Station cannot set an owner; SSH can).
 2. In the application's `docker-compose.yml` on the NAS (not the copy in Git, which is a template), add under
-   the `backend` service the line `volumes: [ "./catalog-images:/app/data/catalog_images" ]` (the template in
-   `deploy/docker-compose.yml` shows where), then recreate the application.
+   the `backend` service a `volumes:` entry with the folder's **absolute** path, say
+   `/share/CACHEDEV1_DATA/Kopie/container-station-data/application/anvero/catalog-images:/app/data/catalog_images`
+   (the template in `deploy/docker-compose.yml` shows where), then recreate the application. Not `./catalog-images`:
+   the update button runs `docker compose` inside the updater container, where `./` is `/project`, and the Docker
+   daemon would read that as a path on the NAS (an empty folder owned by root, unwritable by the backend). This is
+   reasoning from how Docker resolves bind paths; the update button has not been run with the mount yet
+   (`PROJECT_STATUS.md`).
+3. Check: `docker exec <backend container> sh -c 'touch /app/data/catalog_images/.test && rm /app/data/catalog_images/.test && echo OK'`
+   prints `OK`. Container Station's "Create again" (the application's list, YAML editor) deletes the application's
+   folder, `catalog-images` with it, and Docker then makes it again owned by root: run `chown 1000 catalog-images` once
+   more afterwards (this happened on 2026-10-03). Updating through Settings or `docker compose up -d` does not do this.
+
+The first full read on the real account (2026-10-03) stored about 1.5 MB per picture, 1.8 GB for the first 1194
+files; with some 20 000 pictures, some of them shared, expect tens of GB. The files are named by their hash, so a
+picture used by several offers is one file.
 
 If the folder cannot be written the sync still reads the offers and says "The pictures folder is not writable"
 instead of failing; the pictures then show from Allegro's addresses. The folder is not in the database dump; a

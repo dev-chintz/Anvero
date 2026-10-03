@@ -2420,3 +2420,11 @@ row's override note is erased with the buyer, as it may name them. Not yet run o
 **Rationale:** The tree took 232 px (13.5 rem and a gap) from a list whose Erli column then went out of sight on a laptop screen, and on a narrower one it moved above the list in a card of its own that scrolled. The pills are what the page's other filters already look like and need no new look.
 
 **Consequences:** Choosing a category with many subcategories makes the toolbar taller (up to about 150 px more), and the list starts that much lower. The guide's text and its screenshot of the page are changed (`GUIDE.md`). Seen on a scratch database with an invented tree of the owner's shape (five top categories, one with 32 below it and some three levels deep), in both looks, in dark mode, at 1440 px and at a phone's width (`PROJECT_STATUS.md`); not yet on the real catalog.
+
+## 2026-10-03 — The pictures folder is mounted by its absolute path
+
+**Decision:** In the NAS's `docker-compose.yml` (and the template in `deploy/docker-compose.yml`) the assortment's pictures folder is mounted as `/share/CACHEDEV1_DATA/Kopie/container-station-data/application/anvero/catalog-images:/app/data/catalog_images`, not `./catalog-images`.
+
+**Rationale:** The update button has the updater container run `docker compose -f /project/docker-compose.yml up -d`. A relative bind path is resolved against the compose file's directory as the updater sees it, `/project`, and handed to the Docker daemon, which reads it as a path on the NAS: it would make an empty folder owned by root there and the backend would write to it, or fail, instead of to the real one. An absolute path means the same thing to Container Station and to the updater.
+
+**Consequences:** This is reasoning from how Docker resolves bind paths, not something seen: the update button has not been clicked with the mount in place, and the first update from Settings is the test (`PROJECT_STATUS.md`). The same applies to any later bind mount in that file. Container Station's "Create again" deletes the application's folder, the pictures with it, and Docker recreates the mount point owned by root: `chown 1000 catalog-images` again (`DEPLOYMENT.md`).

@@ -158,8 +158,9 @@ database dump: a lost folder costs a download, not data, and the next sync notic
 
 ## Next, when asked
 
-1. Run the first sync on the real account and look at what Allegro and Erli really send (the checks under
-   "Not yet verified").
+1. ~~Run the first sync on the real account~~ done 2026-10-03; what it showed and what is left to check are under
+   "Not yet verified" in `PROJECT_STATUS.md`. Still to settle with the owner: whether "different category" on
+   Erli, set on 2433 of 2530 tied offers (the two marketplaces have their own category trees), should stay as it is.
 2. Show the assortment in the order (the offer an item belongs to) and use the local copy for the order
    list's thumbnails.
 3. Own groups beside the marketplaces' categories, if the owner wants them.

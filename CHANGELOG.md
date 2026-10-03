@@ -4,6 +4,17 @@ All significant changes to the Anvero project.
 
 ---
 
+## 2026-10-03
+
+### 🖼️ The assortment read for real, and its pictures kept on the NAS
+
+- The first read of the real Allegro and Erli accounts: 2944 offers, 2530 tied to an Erli product, the pictures
+  downloaded in runs of 400 to a folder mounted from the NAS and continued by the schedule. What was seen and what
+  is left is in `docs/PROJECT_STATUS.md`.
+- The compose template and `docs/DEPLOYMENT.md` now mount the pictures folder by its absolute path (the update button
+  runs `docker compose` inside the updater container, where `./` is not the application's folder), and say that
+  Container Station's "Create again" deletes the folder and the `chown 1000` has to be repeated.
+
 ## 2026-10-02
 
 ### 🗂️ The assortment's categories above the list
